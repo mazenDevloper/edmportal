@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
@@ -8,43 +8,29 @@ import * as Tone from 'tone';
 import gsap from 'gsap';
 import { createRoot, type Root } from 'react-dom/client';
 
-import type { SpatialWindow, WindowContent, Vec3 } from '@/lib/types';
 import { getAISuggestions } from '@/lib/actions';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
+import { useOSStore } from '@/lib/os-store';
 
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { GlassPlusIcon, GlassSparklesIcon, GlassXIcon } from './icons';
+import { GlassInfoIcon, GlassMusicIcon, GlassSparklesIcon } from './icons';
 import { WelcomeContent, MusicPlayerContent, AIHelperContent } from './window-contents';
 import { Skeleton } from './ui/skeleton';
+import SpatialWindow from './spatial-window';
+import Skybox from './skybox';
+import Lighting from './lighting';
 
-const windowContents: WindowContent[] = [
+
+const windowContents = [
   { id: 'welcome', title: 'Welcome', component: WelcomeContent, summary: 'A welcome screen with instructions.', defaultSize: { width: 500, height: 350 } },
   { id: 'music', title: 'Music Player', component: MusicPlayerContent, summary: 'A music player widget.', defaultSize: { width: 300, height: 200 } },
   { id: 'ai-helper', title: 'AI Assistant', component: AIHelperContent, summary: 'An interface to the AI spatial layout assistant.', defaultSize: { width: 400, height: 300 } },
 ];
 
-const GlassWindow = React.memo(({ title, children, onClose, onMouseDown, size }: { title: string; children: React.ReactNode, onClose: (e: React.MouseEvent) => void; onMouseDown: (e: React.MouseEvent) => void; size: { width: number, height: number } }) => {
-  return (
-    <div className="glass-window" style={{ width: `${size.width}px`, height: `${size.height}px` }}>
-      <div className="relative flex h-full flex-col">
-        <header onMouseDown={onMouseDown} className="glass-window-header flex items-center justify-between border-b border-accent/10 px-4 py-2">
-          <h3 className="font-medium text-white/80">{title}</h3>
-          <button onClick={onClose} className="z-10 rounded-full p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white" aria-label="Close Window">
-            <GlassXIcon wrapperClassName='bg-transparent hover:bg-white/10' className='size-4 text-white/70 hover:text-white' />
-          </button>
-        </header>
-        <div className="flex-grow overflow-hidden">{children}</div>
-      </div>
-    </div>
-  );
-});
-GlassWindow.displayName = 'GlassWindow';
-
 export default function ImmersionCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [windows, setWindows] = useState<SpatialWindow[]>([]);
+  const { windows, addWindow, removeWindow, updateWindowTransform, setWindows, isWindowOpen } = useOSStore();
   const [isReady, setIsReady] = useState(false);
   const { toast } = useToast();
 
@@ -59,7 +45,7 @@ export default function ImmersionCanvas() {
     draggedObject: { id: string; offset: THREE.Vector3 } | null;
     objects: Map<string, { cssObject: CSS3DObject; reactRoot: Root; audioPlayer?: Tone.Player; panner?: Tone.Panner3D }>;
   }>();
-
+  
   const handleRunAI = useCallback(async (taskDescription: string) => {
     if (!sceneElements.current) return;
     toast({ title: "AI Assistant is thinking...", description: "Organizing your workspace based on your task." });
@@ -105,38 +91,28 @@ export default function ImmersionCanvas() {
     } catch (e) {
       toast({ variant: "destructive", title: "AI Assistant Error", description: (e as Error).message });
     }
-  }, [windows, toast]);
+  }, [windows, toast, setWindows]);
 
-  const addWindow = useCallback((contentId: string) => {
+  const handleAddWindow = useCallback((contentId: string) => {
     if (Tone.context.state !== 'running') {
       Tone.start();
     }
     const content = windowContents.find(c => c.id === contentId);
     if (!content) return;
 
-    if (contentId === 'ai-helper' && windows.some(w => w.contentId === 'ai-helper')) {
+    if (contentId === 'ai-helper' && isWindowOpen('ai-helper')) {
       toast({ title: "AI Assistant is already open." });
       return;
     }
 
-    const newWindow: SpatialWindow = {
-      id: `window_${Date.now()}`,
+    addWindow({
       contentId,
       position: { x: (Math.random() - 0.5) * 4, y: Math.random() * 2, z: -5 - Math.random() * 2 },
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
-    };
-    setWindows(prev => [...prev, newWindow]);
-  }, [windows, toast]);
-  
-  const removeWindow = useCallback((id: string) => {
-    setWindows(prev => prev.filter(w => w.id !== id));
-  }, []);
+    });
+  }, [addWindow, toast, isWindowOpen]);
 
-  const updateWindowTransform = useCallback((id: string, position: Vec3, rotation: Vec3) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, position, rotation } : w));
-  }, []);
-  
   // Three.js Initialization
   useEffect(() => {
     const container = containerRef.current;
@@ -166,7 +142,6 @@ export default function ImmersionCanvas() {
     controls.rotateSpeed = -0.5;
     
     const raycaster = new THREE.Raycaster();
-    raycaster.layers.set(1);
     
     sceneElements.current = {
       scene, camera, glRenderer, cssRenderer, controls, raycaster,
@@ -175,33 +150,14 @@ export default function ImmersionCanvas() {
       objects: new Map(),
     };
     
-    // 360 Background
-    const bgImage = PlaceHolderImages.find(img => img.id === '360-background');
-    if (bgImage) {
-      const textureLoader = new THREE.TextureLoader();
-      textureLoader.load(bgImage.imageUrl, (texture) => {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        const bgSphere = new THREE.Mesh(
-          new THREE.SphereGeometry(500, 60, 40),
-          new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide })
-        );
-        scene.add(bgSphere);
-        setIsReady(true);
-      });
-    } else {
-        setIsReady(true);
-    }
-
-    addWindow('welcome');
-    
     const onPointerDown = (event: PointerEvent) => {
       if (!sceneElements.current) return;
-      const { pointer, raycaster, camera, scene, objects } = sceneElements.current;
+      const { pointer, raycaster, camera, objects } = sceneElements.current;
       pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
       
       raycaster.setFromCamera(pointer, camera);
-      const intersects = raycaster.intersectObjects(scene.children, true);
+      const intersects = raycaster.intersectObjects(Array.from(objects.values()).map(o => o.cssObject), true);
       
       if (intersects.length > 0) {
         const obj = intersects[0].object;
@@ -251,7 +207,9 @@ export default function ImmersionCanvas() {
       const { id } = sceneElements.current.draggedObject;
       const cssObject = sceneElements.current.objects.get(id)?.cssObject;
       if (cssObject) {
-        updateWindowTransform(id, cssObject.position, cssObject.rotation);
+        const { x: posX, y: posY, z: posZ } = cssObject.position;
+        const { x: rotX, y: rotY, z: rotZ } = cssObject.rotation;
+        updateWindowTransform(id, {x: posX, y: posY, z: posZ}, {x: rotX, y: rotY, z: rotZ});
       }
       sceneElements.current.draggedObject = null;
       if(sceneElements.current.controls) sceneElements.current.controls.enabled = true;
@@ -311,13 +269,22 @@ export default function ImmersionCanvas() {
           obj.audioPlayer?.dispose();
           obj.panner?.dispose();
         });
-        container.removeChild(glRenderer.domElement);
-        container.removeChild(cssRenderer.domElement);
+        if (container) {
+          container.removeChild(glRenderer.domElement);
+          container.removeChild(cssRenderer.domElement);
+        }
       }
       sceneElements.current = undefined;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (isReady && windows.length === 0) {
+      handleAddWindow('welcome');
+    }
+  }, [isReady, windows.length, handleAddWindow]);
+
 
   // Sync React state to Three.js scene
   useEffect(() => {
@@ -349,7 +316,6 @@ export default function ImmersionCanvas() {
         
         cssObject.position.set(win.position.x, win.position.y, win.position.z);
         cssObject.rotation.set(win.rotation.x, win.rotation.y, win.rotation.z);
-        cssObject.layers.set(1);
         cssObject.userData.windowId = win.id;
         
         const onHeaderMouseDown = (e: React.MouseEvent) => {
@@ -361,9 +327,9 @@ export default function ImmersionCanvas() {
         const componentProps = win.contentId === 'ai-helper' ? { onRunAI: handleRunAI } : {};
 
         reactRoot.render(
-          <GlassWindow title={contentInfo.title} onClose={(e) => { e.stopPropagation(); removeWindow(win.id); }} onMouseDown={onHeaderMouseDown} size={contentInfo.defaultSize}>
+          <SpatialWindow title={contentInfo.title} onClose={(e) => { e.stopPropagation(); removeWindow(win.id); }} onMouseDown={onHeaderMouseDown} size={contentInfo.defaultSize}>
             <ContentComponent {...componentProps} />
-          </GlassWindow>
+          </SpatialWindow>
         );
 
         scene.add(cssObject);
@@ -392,9 +358,20 @@ export default function ImmersionCanvas() {
     });
   }, [windows, removeWindow, handleRunAI]);
   
+  const SceneSetup = () => {
+    const sceneRef = sceneElements.current?.scene;
+    return sceneRef ? (
+      <>
+        <Skybox scene={sceneRef} onReady={() => setIsReady(true)} />
+        <Lighting scene={sceneRef} />
+      </>
+    ) : null;
+  }
+  
   return (
     <>
       <div ref={containerRef} className="absolute inset-0" />
+      <SceneSetup />
       {!isReady && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">
@@ -409,7 +386,7 @@ export default function ImmersionCanvas() {
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => addWindow('welcome')}>
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => handleAddWindow('welcome')}>
                   <GlassInfoIcon />
                 </Button>
               </TooltipTrigger>
@@ -417,7 +394,7 @@ export default function ImmersionCanvas() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => addWindow('music')}>
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => handleAddWindow('music')}>
                   <GlassMusicIcon />
                 </Button>
               </TooltipTrigger>
@@ -425,7 +402,7 @@ export default function ImmersionCanvas() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => addWindow('ai-helper')}>
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => handleAddWindow('ai-helper')}>
                   <GlassSparklesIcon />
                 </Button>
               </TooltipTrigger>
