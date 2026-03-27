@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "360-background",
+      "description": "Abstract 360-degree background for the immersive environment",
+      "imageUrl": "https://picsum.photos/seed/env360/4096/2048",
+      "imageHint": "abstract space"
+    }
+  ]
 }
