@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
@@ -132,7 +133,7 @@ export default function ImmersionCanvas() {
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.z = 0.1;
 
-    const glRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const glRenderer = new THREE.WebGLRenderer({ antialias: true });
     glRenderer.setSize(width, height);
     glRenderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(glRenderer.domElement);
