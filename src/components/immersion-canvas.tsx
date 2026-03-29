@@ -32,6 +32,7 @@ export default function ImmersionCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { windows, addWindow, removeWindow, updateWindowTransform, setWindows, isWindowOpen } = useOSStore();
   const [isReady, setIsReady] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
   const sceneElements = useRef<{
@@ -45,6 +46,10 @@ export default function ImmersionCanvas() {
     draggedObject: { id: string; offset: THREE.Vector3 } | null;
     objects: Map<string, { cssObject: CSS3DObject; reactRoot: Root; audioPlayer?: Tone.Player; panner?: Tone.Panner3D }>;
   }>();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const handleRunAI = useCallback(async (taskDescription: string) => {
     if (!sceneElements.current) return;
@@ -115,6 +120,8 @@ export default function ImmersionCanvas() {
 
   // Three.js Initialization
   useEffect(() => {
+    if (!isClient) return;
+
     const container = containerRef.current;
     if (!container || sceneElements.current) return;
 
@@ -276,8 +283,7 @@ export default function ImmersionCanvas() {
       }
       sceneElements.current = undefined;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isClient, updateWindowTransform]);
 
   useEffect(() => {
     if (isReady && windows.length === 0) {
