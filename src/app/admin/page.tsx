@@ -12,10 +12,20 @@ import { Service, SiteConfig, NewsTicker } from '@/lib/types';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
-import { Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, CloudUpload, HelpCircle } from 'lucide-react';
+import { 
+  Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, 
+  CloudUpload, HelpCircle, Edit3, Image as ImageIcon, LayoutGrid 
+} from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -39,6 +49,7 @@ export default function AdminDashboard() {
   const [newsItems, setNewsItems] = useState<NewsTicker[]>([]);
 
   // Form State
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [newService, setNewService] = useState<Partial<Service>>({ 
     title: '', 
     titleEn: '', 
@@ -53,7 +64,6 @@ export default function AdminDashboard() {
   const [reqArInput, setReqArInput] = useState('');
   const [reqEnInput, setReqEnInput] = useState('');
   const [iconSearch, setIconSearch] = useState('');
-  const [newNews, setNewNews] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -92,20 +102,41 @@ export default function AdminDashboard() {
     }
   };
 
-  const addService = () => {
+  const saveService = () => {
     if (!newService.title || !newService.category) {
       toast({ title: isAr ? "خطأ" : "Error", description: isAr ? "يرجى إكمال البيانات الأساسية" : "Please fill basic info", variant: "destructive" });
       return;
     }
-    const service: Service = {
-      ...newService as Service,
-      id: `svc_${Date.now()}`,
-      isActive: true,
-      createdAt: new Date().toISOString()
-    };
-    setServices(prev => [service, ...prev]);
+
+    if (editingServiceId) {
+      setServices(prev => prev.map(s => s.id === editingServiceId ? { ...s, ...newService } as Service : s));
+      toast({ title: isAr ? "تم التعديل" : "Updated", description: isAr ? "تم تحديث بيانات الخدمة" : "Service updated" });
+      setEditingServiceId(null);
+    } else {
+      const service: Service = {
+        ...newService as Service,
+        id: `svc_${Date.now()}`,
+        isActive: true,
+        createdAt: new Date().toISOString()
+      };
+      setServices(prev => [service, ...prev]);
+      toast({ title: isAr ? "تمت الإضافة" : "Added", description: isAr ? "تمت إضافة الخدمة للقائمة" : "Service added to queue" });
+    }
+
+    resetServiceForm();
+  };
+
+  const resetServiceForm = () => {
     setNewService({ title: '', titleEn: '', description: '', iconName: 'LayoutGrid', category: 'building', fees: '0 OMR', reqsAr: [], reqsEn: [] });
-    toast({ title: isAr ? "تمت الإضافة" : "Added", description: isAr ? "اضغط على حفظ للمزامنة" : "Press Save to sync" });
+    setEditingServiceId(null);
+    setReqArInput('');
+    setReqEnInput('');
+  };
+
+  const startEditService = (service: Service) => {
+    setNewService(service);
+    setEditingServiceId(service.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const deleteService = (id: string) => {
@@ -113,26 +144,10 @@ export default function AdminDashboard() {
     toast({ title: isAr ? "تم الحذف" : "Deleted" });
   };
 
-  const addNews = () => {
-    if (!newNews) return;
-    const news: NewsTicker = {
-      id: `news_${Date.now()}`,
-      text: newNews,
-      isActive: true,
-      createdAt: new Date().toISOString()
-    };
-    setNewsItems(prev => [news, ...prev]);
-    setNewNews('');
-  };
-
-  const deleteNews = (id: string) => {
-    setNewsItems(prev => prev.filter(n => n.id !== id));
-  };
-
   const lucideIconNames = Object.keys(Icons).filter(key => typeof (Icons as any)[key] === 'function' || typeof (Icons as any)[key] === 'object');
   const filteredIcons = useMemo(() => {
-    if (!iconSearch) return lucideIconNames.slice(0, 48);
-    return lucideIconNames.filter(name => name.toLowerCase().includes(iconSearch.toLowerCase())).slice(0, 48);
+    if (!iconSearch) return lucideIconNames.slice(0, 100);
+    return lucideIconNames.filter(name => name.toLowerCase().includes(iconSearch.toLowerCase())).slice(0, 100);
   }, [iconSearch, lucideIconNames]);
 
   if (loading) {
@@ -177,7 +192,9 @@ export default function AdminDashboard() {
             <div className="grid lg:grid-cols-3 gap-8">
               <Card className="lg:col-span-1 h-fit rounded-brand shadow-lg border-none">
                 <CardHeader className="border-b bg-slate-50/50">
-                  <CardTitle className="font-black text-primary text-lg">{isAr ? "إضافة خدمة جديدة" : "Add New Service"}</CardTitle>
+                  <CardTitle className="font-black text-primary text-lg">
+                    {editingServiceId ? (isAr ? "تعديل الخدمة" : "Edit Service") : (isAr ? "إضافة خدمة جديدة" : "Add New Service")}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   <div className="space-y-4">
@@ -209,32 +226,62 @@ export default function AdminDashboard() {
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                      <Input 
-                        placeholder={isAr ? "ابحث عن أيقونة..." : "Search icon..."} 
-                        value={iconSearch} 
-                        onChange={e => setIconSearch(e.target.value)} 
-                        className="pl-10 rounded-xl"
-                      />
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="flex-1 rounded-xl h-12 gap-2">
+                             <Search size={16} /> {isAr ? "اختر من المكتبة" : "Select from Library"}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>{isAr ? "مكتبة الأيقونات" : "Icon Library"}</DialogTitle>
+                            <div className="relative mt-4">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                              <Input 
+                                placeholder={isAr ? "ابحث عن أيقونة..." : "Search icon..."} 
+                                value={iconSearch} 
+                                onChange={e => setIconSearch(e.target.value)} 
+                                className="pl-10 rounded-xl"
+                              />
+                            </div>
+                          </DialogHeader>
+                          <div className="grid grid-cols-6 sm:grid-cols-8 gap-3 p-4">
+                            {filteredIcons.map(name => {
+                              const Icon = (Icons as any)[name] || HelpCircle;
+                              return (
+                                <button
+                                  key={name}
+                                  type="button"
+                                  onClick={() => {
+                                    setNewService({...newService, iconName: name});
+                                    setIconSearch('');
+                                  }}
+                                  className={cn(
+                                    "p-3 rounded-xl transition-all border flex items-center justify-center",
+                                    newService.iconName === name ? "bg-primary text-white border-primary shadow-lg scale-110" : "bg-white text-slate-500 border-slate-100 hover:border-accent"
+                                  )}
+                                  title={name}
+                                >
+                                  <Icon size={24} />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-3 max-h-32 overflow-y-auto p-2 border rounded-xl bg-slate-50/50">
-                      {filteredIcons.map(name => {
-                        const Icon = (Icons as any)[name] || HelpCircle;
-                        return (
-                          <button
-                            key={name}
-                            type="button"
-                            onClick={() => setNewService({...newService, iconName: name})}
-                            className={cn(
-                              "p-2 rounded-lg transition-all border",
-                              newService.iconName === name ? "bg-primary text-white border-primary shadow-md" : "bg-white text-slate-500 border-slate-100 hover:border-accent"
-                            )}
-                          >
-                            <Icon size={18} />
-                          </button>
-                        );
-                      })}
+                    <div className="flex items-center gap-3 p-4 border rounded-xl bg-slate-50/50 mt-2">
+                      {newService.iconName ? (
+                        <>
+                          <div className="bg-primary/10 p-2 rounded-lg text-primary">
+                            {React.createElement((Icons as any)[newService.iconName || 'HelpCircle'] || HelpCircle, { size: 24 })}
+                          </div>
+                          <span className="text-xs font-bold text-slate-600">{newService.iconName}</span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">{isAr ? "لم يتم اختيار أيقونة" : "No icon selected"}</span>
+                      )}
                     </div>
                   </div>
 
@@ -271,9 +318,16 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   
-                  <Button onClick={addService} className="w-full bg-slate-900 text-white rounded-full py-7 font-black h-auto text-lg shadow-lg">
-                    <Save className="ml-2" /> {isAr ? "اعتماد الخدمة مؤقتاً" : "Stage Service"}
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button onClick={saveService} className="flex-1 bg-slate-900 text-white rounded-full py-7 font-black h-auto text-lg shadow-lg">
+                      <Save className="ml-2" /> {editingServiceId ? (isAr ? "حفظ التعديلات" : "Update") : (isAr ? "اعتماد الخدمة" : "Stage")}
+                    </Button>
+                    {editingServiceId && (
+                      <Button onClick={resetServiceForm} variant="outline" className="rounded-full h-auto px-6 border-slate-200">
+                        <X />
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -290,12 +344,15 @@ export default function AdminDashboard() {
                       const Icon = (Icons as any)[service.iconName] || Icons.HelpCircle;
                       const catInfo = CAT_CONFIG[service.category as CategoryId];
                       return (
-                        <div key={service.id} className="p-5 border rounded-2xl bg-white shadow-sm group hover:border-accent transition-all">
+                        <div key={service.id} className="p-5 border rounded-2xl bg-white shadow-sm group hover:border-accent transition-all relative">
                           <div className="flex items-start justify-between mb-4">
                              <div className="bg-primary/5 p-3 rounded-2xl text-primary"><Icon className="h-6 w-6" /></div>
-                             <Button variant="ghost" size="icon" className="text-red-500 rounded-full" onClick={() => deleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
+                             <div className="flex gap-1">
+                               <Button variant="ghost" size="icon" className="text-blue-500 rounded-full hover:bg-blue-50" onClick={() => startEditService(service)}><Edit3 className="h-4 w-4" /></Button>
+                               <Button variant="ghost" size="icon" className="text-red-500 rounded-full hover:bg-red-50" onClick={() => deleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
+                             </div>
                           </div>
-                          <p className="font-black text-primary mb-2 text-lg leading-tight">{service.title}</p>
+                          <p className="font-black text-primary mb-2 text-lg leading-tight">{isAr ? service.title : (service.titleEn || service.title)}</p>
                           <div className="flex flex-wrap gap-2">
                              <span className={cn("text-[9px] font-black px-3 py-1 rounded-full border", catInfo?.color)}>{isAr ? catInfo?.labelAr : catInfo?.labelEn}</span>
                              <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100">{service.fees}</span>
@@ -323,7 +380,7 @@ export default function AdminDashboard() {
                     <Textarea value={siteConfig.heroSubtitle} onChange={e => setSiteConfig({...siteConfig, heroSubtitle: e.target.value})} className="rounded-xl font-bold" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    {Object.keys(siteConfig.stats || {}).map((key) => (
+                    {siteConfig.stats && Object.keys(siteConfig.stats).map((key) => (
                       <div key={key} className="space-y-2">
                         <label className="text-[10px] font-black text-slate-500 uppercase">{key}</label>
                         <Input 
@@ -362,14 +419,18 @@ export default function AdminDashboard() {
                 <CardHeader><CardTitle className="font-black text-primary flex items-center gap-2"><Megaphone className="text-secondary" /> {isAr ? "الأخبار العاجلة" : "Breaking News"}</CardTitle></CardHeader>
                 <CardContent className="space-y-8 p-8">
                    <div className="flex gap-4">
-                      <Textarea placeholder={isAr ? "اكتب الخبر العاجل هنا..." : "Type breaking news..."} value={newNews} onChange={e => setNewNews(e.target.value)} className="rounded-2xl flex-1 font-bold shadow-inner" />
-                      <Button onClick={addNews} className="bg-secondary rounded-2xl px-10 font-black text-white h-auto shadow-lg hover:scale-105 transition-all">{isAr ? "نشر" : "Publish"}</Button>
+                      <Textarea placeholder={isAr ? "اكتب الخبر العاجل هنا..." : "Type breaking news..."} value={newService.description || ''} onChange={e => setNewService({...newService, description: e.target.value})} className="rounded-2xl flex-1 font-bold shadow-inner" />
+                      <Button onClick={() => {
+                        const news: NewsTicker = { id: `news_${Date.now()}`, text: newService.description || '', isActive: true, createdAt: new Date().toISOString() };
+                        setNewsItems(prev => [news, ...prev]);
+                        setNewService({...newService, description: ''});
+                      }} className="bg-secondary rounded-2xl px-10 font-black text-white h-auto shadow-lg hover:scale-105 transition-all">{isAr ? "نشر" : "Publish"}</Button>
                    </div>
                    <div className="grid gap-4">
                       {newsItems.map(item => (
                         <div key={item.id} className="flex items-center justify-between p-5 border rounded-2xl bg-white shadow-sm">
                            <p className="text-sm font-black text-slate-700">{item.text}</p>
-                           <Button variant="ghost" size="icon" className="text-red-500 rounded-full" onClick={() => deleteNews(item.id)}><Trash2 size={18} /></Button>
+                           <Button variant="ghost" size="icon" className="text-red-500 rounded-full" onClick={() => setNewsItems(prev => prev.filter(n => n.id !== item.id))}><Trash2 size={18} /></Button>
                         </div>
                       ))}
                    </div>
@@ -381,3 +442,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

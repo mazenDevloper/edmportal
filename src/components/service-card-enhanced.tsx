@@ -39,7 +39,7 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
             </span>
           </div>
           <p className="text-[10px] text-slate-500 font-medium mt-3 line-clamp-2">
-            {service.description}
+            {isAr ? service.description : (service.descriptionEn || service.description)}
           </p>
         </div>
 
@@ -56,11 +56,15 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
             <span className="text-white font-black text-xs">{isAr ? "المتطلبات" : "Requirements"}</span>
           </div>
           <ul className="space-y-2">
-            {(isAr ? service.reqsAr : service.reqsEn)?.map((req, idx) => (
-              <li key={idx} className="text-slate-300 text-[10px] flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-secondary" /> {req}
-              </li>
-            )) || <li className="text-slate-500 italic text-[10px]">لا توجد متطلبات خاصة</li>}
+            {(isAr ? service.reqsAr : service.reqsEn)?.length > 0 ? (
+              (isAr ? service.reqsAr : service.reqsEn).map((req, idx) => (
+                <li key={idx} className="text-slate-300 text-[10px] flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-secondary" /> {req}
+                </li>
+              ))
+            ) : (
+              <li className="text-slate-500 italic text-[10px]">{isAr ? "لا توجد متطلبات خاصة" : "No special requirements"}</li>
+            )}
           </ul>
           <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
             <span className="text-slate-500 text-[9px] font-bold uppercase">{isAr ? "الرسوم" : "Fees"}</span>

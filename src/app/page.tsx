@@ -60,14 +60,13 @@ export default function DhofarPortal() {
   const filteredServices = useMemo(() => {
     return services.filter(s => {
       const categoryMatch = activeCategory === 'all' || s.category === activeCategory;
-      const searchMatch = !searchQuery || 
-        s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        (s.titleEn && s.titleEn.toLowerCase().includes(searchQuery.toLowerCase()));
-      return categoryMatch && searchMatch;
+      const titleMatch = (isAr ? s.title : (s.titleEn || s.title)).toLowerCase().includes(searchQuery.toLowerCase());
+      const descMatch = (isAr ? s.description : (s.descriptionEn || s.description)).toLowerCase().includes(searchQuery.toLowerCase());
+      return categoryMatch && (titleMatch || descMatch);
     });
-  }, [services, activeCategory, searchQuery]);
+  }, [services, activeCategory, searchQuery, isAr]);
 
-  // Take first 4 services as "Most Used" for now, or could be tagged in admin later
+  // Take first 4 services as "Most Used" for now
   const mostUsedServices = useMemo(() => services.slice(0, 4), [services]);
 
   const categories = useMemo(() => {
@@ -143,7 +142,7 @@ export default function DhofarPortal() {
              </div>
           </Link>
           <nav className="hidden lg:flex items-center gap-2">
-            {[{id:'home',a:"الرئيسية",e:"Home"},{id:'identity',a:"عن البوابة",e:"About Portal"}].map(l => (
+            {[{id:'home',a:"الرئيسية",e:"Home"},{id:'identity',a:"دليل الهوية",e:"Identity Guide"}].map(l => (
               <button key={l.id} onClick={() => setActiveTab(l.id)} className={cn("px-6 py-2 rounded-md text-sm font-bold transition-all", activeTab === l.id ? "bg-accent/10 text-primary border-b-2 border-primary shadow-sm" : "text-slate-500 hover:text-primary")}>
                 {isAr ? l.a : l.e}
               </button>
@@ -185,7 +184,7 @@ export default function DhofarPortal() {
                <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-5 opacity-5" />
             </section>
 
-            {/* Most Used Services (Directly under the bar/hero) */}
+            {/* Most Used Services */}
             <section className="py-16 bg-white">
               <div className="max-w-7xl mx-auto px-6">
                 <div className="flex items-center gap-4 mb-10">
@@ -236,7 +235,7 @@ export default function DhofarPortal() {
               <div className="absolute top-0 left-0 w-full h-full dm-wave-5 opacity-[0.03] pointer-events-none" />
             </section>
 
-            {/* Statistics (Transaction Numbers) */}
+            {/* Statistics */}
             <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10 text-center mb-16">
                   <h2 className="text-4xl font-black mb-4">{isAr ? "البوابة الرقمية بالأرقام" : "Digital Portal in Numbers"}</h2>
