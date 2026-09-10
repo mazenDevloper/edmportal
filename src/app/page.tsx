@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -7,20 +8,16 @@ import { fetchBin } from '@/lib/jsonbin';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
-  Bolt, 
   Globe, 
   LayoutDashboard, 
   Search as SearchIcon, 
-  Languages, 
   Loader2, 
-  TrendingUp, 
-  ChevronRight, 
+  TrendingUp,
   Target,
-  ChevronLeft,
   Users,
   FileText,
   ShieldCheck,
-  LayoutGrid
+  Star
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem } from '@/lib/types';
@@ -67,13 +64,19 @@ export default function DhofarPortal() {
 
   const filteredServices = useMemo(() => {
     return services.filter(s => {
-      const categoryMatch = activeCategory === 'all' || s.category === activeCategory;
       const title = (isAr ? s.title : (s.titleEn || s.title || '')).toLowerCase();
       const desc = (isAr ? s.description : (s.descriptionEn || s.description || '')).toLowerCase();
       const query = searchQuery.toLowerCase();
-      return searchQuery ? (title.includes(query) || desc.includes(query)) : categoryMatch;
+      return title.includes(query) || desc.includes(query);
     });
-  }, [services, activeCategory, searchQuery, isAr]);
+  }, [services, searchQuery, isAr]);
+
+  const catalogServices = useMemo(() => {
+    return services.filter(s => {
+      const categoryMatch = activeCategory === 'all' || s.category === activeCategory;
+      return categoryMatch;
+    });
+  }, [services, activeCategory]);
 
   const featuredServices = useMemo(() => services.filter(s => s.isFeatured), [services]);
 
@@ -93,21 +96,9 @@ export default function DhofarPortal() {
         </div>
       </div>
 
-      {/* Ticker */}
-      {tickerItems.length > 0 && (
-        <div className="bg-primary text-white h-12 flex items-center overflow-hidden relative shadow-md">
-          <div className={cn("absolute bg-secondary px-6 h-full flex items-center z-10 font-black text-xs", isAr ? "right-0" : "left-0")}>
-            <Bolt className="h-4 w-4 animate-pulse mr-2" /> {isAr ? 'أخبار عاجلة' : 'Breaking News'}
-          </div>
-          <div className="animate-marquee whitespace-nowrap pl-[100%]">
-            {tickerItems.map(item => <span key={item.id} className="mx-8 font-bold text-sm">[{item.title}] {item.text} |</span>)}
-          </div>
-        </div>
-      )}
-
       {/* Header */}
-      <header className="bg-white border-b py-6 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between z-10 relative">
+      <header className="bg-white border-b py-6 sticky top-0 z-[50] shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-4">
              <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={60} height={60} className="object-contain" />
              <div className="flex flex-col">
@@ -115,48 +106,26 @@ export default function DhofarPortal() {
                <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">{isAr ? 'بوابة الخدمات الإلكترونية' : 'Electronic Services Portal'}</span>
              </div>
           </Link>
-          <nav className="hidden lg:flex items-center gap-4">
-            {menuItems.length > 0 ? menuItems.map(item => (
+          <nav className="hidden lg:flex items-center gap-6">
+            <button onClick={() => { setActiveTab('home'); window.scrollTo(0,0); }} className={cn("text-sm font-bold transition-colors", activeTab === 'home' ? "text-primary border-b-2 border-primary pb-1" : "text-slate-600 hover:text-primary")}>
+              {isAr ? 'الرئيسية' : 'Home'}
+            </button>
+            {menuItems.map(item => (
               <Link key={item.id} href={item.link} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">
                 {isAr ? item.labelAr : item.labelEn}
               </Link>
-            )) : (
-              <button onClick={() => setActiveTab('home')} className="text-sm font-bold text-primary border-b-2 border-primary pb-1">{isAr ? 'الرئيسية' : 'Home'}</button>
-            )}
-            <button onClick={() => setActiveTab('identity')} className="text-sm font-bold text-slate-600 hover:text-primary">{isAr ? 'دليل الهوية' : 'Identity Guide'}</button>
+            ))}
+            <button onClick={() => setActiveTab('identity')} className={cn("text-sm font-bold transition-colors", activeTab === 'identity' ? "text-primary border-b-2 border-primary pb-1" : "text-slate-600 hover:text-primary")}>
+              {isAr ? 'دليل الهوية' : 'Identity Guide'}
+            </button>
           </nav>
         </div>
-        <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
       </header>
 
       <main className="flex-grow">
         {activeTab === 'home' ? (
-          <div>
-            {/* Carousel */}
-            {carouselItems.length > 0 && (
-              <section className="relative">
-                <Carousel className="w-full" opts={{ loop: true }}>
-                  <CarouselContent>
-                    {carouselItems.map(item => (
-                      <CarouselItemUI key={item.id}>
-                        <div className="relative h-[500px] w-full flex items-center justify-center overflow-hidden">
-                          <Image src={item.imageUrl} alt={item.titleAr} fill className="object-cover brightness-50" />
-                          <div className="relative z-10 text-center text-white px-6">
-                            <h2 className="text-5xl md:text-7xl font-black mb-4 drop-shadow-lg">{isAr ? item.titleAr : item.titleEn}</h2>
-                            <p className="text-xl md:text-2xl font-bold opacity-90 mb-8">{isAr ? item.subtitleAr : item.subtitleEn}</p>
-                            {item.linkUrl && <Button className="dm-gradient-primary rounded-full px-10 h-14 text-lg font-black" asChild><Link href={item.linkUrl}>{isAr ? 'استكشف الآن' : 'Explore Now'}</Link></Button>}
-                          </div>
-                        </div>
-                      </CarouselItemUI>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="left-4" />
-                  <CarouselNext className="right-4" />
-                </Carousel>
-              </section>
-            )}
-
-            {/* Search */}
+          <div className="space-y-0">
+            {/* 1. Search Bar Section */}
             <section className="py-20 bg-slate-50 relative overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="max-w-3xl">
@@ -178,23 +147,134 @@ export default function DhofarPortal() {
                    </div>
                  </div>
                </div>
+               <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
             </section>
 
-            {/* Catalog */}
-            <section className="py-16 bg-white">
+            {/* 2. Live Search Results (Only shown when searching) */}
+            {searchQuery && (
+              <section className="py-12 bg-white border-b animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="max-w-7xl mx-auto px-6">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="h-8 w-1.5 bg-accent rounded-full" />
+                    <h2 className="text-2xl font-black text-primary">
+                      {isAr ? `نتائج البحث عن "${searchQuery}"` : `Search results for "${searchQuery}"`}
+                    </h2>
+                  </div>
+                  {filteredServices.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                      {filteredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 border-2 border-dashed rounded-3xl">
+                      <p className="text-slate-400 font-bold">{isAr ? "لم يتم العثور على خدمات تطابق بحثك" : "No services found matching your search"}</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* 3. Featured Services */}
+            {featuredServices.length > 0 && (
+              <section className="py-20 bg-white">
+                <div className="max-w-7xl mx-auto px-6">
+                  <div className="flex items-center justify-between mb-12">
+                    <div className="flex items-center gap-3">
+                      <Star className="text-accent fill-accent" size={24} />
+                      <h2 className="text-3xl font-black text-primary">{isAr ? "الخدمات الأكثر استخداماً" : "Most Used Services"}</h2>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+                    {featuredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* 4. News Carousel / Promo Banner (Khareef style) */}
+            {carouselItems.length > 0 && (
+              <section className="relative group">
+                <Carousel className="w-full" opts={{ loop: true }}>
+                  <CarouselContent>
+                    {carouselItems.map(item => (
+                      <CarouselItemUI key={item.id}>
+                        <div className="relative h-[600px] w-full flex items-center justify-center overflow-hidden">
+                          <Image 
+                            src={item.imageUrl} 
+                            alt={item.titleAr} 
+                            fill 
+                            className="object-cover brightness-[0.4] transition-transform duration-[20s] group-hover:scale-110" 
+                          />
+                          <div className="relative z-10 text-center text-white px-6 max-w-4xl">
+                            <h2 className="text-6xl md:text-8xl font-black mb-6 drop-shadow-2xl animate-in zoom-in duration-700">{isAr ? item.titleAr : item.titleEn}</h2>
+                            <p className="text-2xl md:text-3xl font-bold opacity-90 mb-10 leading-relaxed">{isAr ? item.subtitleAr : item.subtitleEn}</p>
+                            {item.linkUrl && (
+                              <Button className="dm-gradient-primary rounded-full px-12 h-16 text-xl font-black shadow-2xl" asChild>
+                                <Link href={item.linkUrl}>{isAr ? 'استكشف الخريف الآن' : 'Explore Khareef Now'}</Link>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CarouselItemUI>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-8 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CarouselNext className="right-8 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Carousel>
+              </section>
+            )}
+
+            {/* 5. Portal Statistics */}
+            <section className="py-24 bg-primary text-white relative overflow-hidden">
+               <div className="max-w-7xl mx-auto px-6 relative z-10">
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+                    <div className="space-y-2">
+                       <TrendingUp className="mx-auto text-accent mb-4" size={40} />
+                       <h3 className="text-5xl font-black">{siteConfig?.stats?.transactions || '0'}+</h3>
+                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
+                    </div>
+                    <div className="space-y-2">
+                       <ShieldCheck className="mx-auto text-accent mb-4" size={40} />
+                       <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
+                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'رخصة بناء' : 'Permits'}</p>
+                    </div>
+                    <div className="space-y-2">
+                       <FileText className="mx-auto text-accent mb-4" size={40} />
+                       <h3 className="text-5xl font-black">{siteConfig?.stats?.contracts || '0'}+</h3>
+                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'عقد إيجار' : 'Leases'}</p>
+                    </div>
+                    <div className="space-y-2">
+                       <Users className="mx-auto text-accent mb-4" size={40} />
+                       <h3 className="text-5xl font-black">{siteConfig?.stats?.tickets || '0'}+</h3>
+                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
+                    </div>
+                 </div>
+               </div>
+               <div className="absolute inset-0 dm-wave-5 opacity-10" />
+            </section>
+
+            {/* 6. Service Catalog */}
+            <section className="py-24 bg-white">
               <div className="max-w-7xl mx-auto px-6">
-                <div className="flex justify-between items-end mb-12">
-                   <h2 className="text-3xl font-black text-primary">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog"}</h2>
-                   <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+                   <div>
+                     <h2 className="text-4xl font-black text-primary mb-2">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog"}</h2>
+                     <p className="text-slate-400 font-bold">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً" : "Explore all municipal services available digitally"}</p>
+                   </div>
+                   <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto">
                      {['all', ...Object.keys(CAT_CONFIG)].map(cid => (
-                       <Button key={cid} onClick={() => setActiveCategory(cid)} variant={activeCategory === cid ? 'default' : 'outline'} className="rounded-full font-bold px-6">
+                       <Button 
+                        key={cid} 
+                        onClick={() => setActiveCategory(cid)} 
+                        variant={activeCategory === cid ? 'default' : 'outline'} 
+                        className={cn("rounded-full font-black px-8 h-12 transition-all", activeCategory === cid ? "dm-gradient-primary shadow-lg scale-105" : "hover:border-primary")}
+                      >
                          {cid === 'all' ? (isAr ? 'الكل' : 'All') : (isAr ? CAT_CONFIG[cid as CategoryId].labelAr : CAT_CONFIG[cid as CategoryId].labelEn)}
                        </Button>
                      ))}
                    </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {filteredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
+                  {catalogServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
                 </div>
               </div>
             </section>
@@ -202,27 +282,44 @@ export default function DhofarPortal() {
         ) : <IdentityShowcase isAr={isAr} />}
       </main>
 
-      <footer className="bg-slate-900 text-white py-16 px-6 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-12 relative z-10">
-          <div className="space-y-4">
-             <div className="flex items-center gap-3">
-               <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={40} height={40} className="brightness-0 invert" />
-               <span className="text-xl font-black">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+      <footer className="bg-slate-950 text-white py-20 px-6 relative overflow-hidden border-t-8 border-accent">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-16 relative z-10">
+          <div className="space-y-6">
+             <div className="flex items-center gap-4">
+               <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={60} height={60} className="brightness-0 invert" />
+               <div className="flex flex-col">
+                 <span className="text-2xl font-black">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+                 <span className="text-[10px] text-accent font-black tracking-widest">{isAr ? 'حكومة سلطنة عمان' : 'OMAN GOVERNMENT'}</span>
+               </div>
              </div>
-             <p className="text-xs text-white/50">{isAr ? "منصة رقمية موحدة للخدمات البلدية" : "Unified Digital Municipal Services Platform"}</p>
+             <p className="text-sm text-white/40 leading-relaxed font-medium">
+               {isAr 
+                 ? "نعمل بجد لتطوير محافظة ظفار وتقديم أفضل الخدمات الرقمية للمواطنين والمقيمين والزوار." 
+                 : "We work diligently to develop Dhofar Governorate and provide the best digital services for citizens, residents, and visitors."}
+             </p>
           </div>
-          <div className="flex flex-col gap-2">
-            <h4 className="text-accent text-xs font-black uppercase mb-2">{isAr ? "تواصل معنا" : "Contact"}</h4>
-            <span className="text-2xl font-black">{siteConfig?.contactPhone || '1771'}</span>
-            <span className="text-white/60 font-bold">{siteConfig?.contactEmail || 'care@dm.gov.om'}</span>
+          <div className="flex flex-col gap-4">
+            <h4 className="text-accent text-xs font-black uppercase tracking-widest mb-2">{isAr ? "تواصل مباشر" : "Contact"}</h4>
+            <div className="flex items-center gap-6">
+              <span className="text-5xl font-black text-white hover:text-accent transition-colors cursor-pointer">{siteConfig?.contactPhone || '1771'}</span>
+              <div className="h-12 w-px bg-white/10" />
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-white/50">{isAr ? "البريد الإلكتروني" : "Email"}</span>
+                <span className="text-sm font-black">{siteConfig?.contactEmail || 'care@dm.gov.om'}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-end">
-             <Button variant="outline" className="rounded-full border-white/10 text-white hover:bg-white hover:text-slate-900 font-black h-12 px-8">
-                {isAr ? "المساعدة والدعم" : "Help & Support"}
-             </Button>
+          <div className="flex flex-col gap-6">
+             <h4 className="text-accent text-xs font-black uppercase tracking-widest mb-2">{isAr ? "روابط سريعة" : "Quick Links"}</h4>
+             <div className="grid grid-cols-2 gap-4">
+                <Link href="/template" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'المساحة الذكية' : 'Spatial Workspace'}</Link>
+                <Link href="/admin" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
+                <a href="#" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'سياسة الخصوصية' : 'Privacy Policy'}</a>
+                <a href="#" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'خارطة الموقع' : 'Sitemap'}</a>
+             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 w-full h-24 dm-wave-5 opacity-10" />
+        <div className="absolute bottom-0 left-0 w-full h-40 dm-wave-5 opacity-10 pointer-events-none" />
       </footer>
     </div>
   );

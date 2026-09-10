@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Layout, Globe, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, Globe, LayoutDashboard, Languages } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -17,7 +18,7 @@ const ImmersionCanvas = dynamic(
 );
 
 export default function ImmersionTemplatePage() {
-  const { language } = useSettingsStore();
+  const { language, setLanguage } = useSettingsStore();
   const isAr = language === 'ar';
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
@@ -50,6 +51,15 @@ export default function ImmersionTemplatePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setLanguage(isAr ? 'en' : 'ar')}
+            className="text-white hover:bg-white/10 rounded-full h-10 px-4 font-bold gap-2"
+          >
+            <Languages size={14} />
+            {isAr ? 'EN' : 'العربية'}
+          </Button>
           <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 rounded-full h-10 px-6 font-bold gap-2" asChild>
             <Link href="/admin">
               <LayoutDashboard size={14} />

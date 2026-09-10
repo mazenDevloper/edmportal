@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -24,7 +25,10 @@ import {
   ChevronLeft,
   X,
   Menu,
-  MoreHorizontal
+  MoreHorizontal,
+  Contrast,
+  Type,
+  Maximize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +48,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 export function IdentityShowcase({ isAr }: { isAr: boolean }) {
-  const [activeTab, setActiveTab] = useState('components');
   const [viewCode, setViewCode] = useState<string | null>(null);
 
   const elements = [
@@ -179,20 +182,6 @@ export function IdentityShowcase({ isAr }: { isAr: boolean }) {
       )
     },
     {
-      id: 'callout',
-      title: isAr ? 'النص التوضيحي (Callout)' : 'Callout',
-      desc: 'Highlights helpful system contexts or policy notices for end users attention.',
-      code: `<div className="p-4 bg-amber-50 border border-amber-200">Context alert message</div>`,
-      render: (
-        <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-start gap-3 w-full">
-          <Info size={18} className="text-primary mt-0.5 shrink-0" />
-          <p className="text-xs font-medium text-slate-700 leading-relaxed">
-            {isAr ? 'ملاحظة: تتطلب خدمات تراخيص بناء إرفاق كروكي رسمي ساري الصلاحية صادر عن وزارة الإسكان والتخطيط العمراني.' : 'Note: All building permit configurations mandate attaching a valid sketch certified by the Ministry of Housing.'}
-          </p>
-        </div>
-      )
-    },
-    {
       id: 'table',
       title: isAr ? 'الجدول (Table)' : 'Dynamic Data Table',
       desc: 'Structured spreadsheet table style for municipal fees and services indices.',
@@ -228,7 +217,7 @@ export function IdentityShowcase({ isAr }: { isAr: boolean }) {
         <div className="inline-flex items-center gap-3 px-5 py-1.5 rounded-full bg-slate-50 border mb-4 shadow-sm">
           <Palette className="text-primary" size={16} />
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-            {isAr ? 'دليل مكونات الهوية الرقمية الشاملة لبلدية ظفار' : 'Dhofar Municipality GUP-DS Visual Standard Assets'}
+            {isAr ? 'دليل مكونات الهوية الرقمية الشاملة لبلدية ظفار' : 'Dhofar Municipality Visual Standard Assets'}
           </span>
         </div>
         <h2 className="text-4xl font-black text-primary tracking-tight mb-2">
@@ -278,14 +267,13 @@ export function IdentityShowcase({ isAr }: { isAr: boolean }) {
       <div className="mt-16 p-8 md:p-12 rounded-[2rem] bg-slate-900 text-white relative overflow-hidden shadow-xl border-t-4 border-accent">
         <div className="relative z-10 grid md:grid-cols-2 gap-8 items-center">
           <div>
-            <h3 className="text-2xl font-black mb-3 flex flex-col gap-1">
+            <h3 className="text-2xl font-black mb-3">
                {isAr ? 'أنماط الموجات المعتمدة خماسية الطبقات' : 'Unified Brand Dynamic Multi-Wave Grid'}
-               <span className="text-accent text-[11px] font-bold border border-accent/30 w-fit px-3 py-1 rounded-full uppercase tracking-widest mt-1">Multi-Wave Asset Pattern (V5)</span>
             </h3>
             <p className="text-slate-400 font-medium text-xs leading-relaxed mb-6">
               {isAr 
-                ? 'تعتبر الموجات الخمس المتتالية في ترويسة وتذييل منصات بلدية ظفار دلالة على الانسيابية العالية والتحول الرقمي السلس والشمولي لجميع المواطنين والمستفيدين.'
-                : 'The structural five waves background represents visual synchronization of continuous municipal upgrades across the Sultanate of Oman portals landscape.'}
+                ? 'تعتبر الموجات الخمس المتتالية في ترويسة وتذييل منصات بلدية ظفار دلالة على الانسيابية العالية والتحول الرقمي السلس.'
+                : 'The structural five waves background represents visual synchronization of continuous municipal upgrades across the Sultanate.'}
             </p>
             <div className="flex gap-2">
                {[1, 2, 3, 4, 5].map(i => (
