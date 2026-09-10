@@ -1,8 +1,7 @@
-
 'use client';
 
 import React from 'react';
-import { ArrowUpRight, ListChecks } from 'lucide-react';
+import { ArrowUpRight, ListChecks, ExternalLink } from 'lucide-react';
 import { Service } from '@/lib/types';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -18,8 +17,15 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
   const IconComponent = (Icons as any)[service.iconName] || Icons.Info;
   const catInfo = CAT_CONFIG[service.category as CategoryId];
 
+  const handleAccessClick = (e: React.MouseEvent) => {
+    if (service.linkUrl) {
+      e.stopPropagation();
+      window.open(service.linkUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
-    <div className={cn("relative group perspective-1000", compact ? 'scale-95 origin-top' : '')}>
+    <div className={cn("relative group perspective-1000", compact ? 'scale-95 origin-top' : '')} onClick={handleAccessClick}>
       <div className="p-6 rounded-[2.2rem] bg-white transition-all duration-500 cursor-pointer flex flex-col justify-between h-72 border border-transparent shadow-sm group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:border-primary/20 relative z-10 overflow-hidden">
         <div>
           <div className="flex items-start gap-4 mb-4">
@@ -44,8 +50,9 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
         </div>
 
         <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-50">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-secondary">
-            {isAr ? "بدء الخدمة" : "Start Service"}
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-secondary flex items-center gap-1">
+            {isAr ? "الدخول إلى الخدمة" : "Access Service"}
+            {service.linkUrl && <ExternalLink size={12} className="inline ml-1" />}
           </span>
           <ArrowUpRight size={18} className="text-secondary transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
         </div>

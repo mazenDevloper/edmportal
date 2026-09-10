@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -14,7 +13,7 @@ import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
   Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, 
-  CloudUpload, HelpCircle, Edit3, Image as ImageIcon, LayoutGrid, Star
+  CloudUpload, HelpCircle, Edit3, Image as ImageIcon, LayoutGrid, Star, Link as LinkIcon
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -59,7 +58,8 @@ export default function AdminDashboard() {
     fees: '0 OMR',
     isFeatured: false,
     reqsAr: [],
-    reqsEn: []
+    reqsEn: [],
+    linkUrl: ''
   });
   
   const [newsForm, setNewsForm] = useState({ title: '', text: '' });
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
   };
 
   const resetServiceForm = () => {
-    setNewService({ title: '', titleEn: '', description: '', iconName: 'LayoutGrid', category: 'building', fees: '0 OMR', isFeatured: false, reqsAr: [], reqsEn: [] });
+    setNewService({ title: '', titleEn: '', description: '', iconName: 'LayoutGrid', category: 'building', fees: '0 OMR', isFeatured: false, reqsAr: [], reqsEn: [], linkUrl: '' });
     setEditingServiceId(null);
     setReqArInput('');
     setReqEnInput('');
@@ -210,6 +210,14 @@ export default function AdminDashboard() {
                     <Textarea placeholder={isAr ? "وصف الخدمة المختصر" : "Brief Description"} value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} className="rounded-xl min-h-[80px]" />
                   </div>
                   
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "رابط الدخول للخدمة (URL)" : "Service Access URL"}</label>
+                    <div className="relative">
+                      <LinkIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <Input placeholder="https://..." dir="ltr" value={newService.linkUrl || ''} onChange={e => setNewService({...newService, linkUrl: e.target.value})} className="rounded-xl pl-10" />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "التصنيف" : "Category"}</label>
@@ -365,6 +373,7 @@ export default function AdminDashboard() {
                              </div>
                           </div>
                           <p className="font-black text-primary mb-2 text-lg leading-tight">{isAr ? service.title : (service.titleEn || service.title)}</p>
+                          {service.linkUrl && <p className="text-[10px] text-slate-400 truncate mb-2">URL: {service.linkUrl}</p>}
                           <div className="flex flex-wrap gap-2">
                              <span className={cn("text-[9px] font-black px-3 py-1 rounded-full border", catInfo?.color)}>{isAr ? catInfo?.labelAr : catInfo?.labelEn}</span>
                              <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100">{service.fees}</span>
@@ -394,7 +403,7 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-2 gap-4">
                     {siteConfig.stats && Object.keys(siteConfig.stats).map((key) => (
                       <div key={key} className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase">{key}</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercaseTracking-widest">{key}</label>
                         <Input 
                           type="number" 
                           value={siteConfig.stats?.[key as keyof typeof siteConfig.stats]} 

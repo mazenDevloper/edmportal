@@ -1,4 +1,3 @@
-
 export interface SiteConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -38,6 +37,7 @@ export interface Service {
   fees: string;
   feesEn?: string;
   colorClass?: string;
+  linkUrl?: string;
 }
 
 export interface ServiceApplication {

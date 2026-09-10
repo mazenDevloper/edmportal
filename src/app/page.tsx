@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -61,11 +60,20 @@ export default function DhofarPortal() {
   const filteredServices = useMemo(() => {
     return services.filter(s => {
       const categoryMatch = activeCategory === 'all' || s.category === activeCategory;
-      const titleMatch = (isAr ? s.title : (s.titleEn || s.title)).toLowerCase().includes(searchQuery.toLowerCase());
-      const descMatch = (isAr ? s.description : (s.descriptionEn || s.description)).toLowerCase().includes(searchQuery.toLowerCase());
-      return categoryMatch && (titleMatch || descMatch);
+      const titleMatch = (isAr ? s.title : (s.titleEn || s.title || '')).toLowerCase().includes(searchQuery.toLowerCase());
+      const descMatch = (isAr ? s.description : (s.descriptionEn || s.description || '')).toLowerCase().includes(searchQuery.toLowerCase());
+      return searchQuery ? (titleMatch || descMatch) : categoryMatch;
     });
   }, [services, activeCategory, searchQuery, isAr]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery) return [];
+    return services.filter(s => {
+      const titleMatch = (isAr ? s.title : (s.titleEn || s.title || '')).toLowerCase().includes(searchQuery.toLowerCase());
+      const descMatch = (isAr ? s.description : (s.descriptionEn || s.description || '')).toLowerCase().includes(searchQuery.toLowerCase());
+      return titleMatch || descMatch;
+    });
+  }, [services, searchQuery, isAr]);
 
   // Featured services section (marked by star in admin)
   const featuredServices = useMemo(() => services.filter(s => s.isFeatured), [services]);
@@ -186,6 +194,28 @@ export default function DhofarPortal() {
                <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-5 opacity-5" />
             </section>
 
+            {/* CRITICAL CHANGED FLOW: Search results strictly ABOVE featured/most-used services */}
+            {searchQuery && (
+              <section className="py-16 bg-accent/5 border-b">
+                <div className="max-w-7xl mx-auto px-6">
+                  <div className="flex items-center gap-4 mb-10">
+                     <div className="p-3 rounded-2xl bg-primary/10 text-primary"><SearchIcon size={24} /></div>
+                     <h2 className="text-3xl font-black text-primary tracking-tighter">
+                       {isAr ? `نتائج البحث عن "${searchQuery}"` : `Search Results for "${searchQuery}"`}
+                     </h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                     {searchResults.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
+                     {searchResults.length === 0 && (
+                       <div className="col-span-full py-16 text-center bg-white rounded-3xl border border-dashed p-8">
+                         <p className="text-slate-400 font-bold">{isAr ? "عذراً، لم نجد نتائج تطابق بحثك الحالي" : "No results matching your query"}</p>
+                       </div>
+                     )}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* Featured Services (The "Most Used" section now marked by star in Admin) */}
             {featuredServices.length > 0 && (
               <section className="py-16 bg-white border-b">
@@ -201,29 +231,27 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* Services Catalog / Search Results */}
+            {/* Services Catalog */}
             <section className="py-16 bg-slate-50 relative overflow-hidden" id="catalog">
               <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-16">
                   <div>
                     <h2 className="text-4xl font-black text-primary tracking-tighter mb-4">
-                      {searchQuery ? (isAr ? `نتائج البحث عن "${searchQuery}"` : `Results for "${searchQuery}"`) : (isAr ? "دليل الخدمات الإلكترونية" : "Services Catalog")}
+                      {isAr ? "دليل الخدمات الإلكترونية" : "Services Catalog"}
                     </h2>
                     <p className="text-slate-500 font-bold">{isAr ? `تصفح ${filteredServices.length} خدمة بلدية متاحة` : `Browse ${filteredServices.length} available services`}</p>
                   </div>
-                  {!searchQuery && (
-                    <div className="flex gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-inner overflow-x-auto max-w-full">
-                      {categories.map(cat => (
-                        <button 
-                          key={cat.id} 
-                          onClick={() => setActiveCategory(cat.id)} 
-                          className={cn("px-6 py-2.5 rounded-lg text-xs font-black transition-all whitespace-nowrap", activeCategory === cat.id ? "bg-primary text-white shadow-lg scale-105" : "text-slate-500 hover:bg-slate-50")}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-inner overflow-x-auto max-w-full">
+                    {categories.map(cat => (
+                      <button 
+                        key={cat.id} 
+                        onClick={() => setActiveCategory(cat.id)} 
+                        className={cn("px-6 py-2.5 rounded-lg text-xs font-black transition-all whitespace-nowrap", activeCategory === cat.id ? "bg-primary text-white shadow-lg scale-105" : "text-slate-500 hover:bg-slate-50")}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[200px]">
@@ -231,7 +259,7 @@ export default function DhofarPortal() {
                    {filteredServices.length === 0 && (
                      <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-white/50">
                        <Target size={48} className="mx-auto text-slate-300 mb-4" />
-                       <p className="text-slate-400 font-black text-lg">{isAr ? "عذراً، لم نجد نتائج تتطابق مع بحثك" : "Sorry, no matches found for your search."}</p>
+                       <p className="text-slate-400 font-black text-lg">{isAr ? "عذراً، لم نجد نتائج تتطابق مع هذا التصنيف" : "Sorry, no matches found for this category."}</p>
                      </div>
                    )}
                 </div>
