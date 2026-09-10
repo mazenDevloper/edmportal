@@ -5,21 +5,15 @@
 @layer base {
   :root {
     /* Dhofar Municipality Brand Palette - Primary */
-    --dm-teal-deep: 181 100% 15%;      /* Dark Emerald/Teal */
-    --dm-purple-deep: 278 78% 20%;    /* Deep Purple */
-    --dm-turquoise: 179 97% 41%;      /* Primary Turquoise */
-    --dm-teal-dark: 181 100% 28%;     /* Supportive Dark Teal */
+    --dm-turquoise: 179 97% 41%;      /* #03CFCB */
+    --dm-teal-dark: 181 100% 28%;     /* #008E91 */
+    --dm-purple: 278 78% 20%;         /* #470D67 */
     
     /* Dhofar Municipality Brand Palette - Secondary/Soft */
-    --dm-sage: 175 25% 60%;           /* Sage green */
-    --dm-lavender: 275 30% 65%;       /* Lavender */
-    --dm-mint: 177 40% 85%;           /* Mint */
-    --dm-lilac: 270 35% 90%;          /* Lilac */
-    --dm-cyan-pale: 185 50% 92%;      /* Pale Cyan */
+    --dm-turquoise-light: 177 40% 95%; /* Light teal background */
+    --dm-cyan-pale: 185 50% 98%;
 
-    --dm-gold: 45 100% 50%;           /* #FFD700 */
-
-    --background: 210 40% 98%;
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -29,7 +23,7 @@
     --primary: var(--dm-teal-dark);
     --primary-foreground: 0 0% 100%;
     
-    --secondary: var(--dm-purple-deep);
+    --secondary: var(--dm-purple);
     --secondary-foreground: 0 0% 100%;
     
     --muted: 210 40% 96.1%;
@@ -44,7 +38,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: var(--dm-teal-dark);
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 
   .high-contrast {
@@ -66,34 +60,20 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Neumorphic Utilities */
-.neu-out {
-  box-shadow: 9px 9px 16px rgb(0,0,0,0.08), -9px -9px 16px rgb(255,255,255,0.8);
-}
-
-.neu-in {
-  box-shadow: inset 6px 6px 12px rgba(0,0,0,0.05), inset -6px -6px 12px rgba(255,255,255,0.8);
-}
-
-.neu-soft {
-  box-shadow: 4px 4px 8px rgba(0,0,0,0.05), -4px -4px 8px rgba(255,255,255,0.8);
-}
-
-/* Brand Patterns */
-.dm-pattern-hero {
-  background-image: url("https://edm.gov.om/wp-content/uploads/2021/03/pattern40.png");
+/* Wave Patterns from Identity */
+.dm-wave-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10' fill='transparent' stroke='%2303CFCB' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
-  background-position: bottom;
-  background-size: contain;
+  background-size: 200px 40px;
 }
 
-.dm-geometric-overlay {
-  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
-  background-size: 24px 24px;
+.dm-wave-pattern-muted {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10' fill='transparent' stroke='%23d1d5db' stroke-width='1'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 150px 30px;
 }
 
 .dm-gradient-primary {
@@ -101,24 +81,26 @@
   @apply text-white border-none shadow-sm transition-all duration-300;
 }
 
-.dm-gradient-secondary {
-  background: linear-gradient(135deg, hsl(var(--dm-purple-deep)) 0%, hsl(var(--dm-teal-dark)) 100%) !important;
+.dm-gradient-purple {
+  background: linear-gradient(135deg, hsl(var(--dm-purple)) 0%, hsl(var(--dm-teal-dark)) 100%) !important;
   @apply text-white border-none shadow-sm;
 }
 
-.dm-gradient-brand {
-  background: linear-gradient(135deg, #399cb7 0%, #3a95b3 55%, #e91e63 100%);
+.font-arabic {
+  font-family: 'Noto Kufi Arabic', sans-serif;
 }
 
-.animate-gradient {
-  background-size: 200% auto;
-  animation: gradient 5s linear infinite;
+/* GUP-DS Component Replications */
+.gup-card {
+  @apply rounded-lg border-2 border-slate-100 bg-white shadow-sm hover:border-accent transition-colors;
 }
 
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.gup-button-primary {
+  @apply bg-primary text-white font-bold px-6 py-3 rounded-md hover:bg-opacity-90 transition-all focus:ring-4 focus:ring-accent/20;
+}
+
+.gup-nav-link {
+  @apply text-slate-600 font-bold hover:text-primary transition-colors py-2 px-4 rounded-md hover:bg-slate-50;
 }
 
 @keyframes marquee {
@@ -128,24 +110,4 @@
 
 .animate-marquee {
   animation: marquee 40s linear infinite;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-.rounded-brand {
-  border-radius: 1.5rem;
-}
-
-.font-arabic {
-  font-family: 'Noto Kufi Arabic', sans-serif;
 }
