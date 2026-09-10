@@ -22,6 +22,31 @@ export interface NewsTicker {
   createdAt: string;
 }
 
+export interface MenuItem {
+  id: string;
+  labelAr: string;
+  labelEn: string;
+  link: string;
+  order: number;
+}
+
+export interface FooterSection {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  links: { labelAr: string; labelEn: string; url: string }[];
+}
+
+export interface CarouselItem {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  subtitleAr: string;
+  subtitleEn: string;
+  imageUrl: string;
+  linkUrl?: string;
+}
+
 export interface Service {
   id: string;
   title: string;
