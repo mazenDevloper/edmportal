@@ -16,6 +16,7 @@ export interface SiteConfig {
 
 export interface NewsTicker {
   id: string;
+  title?: string;
   text: string;
   link?: string;
   isActive: boolean;
@@ -31,6 +32,7 @@ export interface Service {
   iconName: string;
   category: string;
   isActive: boolean;
+  isFeatured?: boolean;
   reqsAr: string[];
   reqsEn: string[];
   fees: string;

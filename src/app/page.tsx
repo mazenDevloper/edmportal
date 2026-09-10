@@ -23,7 +23,8 @@ import {
   Loader2,
   ArrowUpRight,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  Target
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
@@ -66,8 +67,8 @@ export default function DhofarPortal() {
     });
   }, [services, activeCategory, searchQuery, isAr]);
 
-  // Take first 4 services as "Most Used" for now
-  const mostUsedServices = useMemo(() => services.slice(0, 4), [services]);
+  // Featured services section (marked by star in admin)
+  const featuredServices = useMemo(() => services.filter(s => s.isFeatured), [services]);
 
   const categories = useMemo(() => {
     return [
@@ -111,7 +112,7 @@ export default function DhofarPortal() {
 
       {/* News Ticker */}
       {tickerItems.length > 0 && (
-        <div className="bg-primary text-white overflow-hidden relative h-10 flex items-center shadow-md z-40">
+        <div className="bg-primary text-white overflow-hidden relative h-12 flex items-center shadow-md z-40">
           <div className={cn("absolute top-0 h-full bg-secondary px-6 flex items-center z-10 font-black text-xs uppercase gap-3", isAr ? "right-0" : "left-0")}>
             <Bolt className="h-4 w-4 fill-current animate-pulse" />
             {isAr ? 'أخبار عاجلة' : 'Breaking News'}
@@ -120,6 +121,7 @@ export default function DhofarPortal() {
              <div className="animate-marquee inline-block pl-[100%] pr-4 py-2">
                 {tickerItems.map((item) => (
                   <span key={item.id} className="mx-10 text-sm font-bold opacity-90">
+                    {item.title && <span className="text-accent ml-2 uppercase">[{item.title}]</span>}
                     {item.text}
                     <span className="mx-4 text-white/30">|</span>
                   </span>
@@ -184,50 +186,52 @@ export default function DhofarPortal() {
                <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-5 opacity-5" />
             </section>
 
-            {/* Most Used Services */}
-            <section className="py-16 bg-white">
-              <div className="max-w-7xl mx-auto px-6">
-                <div className="flex items-center gap-4 mb-10">
-                   <div className="p-3 rounded-2xl bg-secondary/10 text-secondary"><TrendingUp size={24} /></div>
-                   <h2 className="text-3xl font-black text-primary tracking-tighter">{isAr ? "الخدمات الأكثر استخداماً" : "Most Used Services"}</h2>
+            {/* Featured Services (The "Most Used" section now marked by star in Admin) */}
+            {featuredServices.length > 0 && (
+              <section className="py-16 bg-white border-b">
+                <div className="max-w-7xl mx-auto px-6">
+                  <div className="flex items-center gap-4 mb-10">
+                     <div className="p-3 rounded-2xl bg-accent/10 text-accent"><TrendingUp size={24} /></div>
+                     <h2 className="text-3xl font-black text-primary tracking-tighter">{isAr ? "الخدمات المميزة" : "Featured Services"}</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    {featuredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {mostUsedServices.length > 0 ? (
-                    mostUsedServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)
-                  ) : (
-                    <div className="col-span-full py-10 text-center opacity-50 font-bold">{isAr ? "جاري تحميل الخدمات..." : "Loading services..."}</div>
-                  )}
-                </div>
-              </div>
-            </section>
+              </section>
+            )}
 
-            {/* Services Catalog */}
+            {/* Services Catalog / Search Results */}
             <section className="py-16 bg-slate-50 relative overflow-hidden" id="catalog">
               <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-16">
                   <div>
-                    <h2 className="text-4xl font-black text-primary tracking-tighter mb-4">{isAr ? "دليل الخدمات الإلكترونية" : "Services Catalog"}</h2>
-                    <p className="text-slate-500 font-bold">{isAr ? `تصفح ${services.length} خدمة بلدية متاحة إلكترونياً` : `Browse ${services.length} municipal services available online`}</p>
+                    <h2 className="text-4xl font-black text-primary tracking-tighter mb-4">
+                      {searchQuery ? (isAr ? `نتائج البحث عن "${searchQuery}"` : `Results for "${searchQuery}"`) : (isAr ? "دليل الخدمات الإلكترونية" : "Services Catalog")}
+                    </h2>
+                    <p className="text-slate-500 font-bold">{isAr ? `تصفح ${filteredServices.length} خدمة بلدية متاحة` : `Browse ${filteredServices.length} available services`}</p>
                   </div>
-                  <div className="flex gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-inner overflow-x-auto max-w-full">
-                    {categories.map(cat => (
-                      <button 
-                        key={cat.id} 
-                        onClick={() => setActiveCategory(cat.id)} 
-                        className={cn("px-6 py-2.5 rounded-lg text-xs font-black transition-all whitespace-nowrap", activeCategory === cat.id ? "bg-primary text-white shadow-lg scale-105" : "text-slate-500 hover:bg-slate-50")}
-                      >
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
+                  {!searchQuery && (
+                    <div className="flex gap-2 bg-white p-1.5 rounded-xl border border-slate-200 shadow-inner overflow-x-auto max-w-full">
+                      {categories.map(cat => (
+                        <button 
+                          key={cat.id} 
+                          onClick={() => setActiveCategory(cat.id)} 
+                          className={cn("px-6 py-2.5 rounded-lg text-xs font-black transition-all whitespace-nowrap", activeCategory === cat.id ? "bg-primary text-white shadow-lg scale-105" : "text-slate-500 hover:bg-slate-50")}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[400px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[200px]">
                    {filteredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
                    {filteredServices.length === 0 && (
                      <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-white/50">
-                       <Search size={48} className="mx-auto text-slate-300 mb-4" />
-                       <p className="text-slate-400 font-black text-lg">{isAr ? "عذراً، لم نجد نتائج لـ " : "Sorry, no results for "} "{searchQuery}"</p>
+                       <Target size={48} className="mx-auto text-slate-300 mb-4" />
+                       <p className="text-slate-400 font-black text-lg">{isAr ? "عذراً، لم نجد نتائج تتطابق مع بحثك" : "Sorry, no matches found for your search."}</p>
                      </div>
                    )}
                 </div>

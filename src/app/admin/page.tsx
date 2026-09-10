@@ -14,7 +14,7 @@ import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
   Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, 
-  CloudUpload, HelpCircle, Edit3, Image as ImageIcon, LayoutGrid 
+  CloudUpload, HelpCircle, Edit3, Image as ImageIcon, LayoutGrid, Star
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -57,10 +57,12 @@ export default function AdminDashboard() {
     iconName: 'LayoutGrid', 
     category: 'building',
     fees: '0 OMR',
+    isFeatured: false,
     reqsAr: [],
     reqsEn: []
   });
   
+  const [newsForm, setNewsForm] = useState({ title: '', text: '' });
   const [reqArInput, setReqArInput] = useState('');
   const [reqEnInput, setReqEnInput] = useState('');
   const [iconSearch, setIconSearch] = useState('');
@@ -127,7 +129,7 @@ export default function AdminDashboard() {
   };
 
   const resetServiceForm = () => {
-    setNewService({ title: '', titleEn: '', description: '', iconName: 'LayoutGrid', category: 'building', fees: '0 OMR', reqsAr: [], reqsEn: [] });
+    setNewService({ title: '', titleEn: '', description: '', iconName: 'LayoutGrid', category: 'building', fees: '0 OMR', isFeatured: false, reqsAr: [], reqsEn: [] });
     setEditingServiceId(null);
     setReqArInput('');
     setReqEnInput('');
@@ -137,6 +139,10 @@ export default function AdminDashboard() {
     setNewService(service);
     setEditingServiceId(service.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleFeatured = (id: string) => {
+    setServices(prev => prev.map(s => s.id === id ? { ...s, isFeatured: !s.isFeatured } : s));
   };
 
   const deleteService = (id: string) => {
@@ -271,18 +277,16 @@ export default function AdminDashboard() {
                         </DialogContent>
                       </Dialog>
                     </div>
-                    <div className="flex items-center gap-3 p-4 border rounded-xl bg-slate-50/50 mt-2">
-                      {newService.iconName ? (
-                        <>
-                          <div className="bg-primary/10 p-2 rounded-lg text-primary">
-                            {React.createElement((Icons as any)[newService.iconName || 'HelpCircle'] || HelpCircle, { size: 24 })}
-                          </div>
-                          <span className="text-xs font-bold text-slate-600">{newService.iconName}</span>
-                        </>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">{isAr ? "لم يتم اختيار أيقونة" : "No icon selected"}</span>
-                      )}
-                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border">
+                    <button 
+                      onClick={() => setNewService({...newService, isFeatured: !newService.isFeatured})}
+                      className={cn("p-2 rounded-lg transition-colors", newService.isFeatured ? "bg-yellow-100 text-yellow-600" : "bg-white text-slate-300")}
+                    >
+                      <Star fill={newService.isFeatured ? "currentColor" : "none"} size={20} />
+                    </button>
+                    <span className="text-xs font-black text-slate-600">{isAr ? "تمييز في الأكثر استخداماً" : "Feature in Most Used"}</span>
                   </div>
 
                   <div className="space-y-4 pt-4 border-t">
@@ -346,10 +350,18 @@ export default function AdminDashboard() {
                       return (
                         <div key={service.id} className="p-5 border rounded-2xl bg-white shadow-sm group hover:border-accent transition-all relative">
                           <div className="flex items-start justify-between mb-4">
-                             <div className="bg-primary/5 p-3 rounded-2xl text-primary"><Icon className="h-6 w-6" /></div>
+                             <div className="flex gap-3 items-center">
+                               <div className="bg-primary/5 p-3 rounded-2xl text-primary"><Icon className="h-6 w-6" /></div>
+                               <button 
+                                 onClick={() => toggleFeatured(service.id)}
+                                 className={cn("p-1.5 rounded-full transition-colors", service.isFeatured ? "text-yellow-500" : "text-slate-200 hover:text-slate-400")}
+                               >
+                                 <Star fill={service.isFeatured ? "currentColor" : "none"} size={18} />
+                               </button>
+                             </div>
                              <div className="flex gap-1">
                                <Button variant="ghost" size="icon" className="text-blue-500 rounded-full hover:bg-blue-50" onClick={() => startEditService(service)}><Edit3 className="h-4 w-4" /></Button>
-                               <Button variant="ghost" size="icon" className="text-red-500 rounded-full hover:bg-red-50" onClick={() => deleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
+                               <Button variant="ghost" size="icon" className="text-red-500 rounded-full hover:bg-blue-50" onClick={() => deleteService(service.id)}><Trash2 className="h-4 w-4" /></Button>
                              </div>
                           </div>
                           <p className="font-black text-primary mb-2 text-lg leading-tight">{isAr ? service.title : (service.titleEn || service.title)}</p>
@@ -418,18 +430,41 @@ export default function AdminDashboard() {
              <Card className="rounded-brand border-none shadow-md overflow-hidden">
                 <CardHeader><CardTitle className="font-black text-primary flex items-center gap-2"><Megaphone className="text-secondary" /> {isAr ? "الأخبار العاجلة" : "Breaking News"}</CardTitle></CardHeader>
                 <CardContent className="space-y-8 p-8">
-                   <div className="flex gap-4">
-                      <Textarea placeholder={isAr ? "اكتب الخبر العاجل هنا..." : "Type breaking news..."} value={newService.description || ''} onChange={e => setNewService({...newService, description: e.target.value})} className="rounded-2xl flex-1 font-bold shadow-inner" />
+                   <div className="flex flex-col gap-4 bg-slate-50 p-6 rounded-[2rem]">
+                      <Input 
+                        placeholder={isAr ? "العنوان الرئيسي (اختياري)" : "Main Headline (Optional)"} 
+                        value={newsForm.title} 
+                        onChange={e => setNewsForm({...newsForm, title: e.target.value})} 
+                        className="rounded-xl h-12 font-black border-slate-200"
+                      />
+                      <Textarea 
+                        placeholder={isAr ? "اكتب الخبر العاجل هنا..." : "Type news content..."} 
+                        value={newsForm.text} 
+                        onChange={e => setNewsForm({...newsForm, text: e.target.value})} 
+                        className="rounded-xl flex-1 font-bold shadow-inner" 
+                      />
                       <Button onClick={() => {
-                        const news: NewsTicker = { id: `news_${Date.now()}`, text: newService.description || '', isActive: true, createdAt: new Date().toISOString() };
+                        if(!newsForm.text) return;
+                        const news: NewsTicker = { 
+                          id: `news_${Date.now()}`, 
+                          title: newsForm.title,
+                          text: newsForm.text, 
+                          isActive: true, 
+                          createdAt: new Date().toISOString() 
+                        };
                         setNewsItems(prev => [news, ...prev]);
-                        setNewService({...newService, description: ''});
-                      }} className="bg-secondary rounded-2xl px-10 font-black text-white h-auto shadow-lg hover:scale-105 transition-all">{isAr ? "نشر" : "Publish"}</Button>
+                        setNewsForm({ title: '', text: '' });
+                      }} className="bg-secondary rounded-full py-6 font-black text-white h-auto shadow-lg hover:scale-105 transition-all">
+                        {isAr ? "نشر الخبر" : "Publish News"}
+                      </Button>
                    </div>
                    <div className="grid gap-4">
                       {newsItems.map(item => (
-                        <div key={item.id} className="flex items-center justify-between p-5 border rounded-2xl bg-white shadow-sm">
-                           <p className="text-sm font-black text-slate-700">{item.text}</p>
+                        <div key={item.id} className="flex items-center justify-between p-6 border rounded-2xl bg-white shadow-sm group hover:border-secondary transition-all">
+                           <div className="flex flex-col gap-1">
+                             {item.title && <span className="text-[10px] font-black text-secondary uppercase tracking-widest">{item.title}</span>}
+                             <p className="text-sm font-bold text-slate-700">{item.text}</p>
+                           </div>
                            <Button variant="ghost" size="icon" className="text-red-500 rounded-full" onClick={() => setNewsItems(prev => prev.filter(n => n.id !== item.id))}><Trash2 size={18} /></Button>
                         </div>
                       ))}
@@ -442,4 +477,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
