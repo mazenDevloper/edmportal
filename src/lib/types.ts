@@ -30,13 +30,6 @@ export interface MenuItem {
   order: number;
 }
 
-export interface FooterSection {
-  id: string;
-  titleAr: string;
-  titleEn: string;
-  links: { labelAr: string; labelEn: string; url: string }[];
-}
-
 export interface CarouselItem {
   id: string;
   titleAr: string;
@@ -45,6 +38,18 @@ export interface CarouselItem {
   subtitleEn: string;
   imageUrl: string;
   linkUrl?: string;
+}
+
+export interface Course {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  imageUrl: string;
+  durationAr: string;
+  durationEn: string;
+  isOpen: boolean;
 }
 
 export interface Service {
@@ -68,10 +73,11 @@ export interface Service {
 export interface ServiceApplication {
   id: string;
   serviceId: string;
-  userId: string;
+  serviceName: string;
+  citizenName: string;
   status: 'pending' | 'in-review' | 'approved' | 'rejected';
-  data: any;
-  createdAt: any;
+  data: Record<string, string>;
+  createdAt: string;
 }
 
 export interface UserProfile {

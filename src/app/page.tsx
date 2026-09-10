@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -17,10 +16,13 @@ import {
   Users,
   FileText,
   ShieldCheck,
-  Star
+  Star,
+  BookOpen,
+  ArrowRight,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
-import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem } from '@/lib/types';
+import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
 import { IdentityShowcase } from '@/components/identity-showcase';
@@ -40,8 +42,8 @@ export default function DhofarPortal() {
   const [loading, setLoading] = useState(true);
 
   const [services, setServices] = useState<Service[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [tickerItems, setTickerItems] = useState<NewsTicker[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
 
@@ -50,8 +52,8 @@ export default function DhofarPortal() {
       const data = await fetchBin();
       if (data) {
         setServices(data.services || []);
+        setCourses(data.courses || []);
         setSiteConfig(data.siteConfig || null);
-        setTickerItems(data.newsItems || []);
         setMenuItems(data.menuItems || []);
         setCarouselItems(data.carouselItems || []);
       }
@@ -89,7 +91,7 @@ export default function DhofarPortal() {
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
           <span className="flex items-center gap-2 opacity-70"><Globe size={12} /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}</span>
           <div className="flex items-center gap-6">
-            <Link href="/template" className="text-accent hover:underline font-black">{isAr ? 'المساحة الذكية 3D' : 'Spatial Workspace'}</Link>
+            <Link href="/template" className="text-accent hover:underline font-black">{isAr ? 'المساحة الذكية' : 'Spatial Workspace'}</Link>
             <Link href="/admin" className="text-accent hover:underline flex items-center gap-2"><LayoutDashboard size={12} /> {isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
             <button onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="hover:text-accent">{isAr ? 'English' : 'العربية'}</button>
           </div>
@@ -150,7 +152,7 @@ export default function DhofarPortal() {
                <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
             </section>
 
-            {/* 2. Live Search Results (Only shown when searching) */}
+            {/* 2. Live Search Results */}
             {searchQuery && (
               <section className="py-12 bg-white border-b animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="max-w-7xl mx-auto px-6">
@@ -166,7 +168,7 @@ export default function DhofarPortal() {
                     </div>
                   ) : (
                     <div className="text-center py-12 border-2 border-dashed rounded-3xl">
-                      <p className="text-slate-400 font-bold">{isAr ? "لم يتم العثور على خدمات تطابق بحثك" : "No services found matching your search"}</p>
+                      <p className="text-slate-400 font-bold">{isAr ? "لم يتم العثور على خدمات" : "No services found"}</p>
                     </div>
                   )}
                 </div>
@@ -190,7 +192,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 4. News Carousel / Promo Banner (Khareef style) */}
+            {/* 4. Khareef Carousel */}
             {carouselItems.length > 0 && (
               <section className="relative group">
                 <Carousel className="w-full" opts={{ loop: true }}>
@@ -199,66 +201,107 @@ export default function DhofarPortal() {
                       <CarouselItemUI key={item.id}>
                         <div className="relative h-[600px] w-full flex items-center justify-center overflow-hidden">
                           <Image 
-                            src={item.imageUrl} 
+                            src={item.imageUrl || "https://picsum.photos/seed/dhofar/1200/600"} 
                             alt={item.titleAr} 
                             fill 
-                            className="object-cover brightness-[0.4] transition-transform duration-[20s] group-hover:scale-110" 
+                            className="object-cover brightness-[0.4]" 
                           />
                           <div className="relative z-10 text-center text-white px-6 max-w-4xl">
-                            <h2 className="text-6xl md:text-8xl font-black mb-6 drop-shadow-2xl animate-in zoom-in duration-700">{isAr ? item.titleAr : item.titleEn}</h2>
-                            <p className="text-2xl md:text-3xl font-bold opacity-90 mb-10 leading-relaxed">{isAr ? item.subtitleAr : item.subtitleEn}</p>
-                            {item.linkUrl && (
-                              <Button className="dm-gradient-primary rounded-full px-12 h-16 text-xl font-black shadow-2xl" asChild>
-                                <Link href={item.linkUrl}>{isAr ? 'استكشف الخريف الآن' : 'Explore Khareef Now'}</Link>
-                              </Button>
-                            )}
+                            <h2 className="text-6xl md:text-8xl font-black mb-6 drop-shadow-2xl">{isAr ? item.titleAr : item.titleEn}</h2>
+                            <p className="text-2xl md:text-3xl font-bold opacity-90 mb-10">{isAr ? item.subtitleAr : item.subtitleEn}</p>
+                            <Button className="dm-gradient-primary rounded-full px-12 h-16 text-xl font-black shadow-2xl">
+                              {isAr ? 'استكشف الآن' : 'Explore Now'}
+                            </Button>
                           </div>
                         </div>
                       </CarouselItemUI>
                     ))}
                   </CarouselContent>
-                  <CarouselPrevious className="left-8 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <CarouselNext className="right-8 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CarouselPrevious className="left-8" />
+                  <CarouselNext className="right-8" />
                 </Carousel>
               </section>
             )}
 
-            {/* 5. Portal Statistics */}
+            {/* 5. Statistics */}
             <section className="py-24 bg-primary text-white relative overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
                     <div className="space-y-2">
                        <TrendingUp className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.transactions || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
                     </div>
                     <div className="space-y-2">
                        <ShieldCheck className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'رخصة بناء' : 'Permits'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'رخصة بناء' : 'Permits'}</p>
                     </div>
                     <div className="space-y-2">
                        <FileText className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.contracts || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'عقد إيجار' : 'Leases'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'عقد إيجار' : 'Leases'}</p>
                     </div>
                     <div className="space-y-2">
                        <Users className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.tickets || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 uppercase tracking-widest">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
                     </div>
                  </div>
                </div>
                <div className="absolute inset-0 dm-wave-5 opacity-10" />
             </section>
 
-            {/* 6. Service Catalog */}
+            {/* 6. Training & Courses Section */}
+            <section className="py-24 bg-slate-50">
+              <div className="max-w-7xl mx-auto px-6">
+                <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+                   <div>
+                     <h2 className="text-4xl font-black text-primary mb-2 flex items-center gap-3">
+                       <BookOpen className="text-accent" /> {isAr ? "البرامج التدريبية المتاحة" : "Educational Programs"}
+                     </h2>
+                     <p className="text-slate-400 font-bold">{isAr ? "طور مهاراتك مع دورات بلدية ظفار المعتمدة" : "Develop your skills with certified Dhofar Municipality courses"}</p>
+                   </div>
+                   <Button variant="link" className="text-primary font-black flex items-center gap-2">
+                     {isAr ? "عرض كافة الدورات" : "View All Programs"} <ChevronRight className={cn("size-4", isAr && "rotate-180")} />
+                   </Button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {courses.map(course => (
+                    <Card key={course.id} className="rounded-brand overflow-hidden group shadow-sm hover:shadow-xl transition-all border-none">
+                      <div className="relative h-48 w-full">
+                        <Image 
+                          src={course.imageUrl || "https://picsum.photos/seed/edu/800/400"} 
+                          alt={course.titleAr} 
+                          fill 
+                          className="object-cover group-hover:scale-105 transition-transform" 
+                        />
+                        <div className="absolute top-4 right-4">
+                           <Badge className="bg-white/90 text-primary font-bold backdrop-blur-sm border-none">{course.durationAr}</Badge>
+                        </div>
+                      </div>
+                      <CardContent className="p-6">
+                        <h4 className="text-xl font-black text-primary mb-2">{isAr ? course.titleAr : course.titleEn}</h4>
+                        <p className="text-sm text-slate-500 line-clamp-2 mb-6 font-medium leading-relaxed">
+                          {isAr ? course.descriptionAr : course.descriptionEn}
+                        </p>
+                        <Button className="w-full bg-slate-900 rounded-full font-black group-hover:bg-primary transition-colors">
+                          {isAr ? "سجل الآن" : "Enroll Now"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 7. Catalog */}
             <section className="py-24 bg-white">
               <div className="max-w-7xl mx-auto px-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
                    <div>
                      <h2 className="text-4xl font-black text-primary mb-2">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog"}</h2>
-                     <p className="text-slate-400 font-bold">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً" : "Explore all municipal services available digitally"}</p>
+                     <p className="text-slate-400 font-bold">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً" : "Explore all municipal services"}</p>
                    </div>
                    <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto">
                      {['all', ...Object.keys(CAT_CONFIG)].map(cid => (
@@ -266,7 +309,7 @@ export default function DhofarPortal() {
                         key={cid} 
                         onClick={() => setActiveCategory(cid)} 
                         variant={activeCategory === cid ? 'default' : 'outline'} 
-                        className={cn("rounded-full font-black px-8 h-12 transition-all", activeCategory === cid ? "dm-gradient-primary shadow-lg scale-105" : "hover:border-primary")}
+                        className={cn("rounded-full font-black px-8 h-12", activeCategory === cid && "dm-gradient-primary")}
                       >
                          {cid === 'all' ? (isAr ? 'الكل' : 'All') : (isAr ? CAT_CONFIG[cid as CategoryId].labelAr : CAT_CONFIG[cid as CategoryId].labelEn)}
                        </Button>
@@ -289,19 +332,17 @@ export default function DhofarPortal() {
                <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={60} height={60} className="brightness-0 invert" />
                <div className="flex flex-col">
                  <span className="text-2xl font-black">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
-                 <span className="text-[10px] text-accent font-black tracking-widest">{isAr ? 'حكومة سلطنة عمان' : 'OMAN GOVERNMENT'}</span>
+                 <span className="text-[10px] text-accent font-black tracking-widest uppercase">{isAr ? 'حكومة سلطنة عمان' : 'OMAN GOVERNMENT'}</span>
                </div>
              </div>
              <p className="text-sm text-white/40 leading-relaxed font-medium">
-               {isAr 
-                 ? "نعمل بجد لتطوير محافظة ظفار وتقديم أفضل الخدمات الرقمية للمواطنين والمقيمين والزوار." 
-                 : "We work diligently to develop Dhofar Governorate and provide the best digital services for citizens, residents, and visitors."}
+               {isAr ? "نعمل بجد لتطوير محافظة ظفار وتقديم أفضل الخدمات الرقمية." : "We work diligently to develop Dhofar Governorate and provide the best digital services."}
              </p>
           </div>
           <div className="flex flex-col gap-4">
             <h4 className="text-accent text-xs font-black uppercase tracking-widest mb-2">{isAr ? "تواصل مباشر" : "Contact"}</h4>
             <div className="flex items-center gap-6">
-              <span className="text-5xl font-black text-white hover:text-accent transition-colors cursor-pointer">{siteConfig?.contactPhone || '1771'}</span>
+              <span className="text-5xl font-black text-white">{siteConfig?.contactPhone || '1771'}</span>
               <div className="h-12 w-px bg-white/10" />
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-white/50">{isAr ? "البريد الإلكتروني" : "Email"}</span>
@@ -314,8 +355,6 @@ export default function DhofarPortal() {
              <div className="grid grid-cols-2 gap-4">
                 <Link href="/template" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'المساحة الذكية' : 'Spatial Workspace'}</Link>
                 <Link href="/admin" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
-                <a href="#" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'سياسة الخصوصية' : 'Privacy Policy'}</a>
-                <a href="#" className="text-sm font-bold text-white/60 hover:text-white">{isAr ? 'خارطة الموقع' : 'Sitemap'}</a>
              </div>
           </div>
         </div>

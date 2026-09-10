@@ -1,11 +1,13 @@
 'use client';
 
 import React from 'react';
-import { ArrowUpRight, ListChecks, ExternalLink } from 'lucide-react';
+import { ArrowUpRight, ListChecks, ExternalLink, Send } from 'lucide-react';
 import { Service } from '@/lib/types';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 interface ServiceCardEnhancedProps {
   service: Service;
@@ -17,15 +19,8 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
   const IconComponent = (Icons as any)[service.iconName] || Icons.Info;
   const catInfo = CAT_CONFIG[service.category as CategoryId];
 
-  const handleAccessClick = (e: React.MouseEvent) => {
-    if (service.linkUrl) {
-      e.stopPropagation();
-      window.open(service.linkUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   return (
-    <div className={cn("relative group perspective-1000", compact ? 'scale-95 origin-top' : '')} onClick={handleAccessClick}>
+    <div className={cn("relative group perspective-1000", compact ? 'scale-95 origin-top' : '')}>
       <div className="p-6 rounded-[2.2rem] bg-white transition-all duration-500 cursor-pointer flex flex-col justify-between h-72 border border-transparent shadow-sm group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:border-primary/20 relative z-10 overflow-hidden">
         <div>
           <div className="flex items-start gap-4 mb-4">
@@ -50,32 +45,41 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
         </div>
 
         <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-50">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-secondary flex items-center gap-1">
+          <Link href={`/services/${service.id}`} className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-primary flex items-center gap-1">
             {isAr ? "الدخول إلى الخدمة" : "Access Service"}
-            {service.linkUrl && <ExternalLink size={12} className="inline ml-1" />}
-          </span>
+            <Send size={12} className="inline ml-1" />
+          </Link>
           <ArrowUpRight size={18} className="text-secondary transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
         </div>
 
-        <div className="absolute inset-0 bg-slate-900/95 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-center translate-y-4 group-hover:translate-y-0">
-          <div className="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
-            <ListChecks size={16} className="text-accent" />
-            <span className="text-white font-black text-xs">{isAr ? "المتطلبات" : "Requirements"}</span>
+        <div className="absolute inset-0 bg-slate-900/95 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-between translate-y-4 group-hover:translate-y-0">
+          <div>
+            <div className="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
+              <ListChecks size={16} className="text-accent" />
+              <span className="text-white font-black text-xs">{isAr ? "المتطلبات" : "Requirements"}</span>
+            </div>
+            <ul className="space-y-2">
+              {(isAr ? service.reqsAr : service.reqsEn)?.length > 0 ? (
+                (isAr ? service.reqsAr : service.reqsEn).slice(0, 3).map((req, idx) => (
+                  <li key={idx} className="text-slate-300 text-[10px] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-secondary" /> {req}
+                  </li>
+                ))
+              ) : (
+                <li className="text-slate-500 italic text-[10px]">{isAr ? "لا توجد متطلبات" : "No requirements"}</li>
+              )}
+            </ul>
           </div>
-          <ul className="space-y-2">
-            {(isAr ? service.reqsAr : service.reqsEn)?.length > 0 ? (
-              (isAr ? service.reqsAr : service.reqsEn).map((req, idx) => (
-                <li key={idx} className="text-slate-300 text-[10px] flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-secondary" /> {req}
-                </li>
-              ))
-            ) : (
-              <li className="text-slate-500 italic text-[10px]">{isAr ? "لا توجد متطلبات خاصة" : "No special requirements"}</li>
-            )}
-          </ul>
-          <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
-            <span className="text-slate-500 text-[9px] font-bold uppercase">{isAr ? "الرسوم" : "Fees"}</span>
-            <span className="text-emerald-400 font-black text-xs">{service.fees || (isAr ? "مجاني" : "Free")}</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-t border-white/5 pt-3">
+              <span className="text-slate-500 text-[9px] font-bold uppercase">{isAr ? "الرسوم" : "Fees"}</span>
+              <span className="text-emerald-400 font-black text-xs">{service.fees || (isAr ? "مجاني" : "Free")}</span>
+            </div>
+            <Button className="w-full bg-accent text-accent-foreground font-black rounded-full h-10 text-xs" asChild>
+              <Link href={`/services/${service.id}`}>
+                {isAr ? "تقديم طلب رقمي" : "Apply Digitally"}
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
