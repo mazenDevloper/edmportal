@@ -1,24 +1,32 @@
+
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
 import { 
   Accessibility, 
   Contrast, 
   Type,
-  Maximize2,
-  Volume2,
-  List
+  Maximize2
 } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from '@/lib/utils';
 
 export function AccessibilityMenu() {
   const { fontSize, setFontSize, highContrast, toggleHighContrast, language, spacing, setSpacing } = useSettingsStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch by not rendering the menu on the server
+  if (!mounted) return null;
 
   const isAr = language === 'ar';
 
@@ -56,7 +64,7 @@ export function AccessibilityMenu() {
                   <Button 
                     key={size.id}
                     variant={fontSize === size.id ? 'default' : 'outline'} 
-                    className={cn("flex-1 font-black rounded-xl", fontSize === size.id && "dm-gradient-primary border-none")}
+                    className={cn("flex-1 font-black rounded-xl", fontSize === size.id && "dm-gradient-primary border-none shadow-none")}
                     onClick={() => setFontSize(size.id as any)}
                     aria-pressed={fontSize === size.id}
                   >
@@ -99,5 +107,3 @@ export function AccessibilityMenu() {
     </div>
   );
 }
-
-const cn = (...inputs: any[]) => inputs.filter(Boolean).join(' ');

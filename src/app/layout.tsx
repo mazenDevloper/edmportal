@@ -21,6 +21,7 @@ export default function RootLayout({
     setMounted(true);
   }, []);
 
+  // Use stable defaults for SSR to avoid hydration mismatch
   const currentLang = mounted ? language : 'ar';
   const currentDir = currentLang === 'ar' ? 'rtl' : 'ltr';
 
