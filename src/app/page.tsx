@@ -9,9 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
   Search, 
-  Clock, 
   Bolt, 
-  ChevronDown, 
   LayoutGrid, 
   Cpu, 
   Sparkles,
@@ -20,55 +18,17 @@ import {
   CreditCard,
   XCircle,
   Languages,
-  Flag,
   Target,
-  Users,
-  ArrowUpRight,
-  ShieldCheck,
   FileText,
-  Accessibility,
+  ShieldCheck,
   Globe,
-  Palette
+  Palette,
+  ArrowUpRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
-
-// Typing Animation Component
-const TypingText = ({ isAr }: { isAr: boolean }) => {
-  const phrases = isAr 
-    ? ["معاً نحو المستقبل الرقمي", "خدمات ذكية بلمسة واحدة", "نبتكر من أجل سعادتكم", "رؤية طموحة لوطن مزدهر"]
-    : ["Together towards a digital future", "Smart services at your fingertips", "Innovating for your happiness", "An ambitious vision for a prosperous nation"];
-  const [index, setIndex] = useState(0);
-  const [subIndex, setSubIndex] = useState(0);
-  const [reverse, setReverse] = useState(false);
-
-  useEffect(() => {
-    if (subIndex === phrases[index].length + 1 && !reverse) {
-      setTimeout(() => setReverse(true), 2000);
-      return;
-    }
-    if (subIndex === 0 && reverse) {
-      setReverse(false);
-      setIndex((prev) => (prev + 1) % phrases.length);
-      return;
-    }
-    const timeout = setTimeout(() => {
-      setSubIndex((prev) => prev + (reverse ? -1 : 1));
-    }, reverse ? 40 : 80);
-    return () => clearTimeout(timeout);
-  }, [subIndex, index, reverse, phrases]);
-
-  return (
-    <div className="h-16 flex items-center justify-center mb-10">
-      <h2 className="text-3xl md:text-5xl font-black text-center text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent bg-[length:200%_auto] animate-gradient">
-        {phrases[index].substring(0, subIndex)}
-        <span className="animate-pulse ml-1 text-slate-300">|</span>
-      </h2>
-    </div>
-  );
-};
 
 export default function DhofarPortal() {
   const firestore = useFirestore();
@@ -127,7 +87,7 @@ export default function DhofarPortal() {
 
   return (
     <div className={cn("flex min-h-screen flex-col bg-white text-slate-900", isAr ? "font-arabic" : "font-sans")}>
-      {/* Top GUP-DS Utility Bar */}
+      {/* Top Utility Bar */}
       <div className="bg-slate-900 text-white py-2 text-[10px] uppercase font-bold tracking-widest border-b border-white/5">
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
           <div className="flex gap-4">
@@ -217,15 +177,15 @@ export default function DhofarPortal() {
       <main className="flex-grow pb-24">
         {activeTab === 'home' && (
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-            {/* GUP-DS Hero Section */}
+            {/* Dynamic Hero Section */}
             <section className="relative py-20 bg-slate-50 overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="max-w-3xl">
                    <h1 className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6 leading-tight">
-                     {isAr ? "التحول الرقمي لخدمات بلدية ظفار" : "Digital Transformation of Dhofar Municipality Services"}
+                     {siteConfig?.heroTitle || (isAr ? "التحول الرقمي لخدمات بلدية ظفار" : "Digital Transformation of Dhofar Municipality Services")}
                    </h1>
                    <p className="text-xl text-slate-500 font-bold mb-10 leading-relaxed">
-                     {isAr ? "نقدم لك منصة متكاملة تهدف إلى تسهيل وصولك للخدمات البلدية بسرعة وكفاءة عالية، متوافقين مع رؤية عمان 2040." : "Providing an integrated platform for efficient access to municipal services, aligned with Oman Vision 2040."}
+                     {siteConfig?.heroSubtitle || (isAr ? "نقدم لك منصة متكاملة تهدف إلى تسهيل وصولك للخدمات البلدية بسرعة وكفاءة عالية، متوافقين مع رؤية عمان 2040." : "Providing an integrated platform for efficient access to municipal services, aligned with Oman Vision 2040.")}
                    </p>
                    
                    <div className="relative max-w-xl group">
@@ -244,21 +204,21 @@ export default function DhofarPortal() {
                <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-pattern opacity-5" />
             </section>
 
-            {/* Quick Access Grid */}
+            {/* Stats Dashboard */}
             <div className="max-w-7xl mx-auto px-6 -mt-10 relative z-20">
                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                  {[
-                   { label: isAr ? "تراخيص البناء" : "Permits", icon: <LayoutGrid />, color: "bg-accent", desc: isAr ? "إصدار وتجديد تراخيص البناء" : "Building permit services" },
-                   { label: isAr ? "عقود الإيجار" : "Lease", icon: <FileText />, color: "bg-primary", desc: isAr ? "توثيق وتصديق العقود" : "Lease contract services" },
-                   { label: isAr ? "الترخيص البلدي" : "License", icon: <ShieldCheck />, color: "bg-secondary", desc: isAr ? "تراخيص الأنشطة الصحية" : "Health and trade licenses" },
-                   { label: isAr ? "تمديدات الخدمة" : "Utility", icon: <Target />, color: "bg-emerald-500", desc: isAr ? "تصاريح الحفر والخدمات" : "Excavation and utilities" },
+                   { label: isAr ? "المعاملات الإلكترونية" : "Transactions", count: siteConfig?.stats?.transactions || '360,806', color: "bg-accent", icon: <LayoutGrid /> },
+                   { label: isAr ? "تراخيص البناء" : "Building Permits", count: siteConfig?.stats?.permits || '12,546', color: "bg-primary", icon: <FileText /> },
+                   { label: isAr ? "عقود الإيجار" : "Lease Contracts", count: siteConfig?.stats?.contracts || '117,293', color: "bg-secondary", icon: <ShieldCheck /> },
+                   { label: isAr ? "تذاكر إلكترونية" : "E-Tickets", count: siteConfig?.stats?.tickets || '123,416', color: "bg-emerald-500", icon: <Target /> },
                  ].map((item, i) => (
                    <div key={i} className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 group hover:-translate-y-2 transition-all cursor-pointer">
-                     <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center text-white mb-6 shadow-lg transition-transform group-hover:rotate-6", item.color)}>
+                     <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center text-white mb-6 shadow-lg", item.color)}>
                         {item.icon}
                      </div>
-                     <h3 className="text-lg font-black text-primary mb-2">{item.label}</h3>
-                     <p className="text-xs text-slate-400 font-bold leading-tight">{item.desc}</p>
+                     <p className="text-3xl font-black text-primary mb-2 tracking-tighter">{item.count}</p>
+                     <h3 className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-tight">{item.label}</h3>
                    </div>
                  ))}
                </div>
@@ -291,6 +251,11 @@ export default function DhofarPortal() {
                  {filteredServices.map(s => (
                    <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />
                  ))}
+                 {filteredServices.length === 0 && (
+                   <div className="col-span-full py-20 text-center text-slate-300 font-bold italic">
+                     {isAr ? "لا توجد خدمات متاحة حالياً ضمن هذا التصنيف" : "No services available in this category"}
+                   </div>
+                 )}
               </div>
             </section>
 

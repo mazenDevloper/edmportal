@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'apps.edm.gov.om',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
