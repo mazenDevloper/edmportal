@@ -25,12 +25,14 @@ export interface Service {
   title: string;
   titleEn?: string;
   description: string;
+  descriptionEn?: string;
   iconName: string;
   category: string;
   isActive: boolean;
-  reqsAr?: string[];
-  reqsEn?: string[];
-  fees?: string;
+  reqsAr: string[];
+  reqsEn: string[];
+  fees: string;
+  feesEn?: string;
   colorClass?: string;
 }
 
@@ -48,4 +50,14 @@ export interface UserProfile {
   displayName: string;
   role: 'citizen' | 'admin';
   phoneNumber?: string;
+}
+
+export type Vec3 = { x: number; y: number; z: number };
+
+export interface SpatialWindow {
+  id: string;
+  contentId: string;
+  position: Vec3;
+  rotation: Vec3;
+  scale: Vec3;
 }

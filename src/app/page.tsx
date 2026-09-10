@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -14,21 +13,23 @@ import {
   Cpu, 
   Sparkles,
   Search as SearchIcon,
-  RotateCcw,
-  CreditCard,
-  XCircle,
   Languages,
   Target,
   FileText,
   ShieldCheck,
   Globe,
   Palette,
-  ArrowUpRight
+  ArrowUpRight,
+  Accessibility,
+  Menu,
+  Phone,
+  LayoutDashboard
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
+import { IdentityShowcase } from '@/components/identity-showcase';
 
 export default function DhofarPortal() {
   const firestore = useFirestore();
@@ -37,9 +38,6 @@ export default function DhofarPortal() {
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('الكل');
-  const [trxId, setTrxId] = useState('');
-  const [isTrxLoading, setIsTrxLoading] = useState(false);
-  const [trxResult, setTrxResult] = useState<any>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -74,19 +72,10 @@ export default function DhofarPortal() {
     }) || [];
   }, [services, activeCategory, searchQuery]);
 
-  const handleTrackTrx = () => {
-    if (!trxId) return;
-    setIsTrxLoading(true);
-    setTimeout(() => {
-      setIsTrxLoading(false);
-      setTrxResult({ status: 'pending', amount: '45.000' });
-    }, 1500);
-  };
-
   if (!isMounted) return null;
 
   return (
-    <div className={cn("flex min-h-screen flex-col bg-white text-slate-900", isAr ? "font-arabic" : "font-sans")}>
+    <div className={cn("flex min-h-screen flex-col bg-white text-slate-900", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       {/* Top Utility Bar */}
       <div className="bg-slate-900 text-white py-2 text-[10px] uppercase font-bold tracking-widest border-b border-white/5">
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
@@ -94,7 +83,9 @@ export default function DhofarPortal() {
              <span className="flex items-center gap-2 opacity-70"><Globe size={12} /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}</span>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/admin" className="text-accent hover:underline">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
+            <Link href="/admin" className="text-accent hover:underline flex items-center gap-2">
+              <LayoutDashboard size={12} /> {isAr ? 'لوحة التحكم' : 'Admin Panel'}
+            </Link>
             <div className="h-3 w-px bg-white/20" />
             <button onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="flex items-center gap-2 hover:text-accent transition-colors">
               <Languages size={12} />
@@ -107,7 +98,7 @@ export default function DhofarPortal() {
       {/* Breaking News Ticker */}
       {tickerItems && tickerItems.length > 0 && (
         <div className="bg-primary text-white overflow-hidden relative h-10 flex items-center shadow-md z-40">
-          <div className="absolute left-0 top-0 h-full bg-secondary px-6 flex items-center z-10 font-black text-xs uppercase gap-3">
+          <div className={cn("absolute top-0 h-full bg-secondary px-6 flex items-center z-10 font-black text-xs uppercase gap-3", isAr ? "right-0" : "left-0")}>
             <Bolt className="h-4 w-4 fill-current animate-pulse" />
             {isAr ? 'عاجل' : 'Alert'}
           </div>
@@ -124,7 +115,7 @@ export default function DhofarPortal() {
         </div>
       )}
 
-      {/* Identity Wave Header */}
+      {/* Identity Wave Header (5-Wave) */}
       <header className="relative bg-white border-b border-slate-100 py-6 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between relative z-10">
           <Link href="/" className="flex-shrink-0 flex items-center gap-4">
@@ -146,7 +137,6 @@ export default function DhofarPortal() {
           <nav className="hidden lg:flex items-center gap-2">
             {[
               { id: 'home', ar: "الرئيسية", en: "Home" },
-              { id: 'services', ar: "الخدمات", en: "Services" },
               { id: 'identity', ar: "الهوية الرقمية", en: "Digital Identity" }
             ].map(link => (
               <button 
@@ -169,9 +159,8 @@ export default function DhofarPortal() {
           </div>
         </div>
         
-        {/* Wave Decorative Background */}
-        <div className="absolute top-0 right-0 w-1/3 h-full dm-wave-pattern opacity-10 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-1/4 h-full dm-wave-pattern-muted opacity-20 pointer-events-none transform rotate-180" />
+        {/* 5-Wave Decorative Background */}
+        <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
       </header>
 
       <main className="flex-grow pb-24">
@@ -182,36 +171,35 @@ export default function DhofarPortal() {
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="max-w-3xl">
                    <h1 className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6 leading-tight">
-                     {siteConfig?.heroTitle || (isAr ? "التحول الرقمي لخدمات بلدية ظفار" : "Digital Transformation of Dhofar Municipality Services")}
+                     {siteConfig?.heroTitle || (isAr ? "التحول الرقمي لخدمات بلدية ظفار" : "Digital Transformation")}
                    </h1>
                    <p className="text-xl text-slate-500 font-bold mb-10 leading-relaxed">
-                     {siteConfig?.heroSubtitle || (isAr ? "نقدم لك منصة متكاملة تهدف إلى تسهيل وصولك للخدمات البلدية بسرعة وكفاءة عالية، متوافقين مع رؤية عمان 2040." : "Providing an integrated platform for efficient access to municipal services, aligned with Oman Vision 2040.")}
+                     {siteConfig?.heroSubtitle || (isAr ? "نقدم لك منصة متكاملة تهدف إلى تسهيل وصولك للخدمات البلدية بسرعة وكفاءة عالية." : "Integrated platform for municipal services.")}
                    </p>
                    
                    <div className="relative max-w-xl group">
-                     <SearchIcon className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={24} />
+                     <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors", isAr ? "right-6" : "left-6")} size={24} />
                      <input 
                        type="text" 
                        placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search for a service..."}
-                       className="w-full h-16 rounded-xl border-2 border-slate-200 px-16 text-lg font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-lg"
+                       className={cn("w-full h-16 rounded-xl border-2 border-slate-200 text-lg font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-lg", isAr ? "px-16" : "px-16")}
                        value={searchQuery}
                        onChange={(e) => setSearchQuery(e.target.value)}
                      />
                    </div>
                  </div>
                </div>
-               {/* Large Wave Ornament */}
-               <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-pattern opacity-5" />
+               <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-5 opacity-5" />
             </section>
 
             {/* Stats Dashboard */}
             <div className="max-w-7xl mx-auto px-6 -mt-10 relative z-20">
                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                  {[
-                   { label: isAr ? "المعاملات الإلكترونية" : "Transactions", count: siteConfig?.stats?.transactions || '360,806', color: "bg-accent", icon: <LayoutGrid /> },
-                   { label: isAr ? "تراخيص البناء" : "Building Permits", count: siteConfig?.stats?.permits || '12,546', color: "bg-primary", icon: <FileText /> },
-                   { label: isAr ? "عقود الإيجار" : "Lease Contracts", count: siteConfig?.stats?.contracts || '117,293', color: "bg-secondary", icon: <ShieldCheck /> },
-                   { label: isAr ? "تذاكر إلكترونية" : "E-Tickets", count: siteConfig?.stats?.tickets || '123,416', color: "bg-emerald-500", icon: <Target /> },
+                   { label: isAr ? "المعاملات الإلكترونية" : "Transactions", count: siteConfig?.stats?.transactions || '0', color: "bg-accent", icon: <LayoutGrid /> },
+                   { label: isAr ? "تراخيص البناء" : "Building Permits", count: siteConfig?.stats?.permits || '0', color: "bg-primary", icon: <FileText /> },
+                   { label: isAr ? "عقود الإيجار" : "Lease Contracts", count: siteConfig?.stats?.contracts || '0', color: "bg-secondary", icon: <ShieldCheck /> },
+                   { label: isAr ? "تذاكر إلكترونية" : "E-Tickets", count: siteConfig?.stats?.tickets || '0', color: "bg-emerald-500", icon: <Target /> },
                  ].map((item, i) => (
                    <div key={i} className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 group hover:-translate-y-2 transition-all cursor-pointer">
                      <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center text-white mb-6 shadow-lg", item.color)}>
@@ -241,7 +229,7 @@ export default function DhofarPortal() {
                         activeCategory === cat ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:bg-white/50"
                       )}
                     >
-                      {cat}
+                      {isAr ? cat : (cat === 'الكل' ? 'All' : cat)}
                     </button>
                   ))}
                 </div>
@@ -268,7 +256,7 @@ export default function DhofarPortal() {
                     </div>
                     <div className="max-w-md">
                       <h4 className="text-4xl font-black text-white tracking-tighter mb-4">{isAr ? "سهالة AI" : "Sahalah AI"}</h4>
-                      <p className="text-slate-400 font-bold leading-relaxed">{isAr ? "مساعدك الرقمي الذكي لتسهيل إجراءات التراخيص وتتبع المعاملات عبر المحادثة المباشرة." : "Your intelligent assistant for digital service procedures and live transaction tracking."}</p>
+                      <p className="text-slate-400 font-bold leading-relaxed">{isAr ? "مساعدك الرقمي الذكي لتسهيل إجراءات التراخيص وتتبع المعاملات عبر المحادثة المباشرة." : "Your intelligent assistant for digital service procedures."}</p>
                     </div>
                  </div>
                  <button className="relative z-10 px-10 py-5 dm-gradient-primary rounded-full font-black text-sm flex items-center gap-4 hover:scale-105 transition-all shadow-xl">
@@ -276,48 +264,14 @@ export default function DhofarPortal() {
                     {isAr ? "ابدأ المحادثة الآن" : "Start Conversation"}
                  </button>
                  
-                 {/* Decorative Background Elements */}
-                 <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-pattern opacity-5 pointer-events-none" />
-                 <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-accent opacity-10 blur-[100px] pointer-events-none" />
+                 <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-5 pointer-events-none" />
               </div>
             </section>
           </div>
         )}
 
         {activeTab === 'identity' && (
-          <div className="max-w-7xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="text-center mb-20">
-              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-slate-50 border border-slate-200 mb-6">
-                <Palette className="text-primary" size={20} />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Brand Identity Guidelines</span>
-              </div>
-              <h2 className="text-6xl font-black text-primary tracking-tighter">الهوية البصرية لبلدية ظفار</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-               <div className="space-y-8">
-                 <div className="p-10 rounded-[2rem] bg-slate-50 border border-slate-100 dm-wave-pattern opacity-40 h-64" />
-                 <h3 className="text-3xl font-black text-primary">أنماط الموجات (Wave Patterns)</h3>
-                 <p className="text-lg text-slate-500 font-bold leading-relaxed">
-                   تعتبر الموجات الزرقاء في الهوية البصرية رمزاً للانسيابية والاتصال الرقمي، مستلهمة من حركة أمواج بحر العرب في محافظة ظفار.
-                 </p>
-               </div>
-               <div className="grid grid-cols-2 gap-8">
-                  {[
-                    { hex: "#03CFCB", name: "Turquoise", use: "Digital Interactions" },
-                    { hex: "#470D67", name: "Deep Purple", use: "Formal Branding" },
-                    { hex: "#008E91", name: "Teal Dark", use: "Primary Identity" },
-                    { hex: "#F8FAFC", name: "Cloud White", use: "Clean Backgrounds" },
-                  ].map(color => (
-                    <div key={color.hex} className="p-6 rounded-2xl bg-white shadow-lg border border-slate-100 flex flex-col items-center">
-                       <div className="w-full h-32 rounded-xl mb-4" style={{ backgroundColor: color.hex }} />
-                       <span className="font-black text-primary">{color.name}</span>
-                       <span className="text-[10px] text-slate-400 font-bold uppercase">{color.use}</span>
-                    </div>
-                  ))}
-               </div>
-            </div>
-          </div>
+          <IdentityShowcase isAr={isAr} />
         )}
       </main>
 
@@ -334,7 +288,7 @@ export default function DhofarPortal() {
               </div>
             </div>
             <p className="text-white/40 text-xs font-bold max-w-sm leading-relaxed">
-              {isAr ? 'بلدية ظفار تسعى دائماً لتقديم خدماتها الرقمية بأعلى معايير الجودة والأمان لضمان راحة المواطن والمقيم.' : 'Dhofar Municipality strives to provide its digital services with the highest standards of quality and security.'}
+              {isAr ? 'بلدية ظفار تسعى دائماً لتقديم خدماتها الرقمية بأعلى معايير الجودة والأمان لضمان راحة المواطن والمقيم.' : 'Dhofar Municipality strives to provide its digital services with high quality.'}
             </p>
           </div>
           
@@ -344,15 +298,6 @@ export default function DhofarPortal() {
               <ul className="space-y-2 text-sm font-bold text-white/60">
                 <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'عن البلدية' : 'About'}</Link></li>
                 <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'دليل الخدمات' : 'Services'}</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'المشاركة الرقمية' : 'Participation'}</Link></li>
-              </ul>
-            </div>
-            <div className="space-y-4">
-              <h5 className="font-black text-accent uppercase text-[10px] tracking-widest">{isAr ? 'قانوني' : 'Legal'}</h5>
-              <ul className="space-y-2 text-sm font-bold text-white/60">
-                <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'الشروط والأحكام' : 'Terms'}</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'سياسة الخصوصية' : 'Privacy'}</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'خريطة الموقع' : 'Sitemap'}</Link></li>
               </ul>
             </div>
             <div className="space-y-4">
@@ -365,8 +310,8 @@ export default function DhofarPortal() {
           </div>
         </div>
         
-        {/* Wave Ornament Footer */}
-        <div className="absolute bottom-0 left-0 w-full h-32 dm-wave-pattern opacity-10 pointer-events-none" />
+        {/* 5-Wave Ornament Footer */}
+        <div className="absolute bottom-0 left-0 w-full h-32 dm-wave-5 opacity-10 pointer-events-none" />
       </footer>
     </div>
   );
