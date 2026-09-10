@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "dhofar-hero",
+      "description": "Scenic landscape of Salalah, Dhofar during Khareef season",
+      "imageUrl": "https://picsum.photos/seed/salalah/1920/600",
+      "imageHint": "green mountains"
+    },
+    {
+      "id": "municipality-building",
+      "description": "Dhofar Municipality Headquarters",
+      "imageUrl": "https://picsum.photos/seed/dhofar-gov/800/600",
+      "imageHint": "government building"
+    }
+  ]
+}
