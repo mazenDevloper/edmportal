@@ -1,3 +1,4 @@
+
 export interface SiteConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -9,6 +10,7 @@ export interface SiteConfig {
     contracts: number;
     tickets: number;
   };
+  categories: string[];
   isMaintenanceMode: boolean;
 }
 

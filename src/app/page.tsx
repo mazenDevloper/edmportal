@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -23,7 +24,8 @@ import {
   Accessibility,
   Menu,
   Phone,
-  LayoutDashboard
+  LayoutDashboard,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
@@ -72,6 +74,12 @@ export default function DhofarPortal() {
     }) || [];
   }, [services, activeCategory, searchQuery]);
 
+  // Derived categories from config or default
+  const categories = useMemo(() => {
+    const fromConfig = siteConfig?.categories || ['الكل'];
+    return fromConfig.map(c => ({ id: c, label: c }));
+  }, [siteConfig]);
+
   if (!isMounted) return null;
 
   return (
@@ -118,8 +126,8 @@ export default function DhofarPortal() {
       {/* Identity Wave Header (5-Wave) */}
       <header className="relative bg-white border-b border-slate-100 py-6 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between relative z-10">
-          <Link href="/" className="flex-shrink-0 flex items-center gap-4">
-             <div className="relative h-16 w-16">
+          <Link href="/" className="flex-shrink-0 flex items-center gap-4 group">
+             <div className="relative h-16 w-16 transition-transform group-hover:scale-110">
                <Image
                  src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png"
                  alt="Dhofar Municipality Logo"
@@ -129,7 +137,7 @@ export default function DhofarPortal() {
                />
              </div>
              <div className="flex flex-col">
-               <span className="text-2xl font-black text-primary leading-none">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+               <span className="text-2xl font-black text-primary leading-none tracking-tighter">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
                <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">{isAr ? 'معاً لمستقبل أفضل' : 'Towards a better future'}</span>
              </div>
           </Link>
@@ -144,7 +152,7 @@ export default function DhofarPortal() {
                 onClick={() => setActiveTab(link.id)}
                 className={cn(
                   "px-6 py-2 rounded-md text-sm font-bold transition-all",
-                  activeTab === link.id ? "bg-accent/10 text-primary border-b-2 border-primary" : "text-slate-500 hover:text-primary hover:bg-slate-50"
+                  activeTab === link.id ? "bg-accent/10 text-primary border-b-2 border-primary shadow-sm" : "text-slate-500 hover:text-primary hover:bg-slate-50"
                 )}
               >
                 {isAr ? link.ar : link.en}
@@ -153,7 +161,7 @@ export default function DhofarPortal() {
           </nav>
 
           <div className="flex items-center gap-4">
-             <Button variant="outline" className="rounded-full border-primary text-primary font-bold hidden sm:flex">
+             <Button variant="outline" className="rounded-full border-primary text-primary font-bold hidden sm:flex hover:bg-primary hover:text-white transition-all shadow-sm">
                {isAr ? "دخول المستفيد" : "Citizen Login"}
              </Button>
           </div>
@@ -173,7 +181,7 @@ export default function DhofarPortal() {
                    <h1 className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6 leading-tight">
                      {siteConfig?.heroTitle || (isAr ? "التحول الرقمي لخدمات بلدية ظفار" : "Digital Transformation")}
                    </h1>
-                   <p className="text-xl text-slate-500 font-bold mb-10 leading-relaxed">
+                   <p className="text-xl text-slate-500 font-bold mb-10 leading-relaxed max-w-2xl">
                      {siteConfig?.heroSubtitle || (isAr ? "نقدم لك منصة متكاملة تهدف إلى تسهيل وصولك للخدمات البلدية بسرعة وكفاءة عالية." : "Integrated platform for municipal services.")}
                    </p>
                    
@@ -182,7 +190,7 @@ export default function DhofarPortal() {
                      <input 
                        type="text" 
                        placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search for a service..."}
-                       className={cn("w-full h-16 rounded-xl border-2 border-slate-200 text-lg font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-lg", isAr ? "px-16" : "px-16")}
+                       className={cn("w-full h-16 rounded-xl border-2 border-slate-200 text-lg font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-lg", isAr ? "pr-16 pl-8" : "pl-16 pr-8")}
                        value={searchQuery}
                        onChange={(e) => setSearchQuery(e.target.value)}
                      />
@@ -192,21 +200,21 @@ export default function DhofarPortal() {
                <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-5 opacity-5" />
             </section>
 
-            {/* Stats Dashboard */}
+            {/* Quick Access Grid */}
             <div className="max-w-7xl mx-auto px-6 -mt-10 relative z-20">
-               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                  {[
                    { label: isAr ? "المعاملات الإلكترونية" : "Transactions", count: siteConfig?.stats?.transactions || '0', color: "bg-accent", icon: <LayoutGrid /> },
                    { label: isAr ? "تراخيص البناء" : "Building Permits", count: siteConfig?.stats?.permits || '0', color: "bg-primary", icon: <FileText /> },
                    { label: isAr ? "عقود الإيجار" : "Lease Contracts", count: siteConfig?.stats?.contracts || '0', color: "bg-secondary", icon: <ShieldCheck /> },
-                   { label: isAr ? "تذاكر إلكترونية" : "E-Tickets", count: siteConfig?.stats?.tickets || '0', color: "bg-emerald-500", icon: <Target /> },
+                   { label: isAr ? "إضافة مفوض" : "Delegates", count: siteConfig?.stats?.tickets || '0', color: "bg-emerald-500", icon: <Users /> },
                  ].map((item, i) => (
-                   <div key={i} className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 group hover:-translate-y-2 transition-all cursor-pointer">
-                     <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center text-white mb-6 shadow-lg", item.color)}>
+                   <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl border border-slate-100 group hover:-translate-y-2 transition-all cursor-pointer">
+                     <div className={cn("w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg transition-transform group-hover:rotate-12", item.color)}>
                         {item.icon}
                      </div>
-                     <p className="text-3xl font-black text-primary mb-2 tracking-tighter">{item.count}</p>
-                     <h3 className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-tight">{item.label}</h3>
+                     <p className="text-2xl md:text-3xl font-black text-primary mb-2 tracking-tighter">{item.count}</p>
+                     <h3 className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-tight">{item.label}</h3>
                    </div>
                  ))}
                </div>
@@ -219,17 +227,17 @@ export default function DhofarPortal() {
                   <h2 className="text-4xl font-black text-primary tracking-tighter mb-4">{isAr ? "دليل الخدمات الإلكترونية" : "Services Catalog"}</h2>
                   <p className="text-slate-500 font-bold">{isAr ? "استعرض الفئات المختلفة للخدمات المتاحة" : "Browse through available municipal service categories"}</p>
                 </div>
-                <div className="flex gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                  {['الكل', 'الرخص', 'المباني', 'الاستثمار'].map(cat => (
+                <div className="flex gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 overflow-x-auto max-w-full">
+                  {categories.map(cat => (
                     <button 
-                      key={cat}
-                      onClick={() => setActiveCategory(cat)}
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
                       className={cn(
-                        "px-6 py-2.5 rounded-lg text-xs font-black transition-all",
-                        activeCategory === cat ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:bg-white/50"
+                        "px-6 py-2.5 rounded-lg text-xs font-black transition-all whitespace-nowrap",
+                        activeCategory === cat.id ? "bg-white text-primary shadow-sm" : "text-slate-500 hover:bg-white/50"
                       )}
                     >
-                      {isAr ? cat : (cat === 'الكل' ? 'All' : cat)}
+                      {cat.label}
                     </button>
                   ))}
                 </div>
@@ -240,8 +248,13 @@ export default function DhofarPortal() {
                    <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />
                  ))}
                  {filteredServices.length === 0 && (
-                   <div className="col-span-full py-20 text-center text-slate-300 font-bold italic">
-                     {isAr ? "لا توجد خدمات متاحة حالياً ضمن هذا التصنيف" : "No services available in this category"}
+                   <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-200 rounded-[3rem]">
+                     <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+                        <Search size={40} />
+                     </div>
+                     <p className="text-slate-400 font-black text-lg">
+                       {isAr ? "لا توجد خدمات متاحة حالياً ضمن هذا التصنيف" : "No services available in this category"}
+                     </p>
                    </div>
                  )}
               </div>
@@ -249,12 +262,12 @@ export default function DhofarPortal() {
 
             {/* AI Assistant Banner */}
             <section className="max-w-7xl mx-auto px-6 mb-24">
-              <div className="bg-slate-900 rounded-[2.5rem] p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-12 group shadow-2xl">
+              <div className="bg-slate-900 rounded-[3rem] p-10 md:p-16 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-12 group shadow-2xl border border-white/5">
                  <div className="relative z-10 flex items-center gap-10">
-                    <div className="w-24 h-24 rounded-3xl bg-accent flex items-center justify-center shadow-2xl group-hover:rotate-12 transition-transform duration-700">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-accent flex items-center justify-center shadow-2xl group-hover:rotate-12 transition-transform duration-700">
                        <Cpu size={48} className="text-white" />
                     </div>
-                    <div className="max-w-md">
+                    <div className="max-w-md text-center md:text-right">
                       <h4 className="text-4xl font-black text-white tracking-tighter mb-4">{isAr ? "سهالة AI" : "Sahalah AI"}</h4>
                       <p className="text-slate-400 font-bold leading-relaxed">{isAr ? "مساعدك الرقمي الذكي لتسهيل إجراءات التراخيص وتتبع المعاملات عبر المحادثة المباشرة." : "Your intelligent assistant for digital service procedures."}</p>
                     </div>
@@ -298,12 +311,13 @@ export default function DhofarPortal() {
               <ul className="space-y-2 text-sm font-bold text-white/60">
                 <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'عن البلدية' : 'About'}</Link></li>
                 <li><Link href="#" className="hover:text-white transition-colors">{isAr ? 'دليل الخدمات' : 'Services'}</Link></li>
+                <li><Link href="/admin" className="hover:text-white transition-colors">{isAr ? 'لوحة الإدارة' : 'Admin Console'}</Link></li>
               </ul>
             </div>
             <div className="space-y-4">
               <h5 className="font-black text-accent uppercase text-[10px] tracking-widest">{isAr ? 'تواصل معنا' : 'Contact'}</h5>
               <div className="flex flex-col gap-1">
-                <span className="text-3xl font-black tracking-tighter">80071111</span>
+                <span className="text-3xl font-black tracking-tighter">{siteConfig?.contactPhone || '80071111'}</span>
                 <span className="text-[10px] text-white/30 font-bold uppercase">{isAr ? 'مركز الاتصال الموحد' : 'Call Center'}</span>
               </div>
             </div>
