@@ -5,17 +5,17 @@
 @layer base {
   :root {
     /* Dhofar Municipality Brand Palette - Primary */
-    --dm-teal-deep: 181 100% 15%;      /* Dark Emerald/Teal from top-left */
-    --dm-purple-deep: 278 78% 20%;    /* Deep Purple from top-middle */
+    --dm-teal-deep: 181 100% 15%;      /* Dark Emerald/Teal */
+    --dm-purple-deep: 278 78% 20%;    /* Deep Purple */
     --dm-turquoise: 179 97% 41%;      /* Primary Turquoise */
     --dm-teal-dark: 181 100% 28%;     /* Supportive Dark Teal */
     
     /* Dhofar Municipality Brand Palette - Secondary/Soft */
-    --dm-sage: 175 25% 60%;           /* Sage green from middle-left */
-    --dm-lavender: 275 30% 65%;       /* Lavender from middle-center */
-    --dm-mint: 177 40% 85%;           /* Mint from bottom-left */
-    --dm-lilac: 270 35% 90%;          /* Lilac from bottom-center */
-    --dm-cyan-pale: 185 50% 92%;      /* Pale Cyan from bottom-right */
+    --dm-sage: 175 25% 60%;           /* Sage green */
+    --dm-lavender: 275 30% 65%;       /* Lavender */
+    --dm-mint: 177 40% 85%;           /* Mint */
+    --dm-lilac: 270 35% 90%;          /* Lilac */
+    --dm-cyan-pale: 185 50% 92%;      /* Pale Cyan */
 
     --dm-gold: 45 100% 50%;           /* #FFD700 */
 
@@ -70,6 +70,19 @@
   }
 }
 
+/* Neumorphic Utilities */
+.neu-out {
+  box-shadow: 9px 9px 16px rgb(0,0,0,0.08), -9px -9px 16px rgb(255,255,255,0.8);
+}
+
+.neu-in {
+  box-shadow: inset 6px 6px 12px rgba(0,0,0,0.05), inset -6px -6px 12px rgba(255,255,255,0.8);
+}
+
+.neu-soft {
+  box-shadow: 4px 4px 8px rgba(0,0,0,0.05), -4px -4px 8px rgba(255,255,255,0.8);
+}
+
 /* Brand Patterns */
 .dm-pattern-hero {
   background-image: url("https://edm.gov.om/wp-content/uploads/2021/03/pattern40.png");
@@ -93,9 +106,19 @@
   @apply text-white border-none shadow-sm;
 }
 
-.dm-gradient-primary:hover {
-  filter: brightness(1.1);
-  @apply shadow-md transform scale-[1.02];
+.dm-gradient-brand {
+  background: linear-gradient(135deg, #399cb7 0%, #3a95b3 55%, #e91e63 100%);
+}
+
+.animate-gradient {
+  background-size: 200% auto;
+  animation: gradient 5s linear infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 @keyframes marquee {
@@ -107,15 +130,6 @@
   animation: marquee 40s linear infinite;
 }
 
-.rtl .animate-marquee {
-  animation: marquee-rtl 40s linear infinite;
-}
-
-@keyframes marquee-rtl {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
-
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -124,7 +138,14 @@
   scrollbar-width: none;
 }
 
-/* Custom rounded for brand cards */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
 .rounded-brand {
   border-radius: 1.5rem;
+}
+
+.font-arabic {
+  font-family: 'Noto Kufi Arabic', sans-serif;
 }

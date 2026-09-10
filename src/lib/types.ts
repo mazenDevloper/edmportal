@@ -1,4 +1,3 @@
-
 export interface SiteConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -24,10 +23,15 @@ export interface NewsTicker {
 export interface Service {
   id: string;
   title: string;
+  titleEn?: string;
   description: string;
   iconName: string;
   category: string;
   isActive: boolean;
+  reqsAr?: string[];
+  reqsEn?: string[];
+  fees?: string;
+  colorClass?: string;
 }
 
 export interface ServiceApplication {
