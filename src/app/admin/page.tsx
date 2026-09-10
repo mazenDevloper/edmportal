@@ -9,6 +9,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication } from '@/lib/types';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
