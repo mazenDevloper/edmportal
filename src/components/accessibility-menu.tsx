@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Accessibility, 
   Contrast, 
@@ -11,7 +12,8 @@ import {
   Video,
   Volume2,
   Keyboard,
-  Eye
+  Eye,
+  Languages
 } from 'lucide-react';
 import {
   Popover,
@@ -22,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 export function AccessibilityMenu() {
-  const { fontSize, setFontSize, highContrast, toggleHighContrast, language, spacing, setSpacing } = useSettingsStore();
+  const { fontSize, setFontSize, highContrast, toggleHighContrast, language, setLanguage, spacing, setSpacing } = useSettingsStore();
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
 
@@ -47,7 +49,7 @@ export function AccessibilityMenu() {
         <PopoverTrigger asChild>
           <Button 
             size="icon" 
-            className="h-16 w-16 rounded-full shadow-[0_0_30px_rgba(3,207,203,0.4)] bg-[#008E91] hover:bg-[#470D67] text-white border-2 border-white focus-visible:ring-4 focus-visible:ring-accent animate-bounce-slow"
+            className="h-16 w-16 rounded-full shadow-[0_0_30px_rgba(3,207,203,0.4)] bg-[#008E91] hover:bg-[#470D67] text-white border-2 border-white focus-visible:ring-4 focus-visible:ring-accent"
             aria-label={isAr ? "أدوات النفاذ الرقمي" : "Digital Accessibility Tools"}
           >
             <Accessibility className="h-8 w-8" aria-hidden="true" />
@@ -65,7 +67,15 @@ export function AccessibilityMenu() {
             </div>
             
             <div className="space-y-3">
-              <span className="text-[10px] font-black block text-slate-400 uppercase tracking-widest">{isAr ? 'المساعدات البصرية' : 'Visual Aids'}</span>
+              <span className="text-[10px] font-black block text-slate-400 uppercase tracking-widest">{isAr ? 'اللغة والمقياس' : 'Language & Scale'}</span>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start gap-3 h-12 font-bold rounded-xl"
+                onClick={() => setLanguage(isAr ? 'en' : 'ar')}
+              >
+                <Languages className="h-5 w-5 text-accent" />
+                <span>{isAr ? 'English' : 'العربية'}</span>
+              </Button>
               <div className="flex gap-2" role="group">
                 {[
                   { id: 'base', label: 'A' },
@@ -82,6 +92,10 @@ export function AccessibilityMenu() {
                   </Button>
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <span className="text-[10px] font-black block text-slate-400 uppercase tracking-widest">{isAr ? 'المساعدات البصرية' : 'Visual Aids'}</span>
               <Button 
                 variant={highContrast ? 'secondary' : 'outline'} 
                 className={cn("w-full justify-start gap-3 h-12 font-bold rounded-xl", highContrast && "bg-slate-900 text-white")}

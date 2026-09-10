@@ -93,7 +93,6 @@ export default function AdminDashboard() {
     if (!url) return;
     setAltTextLoading(true);
     try {
-      // Mock data URI since we usually use URLs
       const { altText } = await generateAltText({ photoDataUri: url, language: isAr ? 'ar' : 'en' });
       if (type === 'course') {
         const newCourses = [...courses];
@@ -151,7 +150,7 @@ export default function AdminDashboard() {
                   <p className="text-sm text-slate-500">{isAr ? "استخدم الذكاء الاصطناعي لوصف الصور لضعاف البصر." : "Use AI to describe images for the visually impaired."}</p>
                   <div className="p-4 border-2 border-dashed rounded-2xl text-center">
                     <CloudUpload className="mx-auto text-slate-300 mb-2" size={32} />
-                    <p className="text-xs font-bold">{isAr ? "النظام يقوم بتوليد النصوص تلقائياً عند رفع الصور في تبويبات الدورات والبنرات" : "System generates alt-text automatically during course/banner uploads"}</p>
+                    <p className="text-xs font-bold">{isAr ? "النظام يقوم بتوليد النصوص تلقائياً عند رفع الصور" : "System generates alt-text automatically"}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -199,28 +198,6 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="builders">
-            <div className="grid sm:grid-cols-3 gap-6">
-              {[
-                { title: isAr ? "باني الصفحات" : "Page Builder", link: "/pagebuild", icon: Layout, color: "bg-blue-50 text-blue-600" },
-                { title: isAr ? "محرك الخدمات" : "Service Engine", link: "/servicebuild", icon: Sparkles, color: "bg-teal-50 text-teal-600" },
-                { title: isAr ? "باني الاستطلاعات" : "Survey Builder", link: "/surveybuild", icon: ClipboardList, color: "bg-purple-50 text-purple-600" }
-              ].map((tool, i) => (
-                <Card key={i} className="rounded-brand border-none shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                  <Link href={tool.link}>
-                    <CardContent className="p-8 flex flex-col items-center justify-center text-center gap-4">
-                      <div className={cn("p-4 rounded-2xl", tool.color)}>
-                        <tool.icon size={32} />
-                      </div>
-                      <h3 className="font-black text-primary">{tool.title}</h3>
-                      <ArrowUpRight className="text-slate-300" />
-                    </CardContent>
-                  </Link>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
           <TabsContent value="services">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -232,7 +209,6 @@ export default function AdminDashboard() {
                     <TableHead>{isAr ? "الخدمة" : "Service"}</TableHead>
                     <TableHead>{isAr ? "الفئة" : "Category"}</TableHead>
                     <TableHead>{isAr ? "الرسوم" : "Fees"}</TableHead>
-                    <TableHead>{isAr ? "إجراءات" : "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -241,9 +217,6 @@ export default function AdminDashboard() {
                       <TableCell className="font-bold">{isAr ? s.title : s.titleEn}</TableCell>
                       <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
                       <TableCell className="text-emerald-600 font-black">{s.fees}</TableCell>
-                      <TableCell className="flex gap-2">
-                         <Trash2 className="size-4 text-red-400 cursor-pointer" />
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

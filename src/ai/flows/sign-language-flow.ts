@@ -29,13 +29,13 @@ const oslFlow = ai.defineFlow(
     outputSchema: OSLOutputSchema,
   },
   async (input) => {
-    const prompt = `You are an expert in Oman Sign Language (OSL). 
+    const systemPrompt = `You are an expert in Oman Sign Language (OSL). 
     Explain how to sign the following concept: "${input.text}".
     Provide a step-by-step description in ${input.language === 'ar' ? 'Arabic' : 'English'}.
     Also, provide a detailed video generation prompt for a virtual assistant signing this clearly.`;
 
     const { output } = await ai.generate({
-      prompt,
+      prompt: systemPrompt,
       output: { schema: OSLOutputSchema }
     });
 
