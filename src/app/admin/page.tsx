@@ -1,16 +1,15 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useDoc } from '@/firebase';
-import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Service, SiteConfig, ServiceApplication, NewsTicker } from '@/lib/types';
-import { Settings, Plus, Save, Trash2, CheckCircle, Clock, Megaphone, BarChart3 } from 'lucide-react';
+import { Settings, Plus, Save, Trash2, Clock, Megaphone, BarChart3, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
@@ -29,7 +28,7 @@ export default function AdminDashboard() {
   const applicationsQuery = useMemo(() => collection(firestore, 'applications'), [firestore]);
   const { data: applications } = useCollection<ServiceApplication>(applicationsQuery);
 
-  const [newService, setNewService] = useState({ title: '', description: '', iconName: 'Info', category: 'General' });
+  const [newService, setNewService] = useState({ title: '', description: '', iconName: 'Info', category: 'الرخص' });
   const [newNews, setNewNews] = useState('');
 
   const updateConfig = (e: React.FormEvent<HTMLFormElement>) => {
@@ -58,56 +57,58 @@ export default function AdminDashboard() {
       createdAt: new Date().toISOString()
     });
     setNewNews('');
-    toast({ title: "News Added", description: "The ticker item is now live." });
-  };
-
-  const toggleNews = (id: string, current: boolean) => {
-    updateDoc(doc(firestore, 'news_ticker', id), { isActive: !current });
+    toast({ title: "News Added" });
   };
 
   const createService = () => {
     addDoc(collection(firestore, 'services'), { ...newService, isActive: true });
-    setNewService({ title: '', description: '', iconName: 'Info', category: 'General' });
+    setNewService({ title: '', description: '', iconName: 'Info', category: 'الرخص' });
     toast({ title: "Service Created" });
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
-        <h1 className="text-3xl font-bold text-[#008E91] mb-8 flex items-center gap-2">
-          <Settings className="h-8 w-8" /> Admin Control Panel
-        </h1>
+        <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+           <h1 className="text-3xl font-black text-primary flex items-center gap-3">
+             <Settings className="h-8 w-8 text-accent" /> لوحة التحكم الإدارية
+           </h1>
+           <Button variant="outline" className="rounded-full border-primary text-primary" asChild>
+             <a href="/">العودة للبوابة الرئيسية</a>
+           </Button>
+        </header>
 
         <Tabs defaultValue="site" className="w-full">
-          <TabsList className="bg-white border mb-8 flex overflow-x-auto">
-            <TabsTrigger value="site">Site Identity</TabsTrigger>
-            <TabsTrigger value="stats">Portal Statistics</TabsTrigger>
-            <TabsTrigger value="ticker">News Ticker</TabsTrigger>
-            <TabsTrigger value="services">Services Catalog</TabsTrigger>
-            <TabsTrigger value="applications">Applications</TabsTrigger>
+          <TabsList className="bg-white border p-1 h-auto mb-10 flex flex-wrap gap-2 rounded-xl">
+            <TabsTrigger value="site" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6">الهوية البصرية</TabsTrigger>
+            <TabsTrigger value="stats" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6">إحصائيات البوابة</TabsTrigger>
+            <TabsTrigger value="ticker" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6">شريط الأخبار</TabsTrigger>
+            <TabsTrigger value="services" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6">كتالوج الخدمات</TabsTrigger>
+            <TabsTrigger value="applications" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6">طلبات المواطنين</TabsTrigger>
           </TabsList>
 
           <TabsContent value="site">
-            <Card>
-              <CardHeader><CardTitle>Branding & Hero Content</CardTitle></CardHeader>
+            <Card className="rounded-brand shadow-md border-none overflow-hidden">
+              <div className="h-2 bg-primary" />
+              <CardHeader><CardTitle className="font-black text-primary">إعدادات الواجهة والبطولات</CardTitle></CardHeader>
               <CardContent>
-                <form onSubmit={updateConfig} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={updateConfig} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-600">Hero Title</label>
-                      <Input name="heroTitle" defaultValue={siteConfig?.heroTitle} />
+                      <label className="text-sm font-black text-slate-500 uppercase">عنوان الهيرو الرئيسي</label>
+                      <Input name="heroTitle" defaultValue={siteConfig?.heroTitle} className="rounded-xl border-slate-200 h-12" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-600">Support Phone</label>
-                      <Input name="contactPhone" defaultValue={siteConfig?.contactPhone} />
+                      <label className="text-sm font-black text-slate-500 uppercase">رقم هاتف الدعم</label>
+                      <Input name="contactPhone" defaultValue={siteConfig?.contactPhone} className="rounded-xl border-slate-200 h-12" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-600">Hero Subtitle</label>
-                    <Textarea name="heroSubtitle" defaultValue={siteConfig?.heroSubtitle} />
+                    <label className="text-sm font-black text-slate-500 uppercase">الوصف الفرعي (Subtitle)</label>
+                    <Textarea name="heroSubtitle" defaultValue={siteConfig?.heroSubtitle} className="rounded-xl border-slate-200 min-h-[100px]" />
                   </div>
-                  <Button type="submit" className="dm-gradient-primary">
-                    <Save className="h-4 w-4 mr-2" /> Update Content
+                  <Button type="submit" className="dm-gradient-primary rounded-full px-8 py-6 font-black h-auto">
+                    <Save className="h-5 w-5 mr-2" /> حفظ التغييرات
                   </Button>
                 </form>
               </CardContent>
@@ -115,30 +116,31 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="stats">
-            <Card>
-              <CardHeader><CardTitle>Municipal Performance Stats</CardTitle></CardHeader>
+            <Card className="rounded-brand shadow-md border-none overflow-hidden">
+              <div className="h-2 bg-accent" />
+              <CardHeader><CardTitle className="font-black text-primary">تحديث أرقام الإحصائيات</CardTitle></CardHeader>
               <CardContent>
-                <form onSubmit={updateConfig} className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-slate-500">Electronic Transactions</label>
-                      <Input name="statTransactions" type="number" defaultValue={siteConfig?.stats?.transactions} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-slate-500">Building Permits</label>
-                      <Input name="statPermits" type="number" defaultValue={siteConfig?.stats?.permits} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-slate-500">Lease Contracts</label>
-                      <Input name="statContracts" type="number" defaultValue={siteConfig?.stats?.contracts} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-slate-500">E-Tickets</label>
-                      <Input name="statTickets" type="number" defaultValue={siteConfig?.stats?.tickets} />
-                    </div>
+                <form onSubmit={updateConfig} className="space-y-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[
+                      { name: 'statTransactions', label: 'المعاملات الإلكترونية', color: 'text-primary' },
+                      { name: 'statPermits', label: 'تراخيص البناء', color: 'text-accent' },
+                      { name: 'statContracts', label: 'عقود الإيجار', color: 'text-secondary' },
+                      { name: 'statTickets', label: 'تذاكر إلكترونية', color: 'text-orange-500' },
+                    ].map((stat) => (
+                      <div key={stat.name} className="space-y-2 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <label className={cn("text-xs font-black uppercase", stat.color)}>{stat.label}</label>
+                        <Input 
+                          name={stat.name} 
+                          type="number" 
+                          defaultValue={siteConfig?.stats?.[stat.name.replace('stat', '').toLowerCase() as keyof typeof siteConfig.stats]} 
+                          className="rounded-lg border-white shadow-sm font-black"
+                        />
+                      </div>
+                    ))}
                   </div>
-                  <Button type="submit" className="dm-gradient-primary">
-                    <BarChart3 className="h-4 w-4 mr-2" /> Sync Statistics
+                  <Button type="submit" className="dm-gradient-primary rounded-full px-8 py-6 font-black h-auto">
+                    <BarChart3 className="h-5 w-5 mr-2" /> مزامنة الإحصائيات الحية
                   </Button>
                 </form>
               </CardContent>
@@ -147,41 +149,43 @@ export default function AdminDashboard() {
 
           <TabsContent value="ticker">
             <div className="grid lg:grid-cols-3 gap-8">
-              <Card className="lg:col-span-1">
-                <CardHeader><CardTitle>Add Announcement</CardTitle></CardHeader>
+              <Card className="lg:col-span-1 rounded-brand shadow-md border-none h-fit">
+                <CardHeader><CardTitle className="font-black text-primary">إضافة إعلان جديد</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <Textarea 
-                    placeholder="Enter breaking news text..." 
+                    placeholder="اكتب نص الخبر العاجل هنا..." 
                     value={newNews} 
                     onChange={e => setNewNews(e.target.value)} 
+                    className="rounded-xl border-slate-200 min-h-[120px]"
                   />
-                  <Button onClick={addTickerItem} className="w-full bg-[#470D67]">
-                    <Plus className="h-4 w-4 mr-2" /> Add to Ticker
+                  <Button onClick={addTickerItem} className="w-full bg-secondary rounded-full py-6 font-black h-auto">
+                    <Plus className="h-5 w-5 mr-2" /> إضافة للشريط
                   </Button>
                 </CardContent>
               </Card>
-              <Card className="lg:col-span-2">
-                <CardHeader><CardTitle>Active Announcements</CardTitle></CardHeader>
+              <Card className="lg:col-span-2 rounded-brand shadow-md border-none">
+                <CardHeader><CardTitle className="font-black text-primary">الإعلانات النشطة حالياً</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {newsItems?.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-white">
-                        <p className="text-sm font-medium line-clamp-1">{item.text}</p>
-                        <div className="flex gap-2">
+                      <div key={item.id} className="flex items-center justify-between p-4 border rounded-xl bg-white group hover:border-primary transition-colors">
+                        <p className="text-sm font-bold text-slate-700 line-clamp-1 flex-1">{item.text}</p>
+                        <div className="flex gap-2 mr-4">
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className={item.isActive ? "text-green-600" : "text-slate-400"}
-                            onClick={() => toggleNews(item.id, item.isActive)}
+                            className={cn("rounded-lg font-black text-xs", item.isActive ? "text-emerald-600 bg-emerald-50" : "text-slate-400 bg-slate-50")}
+                            onClick={() => updateDoc(doc(firestore, 'news_ticker', item.id), { isActive: !item.isActive })}
                           >
-                            {item.isActive ? 'Live' : 'Hidden'}
+                            {item.isActive ? 'مباشر' : 'مخفي'}
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => deleteDoc(doc(firestore, 'news_ticker', item.id))}>
+                          <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 rounded-lg" onClick={() => deleteDoc(doc(firestore, 'news_ticker', item.id))}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
                     ))}
+                    {newsItems?.length === 0 && <p className="text-center py-10 text-slate-300">لا توجد إعلانات نشطة</p>}
                   </div>
                 </CardContent>
               </Card>
@@ -190,39 +194,35 @@ export default function AdminDashboard() {
 
           <TabsContent value="services">
             <div className="grid lg:grid-cols-3 gap-8">
-              <Card className="lg:col-span-1 h-fit">
-                <CardHeader><CardTitle>Add New Service</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Input placeholder="Title" value={newService.title} onChange={e => setNewService({...newService, title: e.target.value})} />
-                  <Textarea placeholder="Description" value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} />
-                  <Input placeholder="Icon Name (e.g., Building2, FileText)" value={newService.iconName} onChange={e => setNewService({...newService, iconName: e.target.value})} />
-                  <Input placeholder="Category" value={newService.category} onChange={e => setNewService({...newService, category: e.target.value})} />
-                  <Button onClick={createService} className="w-full bg-[#008E91]">
-                    <Plus className="h-4 w-4 mr-2" /> Add to Catalog
+              <Card className="lg:col-span-1 h-fit rounded-brand shadow-md border-none">
+                <CardHeader><CardTitle className="font-black text-primary">إضافة خدمة جديدة</CardTitle></CardHeader>
+                <CardContent className="space-y-5">
+                  <Input placeholder="عنوان الخدمة" value={newService.title} onChange={e => setNewService({...newService, title: e.target.value})} className="rounded-xl" />
+                  <Textarea placeholder="وصف الخدمة" value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} className="rounded-xl" />
+                  <Input placeholder="اسم الأيقونة (Building2, FileText)" value={newService.iconName} onChange={e => setNewService({...newService, iconName: e.target.value})} className="rounded-xl" />
+                  <Input placeholder="التصنيف (الرخص, المباني...)" value={newService.category} onChange={e => setNewService({...newService, category: e.target.value})} className="rounded-xl" />
+                  <Button onClick={createService} className="w-full dm-gradient-primary rounded-full py-6 font-black h-auto">
+                    <Plus className="h-5 w-5 mr-2" /> إضافة للكتالوج
                   </Button>
                 </CardContent>
               </Card>
 
-              <Card className="lg:col-span-2">
-                <CardHeader><CardTitle>Live Services</CardTitle></CardHeader>
+              <Card className="lg:col-span-2 rounded-brand shadow-md border-none">
+                <CardHeader><CardTitle className="font-black text-primary">الخدمات المتاحة للجمهور</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-4">
                     {services?.map(service => (
-                      <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm group">
-                        <div className="flex items-center gap-4">
-                           <div className="bg-slate-100 p-2 rounded-lg">
-                              <trendingUp className="h-5 w-5 text-[#008E91]" />
+                      <div key={service.id} className="p-4 border rounded-xl bg-white shadow-sm group hover:border-accent transition-all">
+                        <div className="flex items-start justify-between mb-4">
+                           <div className="bg-primary/5 p-3 rounded-xl text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                              <LayoutGrid className="h-6 w-6" />
                            </div>
-                           <div>
-                            <p className="font-bold text-[#008E91]">{service.title}</p>
-                            <p className="text-xs text-slate-500">{service.category}</p>
-                           </div>
-                        </div>
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => deleteDoc(doc(firestore, 'services', service.id))}>
+                           <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteDoc(doc(firestore, 'services', service.id))}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
+                        <p className="font-black text-primary mb-1">{service.title}</p>
+                        <p className="text-xs font-black text-accent uppercase">{service.category}</p>
                       </div>
                     ))}
                   </div>
@@ -232,25 +232,35 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="applications">
-            <Card>
-              <CardHeader><CardTitle>Citizen Submissions</CardTitle></CardHeader>
+            <Card className="rounded-brand shadow-md border-none overflow-hidden">
+              <div className="h-2 bg-secondary" />
+              <CardHeader><CardTitle className="font-black text-primary">طلبات الخدمات المستلمة</CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {applications?.map(app => (
-                    <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-[#94F7F2]/20 p-2 rounded">
-                          <Clock className="h-5 w-5 text-[#008E91]" />
+                    <div key={app.id} className="flex items-center justify-between p-5 border rounded-xl hover:bg-slate-50 transition-colors">
+                      <div className="flex items-center gap-5">
+                        <div className="bg-accent/10 p-3 rounded-full">
+                          <Clock className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                          <p className="font-bold">Application #{app.id.slice(-6)}</p>
-                          <p className="text-sm text-slate-500">Service: {app.serviceId}</p>
+                          <p className="font-black text-slate-800">طلب رقم #{app.id.slice(-6).toUpperCase()}</p>
+                          <p className="text-sm text-slate-500">الخدمة: <span className="font-bold text-primary">{app.serviceId}</span></p>
                         </div>
                       </div>
-                      <span className="text-xs font-black uppercase bg-[#94F7F2] text-[#008E91] px-3 py-1 rounded-full">{app.status}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] font-black uppercase bg-accent/20 text-primary px-4 py-1.5 rounded-full tracking-wider">{app.status}</span>
+                        <div className="h-8 w-px bg-slate-100" />
+                        <p className="text-xs text-slate-400">{new Date(app.createdAt?.seconds * 1000).toLocaleDateString('ar-OM')}</p>
+                      </div>
                     </div>
                   ))}
-                  {applications?.length === 0 && <p className="text-center text-slate-400 py-8">No active submissions.</p>}
+                  {applications?.length === 0 && (
+                    <div className="text-center py-20">
+                      <Megaphone className="h-16 w-16 text-slate-200 mx-auto mb-4" />
+                      <p className="text-slate-400 font-bold">لا توجد طلبات جديدة حالياً</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

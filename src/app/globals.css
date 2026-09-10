@@ -1,16 +1,23 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Omani Gov Design System Tokens (GUP-DS) */
-    --dm-turquoise: 179 97% 41%;       /* #03CFCB */
-    --dm-teal-dark: 181 100% 28%;      /* #008E91 */
-    --dm-purple: 278 78% 23%;          /* #470D67 */
-    --dm-turquoise-light: 177 85% 77%; /* #94F7F2 */
-    --dm-gold: 45 100% 50%;            /* #FFD700 */
+    /* Dhofar Municipality Brand Palette - Primary */
+    --dm-teal-deep: 181 100% 15%;      /* Dark Emerald/Teal from top-left */
+    --dm-purple-deep: 278 78% 20%;    /* Deep Purple from top-middle */
+    --dm-turquoise: 179 97% 41%;      /* Primary Turquoise */
+    --dm-teal-dark: 181 100% 28%;     /* Supportive Dark Teal */
+    
+    /* Dhofar Municipality Brand Palette - Secondary/Soft */
+    --dm-sage: 175 25% 60%;           /* Sage green from middle-left */
+    --dm-lavender: 275 30% 65%;       /* Lavender from middle-center */
+    --dm-mint: 177 40% 85%;           /* Mint from bottom-left */
+    --dm-lilac: 270 35% 90%;          /* Lilac from bottom-center */
+    --dm-cyan-pale: 185 50% 92%;      /* Pale Cyan from bottom-right */
+
+    --dm-gold: 45 100% 50%;           /* #FFD700 */
 
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
@@ -22,7 +29,7 @@
     --primary: var(--dm-teal-dark);
     --primary-foreground: 0 0% 100%;
     
-    --secondary: var(--dm-purple);
+    --secondary: var(--dm-purple-deep);
     --secondary-foreground: 0 0% 100%;
     
     --muted: 210 40% 96.1%;
@@ -37,7 +44,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: var(--dm-teal-dark);
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .high-contrast {
@@ -63,14 +70,32 @@
   }
 }
 
+/* Brand Patterns */
+.dm-pattern-hero {
+  background-image: url("https://edm.gov.om/wp-content/uploads/2021/03/pattern40.png");
+  background-repeat: repeat-x;
+  background-position: bottom;
+  background-size: contain;
+}
+
+.dm-geometric-overlay {
+  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
 .dm-gradient-primary {
-  background: linear-gradient(90deg, hsl(var(--dm-teal-dark)) 60%, hsl(var(--dm-turquoise)) 100%) !important;
-  @apply text-white border-none shadow-sm transition-all duration-200;
+  background: linear-gradient(90deg, hsl(var(--dm-teal-dark)) 0%, hsl(var(--dm-turquoise)) 100%) !important;
+  @apply text-white border-none shadow-sm transition-all duration-300;
+}
+
+.dm-gradient-secondary {
+  background: linear-gradient(135deg, hsl(var(--dm-purple-deep)) 0%, hsl(var(--dm-teal-dark)) 100%) !important;
+  @apply text-white border-none shadow-sm;
 }
 
 .dm-gradient-primary:hover {
-  background: linear-gradient(200deg, hsl(var(--dm-turquoise)), hsl(var(--dm-purple))) !important;
-  @apply translate-x-[1px] shadow-md;
+  filter: brightness(1.1);
+  @apply shadow-md transform scale-[1.02];
 }
 
 @keyframes marquee {
@@ -97,4 +122,9 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Custom rounded for brand cards */
+.rounded-brand {
+  border-radius: 1.5rem;
 }
