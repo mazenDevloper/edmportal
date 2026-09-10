@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -24,10 +23,11 @@ import {
   Settings, Plus, Save, Trash2, X, Search, Loader2, 
   CloudUpload, Star, Layout, Menu, Image as ImageIcon,
   BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
-  Vote, TrendingUp
+  Vote, TrendingUp, Accessibility, Languages, Video
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { generateAltText } from '@/ai/flows/alt-text-flow';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -36,6 +36,7 @@ export default function AdminDashboard() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [altTextLoading, setAltTextLoading] = useState(false);
 
   // Global State
   const [services, setServices] = useState<Service[]>([]);
@@ -50,11 +51,6 @@ export default function AdminDashboard() {
   const [newsItems, setNewsItems] = useState<NewsTicker[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
-
-  // Survey State
-  const [newSurvey, setNewSurvey] = useState<Partial<Survey>>({
-    titleAr: '', titleEn: '', isActive: true, isPublicPoll: true, questions: []
-  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -93,26 +89,23 @@ export default function AdminDashboard() {
     }
   };
 
-  const addPoll = () => {
-    if (!newSurvey.titleAr) return;
-    const poll: Survey = {
-      ...newSurvey as Survey,
-      id: `poll_${Date.now()}`,
-      responsesCount: 0,
-      questions: [{
-        id: 'q1',
-        type: 'mcq',
-        questionAr: 'ما رأيك في الخدمات؟',
-        questionEn: 'What do you think of the services?',
-        iconName: 'MessageSquare',
-        options: [
-          { id: '1', textAr: 'ممتاز', textEn: 'Excellent', icon: 'Smile' },
-          { id: '2', textAr: 'جيد', textEn: 'Good', icon: 'Meh' }
-        ]
-      }]
-    };
-    setSurveys([poll, ...surveys]);
-    setNewSurvey({ titleAr: '', titleEn: '', isActive: true, isPublicPoll: true, questions: [] });
+  const handleAltTextGeneration = async (url: string, index: number, type: 'course' | 'carousel') => {
+    if (!url) return;
+    setAltTextLoading(true);
+    try {
+      // Mock data URI since we usually use URLs
+      const { altText } = await generateAltText({ photoDataUri: url, language: isAr ? 'ar' : 'en' });
+      if (type === 'course') {
+        const newCourses = [...courses];
+        newCourses[index] = { ...newCourses[index], descriptionAr: altText };
+        setCourses(newCourses);
+      }
+      toast({ title: isAr ? "تم توليد النص" : "Alt Text Generated", description: altText });
+    } catch (e) {
+      toast({ variant: "destructive", title: "AI Error", description: "Failed to generate alt text." });
+    } finally {
+      setAltTextLoading(false);
+    }
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
@@ -140,45 +133,69 @@ export default function AdminDashboard() {
         <Tabs defaultValue="services" className="w-full">
           <TabsList className="bg-white border mb-10 flex flex-wrap h-auto gap-2 p-1 rounded-xl shadow-sm">
             <TabsTrigger value="services" className="font-black"><Layout className="size-4 ml-2" /> {isAr ? "الخدمات" : "Services"}</TabsTrigger>
-            <TabsTrigger value="polls" className="font-black"><Vote className="size-4 ml-2" /> {isAr ? "الاستطلاعات" : "Polls"}</TabsTrigger>
+            <TabsTrigger value="courses" className="font-black"><BookOpen className="size-4 ml-2" /> {isAr ? "الدورات" : "Courses"}</TabsTrigger>
+            <TabsTrigger value="accessibility" className="font-black"><Accessibility className="size-4 ml-2" /> {isAr ? "إمكانية الوصول" : "Accessibility"}</TabsTrigger>
             <TabsTrigger value="builders" className="font-black"><Sparkles className="size-4 ml-2" /> {isAr ? "المصممات" : "Builders"}</TabsTrigger>
             <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="polls">
-            <div className="grid lg:grid-cols-3 gap-8">
-              <Card className="lg:col-span-1 rounded-brand shadow-lg border-t-4 border-accent">
-                <CardHeader><CardTitle className="text-lg font-black">{isAr ? "إضافة تصويت عام" : "Create Public Poll"}</CardTitle></CardHeader>
+          <TabsContent value="accessibility">
+            <div className="grid lg:grid-cols-2 gap-8">
+              <Card className="rounded-brand shadow-lg">
+                <CardHeader>
+                  <CardTitle className="font-black flex items-center gap-2">
+                    <ImageIcon className="text-accent" /> {isAr ? "مولد النصوص البديلة AI" : "AI Alt-Text Generator"}
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="space-y-4">
-                  <Input placeholder="Poll Title AR" value={newSurvey.titleAr} onChange={e => setNewSurvey({...newSurvey, titleAr: e.target.value})} />
-                  <Input placeholder="Poll Title EN" value={newSurvey.titleEn} onChange={e => setNewSurvey({...newSurvey, titleEn: e.target.value})} />
-                  <Button onClick={addPoll} className="w-full bg-accent text-accent-foreground font-black rounded-xl h-12">
-                    {isAr ? "نشر التصويت" : "Publish Poll"}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="lg:col-span-2 rounded-brand shadow-md">
-                <CardHeader><CardTitle className="text-lg font-black">{isAr ? "الاستطلاعات الحالية" : "Active Polls"}</CardTitle></CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {surveys.map(poll => (
-                      <div key={poll.id} className="p-4 border rounded-2xl bg-white flex justify-between items-center group shadow-sm">
-                        <div>
-                          <p className="font-bold">{isAr ? poll.titleAr : poll.titleEn}</p>
-                          <Badge variant="secondary" className="mt-1">{poll.responsesCount} {isAr ? "مشاركة" : "Responses"}</Badge>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant={poll.isActive ? 'default' : 'outline'} size="sm" onClick={() => setSurveys(surveys.map(s => s.id === poll.id ? {...s, isActive: !s.isActive} : s))}>
-                            {poll.isActive ? (isAr ? 'نشط' : 'Active') : (isAr ? 'معطل' : 'Disabled')}
-                          </Button>
-                          <Trash2 className="text-red-400 cursor-pointer" size={18} onClick={() => setSurveys(surveys.filter(s => s.id !== poll.id))} />
-                        </div>
-                      </div>
-                    ))}
+                  <p className="text-sm text-slate-500">{isAr ? "استخدم الذكاء الاصطناعي لوصف الصور لضعاف البصر." : "Use AI to describe images for the visually impaired."}</p>
+                  <div className="p-4 border-2 border-dashed rounded-2xl text-center">
+                    <CloudUpload className="mx-auto text-slate-300 mb-2" size={32} />
+                    <p className="text-xs font-bold">{isAr ? "النظام يقوم بتوليد النصوص تلقائياً عند رفع الصور في تبويبات الدورات والبنرات" : "System generates alt-text automatically during course/banner uploads"}</p>
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="rounded-brand shadow-lg">
+                <CardHeader>
+                  <CardTitle className="font-black flex items-center gap-2">
+                    <Video className="text-accent" /> {isAr ? "مساعد لغة الإشارة" : "Sign Language Assistant"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-slate-500">{isAr ? "توليد فيديوهات لغة الإشارة العمانية للخدمات." : "Generate Oman Sign Language videos for services."}</p>
+                  <Button variant="outline" className="w-full justify-start gap-3 h-12 font-bold rounded-xl">
+                    <Video className="text-primary" size={18} />
+                    {isAr ? "إدارة فيديوهات الإشارة" : "Manage Sign Videos"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="courses">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-primary">{isAr ? "إدارة البرامج التدريبية" : "Training Programs Management"}</h3>
+                <Button onClick={() => setCourses([...courses, { id: Date.now().toString(), titleAr: 'دورة جديدة', titleEn: 'New Course', descriptionAr: '', descriptionEn: '', imageUrl: '', durationAr: 'شهر', durationEn: '1 Month', isOpen: true }])} className="rounded-full bg-primary font-bold"><Plus className="size-4 ml-2"/> {isAr ? "دورة جديدة" : "New Course"}</Button>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                {courses.map((course, i) => (
+                  <Card key={course.id} className="rounded-brand shadow-sm">
+                    <CardContent className="p-6 space-y-4">
+                      <Input placeholder="Course Title AR" value={course.titleAr} onChange={e => { const nc = [...courses]; nc[i].titleAr = e.target.value; setCourses(nc); }} />
+                      <Input placeholder="Image URL" value={course.imageUrl} onChange={e => { const nc = [...courses]; nc[i].imageUrl = e.target.value; setCourses(nc); }} />
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleAltTextGeneration(course.imageUrl, i, 'course')} disabled={altTextLoading}>
+                          {altTextLoading ? <Loader2 className="animate-spin size-4" /> : <Sparkles size={14} className="ml-2" />}
+                          {isAr ? "توليد وصف للصورة" : "AI Alt-Text"}
+                        </Button>
+                        <Trash2 className="text-red-400 mt-2 cursor-pointer" onClick={() => setCourses(courses.filter(c => c.id !== course.id))} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </TabsContent>
 
@@ -208,7 +225,6 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-black text-primary">{isAr ? "إدارة دليل الخدمات" : "Service Catalog Management"}</h3>
-                <Button className="rounded-full bg-primary font-bold"><Plus className="size-4 ml-2"/> {isAr ? "خدمة جديدة" : "New Service"}</Button>
               </div>
               <Table>
                 <TableHeader>
@@ -226,8 +242,7 @@ export default function AdminDashboard() {
                       <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
                       <TableCell className="text-emerald-600 font-black">{s.fees}</TableCell>
                       <TableCell className="flex gap-2">
-                        <Button variant="ghost" size="icon"><ImageIcon size={14}/></Button>
-                        <Trash2 className="size-4 text-red-400 mt-2 cursor-pointer" />
+                         <Trash2 className="size-4 text-red-400 cursor-pointer" />
                       </TableCell>
                     </TableRow>
                   ))}

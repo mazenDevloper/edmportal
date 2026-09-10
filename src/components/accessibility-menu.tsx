@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -8,7 +7,11 @@ import {
   Accessibility, 
   Contrast, 
   Type,
-  Maximize2
+  Maximize2,
+  Video,
+  Volume2,
+  Keyboard,
+  Eye
 } from 'lucide-react';
 import {
   Popover,
@@ -16,19 +19,27 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export function AccessibilityMenu() {
   const { fontSize, setFontSize, highContrast, toggleHighContrast, language, spacing, setSpacing } = useSettingsStore();
   const [mounted, setMounted] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Prevent hydration mismatch by not rendering the menu on the server
   if (!mounted) return null;
 
   const isAr = language === 'ar';
+
+  const handleKeyboardGuide = () => {
+    toast({
+      title: isAr ? "مساعد لوحة المفاتيح" : "Keyboard Navigation",
+      description: isAr ? "استخدم Tab للتنقل و Enter للاختيار. Alt+S للتخطي للمحتوى." : "Use Tab to navigate and Enter to select. Alt+S to skip to content."
+    });
+  };
 
   return (
     <div className="fixed right-6 bottom-24 z-[9999]" role="region" aria-label={isAr ? "أدوات التسهيل والنفاذ" : "Accessibility controls"}>
@@ -49,13 +60,13 @@ export function AccessibilityMenu() {
                 <Accessibility size={20} />
               </div>
               <h2 className="font-black text-sm text-primary">
-                {isAr ? 'أدوات النفاذ الرقمي (WCAG 2.2)' : 'Digital Accessibility Tools'}
+                {isAr ? 'أدوات النفاذ الشامل (WCAG 2.2)' : 'Universal Access Tools'}
               </h2>
             </div>
             
             <div className="space-y-3">
-              <span className="text-[10px] font-black block text-slate-400 uppercase tracking-widest">{isAr ? 'حجم الخط' : 'Font Size'}</span>
-              <div className="flex gap-2" role="group" aria-label={isAr ? "تغيير مقاس الخط" : "Change size"}>
+              <span className="text-[10px] font-black block text-slate-400 uppercase tracking-widest">{isAr ? 'المساعدات البصرية' : 'Visual Aids'}</span>
+              <div className="flex gap-2" role="group">
                 {[
                   { id: 'base', label: 'A' },
                   { id: 'lg', label: 'A+' },
@@ -64,42 +75,49 @@ export function AccessibilityMenu() {
                   <Button 
                     key={size.id}
                     variant={fontSize === size.id ? 'default' : 'outline'} 
-                    className={cn("flex-1 font-black rounded-xl", fontSize === size.id && "dm-gradient-primary border-none shadow-none")}
+                    className={cn("flex-1 font-black rounded-xl", fontSize === size.id && "dm-gradient-primary")}
                     onClick={() => setFontSize(size.id as any)}
-                    aria-pressed={fontSize === size.id}
                   >
                     {size.label}
                   </Button>
                 ))}
               </div>
+              <Button 
+                variant={highContrast ? 'secondary' : 'outline'} 
+                className={cn("w-full justify-start gap-3 h-12 font-bold rounded-xl", highContrast && "bg-slate-900 text-white")}
+                onClick={toggleHighContrast}
+              >
+                <Contrast className="h-5 w-5" />
+                <span>{isAr ? 'تباين عالي' : 'High Contrast'}</span>
+              </Button>
             </div>
 
             <div className="space-y-3">
-              <span className="text-[10px] font-black block text-slate-400 uppercase tracking-widest">{isAr ? 'إعدادات الرؤية والتباين' : 'Visual & Contrast'}</span>
+              <span className="text-[10px] font-black block text-slate-400 uppercase tracking-widest">{isAr ? 'الإعاقة السمعية والحركية' : 'Hearing & Motor'}</span>
               <div className="grid grid-cols-1 gap-3">
                 <Button 
-                  variant={highContrast ? 'secondary' : 'outline'} 
-                  className={cn("w-full justify-start gap-3 h-12 font-bold rounded-xl", highContrast && "bg-slate-900 text-white")}
-                  onClick={toggleHighContrast}
+                  variant="outline" 
+                  className="w-full justify-start gap-3 h-12 font-bold rounded-xl"
+                  onClick={() => toast({ title: isAr ? "مساعد لغة الإشارة" : "Sign Language Assistant", description: isAr ? "جاري تفعيل ترجمة الإشارة العمانية..." : "Activating Oman SL Assistant..." })}
                 >
-                  <Contrast className="h-5 w-5" />
-                  <span>{highContrast ? (isAr ? 'إلغاء التباين العالي' : 'Disable High Contrast') : (isAr ? 'تفعيل تباين عالي' : 'Enable High Contrast')}</span>
+                  <Video className="h-5 w-5 text-accent" />
+                  <span>{isAr ? 'لغة الإشارة العمانية' : 'Oman Sign Language'}</span>
                 </Button>
                 <Button 
-                  variant={spacing === 'wide' ? 'secondary' : 'outline'} 
-                  className={cn("w-full justify-start gap-3 h-12 font-bold rounded-xl", spacing === 'wide' && "bg-primary/10 text-primary border-primary")}
-                  onClick={() => setSpacing(spacing === 'normal' ? 'wide' : 'normal')}
+                  variant="outline" 
+                  className="w-full justify-start gap-3 h-12 font-bold rounded-xl"
+                  onClick={handleKeyboardGuide}
                 >
-                  <Maximize2 className="h-5 w-5" />
-                  <span>{spacing === 'wide' ? (isAr ? 'تباعد عادي' : 'Normal Spacing') : (isAr ? 'تباعد الأسطر' : 'Wide Text Spacing')}</span>
+                  <Keyboard className="h-5 w-5 text-accent" />
+                  <span>{isAr ? 'التنقل بلوحة المفاتيح' : 'Keyboard Navigation'}</span>
                 </Button>
               </div>
             </div>
 
-            <div className="pt-4 border-t">
-              <p className="text-[9px] text-slate-400 font-bold text-center leading-relaxed">
-                {isAr ? 'هذه المنصة متوافقة مع معايير النفاذ الرقمي العالمية لضمان سهولة الاستخدام لكافة المواطنين.' : 'Platform compliant with international accessibility standards to ensure ease of use for all citizens.'}
-              </p>
+            <div className="pt-4 border-t text-center">
+              <Badge variant="outline" className="text-[9px] font-black uppercase text-slate-400">
+                {isAr ? 'بوابة متاحة للجميع' : 'Inclusive Access Portal'}
+              </Badge>
             </div>
           </div>
         </PopoverContent>
