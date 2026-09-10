@@ -5,12 +5,12 @@
 
 @layer base {
   :root {
-    /* Omani Gov Design System Tokens */
+    /* Omani Gov Design System Tokens (GUP-DS) */
     --dm-turquoise: 179 97% 41%;       /* #03CFCB */
     --dm-teal-dark: 181 100% 28%;      /* #008E91 */
     --dm-purple: 278 78% 23%;          /* #470D67 */
     --dm-turquoise-light: 177 85% 77%; /* #94F7F2 */
-    --dm-gold: 45 100% 50%;            /* Standard Gov Gold */
+    --dm-gold: 45 100% 50%;            /* #FFD700 */
 
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
@@ -37,7 +37,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: var(--dm-teal-dark);
-    --radius: 0.5rem; /* Following GUP-DS standard radius */
+    --radius: 0.5rem;
   }
 
   .high-contrast {

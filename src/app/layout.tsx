@@ -21,23 +21,22 @@ export default function RootLayout({
     setMounted(true);
   }, []);
 
-  const direction = language === 'ar' ? 'rtl' : 'ltr';
-
-  if (!mounted) return null;
+  // Use default values if not mounted to prevent hydration errors and "missing tags" error
+  const currentLang = mounted ? language : 'ar';
+  const currentDir = currentLang === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={language} dir={direction}>
+    <html lang={currentLang} dir={currentDir} className={mounted && highContrast ? 'high-contrast' : ''}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className={cn(
-        "antialiased transition-all duration-300",
-        language === 'ar' ? 'font-arabic' : 'font-body',
-        fontSize === 'lg' && 'text-lg',
-        fontSize === 'xl' && 'text-xl',
-        highContrast && 'high-contrast'
+        "antialiased transition-all duration-300 min-h-screen bg-background text-foreground",
+        currentLang === 'ar' ? 'font-arabic' : 'font-body',
+        mounted && fontSize === 'lg' && 'text-lg',
+        mounted && fontSize === 'xl' && 'text-xl'
       )}>
         <FirebaseClientProvider>
           {children}
