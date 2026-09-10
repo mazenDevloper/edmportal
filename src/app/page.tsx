@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -22,10 +21,7 @@ import {
   Calendar,
   Gavel,
   Globe,
-  LayoutDashboard,
-  Moon,
-  Sun,
-  ChevronDown
+  LayoutDashboard
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig } from '@/lib/types';
@@ -58,11 +54,13 @@ export default function DhofarPortal() {
   );
   const { data: services, loading: servicesLoading } = useCollection<Service>(servicesQuery);
 
-  const filteredServices = services?.filter(s => {
-    const matchesCategory = activeCategory === 'الكل' || activeCategory === 'All' || s.category === activeCategory;
-    const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredServices = useMemo(() => {
+    return services?.filter(s => {
+      const currentCategoryFilter = activeCategory === 'الكل' || activeCategory === 'All' || s.category === activeCategory;
+      const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return currentCategoryFilter && matchesSearch;
+    }) || [];
+  }, [services, activeCategory, searchQuery]);
 
   const handleApply = (service: Service) => {
     if (!user) {
@@ -78,74 +76,108 @@ export default function DhofarPortal() {
       userId: user.uid,
       status: 'pending',
       createdAt: serverTimestamp(),
-      data: { appliedFrom: 'Portal' }
+      data: { appliedFrom: 'Portal Web WCAG' }
     });
 
     toast({
-      title: isAr ? "تم إرسال الطلب" : "Application Submitted",
+      title: isAr ? "تم إرسال الطلب بنجاح" : "Application Submitted",
       description: isAr ? `تم استلام طلبك لخدمة ${service.title}.` : `Your request for ${service.title} has been received.`,
     });
   };
 
   if (siteLoading || servicesLoading) {
-    return <div className="p-20 text-center"><Skeleton className="h-20 w-full" /></div>;
+    return (
+      <div className="p-8 max-w-7xl mx-auto space-y-4" role="status" aria-live="polite">
+        <Skeleton className="h-16 w-full rounded-md" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-48 rounded-lg" />
+          <Skeleton className="h-48 rounded-lg" />
+          <Skeleton className="h-48 rounded-lg" />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F8FAFC]">
-      {/* Dynamic Pattern Header */}
-      <header className="relative bg-[#008E91] text-white overflow-hidden pb-4">
-        {/* Geometric Patterns in Background */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
+      {/* Semantic Accessible Header */}
+      <header className="relative bg-[#008E91] text-white overflow-hidden pb-4" role="banner">
+        {/* Background Geometric Grid Patterns for Quality aesthetics */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -mr-20 -mt-20 blur-3xl" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#94F7F2] rotate-45 -ml-32 -mb-32" />
-          <svg className="absolute top-0 left-10 w-full h-full" viewBox="0 0 100 100">
-             <path d="M0 50 Q 25 25 50 50 T 100 50" fill="none" stroke="currentColor" strokeWidth="0.5" />
-          </svg>
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-8 relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-8 relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-6">
-            <Image
-              src="https://edm.gov.om/wp-content/uploads/2026/09/headerlogo2.png"
-              alt="Dhofar Municipality"
-              width={250}
-              height={80}
-              className="brightness-0 invert object-contain"
-            />
+            <Link href="/" aria-label={isAr ? "الصفحة الرئيسية لبلدية ظفار" : "Dhofar Municipality Home"}>
+              <Image
+                src="https://edm.gov.om/wp-content/uploads/2026/09/headerlogo2.png"
+                alt={isAr ? "شعار بلدية ظفار الرسمي" : "Dhofar Municipality Official Logo"}
+                width={260}
+                height={85}
+                className="brightness-0 invert object-contain"
+                priority
+              />
+            </Link>
           </div>
 
-          <nav className="flex items-center gap-2 text-sm font-bold flex-wrap justify-center">
-            <Link href="#" className="hover:text-[#94F7F2] px-3">{isAr ? 'عن بلدية ظفار' : 'About'}</Link>
-            <Link href="#" className="hover:text-[#94F7F2] px-3">{isAr ? 'دليل الخدمات' : 'Services Guide'}</Link>
-            <Link href="#" className="bg-white/10 px-4 py-2 rounded-md hover:bg-white/20">{isAr ? 'البيانات المفتوحة' : 'Open Data'}</Link>
+          <nav className="flex items-center gap-2 text-sm font-bold flex-wrap justify-center" aria-label={isAr ? "القائمة الرئيسية" : "Main Navigation"}>
+            <Link href="#" className="hover:text-[#94F7F2] px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
+              {isAr ? 'عن بلدية ظفار' : 'About Us'}
+            </Link>
+            <Link href="#" className="hover:text-[#94F7F2] px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
+              {isAr ? 'دليل الخدمات الموحد' : 'Services Directory'}
+            </Link>
+            <Link href="#" className="bg-white/10 px-4 py-2 rounded-md hover:bg-white/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              {isAr ? 'البيانات المفتوحة' : 'Open Data'}
+            </Link>
+            
             <Button 
               variant="ghost" 
-              className="text-white hover:bg-white/10"
-              onClick={() => setLanguage(isAr ? 'en' : 'ar')}
+              className="text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white"
+              onClick={() => {
+                const nextLang = isAr ? 'en' : 'ar';
+                setLanguage(nextLang);
+                setActiveCategory(nextLang === 'ar' ? 'الكل' : 'All');
+              }}
+              aria-label={isAr ? "Switch to English" : "تغيير اللغة إلى العربية"}
             >
-              <Globe className="h-4 w-4 mr-2" />
-              {isAr ? 'English' : 'العربية'}
+              <Globe className="h-4 w-4 mr-2 ml-2" aria-hidden="true" />
+              <span>{isAr ? 'English' : 'العربية'}</span>
             </Button>
-            <Link href="/admin" className="p-2 hover:bg-white/10 rounded-full">
-              <LayoutDashboard className="h-5 w-5" />
+
+            <Link 
+              href="/admin" 
+              className="p-2 hover:bg-white/10 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              aria-label={isAr ? "لوحة تحكم المشرف" : "Admin Panel Dashboard"}
+            >
+              <LayoutDashboard className="h-5 w-5" aria-hidden="true" />
             </Link>
           </nav>
         </div>
 
+        {/* Hero Section Container */}
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-8 text-center relative z-10">
-          <h1 className="text-4xl md:text-5xl font-black mb-4 drop-shadow-md text-white">
-            {isAr ? 'بوابة بلدية ظفار الإلكترونية' : 'Dhofar Municipality Portal'}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-4 drop-shadow-md text-white">
+            {siteConfig?.heroTitle || (isAr ? 'بوابة بلدية ظفار الإلكترونية الموحدة' : 'Dhofar Municipality Digital Portal')}
           </h1>
-          <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-            {isAr ? 'نعمل من أجل مدينتنا، نخدمكم بكل سهولة وذكاء' : 'Working for our city, serving you with ease and intelligence'}
+          <p className="text-base sm:text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+            {siteConfig?.heroSubtitle || (isAr ? 'نعمل من أجل خدمتكم بكل سهولة وذكاء رقمي متكامل وفق المعايير العمانية' : 'Serving you with digital excellence and integrated ease.')}
           </p>
           
+          {/* Accessible Search Form Container */}
           <div className="relative max-w-3xl mx-auto">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 h-6 w-6" />
+            <label htmlFor="service-search-input" className="sr-only">
+              {isAr ? 'ابحث عن خدمة بلدية...' : 'Search for a municipal service...'}
+            </label>
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 h-6 w-6 pointer-events-none" aria-hidden="true" />
             <Input 
-              className="h-16 w-full rounded-full border-none bg-white/95 text-black pl-14 pr-8 text-xl shadow-2xl focus-visible:ring-4 focus-visible:ring-[#94F7F2]"
-              placeholder={isAr ? 'ابحث عن خدمة... (مثال: اباحة بناء)' : 'Search for a service...'}
+              id="service-search-input"
+              type="search"
+              className="h-16 w-full rounded-full border-none bg-white/95 text-black pl-14 pr-8 text-lg sm:text-xl shadow-2xl focus-visible:ring-4 focus-visible:ring-[#94F7F2]"
+              placeholder={isAr ? 'ابحث عن الخدمة المطلوبة... (مثال: إباحة بناء، شهادة صحية)' : 'Search for services... (e.g., Building permits)'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -153,69 +185,97 @@ export default function DhofarPortal() {
         </div>
       </header>
 
-      {/* Dynamic Service Section */}
-      <main className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-8">
-        {/* Category Tabs */}
-        <div className="flex gap-4 overflow-x-auto pb-8 mb-8 border-b scrollbar-hide">
-          {categories.map((cat) => (
-            <Button
-              key={cat}
-              variant={activeCategory === cat ? 'default' : 'outline'}
-              className={activeCategory === cat ? 'dm-gradient-primary font-bold px-8' : 'border-[#008E91] text-[#008E91] font-bold px-8'}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat}
-            </Button>
-          ))}
-        </div>
+      {/* Main Content Area */}
+      <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8 flex-grow" role="main">
+        
+        {/* Category Navigation Controls */}
+        <section aria-label={isAr ? "تصنيفات الخدمات الرقمية" : "Service Categories"}>
+          <div className="flex gap-3 overflow-x-auto pb-4 mb-8 border-b scrollbar-hide" role="tablist">
+            {categories.map((cat) => {
+              const isSelected = activeCategory === cat;
+              return (
+                <Button
+                  key={cat}
+                  role="tab"
+                  aria-selected={isSelected}
+                  variant={isSelected ? 'default' : 'outline'}
+                  className={isSelected ? 'dm-gradient-primary font-bold px-6 shrink-0' : 'border-[#008E91] text-[#008E91] font-bold px-6 shrink-0'}
+                  onClick={() => setActiveCategory(cat)}
+                >
+                  {cat}
+                </Button>
+              );
+            })}
+          </div>
+        </section>
 
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {filteredServices?.map((service) => {
-            const Icon = ICON_MAP[service.iconName] || Info;
-            return (
-              <Card key={service.id} className="group border-none shadow-md hover:shadow-2xl transition-all hover:-translate-y-2 overflow-hidden bg-white">
-                <div className="h-2 bg-[#008E91] group-hover:bg-[#470D67] transition-colors" />
-                <CardHeader className="text-center pb-2">
-                  <div className="mx-auto mb-4 rounded-2xl bg-[#94F7F2]/10 p-5 group-hover:bg-[#008E91] transition-colors duration-500">
-                    <Icon className="h-12 w-12 text-[#008E91] group-hover:text-white" />
+        {/* Dynamic Services Catalog Grid */}
+        <section aria-label={isAr ? "قائمة الخدمات المتاحة" : "Available Services Catalog"}>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" aria-live="polite">
+            {filteredServices.map((service) => {
+              const IconComponent = ICON_MAP[service.iconName] || Info;
+              return (
+                <Card key={service.id} className="group border-none shadow-sm hover:shadow-lg transition-all overflow-hidden bg-white flex flex-col justify-between">
+                  <div>
+                    <div className="h-2 bg-[#008E91] group-hover:bg-[#470D67] transition-colors" aria-hidden="true" />
+                    <CardHeader className="text-center pb-2">
+                      <div className="mx-auto mb-3 rounded-2xl bg-[#94F7F2]/10 p-4 text-[#008E91] group-hover:bg-[#008E91] group-hover:text-white transition-all duration-300">
+                        <IconComponent className="h-10 w-10" aria-hidden="true" />
+                      </div>
+                      <CardTitle className="text-lg font-bold text-[#008E91]">{service.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center px-4 pb-4">
+                      <CardDescription className="text-slate-600 text-sm line-clamp-3">
+                        {service.description}
+                      </CardDescription>
+                    </CardContent>
                   </div>
-                  <CardTitle className="text-xl font-bold text-[#008E91] group-hover:text-[#470D67]">{service.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center px-6 pb-8">
-                  <CardDescription className="text-slate-500 line-clamp-3 mb-6">
-                    {service.description}
-                  </CardDescription>
-                  <Button 
-                    className="w-full rounded-full border-2 border-[#008E91] text-[#008E91] hover:bg-[#008E91] hover:text-white transition-all font-black py-6"
-                    variant="outline"
-                    onClick={() => handleApply(service)}
-                  >
-                    {isAr ? 'ابدأ الخدمة' : 'Start Service'}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-          
-          {filteredServices?.length === 0 && (
-            <div className="col-span-full py-20 text-center">
-              <Info className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-400 font-bold">{isAr ? 'لا يوجد نتائج مطابقة للبحث' : 'No matching services found'}</p>
-            </div>
-          )}
-        </div>
+                  
+                  <div className="p-4 pt-0">
+                    <Button 
+                      className="w-full rounded-full border-2 border-[#008E91] text-[#008E91] hover:bg-[#008E91] hover:text-white transition-all font-bold"
+                      variant="outline"
+                      onClick={() => handleApply(service)}
+                      aria-label={`${isAr ? 'بدء تقديم خدمة' : 'Start service for'} ${service.title}`}
+                    >
+                      {isAr ? 'ابدأ الخدمة الرقمية' : 'Start Service'}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+            
+            {filteredServices.length === 0 && (
+              <div className="col-span-full py-16 text-center bg-white rounded-xl shadow-inner border border-dashed border-slate-200">
+                <Info className="h-12 w-12 text-slate-300 mx-auto mb-3" aria-hidden="true" />
+                <p className="text-slate-500 font-bold">
+                  {isAr ? 'عذراً، لم نعثر على نتائج تطابق معايير البحث الحالية.' : 'No matching municipal services found.'}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
       </main>
 
-      <footer className="mt-auto bg-[#008E91] text-white py-12">
-        <div className="mx-auto max-w-7xl px-8 flex flex-col md:flex-row justify-between items-center gap-8">
+      {/* Semantic Accessible Footer component */}
+      <footer className="bg-[#008E91] text-white py-10" role="contentinfo">
+        <div className="mx-auto max-w-7xl px-4 sm:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-center md:text-right">
-            <h4 className="text-2xl font-bold mb-2">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</h4>
-            <p className="opacity-70 text-sm">© {new Date().getFullYear()} {isAr ? 'جميع الحقوق محفوظة' : 'All Rights Reserved'}</p>
+            <p className="text-xl font-bold mb-1">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</p>
+            <p className="opacity-80 text-xs">
+              © {new Date().getFullYear()} {isAr ? 'سلطنة عمان - جميع الحقوق محفوظة للبوابة الموحدة للخدمات الحكومية' : 'Sultanate of Oman - All Rights Reserved.'}
+            </p>
           </div>
-          <div className="flex gap-6">
-            <Link href="#" className="hover:text-[#94F7F2]">{isAr ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link>
-            <Link href="#" className="hover:text-[#94F7F2]">{isAr ? 'خريطة الموقع' : 'Sitemap'}</Link>
-            <Link href="#" className="hover:text-[#94F7F2]">{isAr ? 'تواصل معنا' : 'Contact Us'}</Link>
+          <div className="flex gap-6 text-sm flex-wrap justify-center">
+            <Link href="#" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              {isAr ? 'سياسة الخصوصية والأمن الرقمي' : 'Privacy & Security Policy'}
+            </Link>
+            <Link href="#" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              {isAr ? 'شروط وأحكام الاستخدام المعياري' : 'Terms & Conditions'}
+            </Link>
+            <Link href="#" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              { siteConfig?.contactPhone ? `${isAr ? 'الدعم:' : 'Support:'} ${siteConfig.contactPhone}` : (isAr ? 'تواصل معنا' : 'Contact Us') }
+            </Link>
           </div>
         </div>
       </footer>
