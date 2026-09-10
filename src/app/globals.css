@@ -10,7 +10,7 @@
     --dm-purple: 278 78% 23%;          /* #470D67 */
     --dm-turquoise-light: 177 85% 77%; /* #94F7F2 */
 
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -35,12 +35,19 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: var(--dm-teal-dark);
-    --radius: 0.5rem;
+    --radius: 1rem;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+  .high-contrast {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --border: 0 0% 100%;
+    --dm-teal-dark: 0 0% 100%;
+    --dm-turquoise: 0 0% 100%;
   }
 }
 
@@ -51,9 +58,10 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
-    color: hsl(var(--dm-teal-dark)) !important;
-  }
+}
+
+.font-arabic {
+  font-family: 'Noto Kufi Arabic', sans-serif !important;
 }
 
 .dm-gradient-primary {
@@ -66,11 +74,10 @@
   @apply translate-x-[2px] transition-all duration-200 ease-in-out;
 }
 
-.dm-nav-link {
-  @apply px-5 py-2.5 text-white font-bold text-lg no-underline shadow-[0_1px_0_rgba(0,0,0,0.2)];
-  background: linear-gradient(to bottom, hsl(var(--dm-teal-dark)), hsl(var(--dm-turquoise))) !important;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
-
-.dm-nav-link:hover, .dm-nav-link-active {
-  background: linear-gradient(to bottom, hsl(var(--dm-purple)), hsl(var(--dm-teal-dark))) !important;
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
