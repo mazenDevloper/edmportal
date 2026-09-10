@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -17,14 +18,14 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication } from '@/lib/types';
+import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication, CustomPage, ServiceFlow, Survey } from '@/lib/types';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
   Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, 
   CloudUpload, Edit3, Star, Link as LinkIcon, Layout, Menu, Image as ImageIcon,
-  BookOpen, FileCheck, Info
+  BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +43,10 @@ export default function AdminDashboard() {
   const [services, setServices] = useState<Service[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [applications, setApplications] = useState<ServiceApplication[]>([]);
+  const [pages, setPages] = useState<CustomPage[]>([]);
+  const [flows, setFlows] = useState<ServiceFlow[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
     heroTitle: '',
     heroSubtitle: '',
@@ -84,6 +89,9 @@ export default function AdminDashboard() {
           setNewsItems(data.newsItems || []);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
+          setPages(data.pages || []);
+          setFlows(data.flows || []);
+          setSurveys(data.surveys || []);
         }
       } catch (e) {
         toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
@@ -104,7 +112,10 @@ export default function AdminDashboard() {
         siteConfig,
         newsItems,
         menuItems,
-        carouselItems
+        carouselItems,
+        pages,
+        flows,
+        surveys
       });
       toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تمت المزامنة بنجاح" : "Synced successfully" });
     } catch (e) {
@@ -145,12 +156,15 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8" dir={isAr ? 'rtl' : 'ltr'}>
       <div className="mx-auto max-w-7xl">
-        <header className="flex justify-between items-center mb-10">
-           <h1 className="text-3xl font-black text-primary flex items-center gap-3">
-             <Settings className="h-8 w-8 text-accent" /> {isAr ? "لوحة الإدارة الشاملة" : "Portal Admin"}
-           </h1>
-           <div className="flex gap-4">
-             <Button variant="outline" asChild className="rounded-full border-primary text-primary font-black">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+           <div>
+             <h1 className="text-3xl font-black text-primary flex items-center gap-3">
+               <Settings className="h-8 w-8 text-accent" /> {isAr ? "لوحة الإدارة الشاملة" : "Portal Admin"}
+             </h1>
+             <p className="text-sm text-slate-500 font-bold mt-1">{isAr ? "تحكم في كافة أركان منصة بلدية ظفار" : "Full control over Dhofar Portal"}</p>
+           </div>
+           <div className="flex flex-wrap gap-4">
+             <Button variant="outline" asChild className="rounded-full border-primary text-primary font-black shadow-sm">
                <Link href="/">{isAr ? "العودة للبوابة" : "Exit to Portal"}</Link>
              </Button>
              <Button onClick={handleGlobalSave} disabled={saving} className="dm-gradient-primary rounded-full px-8 font-black shadow-xl">
@@ -161,14 +175,67 @@ export default function AdminDashboard() {
         </header>
 
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="bg-white border mb-10 flex flex-wrap h-auto gap-2 p-1 rounded-xl">
-            <TabsTrigger value="services">{isAr ? "الخدمات" : "Services"}</TabsTrigger>
-            <TabsTrigger value="courses">{isAr ? "الدورات" : "Courses"}</TabsTrigger>
-            <TabsTrigger value="applications">{isAr ? "الطلبات" : "Applications"}</TabsTrigger>
-            <TabsTrigger value="site">{isAr ? "الموقع" : "Site"}</TabsTrigger>
-            <TabsTrigger value="nav">{isAr ? "القوائم" : "Navigation"}</TabsTrigger>
-            <TabsTrigger value="ticker">{isAr ? "الأخبار" : "News"}</TabsTrigger>
+          <TabsList className="bg-white border mb-10 flex flex-wrap h-auto gap-2 p-1 rounded-xl shadow-sm">
+            <TabsTrigger value="services" className="font-black"><Layout className="size-4 ml-2" /> {isAr ? "الخدمات" : "Services"}</TabsTrigger>
+            <TabsTrigger value="builders" className="font-black"><Sparkles className="size-4 ml-2" /> {isAr ? "المحركات" : "Builders"}</TabsTrigger>
+            <TabsTrigger value="courses" className="font-black"><BookOpen className="size-4 ml-2" /> {isAr ? "الدورات" : "Courses"}</TabsTrigger>
+            <TabsTrigger value="applications" className="font-black"><FileCheck className="size-4 ml-2" /> {isAr ? "الطلبات" : "Apps"}</TabsTrigger>
+            <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
+            <TabsTrigger value="nav" className="font-black"><Menu className="size-4 ml-2" /> {isAr ? "القوائم" : "Nav"}</TabsTrigger>
+            <TabsTrigger value="ticker" className="font-black"><Megaphone className="size-4 ml-2" /> {isAr ? "الأخبار" : "News"}</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="builders">
+            <div className="grid md:grid-cols-3 gap-8">
+              <Card className="rounded-brand shadow-lg border-t-4 border-primary group">
+                <CardHeader>
+                  <CardTitle className="text-lg font-black flex items-center gap-3">
+                    <Layout className="text-primary" /> {isAr ? "باني الصفحات" : "Page Builder"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-slate-500 font-bold">{isAr ? "قم بإنشاء صفحات فرعية مخصصة باستخدام مكونات الجر والإفلات." : "Create custom sub-pages using standard components."}</p>
+                  <Button asChild className="w-full rounded-xl dm-gradient-primary font-black gap-2">
+                    <Link href="/pagebuild">
+                      {isAr ? "فتح المحرك" : "Open Engine"} <ArrowUpRight size={16} />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-brand shadow-lg border-t-4 border-accent group">
+                <CardHeader>
+                  <CardTitle className="text-lg font-black flex items-center gap-3">
+                    <Sparkles className="text-accent" /> {isAr ? "محرك الخدمات" : "Service Engine"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-slate-500 font-bold">{isAr ? "صمم تدفقات الخدمات الرقمية، إضافة الحقول، ورفع الملفات." : "Design digital service flows, inputs, and uploads."}</p>
+                  <Button asChild className="w-full rounded-xl bg-slate-900 font-black gap-2">
+                    <Link href="/servicebuild">
+                      {isAr ? "تصميم التدفق" : "Design Flow"} <ArrowUpRight size={16} />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-brand shadow-lg border-t-4 border-secondary group">
+                <CardHeader>
+                  <CardTitle className="text-lg font-black flex items-center gap-3">
+                    <ClipboardList className="text-secondary" /> {isAr ? "باني الاستطلاعات" : "Survey Builder"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-slate-500 font-bold">{isAr ? "اجمع آراء المواطنين حول الخدمات البلدية والمشاريع." : "Collect citizen feedback on municipal projects."}</p>
+                  <Button asChild className="w-full rounded-xl bg-secondary font-black gap-2">
+                    <Link href="/surveybuild">
+                      {isAr ? "إدارة الاستطلاعات" : "Manage Surveys"} <ArrowUpRight size={16} />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           <TabsContent value="services">
             <div className="grid lg:grid-cols-3 gap-8">
@@ -204,7 +271,7 @@ export default function AdminDashboard() {
                         const Icon = (Icons as any)[name];
                         return (
                           <button key={name} onClick={() => setNewService({...newService, iconName: name})} className={cn("p-2 border rounded-md hover:bg-slate-100", newService.iconName === name ? "bg-accent/20 border-accent" : "")}>
-                            <Icon size={16} />
+                            {Icon && <Icon size={16} />}
                           </button>
                         );
                       })}
@@ -224,7 +291,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <Button onClick={saveService} className="w-full bg-slate-900 h-12 rounded-xl shadow-md">{isAr ? "حفظ الخدمة" : "Save Service"}</Button>
+                  <Button onClick={saveService} className="w-full bg-slate-900 h-12 rounded-xl shadow-md font-black">{isAr ? "حفظ الخدمة" : "Save Service"}</Button>
                 </CardContent>
               </Card>
 
@@ -233,7 +300,7 @@ export default function AdminDashboard() {
                 <CardContent className="p-6">
                   <div className="grid sm:grid-cols-2 gap-4">
                     {services.map(s => (
-                      <div key={s.id} className="p-4 border rounded-2xl bg-white flex justify-between items-center group hover:border-primary transition-all">
+                      <div key={s.id} className="p-4 border rounded-2xl bg-white flex justify-between items-center group hover:border-primary transition-all shadow-sm">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-slate-100 rounded-lg">
                             {React.createElement((Icons as any)[s.iconName] || Icons.Info, { size: 20, className: "text-primary" })}
@@ -244,8 +311,9 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex gap-2">
+                          {s.isFeatured && <Star size={14} className="text-accent fill-accent" />}
                           <Button variant="ghost" size="icon" onClick={() => { setEditingServiceId(s.id); setNewService(s); }}><Edit3 size={16}/></Button>
-                          <Trash2 className="text-red-400 cursor-pointer hover:text-red-600 transition-colors" onClick={() => setServices(services.filter(x => x.id !== s.id))} />
+                          <Trash2 className="text-red-400 cursor-pointer hover:text-red-600 transition-colors" size={16} onClick={() => setServices(services.filter(x => x.id !== s.id))} />
                         </div>
                       </div>
                     ))}
@@ -265,7 +333,7 @@ export default function AdminDashboard() {
                   <Textarea placeholder="Description AR" value={newCourse.descriptionAr} onChange={e => setNewCourse({...newCourse, descriptionAr: e.target.value})} />
                   <Input placeholder="Image URL" value={newCourse.imageUrl} onChange={e => setNewCourse({...newCourse, imageUrl: e.target.value})} />
                   <Input placeholder="Duration (e.g. 5 days)" value={newCourse.durationAr} onChange={e => setNewCourse({...newCourse, durationAr: e.target.value})} />
-                  <Button onClick={saveCourse} className="w-full bg-secondary text-white h-12 rounded-xl shadow-md">{isAr ? "حفظ الدورة" : "Save Course"}</Button>
+                  <Button onClick={saveCourse} className="w-full bg-secondary text-white h-12 rounded-xl shadow-md font-black">{isAr ? "حفظ الدورة" : "Save Course"}</Button>
                 </CardContent>
               </Card>
 
@@ -274,9 +342,9 @@ export default function AdminDashboard() {
                 <CardContent className="p-6">
                    <div className="grid sm:grid-cols-2 gap-4">
                      {courses.map(c => (
-                       <div key={c.id} className="p-4 border rounded-2xl bg-white flex justify-between items-center group">
+                       <div key={c.id} className="p-4 border rounded-2xl bg-white flex justify-between items-center group shadow-sm">
                          <div className="flex items-center gap-3">
-                           <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden">
+                           <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden relative">
                              {c.imageUrl ? <img src={c.imageUrl} className="w-full h-full object-cover" /> : <BookOpen className="p-3 text-slate-400" />}
                            </div>
                            <div>
@@ -286,7 +354,7 @@ export default function AdminDashboard() {
                          </div>
                          <div className="flex gap-2">
                             <Button variant="ghost" size="icon" onClick={() => { setEditingCourseId(c.id); setNewCourse(c); }}><Edit3 size={16}/></Button>
-                            <Trash2 className="text-red-400 cursor-pointer" onClick={() => setCourses(courses.filter(x => x.id !== c.id))} />
+                            <Trash2 className="text-red-400 cursor-pointer" size={16} onClick={() => setCourses(courses.filter(x => x.id !== c.id))} />
                          </div>
                        </div>
                      ))}
@@ -404,7 +472,7 @@ export default function AdminDashboard() {
                 <CardContent className="p-8 space-y-4">
                   <Input placeholder="Breaking Headline" value={newsForm.title} onChange={e => setNewsForm({...newsForm, title: e.target.value})} />
                   <Textarea placeholder="News Content" value={newsForm.text} onChange={e => setNewsForm({...newsForm, text: e.target.value})} />
-                  <Button onClick={() => setNewsItems([{ id: `n_${Date.now()}`, ...newsForm, isActive: true, createdAt: new Date().toISOString() }, ...newsItems])} className="bg-primary px-10 h-12 rounded-full font-black">{isAr ? "نشر الخبر" : "Publish News"}</Button>
+                  <Button onClick={() => setNewsItems([{ id: `n_${Date.now()}`, ...newsForm, isActive: true, createdAt: new Date().toISOString() }, ...newsItems])} className="bg-primary px-10 h-12 rounded-full font-black text-white">{isAr ? "نشر الخبر" : "Publish News"}</Button>
                   <div className="space-y-3 mt-6">
                     {newsItems.map(item => (
                       <div key={item.id} className="p-4 border-l-4 border-l-accent bg-white rounded-xl shadow-sm flex justify-between items-center">

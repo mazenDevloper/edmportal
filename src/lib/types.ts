@@ -1,3 +1,4 @@
+
 export interface SiteConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -95,4 +96,56 @@ export interface SpatialWindow {
   position: Vec3;
   rotation: Vec3;
   scale: Vec3;
+}
+
+// New Builder Types
+export interface BuilderComponent {
+  id: string;
+  type: 'hero' | 'stats' | 'services' | 'contact' | 'text' | 'image';
+  content: any;
+}
+
+export interface CustomPage {
+  id: string;
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  components: BuilderComponent[];
+  createdAt: string;
+}
+
+export interface FormField {
+  id: string;
+  type: 'text' | 'number' | 'email' | 'upload' | 'date' | 'select';
+  labelAr: string;
+  labelEn: string;
+  required: boolean;
+  options?: string[];
+}
+
+export interface ServiceFlow {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  fields: FormField[];
+  isActive: boolean;
+}
+
+export interface SurveyQuestion {
+  id: string;
+  type: 'mcq' | 'text' | 'rating';
+  questionAr: string;
+  questionEn: string;
+  options?: string[];
+}
+
+export interface Survey {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  questions: SurveyQuestion[];
+  isActive: boolean;
+  responsesCount: number;
 }
