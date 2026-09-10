@@ -1,14 +1,13 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { 
   Table, 
@@ -18,17 +17,15 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication, Survey, SurveyQuestion } from '@/lib/types';
-import { CAT_CONFIG, CategoryId } from '@/lib/constants';
+import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication, Survey } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
-  Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, 
-  CloudUpload, Edit3, Star, Link as LinkIcon, Layout, Menu, Image as ImageIcon,
+  Settings, Plus, Save, Trash2, X, Search, Loader2, 
+  CloudUpload, Star, Layout, Menu, Image as ImageIcon,
   BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
-  Vote
+  Vote, TrendingUp
 } from 'lucide-react';
-import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -144,6 +141,7 @@ export default function AdminDashboard() {
           <TabsList className="bg-white border mb-10 flex flex-wrap h-auto gap-2 p-1 rounded-xl shadow-sm">
             <TabsTrigger value="services" className="font-black"><Layout className="size-4 ml-2" /> {isAr ? "الخدمات" : "Services"}</TabsTrigger>
             <TabsTrigger value="polls" className="font-black"><Vote className="size-4 ml-2" /> {isAr ? "الاستطلاعات" : "Polls"}</TabsTrigger>
+            <TabsTrigger value="builders" className="font-black"><Sparkles className="size-4 ml-2" /> {isAr ? "المصممات" : "Builders"}</TabsTrigger>
             <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
           </TabsList>
 
@@ -184,10 +182,57 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
+          <TabsContent value="builders">
+            <div className="grid sm:grid-cols-3 gap-6">
+              {[
+                { title: isAr ? "باني الصفحات" : "Page Builder", link: "/pagebuild", icon: Layout, color: "bg-blue-50 text-blue-600" },
+                { title: isAr ? "محرك الخدمات" : "Service Engine", link: "/servicebuild", icon: Sparkles, color: "bg-teal-50 text-teal-600" },
+                { title: isAr ? "باني الاستطلاعات" : "Survey Builder", link: "/surveybuild", icon: ClipboardList, color: "bg-purple-50 text-purple-600" }
+              ].map((tool, i) => (
+                <Card key={i} className="rounded-brand border-none shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                  <Link href={tool.link}>
+                    <CardContent className="p-8 flex flex-col items-center justify-center text-center gap-4">
+                      <div className={cn("p-4 rounded-2xl", tool.color)}>
+                        <tool.icon size={32} />
+                      </div>
+                      <h3 className="font-black text-primary">{tool.title}</h3>
+                      <ArrowUpRight className="text-slate-300" />
+                    </CardContent>
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
           <TabsContent value="services">
-            {/* Existing services logic remains... */}
-            <div className="text-center py-20 bg-white rounded-3xl border border-dashed text-slate-400">
-               {isAr ? "نظام إدارة الخدمات الرقمية" : "Digital Services Management System"}
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-primary">{isAr ? "إدارة دليل الخدمات" : "Service Catalog Management"}</h3>
+                <Button className="rounded-full bg-primary font-bold"><Plus className="size-4 ml-2"/> {isAr ? "خدمة جديدة" : "New Service"}</Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{isAr ? "الخدمة" : "Service"}</TableHead>
+                    <TableHead>{isAr ? "الفئة" : "Category"}</TableHead>
+                    <TableHead>{isAr ? "الرسوم" : "Fees"}</TableHead>
+                    <TableHead>{isAr ? "إجراءات" : "Actions"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {services.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-bold">{isAr ? s.title : s.titleEn}</TableCell>
+                      <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
+                      <TableCell className="text-emerald-600 font-black">{s.fees}</TableCell>
+                      <TableCell className="flex gap-2">
+                        <Button variant="ghost" size="icon"><ImageIcon size={14}/></Button>
+                        <Trash2 className="size-4 text-red-400 mt-2 cursor-pointer" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </TabsContent>
 
