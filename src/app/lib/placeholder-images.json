@@ -11,6 +11,12 @@
       "description": "Dhofar Municipality Main Logo",
       "imageUrl": "https://edm.gov.om/wp-content/uploads/2026/09/headerlogo2.png",
       "imageHint": "government logo"
+    },
+    {
+      "id": "khareef-promo",
+      "description": "Promo banner for Khareef season in Dhofar with camels",
+      "imageUrl": "https://picsum.photos/seed/khareef/1200/500",
+      "imageHint": "camels desert"
     }
   ]
 }

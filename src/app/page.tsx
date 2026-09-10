@@ -9,27 +9,26 @@ import { useSettingsStore } from '@/lib/settings-store';
 import { 
   Bolt, 
   LayoutGrid, 
-  Cpu, 
-  Sparkles,
-  Search as SearchIcon,
-  Languages,
-  FileText,
-  ShieldCheck,
-  Globe,
-  LayoutDashboard,
-  Users,
-  Search,
-  Loader2,
+  FileText, 
+  ShieldCheck, 
+  Globe, 
+  LayoutDashboard, 
+  Users, 
+  Search as SearchIcon, 
+  Languages, 
+  Loader2, 
+  TrendingUp, 
+  ChevronRight, 
+  Target,
   ArrowUpRight,
-  TrendingUp,
-  ChevronRight,
-  Target
+  ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
 import { IdentityShowcase } from '@/components/identity-showcase';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function DhofarPortal() {
   const { language, setLanguage } = useSettingsStore();
@@ -75,7 +74,6 @@ export default function DhofarPortal() {
     });
   }, [services, searchQuery, isAr]);
 
-  // Featured services section (marked by star in admin)
   const featuredServices = useMemo(() => services.filter(s => s.isFeatured), [services]);
 
   const categories = useMemo(() => {
@@ -87,6 +85,8 @@ export default function DhofarPortal() {
       }))
     ];
   }, [isAr]);
+
+  const khareefImage = PlaceHolderImages.find(img => img.id === 'khareef-promo');
 
   if (loading) {
     return (
@@ -194,7 +194,77 @@ export default function DhofarPortal() {
                <div className="absolute -bottom-10 right-0 w-1/2 h-64 dm-wave-5 opacity-5" />
             </section>
 
-            {/* CRITICAL CHANGED FLOW: Search results strictly ABOVE featured/most-used services */}
+            {/* Thiqa Identity Guide (Based on reference) */}
+            <section className="py-20 bg-slate-50">
+              <div className="max-w-7xl mx-auto px-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {[
+                    {
+                      id: 1,
+                      title: isAr ? "ما هي الهوية الرقمية (ثقة)، وكيف تستفيد منها؟" : "What is Digital Identity (Thiqa)?",
+                      desc: isAr ? "هوية رقمية آمنة يمكنك الحصول عليها عبر تطبيق الهاتف للوصول للخدمات الحكومية." : "Secure digital identity for accessing government services via mobile app.",
+                      btnText: isAr ? "لمعرفة المزيد" : "Learn More"
+                    },
+                    {
+                      id: 2,
+                      title: isAr ? "كيف تحصل على خدمات الثقة الرقمية؟" : "How to get Thiqa services?",
+                      desc: isAr ? "من خلال البطاقة الشخصية/بطاقة الإقامة، أو الهوية الرقمية عبر تطبيق الهاتف (ثقة)." : "Via ID card, residency card, or Digital Identity mobile app.",
+                      btnText: isAr ? "لمعرفة المزيد" : "Learn More"
+                    },
+                    {
+                      id: 3,
+                      title: isAr ? "كيف تبدأ باستخدام الخدمات في Gov.om؟" : "How to start using Gov.om?",
+                      desc: isAr ? "سجل الدخول عن طريق البطاقة الشخصية أو تطبيق ثقة وأنجز معاملاتك بسهولة وأمان." : "Log in via ID card or Thiqa app to complete transactions safely.",
+                      btnText: isAr ? "لمعرفة المزيد" : "Learn More"
+                    }
+                  ].map((card) => (
+                    <div key={card.id} className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col items-center text-center group hover:shadow-xl transition-all relative overflow-hidden">
+                      <div className="absolute top-6 right-6 w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center font-black text-primary text-xs">
+                        {card.id}
+                      </div>
+                      <h3 className="text-lg font-black text-primary mt-6 mb-4 leading-tight">{card.title}</h3>
+                      <p className="text-slate-500 text-sm font-bold mb-8 leading-relaxed">{card.desc}</p>
+                      <Button variant="outline" className="rounded-full border-primary text-primary px-8 font-black hover:bg-primary hover:text-white transition-colors">
+                        {card.btnText}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Khareef Promo Banner (Based on reference) */}
+            <section className="relative py-32 bg-slate-900 overflow-hidden min-h-[500px] flex items-center">
+              {khareefImage && (
+                <div className="absolute inset-0 opacity-40">
+                  <Image 
+                    src={khareefImage.imageUrl} 
+                    alt="Khareef Dhofar" 
+                    fill 
+                    className="object-cover"
+                    data-ai-hint={khareefImage.imageHint}
+                  />
+                </div>
+              )}
+              <div className="max-w-7xl mx-auto px-6 relative z-10 text-center w-full">
+                <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tighter drop-shadow-lg">
+                  {isAr ? "استمتع بخريف ظفار.. وخدماتك معاك" : "Enjoy Khareef Dhofar.. with your services"}
+                </h2>
+                <p className="text-xl md:text-2xl text-white/80 font-bold mb-10 drop-shadow-md">
+                  {isAr ? "أنجز معاملاتك الحكومية عبر البوابـــــــــــــــة أينمـــــــــــا كنت" : "Complete your government transactions through the portal wherever you are"}
+                </p>
+                <div className="flex items-center justify-center gap-4">
+                  <Button size="icon" variant="ghost" className="rounded-full bg-white/10 text-white hover:bg-white/20">
+                    <ChevronLeft className={cn(isAr ? "rotate-180" : "")} />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="rounded-full bg-white/10 text-white hover:bg-white/20">
+                    <ChevronRight className={cn(isAr ? "rotate-180" : "")} />
+                  </Button>
+                </div>
+              </div>
+            </section>
+
+            {/* Search results area */}
             {searchQuery && (
               <section className="py-16 bg-accent/5 border-b">
                 <div className="max-w-7xl mx-auto px-6">
@@ -216,7 +286,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* Featured Services (The "Most Used" section now marked by star in Admin) */}
+            {/* Featured Services */}
             {featuredServices.length > 0 && (
               <section className="py-16 bg-white border-b">
                 <div className="max-w-7xl mx-auto px-6">
