@@ -1,19 +1,33 @@
-import type { ComponentType } from 'react';
 
-export type Vec3 = { x: number; y: number; z: number };
+export interface SiteConfig {
+  heroTitle: string;
+  heroSubtitle: string;
+  contactPhone: string;
+  contactEmail: string;
+  isMaintenanceMode: boolean;
+}
 
-export type WindowContent = {
+export interface Service {
   id: string;
   title: string;
-  component: ComponentType<any>;
-  summary: string;
-  defaultSize: { width: number, height: number }
-};
+  description: string;
+  iconName: string;
+  category: string;
+  isActive: boolean;
+}
 
-export type SpatialWindow = {
+export interface ServiceApplication {
   id: string;
-  contentId: string;
-  position: Vec3;
-  rotation: Vec3;
-  scale: Vec3;
-};
+  serviceId: string;
+  userId: string;
+  status: 'pending' | 'in-review' | 'approved' | 'rejected';
+  data: any;
+  createdAt: any;
+}
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  role: 'citizen' | 'admin';
+  phoneNumber?: string;
+}

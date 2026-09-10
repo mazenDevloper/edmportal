@@ -1,10 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Dhofar Municipality Brand Colors */
     --dm-turquoise: 179 97% 41%;       /* #03CFCB */
     --dm-teal-dark: 181 100% 28%;      /* #008E91 */
     --dm-purple: 278 78% 23%;          /* #470D67 */
@@ -41,7 +41,6 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    /* Dark mode adjustments would go here */
   }
 }
 
@@ -51,34 +50,27 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
   }
   h1, h2, h3, h4, h5, h6 {
     color: hsl(var(--dm-teal-dark)) !important;
   }
 }
 
-@layer components {
-  .dm-gradient-primary {
-    background: linear-gradient(90deg, hsl(var(--dm-teal-dark)) 60%, hsl(var(--dm-turquoise)) 100%) !important;
-    @apply text-white border-none;
-  }
-
-  .dm-gradient-hover:hover {
-    background: linear-gradient(200deg, hsl(var(--dm-turquoise)), hsl(var(--dm-purple))) !important;
-    @apply translate-x-[2px] transition-all duration-200 ease-in-out;
-  }
-
-  .dm-nav-link {
-    @apply px-5 py-2.5 text-white font-bold text-lg no-underline shadow-[0_1px_0_rgba(0,0,0,0.2)];
-    background: linear-gradient(to bottom, hsl(var(--dm-teal-dark)), hsl(var(--dm-turquoise))) !important;
-  }
-
-  .dm-nav-link:hover, .dm-nav-link-active {
-    background: linear-gradient(to bottom, hsl(var(--dm-purple)), hsl(var(--dm-teal-dark))) !important;
-  }
+.dm-gradient-primary {
+  background: linear-gradient(90deg, hsl(var(--dm-teal-dark)) 60%, hsl(var(--dm-turquoise)) 100%) !important;
+  @apply text-white border-none;
 }
 
-.gov-shadow {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1);
+.dm-gradient-hover:hover {
+  background: linear-gradient(200deg, hsl(var(--dm-turquoise)), hsl(var(--dm-purple))) !important;
+  @apply translate-x-[2px] transition-all duration-200 ease-in-out;
+}
+
+.dm-nav-link {
+  @apply px-5 py-2.5 text-white font-bold text-lg no-underline shadow-[0_1px_0_rgba(0,0,0,0.2)];
+  background: linear-gradient(to bottom, hsl(var(--dm-teal-dark)), hsl(var(--dm-turquoise))) !important;
+}
+
+.dm-nav-link:hover, .dm-nav-link-active {
+  background: linear-gradient(to bottom, hsl(var(--dm-purple)), hsl(var(--dm-teal-dark))) !important;
 }

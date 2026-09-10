@@ -1,0 +1,74 @@
+
+{
+  "entities": {
+    "SiteConfig": {
+      "title": "Site Configuration",
+      "description": "Global settings for the portal branding and hero section.",
+      "type": "object",
+      "properties": {
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "isMaintenanceMode": { "type": "boolean" }
+      },
+      "required": ["heroTitle", "contactPhone"]
+    },
+    "Service": {
+      "title": "Municipal Service",
+      "description": "Definition of a service offered by the municipality.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "iconName": { "type": "string", "description": "Lucide icon name" },
+        "category": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["title", "description", "iconName"]
+    },
+    "Application": {
+      "title": "Service Application",
+      "description": "A citizen's request for a specific service.",
+      "type": "object",
+      "properties": {
+        "serviceId": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "in-review", "approved", "rejected"] },
+        "data": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Extended user data including roles.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["citizen", "admin"] },
+        "phoneNumber": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/config/site": {
+      "schema": "SiteConfig",
+      "description": "Singleton document for site configuration."
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Collection of municipal services."
+    },
+    "/applications/{appId}": {
+      "schema": "Application",
+      "description": "Citizen submissions."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User metadata and roles."
+    }
+  }
+}
