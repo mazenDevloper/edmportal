@@ -98,7 +98,6 @@ export interface SpatialWindow {
   scale: Vec3;
 }
 
-// New Builder Types
 export interface BuilderComponent {
   id: string;
   type: 'hero' | 'stats' | 'services' | 'contact' | 'text' | 'image';
@@ -136,16 +135,20 @@ export interface ServiceFlow {
 export interface SurveyQuestion {
   id: string;
   type: 'mcq' | 'text' | 'rating';
+  iconName?: string;
   questionAr: string;
   questionEn: string;
-  options?: string[];
+  options?: { id: string; textAr: string; textEn: string; icon?: string }[];
 }
 
 export interface Survey {
   id: string;
   titleAr: string;
   titleEn: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
   questions: SurveyQuestion[];
   isActive: boolean;
+  isPublicPoll?: boolean;
   responsesCount: number;
 }

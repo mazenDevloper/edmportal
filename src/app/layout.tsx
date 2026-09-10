@@ -14,19 +14,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { language, fontSize, highContrast } = useSettingsStore();
+  const { language, fontSize, highContrast, spacing } = useSettingsStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Use default values if not mounted to prevent hydration errors and "missing tags" error
   const currentLang = mounted ? language : 'ar';
   const currentDir = currentLang === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={currentLang} dir={currentDir} className={mounted && highContrast ? 'high-contrast' : ''}>
+    <html lang={currentLang} dir={currentDir} className={cn(mounted && highContrast ? 'high-contrast' : '')}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -36,8 +35,12 @@ export default function RootLayout({
         "antialiased transition-all duration-300 min-h-screen bg-background text-foreground",
         currentLang === 'ar' ? 'font-arabic' : 'font-body',
         mounted && fontSize === 'lg' && 'text-lg',
-        mounted && fontSize === 'xl' && 'text-xl'
+        mounted && fontSize === 'xl' && 'text-xl',
+        mounted && spacing === 'wide' && 'tracking-wider leading-loose'
       )}>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[999] focus:bg-accent focus:text-white focus:p-4">
+          {currentLang === 'ar' ? 'تخطي إلى المحتوى الرئيسي' : 'Skip to main content'}
+        </a>
         <FirebaseClientProvider>
           {children}
           <AccessibilityMenu />

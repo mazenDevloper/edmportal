@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -7,7 +8,6 @@ import { fetchBin } from '@/lib/jsonbin';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
-  Globe, 
   Search as SearchIcon, 
   Loader2, 
   TrendingUp,
@@ -16,10 +16,13 @@ import {
   Users,
   Star,
   BookOpen,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  Volume2
 } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import Link from 'next/link';
-import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course } from '@/lib/types';
+import { Service, SiteConfig, CarouselItem, Course, Survey } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
 import { IdentityShowcase } from '@/components/identity-showcase';
@@ -34,6 +37,9 @@ import {
 } from "@/components/ui/carousel";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { textToSpeech } from '@/ai/flows/tts-flow';
 
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
@@ -41,12 +47,14 @@ export default function DhofarPortal() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [ttsLoading, setTtsLoading] = useState(false);
 
   const [services, setServices] = useState<Service[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -57,6 +65,7 @@ export default function DhofarPortal() {
         setSiteConfig(data.siteConfig || null);
         setMenuItems(data.menuItems || []);
         setCarouselItems(data.carouselItems || []);
+        setSurveys(data.surveys || []);
       }
       setLoading(false);
     };
@@ -76,12 +85,25 @@ export default function DhofarPortal() {
   }, [services, searchQuery, isAr]);
 
   const catalogServices = useMemo(() => {
-    return services.filter(s => {
-      return activeCategory === 'all' || s.category === activeCategory;
-    });
+    return services.filter(s => activeCategory === 'all' || s.category === activeCategory);
   }, [services, activeCategory]);
 
   const featuredServices = useMemo(() => services.filter(s => s.isFeatured), [services]);
+  const activePoll = useMemo(() => surveys.find(s => s.isPublicPoll && s.isActive), [surveys]);
+
+  const handleReadAloud = async (text: string) => {
+    if (ttsLoading) return;
+    setTtsLoading(true);
+    try {
+      const { audioDataUri } = await textToSpeech(text);
+      const audio = new Audio(audioDataUri);
+      audio.play();
+    } catch (e) {
+      console.error("TTS Error:", e);
+    } finally {
+      setTtsLoading(false);
+    }
+  };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
@@ -89,35 +111,45 @@ export default function DhofarPortal() {
     <div className={cn("flex min-h-screen flex-col bg-white", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={menuItems} />
 
-      <main className="flex-grow">
+      <main className="flex-grow" id="main-content">
         {activeTab === 'home' ? (
           <div className="space-y-0">
-            {/* 1. Search Bar Section (Hero) */}
-            <section className="py-20 bg-slate-50 relative overflow-hidden">
+            {/* 1. Hero & Search */}
+            <section className="py-20 bg-slate-50 relative overflow-hidden" aria-labelledby="hero-heading">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="max-w-3xl">
-                   <h1 className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6">
+                   <h1 id="hero-heading" className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6">
                      {siteConfig?.heroTitle || (isAr ? "خدماتنا رقمية، أسرع، وأسهل" : "Digital Services")}
                    </h1>
                    <p className="text-xl text-slate-500 font-bold mb-10">
                      {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة" : "Unified Portal")}
                    </p>
                    <div className="relative group max-w-xl">
-                     <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400", isAr ? "right-6" : "left-6")} />
+                     <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400", isAr ? "right-6" : "left-6")} aria-hidden="true" />
                      <input 
                        type="text" 
                        placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
                        className={cn("w-full h-16 rounded-xl border-2 font-bold focus:border-primary px-16 shadow-lg bg-white outline-none")} 
                        value={searchQuery} 
                        onChange={(e) => setSearchQuery(e.target.value)} 
+                       aria-label={isAr ? "البحث في الخدمات" : "Search services"}
                      />
                    </div>
+                   <Button 
+                     variant="ghost" 
+                     className="mt-4 text-xs font-bold text-slate-400 gap-2"
+                     onClick={() => handleReadAloud(siteConfig?.heroTitle + ". " + siteConfig?.heroSubtitle)}
+                     disabled={ttsLoading}
+                   >
+                     {ttsLoading ? <Loader2 className="animate-spin size-3" /> : <Volume2 size={14} />}
+                     {isAr ? "استمع للترحيب" : "Listen to Welcome"}
+                   </Button>
                  </div>
                </div>
                <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
             </section>
 
-            {/* 2. Live Search Results Grid */}
+            {/* 2. Search Results */}
             {searchQuery && (
               <section className="py-12 bg-white border-b animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="max-w-7xl mx-auto px-6">
@@ -140,7 +172,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 3. Featured Services (الخدمات المميزة) */}
+            {/* 3. Featured Services */}
             {featuredServices.length > 0 && (
               <section className="py-20 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
@@ -155,7 +187,49 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 4. Khareef Carousel / News Banner with Background Cover */}
+            {/* 4. Public Poll / Survey Section */}
+            {activePoll && (
+              <section className="py-20 bg-accent/5">
+                <div className="max-w-4xl mx-auto px-6 text-center">
+                  <div className="mb-8">
+                    <Badge className="bg-accent text-white mb-4">{isAr ? "صوتك يهمنا" : "Your Voice Matters"}</Badge>
+                    <h2 className="text-3xl font-black text-primary mb-4">{isAr ? activePoll.titleAr : activePoll.titleEn}</h2>
+                    <p className="text-slate-500 font-bold">{isAr ? activePoll.descriptionAr : activePoll.descriptionEn}</p>
+                  </div>
+                  <Card className="rounded-brand border-none shadow-xl">
+                    <CardContent className="p-8">
+                      {activePoll.questions.map((q) => (
+                        <div key={q.id} className="space-y-6">
+                          <h3 className="text-xl font-black flex items-center justify-center gap-3">
+                            {q.iconName && React.createElement((Icons as any)[q.iconName] || Icons.Info, { className: "text-accent" })}
+                            {isAr ? q.questionAr : q.questionEn}
+                          </h3>
+                          <RadioGroup className="grid sm:grid-cols-2 gap-4">
+                            {q.options?.map((opt) => (
+                              <div key={opt.id} className="relative group">
+                                <RadioGroupItem value={opt.id} id={opt.id} className="sr-only" />
+                                <Label 
+                                  htmlFor={opt.id} 
+                                  className="flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer hover:border-primary hover:bg-slate-50 transition-all font-bold text-slate-700 group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary/5"
+                                >
+                                  {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 18, className: "text-accent" })}
+                                  {isAr ? opt.textAr : opt.textEn}
+                                </Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                          <Button className="dm-gradient-primary rounded-full px-12 h-14 font-black mt-8 shadow-lg">
+                            {isAr ? "إرسال التصويت" : "Submit Vote"}
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              </section>
+            )}
+
+            {/* 5. Khareef Banner */}
             {carouselItems.length > 0 && (
               <section className="relative group overflow-hidden">
                 <Carousel className="w-full" opts={{ loop: true }}>
@@ -165,9 +239,10 @@ export default function DhofarPortal() {
                         <div className="relative h-[500px] w-full flex items-center justify-center">
                           <Image 
                             src={item.imageUrl || "https://picsum.photos/seed/dhofar/1200/600"} 
-                            alt={item.titleAr} 
+                            alt={isAr ? item.titleAr : item.titleEn} 
                             fill 
                             className="object-cover brightness-[0.4]" 
+                            data-ai-hint="scenic landscape"
                           />
                           <div className="relative z-10 text-center text-white px-6 max-w-4xl">
                             <h2 className="text-5xl md:text-7xl font-black mb-6 drop-shadow-2xl">{isAr ? item.titleAr : item.titleEn}</h2>
@@ -186,36 +261,36 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 5. Statistics (الارقام) */}
+            {/* 6. Stats */}
             <section className="py-24 bg-primary text-white relative overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
                     <div className="space-y-2">
                        <TrendingUp className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.transactions || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
                     </div>
                     <div className="space-y-2">
                        <ShieldCheck className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'رخصة بناء' : 'Permits'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'رخصة بناء' : 'Permits'}</p>
                     </div>
                     <div className="space-y-2">
                        <FileText className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.contracts || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'عقد إيجار' : 'Leases'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'عقد إيجار' : 'Leases'}</p>
                     </div>
                     <div className="space-y-2">
                        <Users className="mx-auto text-accent mb-4" size={40} />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.tickets || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
+                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
                     </div>
                  </div>
                </div>
                <div className="absolute inset-0 dm-wave-5 opacity-10" />
             </section>
 
-            {/* 6. Services Catalog (دليل الخدمات) */}
+            {/* 7. Catalog */}
             <section className="py-24 bg-white">
               <div className="max-w-7xl mx-auto px-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
@@ -242,47 +317,7 @@ export default function DhofarPortal() {
               </div>
             </section>
 
-            {/* 7. Courses / Educational Section */}
-            {courses.length > 0 && (
-              <section className="py-24 bg-slate-50">
-                <div className="max-w-7xl mx-auto px-6">
-                  <div className="flex items-center justify-between mb-16">
-                    <div>
-                      <h2 className="text-4xl font-black text-secondary mb-2">{isAr ? "البرامج التدريبية" : "Training Programs"}</h2>
-                      <p className="text-slate-400 font-bold">{isAr ? "نطور مهارات الكوادر الوطنية لمستقبل أفضل" : "Developing national skills for a better future"}</p>
-                    </div>
-                    <BookOpen size={48} className="text-secondary/20" />
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-8">
-                    {courses.map(course => (
-                      <Card key={course.id} className="rounded-brand shadow-lg overflow-hidden border-none group">
-                        <div className="relative h-48 w-full overflow-hidden">
-                          <Image 
-                            src={course.imageUrl || "https://picsum.photos/seed/training/600/400"} 
-                            alt={course.titleAr} 
-                            fill 
-                            className="object-cover transition-transform group-hover:scale-110" 
-                          />
-                          <div className="absolute top-4 right-4">
-                            <Badge className="bg-white/90 text-secondary font-black backdrop-blur-md">{course.durationAr}</Badge>
-                          </div>
-                        </div>
-                        <CardContent className="p-6">
-                          <h3 className="text-xl font-black text-slate-800 mb-3">{isAr ? course.titleAr : course.titleEn}</h3>
-                          <p className="text-sm text-slate-500 font-bold mb-6 line-clamp-3">{isAr ? course.descriptionAr : course.descriptionEn}</p>
-                          <Button className="w-full bg-slate-900 text-white rounded-full font-black h-12 group-hover:bg-secondary transition-colors">
-                            {isAr ? "سجل الآن" : "Enroll Now"}
-                            <ChevronRight className={cn("ml-2 size-4", isAr && "rotate-180")} />
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 8. Identity Components Showcase Access */}
+            {/* 8. Identity Showcase */}
             <section className="py-24 bg-white">
               <div className="max-w-7xl mx-auto px-6 text-center">
                 <Button onClick={() => setActiveTab('identity')} className="h-16 px-12 rounded-full font-black text-xl dm-gradient-primary shadow-xl">
