@@ -10,10 +10,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Service, SiteConfig, ServiceApplication, NewsTicker } from '@/lib/types';
-import { Settings, Plus, Save, Trash2, Clock, Megaphone, BarChart3, LayoutGrid, FileText, Globe, Key, UserCheck } from 'lucide-react';
+import { Settings, Plus, Save, Trash2, LayoutGrid, FileText, X, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import * as Icons from 'lucide-react';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
@@ -28,9 +27,6 @@ export default function AdminDashboard() {
   const servicesQuery = useMemo(() => collection(firestore, 'services'), [firestore]);
   const { data: services } = useCollection<Service>(servicesQuery);
 
-  const applicationsQuery = useMemo(() => collection(firestore, 'applications'), [firestore]);
-  const { data: applications } = useCollection<ServiceApplication>(applicationsQuery);
-
   const [newService, setNewService] = useState<Partial<Service>>({ 
     title: '', 
     titleEn: '', 
@@ -38,10 +34,12 @@ export default function AdminDashboard() {
     iconName: 'LayoutGrid', 
     category: 'الرخص',
     fees: '0 OMR',
-    reqsAr: ['سند الملكية'],
-    reqsEn: ['Title Deed']
+    reqsAr: [],
+    reqsEn: []
   });
   
+  const [reqArInput, setReqArInput] = useState('');
+  const [reqEnInput, setReqEnInput] = useState('');
   const [newNews, setNewNews] = useState('');
 
   const updateConfig = (e: React.FormEvent<HTMLFormElement>) => {
@@ -62,10 +60,38 @@ export default function AdminDashboard() {
     toast({ title: "Config Saved", description: "Site identity and stats updated." });
   };
 
+  const addRequirement = () => {
+    if (!reqArInput || !reqEnInput) return;
+    setNewService(prev => ({
+      ...prev,
+      reqsAr: [...(prev.reqsAr || []), reqArInput],
+      reqsEn: [...(prev.reqsEn || []), reqEnInput]
+    }));
+    setReqArInput('');
+    setReqEnInput('');
+  };
+
+  const removeRequirement = (index: number) => {
+    setNewService(prev => ({
+      ...prev,
+      reqsAr: (prev.reqsAr || []).filter((_, i) => i !== index),
+      reqsEn: (prev.reqsEn || []).filter((_, i) => i !== index)
+    }));
+  };
+
   const createService = () => {
     if (!newService.title) return;
     addDoc(collection(firestore, 'services'), { ...newService, isActive: true });
-    setNewService({ title: '', titleEn: '', description: '', iconName: 'LayoutGrid', category: 'الرخص', fees: '0 OMR', reqsAr: ['سند الملكية'], reqsEn: ['Title Deed'] });
+    setNewService({ 
+      title: '', 
+      titleEn: '', 
+      description: '', 
+      iconName: 'LayoutGrid', 
+      category: 'الرخص', 
+      fees: '0 OMR', 
+      reqsAr: [], 
+      reqsEn: [] 
+    });
     toast({ title: "Service Created" });
   };
 
@@ -84,7 +110,7 @@ export default function AdminDashboard() {
         </header>
 
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="bg-white border p-1 h-auto mb-10 flex flex-wrap gap-2 rounded-xl">
+          <TabsList className="bg-white border p-1 h-auto mb-10 flex flex-wrap gap-2 rounded-xl shadow-sm">
             <TabsTrigger value="services" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold">دليل الخدمات</TabsTrigger>
             <TabsTrigger value="site" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold">الهوية والإحصائيات</TabsTrigger>
             <TabsTrigger value="ticker" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold">شريط الأخبار</TabsTrigger>
@@ -94,26 +120,60 @@ export default function AdminDashboard() {
             <div className="grid lg:grid-cols-3 gap-8">
               <Card className="lg:col-span-1 h-fit rounded-brand shadow-lg border-none">
                 <CardHeader><CardTitle className="font-black text-primary">إضافة خدمة جديدة</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <Input placeholder="اسم الخدمة (عربي)" value={newService.title} onChange={e => setNewService({...newService, title: e.target.value})} />
-                  <Input placeholder="Service Name (English)" dir="ltr" value={newService.titleEn} onChange={e => setNewService({...newService, titleEn: e.target.value})} />
-                  <Textarea placeholder="وصف الخدمة" value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} />
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase">المعلومات الأساسية</label>
+                    <Input placeholder="اسم الخدمة (عربي)" value={newService.title} onChange={e => setNewService({...newService, title: e.target.value})} />
+                    <Input placeholder="Service Name (English)" dir="ltr" value={newService.titleEn} onChange={e => setNewService({...newService, titleEn: e.target.value})} />
+                    <Textarea placeholder="وصف الخدمة" value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} />
+                  </div>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    <Select onValueChange={(val) => setNewService({...newService, category: val})}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="اختر التصنيف" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Input placeholder="الرسوم (مثال: 5 OMR)" value={newService.fees} onChange={e => setNewService({...newService, fees: e.target.value})} />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase">التصنيف</label>
+                      <Select onValueChange={(val) => setNewService({...newService, category: val})}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="اختر التصنيف" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase">الرسوم</label>
+                      <Input placeholder="مثال: 5 OMR" value={newService.fees} onChange={e => setNewService({...newService, fees: e.target.value})} />
+                    </div>
                   </div>
 
-                  <Input placeholder="اسم الأيقونة (مثال: Building2)" value={newService.iconName} onChange={e => setNewService({...newService, iconName: e.target.value})} />
+                  <div className="space-y-4 pt-4 border-t">
+                    <label className="text-[10px] font-black text-slate-400 uppercase">إضافة متطلبات الخدمة</label>
+                    <div className="flex gap-2">
+                      <Input placeholder="المتطلب (عربي)" value={reqArInput} onChange={e => setReqArInput(e.target.value)} />
+                      <Input placeholder="Req (English)" dir="ltr" value={reqEnInput} onChange={e => setReqEnInput(e.target.value)} />
+                      <Button size="icon" className="shrink-0 bg-accent hover:bg-primary" onClick={addRequirement}>
+                        <Plus size={18} />
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {newService.reqsAr?.map((req, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg text-xs border">
+                          <span className="font-bold">{req}</span>
+                          <button onClick={() => removeRequirement(i)} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase">أيقونة الخدمة</label>
+                    <Input placeholder="مثال: Building2" value={newService.iconName} onChange={e => setNewService({...newService, iconName: e.target.value})} />
+                  </div>
                   
-                  <Button onClick={createService} className="w-full dm-gradient-primary rounded-full py-6 font-black h-auto">
+                  <Button onClick={createService} className="w-full dm-gradient-primary rounded-full py-6 font-black h-auto text-lg">
                     <Plus className="ml-2" /> إضافة للكتالوج الرقمي
                   </Button>
                 </CardContent>
@@ -124,8 +184,8 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="grid sm:grid-cols-2 gap-4">
                     {services?.map(service => (
-                      <div key={service.id} className="p-4 border rounded-xl bg-white shadow-sm group hover:border-accent transition-all">
-                        <div className="flex items-start justify-between mb-4">
+                      <div key={service.id} className="p-4 border rounded-xl bg-white shadow-sm group hover:border-accent transition-all relative overflow-hidden">
+                        <div className="flex items-start justify-between mb-4 relative z-10">
                            <div className="bg-primary/5 p-3 rounded-xl text-primary group-hover:bg-primary group-hover:text-white transition-all">
                               <LayoutGrid className="h-6 w-6" />
                            </div>
@@ -133,10 +193,13 @@ export default function AdminDashboard() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <p className="font-black text-primary mb-1">{service.title}</p>
-                        <div className="flex gap-2">
+                        <p className="font-black text-primary mb-1 relative z-10">{service.title}</p>
+                        <div className="flex gap-2 relative z-10">
                            <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{service.category}</span>
                            <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full">{service.fees}</span>
+                        </div>
+                        <div className="mt-3 text-[9px] text-slate-400 font-bold relative z-10">
+                           {service.reqsAr?.length} متطلبات مضافة
                         </div>
                       </div>
                     ))}
@@ -150,7 +213,7 @@ export default function AdminDashboard() {
             <div className="grid gap-8">
               <Card className="rounded-brand shadow-md border-none overflow-hidden">
                 <div className="h-2 bg-primary" />
-                <CardHeader><CardTitle className="font-black text-primary">إعدادات الواجهة</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="font-black text-primary">إعدادات الواجهة الرئيسية</CardTitle></CardHeader>
                 <CardContent>
                   <form onSubmit={updateConfig} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -168,7 +231,7 @@ export default function AdminDashboard() {
                       <Textarea name="heroSubtitle" defaultValue={siteConfig?.heroSubtitle} className="min-h-[100px] rounded-xl" />
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-t">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-t bg-slate-50/50 rounded-xl px-4">
                       {[
                         { name: 'statTransactions', label: 'المعاملات' },
                         { name: 'statPermits', label: 'التراخيص' },
@@ -177,12 +240,12 @@ export default function AdminDashboard() {
                       ].map((stat) => (
                         <div key={stat.name} className="space-y-2">
                           <label className="text-[10px] font-black text-slate-400 uppercase">{stat.label}</label>
-                          <Input name={stat.name} type="number" defaultValue={siteConfig?.stats?.[stat.name.replace('stat', '').toLowerCase() as keyof typeof siteConfig.stats]} className="font-black rounded-lg" />
+                          <Input name={stat.name} type="number" defaultValue={siteConfig?.stats?.[stat.name.replace('stat', '').toLowerCase() as keyof typeof siteConfig.stats]} className="font-black rounded-lg bg-white" />
                         </div>
                       ))}
                     </div>
 
-                    <Button type="submit" className="dm-gradient-primary rounded-full px-10 py-6 font-black h-auto">
+                    <Button type="submit" className="dm-gradient-primary rounded-full px-10 py-6 font-black h-auto text-lg">
                       <Save className="ml-2" /> حفظ كافة الإعدادات
                     </Button>
                   </form>
@@ -201,13 +264,14 @@ export default function AdminDashboard() {
                         if(!newNews) return;
                         addDoc(collection(firestore, 'news_ticker'), { text: newNews, isActive: true, createdAt: new Date().toISOString() });
                         setNewNews('');
-                      }} className="bg-secondary rounded-xl px-8 font-bold">إضافة</Button>
+                        toast({ title: "تمت الإضافة", description: "سيظهر الخبر في شريط الموقع." });
+                      }} className="bg-secondary hover:bg-primary transition-colors rounded-xl px-8 font-bold text-white">إضافة</Button>
                    </div>
                    <div className="space-y-2">
                       {newsItems?.map(item => (
-                        <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-slate-50">
-                           <p className="text-sm font-bold">{item.text}</p>
-                           <Button variant="ghost" size="icon" className="text-red-500" onClick={() => deleteDoc(doc(firestore, 'news_ticker', item.id))}>
+                        <div key={item.id} className="flex items-center justify-between p-4 border rounded-xl bg-slate-50 hover:bg-white transition-colors">
+                           <p className="text-sm font-bold text-slate-700">{item.text}</p>
+                           <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50" onClick={() => deleteDoc(doc(firestore, 'news_ticker', item.id))}>
                               <Trash2 size={16} />
                            </Button>
                         </div>
