@@ -3,14 +3,14 @@
     {
       "id": "dhofar-hero",
       "description": "Scenic landscape of Salalah, Dhofar during Khareef season",
-      "imageUrl": "https://picsum.photos/seed/salalah/1920/600",
+      "imageUrl": "https://picsum.photos/seed/salalah/1920/800",
       "imageHint": "green mountains"
     },
     {
-      "id": "municipality-building",
-      "description": "Dhofar Municipality Headquarters",
-      "imageUrl": "https://picsum.photos/seed/dhofar-gov/800/600",
-      "imageHint": "government building"
+      "id": "dm-main-logo",
+      "description": "Dhofar Municipality Main Logo",
+      "imageUrl": "https://edm.gov.om/wp-content/uploads/2026/09/headerlogo2.png",
+      "imageHint": "government logo"
     }
   ]
 }
