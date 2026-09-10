@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -5,7 +6,6 @@ import Image from 'next/image';
 import { useFirestore, useCollection, useDoc } from '@/firebase';
 import { collection, doc, query, where, orderBy } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
   Search, 
@@ -26,11 +26,12 @@ import {
   ArrowUpRight,
   ShieldCheck,
   FileText,
-  Accessibility
+  Accessibility,
+  Globe,
+  Palette
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
 
@@ -71,13 +72,11 @@ const TypingText = ({ isAr }: { isAr: boolean }) => {
 
 export default function DhofarPortal() {
   const firestore = useFirestore();
-  const { toast } = useToast();
   const { language, setLanguage } = useSettingsStore();
   
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('الكل');
-  const [isServicesExpanded, setIsServicesExpanded] = useState(false);
   const [trxId, setTrxId] = useState('');
   const [isTrxLoading, setIsTrxLoading] = useState(false);
   const [trxResult, setTrxResult] = useState<any>(null);
@@ -172,7 +171,7 @@ export default function DhofarPortal() {
              <div className="relative h-16 w-16">
                <Image
                  src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png"
-                 alt="Logo Icon"
+                 alt="Dhofar Municipality Logo"
                  fill
                  className="object-contain"
                  priority

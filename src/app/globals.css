@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -87,7 +88,7 @@
 }
 
 .font-arabic {
-  font-family: 'Noto Kufi Arabic', sans-serif;
+  font-family: 'Noto K Kufi Arabic', sans-serif;
 }
 
 /* GUP-DS Component Replications */
