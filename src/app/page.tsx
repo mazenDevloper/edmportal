@@ -242,8 +242,48 @@ export default function DhofarPortal() {
               </div>
             </section>
 
-            {/* 7. Identity Components Showcase Access */}
-            <section className="py-24 bg-slate-50">
+            {/* 7. Courses / Educational Section */}
+            {courses.length > 0 && (
+              <section className="py-24 bg-slate-50">
+                <div className="max-w-7xl mx-auto px-6">
+                  <div className="flex items-center justify-between mb-16">
+                    <div>
+                      <h2 className="text-4xl font-black text-secondary mb-2">{isAr ? "البرامج التدريبية" : "Training Programs"}</h2>
+                      <p className="text-slate-400 font-bold">{isAr ? "نطور مهارات الكوادر الوطنية لمستقبل أفضل" : "Developing national skills for a better future"}</p>
+                    </div>
+                    <BookOpen size={48} className="text-secondary/20" />
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-8">
+                    {courses.map(course => (
+                      <Card key={course.id} className="rounded-brand shadow-lg overflow-hidden border-none group">
+                        <div className="relative h-48 w-full overflow-hidden">
+                          <Image 
+                            src={course.imageUrl || "https://picsum.photos/seed/training/600/400"} 
+                            alt={course.titleAr} 
+                            fill 
+                            className="object-cover transition-transform group-hover:scale-110" 
+                          />
+                          <div className="absolute top-4 right-4">
+                            <Badge className="bg-white/90 text-secondary font-black backdrop-blur-md">{course.durationAr}</Badge>
+                          </div>
+                        </div>
+                        <CardContent className="p-6">
+                          <h3 className="text-xl font-black text-slate-800 mb-3">{isAr ? course.titleAr : course.titleEn}</h3>
+                          <p className="text-sm text-slate-500 font-bold mb-6 line-clamp-3">{isAr ? course.descriptionAr : course.descriptionEn}</p>
+                          <Button className="w-full bg-slate-900 text-white rounded-full font-black h-12 group-hover:bg-secondary transition-colors">
+                            {isAr ? "سجل الآن" : "Enroll Now"}
+                            <ChevronRight className={cn("ml-2 size-4", isAr && "rotate-180")} />
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* 8. Identity Components Showcase Access */}
+            <section className="py-24 bg-white">
               <div className="max-w-7xl mx-auto px-6 text-center">
                 <Button onClick={() => setActiveTab('identity')} className="h-16 px-12 rounded-full font-black text-xl dm-gradient-primary shadow-xl">
                   {isAr ? "دليل الهوية البصرية والمكونات" : "Visual Identity & Components Guide"}
