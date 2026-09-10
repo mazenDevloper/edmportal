@@ -32,7 +32,8 @@ import {
   Type,
   CheckCircle2,
   ShieldCheck,
-  Accessibility
+  Accessibility,
+  FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
@@ -165,6 +166,7 @@ export default function DhofarPortal() {
       const categoryMatch = isAll || s.category === activeCategory;
       const searchMatch = !searchQuery || 
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (s.titleEn && s.titleEn.toLowerCase().includes(searchQuery.toLowerCase())) ||
         s.description.toLowerCase().includes(searchQuery.toLowerCase());
       return categoryMatch && searchMatch;
     }) || [];
@@ -347,7 +349,7 @@ export default function DhofarPortal() {
               >
                 <LayoutGrid size={32} className="text-primary transition-transform group-hover:rotate-90 duration-500" />
                 <span className="text-2xl font-black tracking-tighter text-primary">
-                  {isAr ? `تصفح كل الخدمات (${servicesData.length})` : `Explore All Services (${servicesData.length})`}
+                  {isAr ? `تصفح كل الخدمات (${services?.length || 0})` : `Explore All Services (${services?.length || 0})`}
                 </span>
                 <ChevronDown size={28} className={cn("text-secondary transition-transform duration-500", isServicesExpanded ? "rotate-180" : "animate-bounce")} />
               </button>

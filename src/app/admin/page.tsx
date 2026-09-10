@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Service, SiteConfig, ServiceApplication, NewsTicker } from '@/lib/types';
 import { Settings, Plus, Save, Trash2, Clock, Megaphone, BarChart3, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
