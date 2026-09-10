@@ -11,13 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Service, SiteConfig, NewsTicker } from '@/lib/types';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
-import { Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, CloudUpload } from 'lucide-react';
+import { useSettingsStore } from '@/lib/settings-store';
+import { Settings, Plus, Save, Trash2, X, Search, Megaphone, Loader2, CloudUpload, HelpCircle } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const { language } = useSettingsStore();
+  const isAr = language === 'ar';
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -53,13 +57,18 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const loadData = async () => {
-      const data = await fetchBin();
-      if (data) {
-        setServices(data.services || []);
-        setSiteConfig(data.siteConfig || siteConfig);
-        setNewsItems(data.newsItems || []);
+      try {
+        const data = await fetchBin();
+        if (data) {
+          setServices(data.services || []);
+          setSiteConfig(data.siteConfig || siteConfig);
+          setNewsItems(data.newsItems || []);
+        }
+      } catch (e) {
+        toast({ title: "Error", description: "Failed to load data from Cloud Storage.", variant: "destructive" });
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     loadData();
   }, []);
@@ -72,9 +81,12 @@ export default function AdminDashboard() {
         siteConfig,
         newsItems
       });
-      toast({ title: "تم الحفظ", description: "تمتزامنة كافة البيانات مع السحابة بنجاح." });
+      toast({ 
+        title: isAr ? "تم الحفظ" : "Saved", 
+        description: isAr ? "تمت مزامنة كافة البيانات بنجاح." : "All data synced successfully." 
+      });
     } catch (e) {
-      toast({ title: "خطأ في الحفظ", description: "تعذر الاتصال بخادم البيانات.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to sync with cloud storage.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -82,7 +94,7 @@ export default function AdminDashboard() {
 
   const addService = () => {
     if (!newService.title || !newService.category) {
-      toast({ title: "خطأ", description: "يرجى إكمال البيانات الأساسية", variant: "destructive" });
+      toast({ title: isAr ? "خطأ" : "Error", description: isAr ? "يرجى إكمال البيانات الأساسية" : "Please fill basic info", variant: "destructive" });
       return;
     }
     const service: Service = {
@@ -93,12 +105,12 @@ export default function AdminDashboard() {
     };
     setServices(prev => [service, ...prev]);
     setNewService({ title: '', titleEn: '', description: '', iconName: 'LayoutGrid', category: 'building', fees: '0 OMR', reqsAr: [], reqsEn: [] });
-    toast({ title: "تمت الإضافة محلياً", description: "يرجى الضغط على حفظ لمزامنة التغييرات." });
+    toast({ title: isAr ? "تمت الإضافة" : "Added", description: isAr ? "اضغط على حفظ للمزامنة" : "Press Save to sync" });
   };
 
   const deleteService = (id: string) => {
     setServices(prev => prev.filter(s => s.id !== id));
-    toast({ title: "تم الحذف محلياً" });
+    toast({ title: isAr ? "تم الحذف" : "Deleted" });
   };
 
   const addNews = () => {
@@ -121,23 +133,23 @@ export default function AdminDashboard() {
   const filteredIcons = useMemo(() => {
     if (!iconSearch) return lucideIconNames.slice(0, 48);
     return lucideIconNames.filter(name => name.toLowerCase().includes(iconSearch.toLowerCase())).slice(0, 48);
-  }, [iconSearch]);
+  }, [iconSearch, lucideIconNames]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="font-black text-slate-500">جاري تحميل بيانات البوابة...</p>
+        <p className="font-black text-slate-500">{isAr ? "جاري التحميل..." : "Loading Data..."}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-arabic" dir="rtl">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8" dir={isAr ? 'rtl' : 'ltr'}>
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
            <h1 className="text-3xl font-black text-primary flex items-center gap-3">
-             <Settings className="h-8 w-8 text-accent" /> إدارة البوابة الرقمية
+             <Settings className="h-8 w-8 text-accent" /> {isAr ? "إدارة البوابة الرقمية" : "Portal Administration"}
            </h1>
            <div className="flex gap-4">
              <Button 
@@ -146,61 +158,61 @@ export default function AdminDashboard() {
                className="dm-gradient-primary rounded-full px-8 font-black shadow-xl hover:scale-105 transition-all h-12"
              >
                {saving ? <Loader2 className="animate-spin ml-2" /> : <CloudUpload className="ml-2" />}
-               {isAr ? "حفظ ومزامنة كافة التغييرات" : "Save & Sync All"}
+               {isAr ? "حفظ ومزامنة التغييرات" : "Save & Sync Changes"}
              </Button>
              <Button variant="outline" className="rounded-full border-primary text-primary font-bold shadow-sm h-12" asChild>
-               <a href="/">العودة للبوابة</a>
+               <a href="/">{isAr ? "العودة للبوابة" : "Back to Portal"}</a>
              </Button>
            </div>
         </header>
 
         <Tabs defaultValue="services" className="w-full">
           <TabsList className="bg-white border p-1 h-auto mb-10 flex flex-wrap gap-2 rounded-xl shadow-sm">
-            <TabsTrigger value="services" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold transition-all">إدارة الخدمات</TabsTrigger>
-            <TabsTrigger value="site" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold transition-all">الهوية والإحصائيات</TabsTrigger>
-            <TabsTrigger value="ticker" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold transition-all">شريط الأخبار</TabsTrigger>
+            <TabsTrigger value="services" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold transition-all">{isAr ? "إدارة الخدمات" : "Services"}</TabsTrigger>
+            <TabsTrigger value="site" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold transition-all">{isAr ? "الهوية والإحصائيات" : "Site Config"}</TabsTrigger>
+            <TabsTrigger value="ticker" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white px-6 font-bold transition-all">{isAr ? "شريط الأخبار" : "News Ticker"}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="services" className="animate-in fade-in zoom-in-95">
             <div className="grid lg:grid-cols-3 gap-8">
               <Card className="lg:col-span-1 h-fit rounded-brand shadow-lg border-none">
                 <CardHeader className="border-b bg-slate-50/50">
-                  <CardTitle className="font-black text-primary text-lg">إضافة خدمة جديدة</CardTitle>
+                  <CardTitle className="font-black text-primary text-lg">{isAr ? "إضافة خدمة جديدة" : "Add New Service"}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">المعلومات الأساسية</label>
-                    <Input placeholder="اسم الخدمة (عربي)" value={newService.title} onChange={e => setNewService({...newService, title: e.target.value})} className="rounded-xl h-12" />
-                    <Input placeholder="Service Name (English)" dir="ltr" value={newService.titleEn} onChange={e => setNewService({...newService, titleEn: e.target.value})} className="rounded-xl h-12" />
-                    <Textarea placeholder="وصف الخدمة المختصر" value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} className="rounded-xl min-h-[80px]" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المعلومات الأساسية" : "Basic Info"}</label>
+                    <Input placeholder={isAr ? "اسم الخدمة (عربي)" : "Name (Arabic)"} value={newService.title} onChange={e => setNewService({...newService, title: e.target.value})} className="rounded-xl h-12" />
+                    <Input placeholder={isAr ? "Service Name (English)" : "Name (English)"} dir="ltr" value={newService.titleEn} onChange={e => setNewService({...newService, titleEn: e.target.value})} className="rounded-xl h-12" />
+                    <Textarea placeholder={isAr ? "وصف الخدمة المختصر" : "Brief Description"} value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} className="rounded-xl min-h-[80px]" />
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase">التصنيف</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "التصنيف" : "Category"}</label>
                       <Select value={newService.category} onValueChange={(val) => setNewService({...newService, category: val})}>
                         <SelectTrigger className="w-full rounded-xl">
                           <SelectValue placeholder="اختر الفئة" />
                         </SelectTrigger>
                         <SelectContent>
                           {Object.entries(CAT_CONFIG).map(([id, cfg]) => (
-                            <SelectItem key={id} value={id}>{cfg.labelAr}</SelectItem>
+                            <SelectItem key={id} value={id}>{isAr ? cfg.labelAr : cfg.labelEn}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase">الرسوم</label>
-                      <Input placeholder="مثال: 5 OMR" value={newService.fees} onChange={e => setNewService({...newService, fees: e.target.value})} className="rounded-xl" />
+                      <label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "الرسوم" : "Fees"}</label>
+                      <Input placeholder="5 OMR" value={newService.fees} onChange={e => setNewService({...newService, fees: e.target.value})} className="rounded-xl" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase">أيقونة الخدمة</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                       <Input 
-                        placeholder="ابحث عن أيقونة..." 
+                        placeholder={isAr ? "ابحث عن أيقونة..." : "Search icon..."} 
                         value={iconSearch} 
                         onChange={e => setIconSearch(e.target.value)} 
                         className="pl-10 rounded-xl"
@@ -208,10 +220,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex flex-wrap gap-2 mt-3 max-h-32 overflow-y-auto p-2 border rounded-xl bg-slate-50/50">
                       {filteredIcons.map(name => {
-                        const Icon = (Icons as any)[name];
+                        const Icon = (Icons as any)[name] || HelpCircle;
                         return (
                           <button
                             key={name}
+                            type="button"
                             onClick={() => setNewService({...newService, iconName: name})}
                             className={cn(
                               "p-2 rounded-lg transition-all border",
@@ -226,10 +239,10 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-4 pt-4 border-t">
-                    <label className="text-[10px] font-black text-slate-400 uppercase">متطلبات الخدمة</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "متطلبات الخدمة" : "Requirements"}</label>
                     <div className="space-y-2">
-                      <Input placeholder="المتطلب (عربي)" value={reqArInput} onChange={e => setReqArInput(e.target.value)} className="rounded-xl" />
-                      <Input placeholder="Requirement (English)" dir="ltr" value={reqEnInput} onChange={e => setReqEnInput(e.target.value)} className="rounded-xl" />
+                      <Input placeholder={isAr ? "المتطلب (عربي)" : "Req (AR)"} value={reqArInput} onChange={e => setReqArInput(e.target.value)} className="rounded-xl" />
+                      <Input placeholder={isAr ? "Requirement (English)" : "Req (EN)"} dir="ltr" value={reqEnInput} onChange={e => setReqEnInput(e.target.value)} className="rounded-xl" />
                       <Button className="w-full bg-accent text-white font-bold h-10 rounded-xl" onClick={() => {
                         if(!reqArInput || !reqEnInput) return;
                         setNewService(prev => ({
@@ -240,7 +253,7 @@ export default function AdminDashboard() {
                         setReqArInput('');
                         setReqEnInput('');
                       }}>
-                        <Plus size={18} className="ml-2" /> إضافة متطلب
+                        <Plus size={18} className="ml-2" /> {isAr ? "إضافة متطلب" : "Add Requirement"}
                       </Button>
                     </div>
                     
@@ -259,7 +272,7 @@ export default function AdminDashboard() {
                   </div>
                   
                   <Button onClick={addService} className="w-full bg-slate-900 text-white rounded-full py-7 font-black h-auto text-lg shadow-lg">
-                    <Save className="ml-2" /> اعتماد الخدمة مؤقتاً
+                    <Save className="ml-2" /> {isAr ? "اعتماد الخدمة مؤقتاً" : "Stage Service"}
                   </Button>
                 </CardContent>
               </Card>
@@ -267,8 +280,8 @@ export default function AdminDashboard() {
               <Card className="lg:col-span-2 rounded-brand shadow-md border-none overflow-hidden">
                 <CardHeader className="border-b bg-white">
                   <div className="flex justify-between items-center">
-                    <CardTitle className="font-black text-primary">الخدمات في قائمة النشر</CardTitle>
-                    <span className="text-xs font-bold text-slate-400">{services.length} خدمة</span>
+                    <CardTitle className="font-black text-primary">{isAr ? "الخدمات في قائمة النشر" : "Services in Queue"}</CardTitle>
+                    <span className="text-xs font-bold text-slate-400">{services.length} {isAr ? "خدمة" : "services"}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -284,7 +297,7 @@ export default function AdminDashboard() {
                           </div>
                           <p className="font-black text-primary mb-2 text-lg leading-tight">{service.title}</p>
                           <div className="flex flex-wrap gap-2">
-                             <span className={cn("text-[9px] font-black px-3 py-1 rounded-full border", catInfo?.color)}>{catInfo?.labelAr}</span>
+                             <span className={cn("text-[9px] font-black px-3 py-1 rounded-full border", catInfo?.color)}>{isAr ? catInfo?.labelAr : catInfo?.labelEn}</span>
                              <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100">{service.fees}</span>
                           </div>
                         </div>
@@ -299,14 +312,14 @@ export default function AdminDashboard() {
           <TabsContent value="site">
             <div className="grid gap-8 lg:grid-cols-2">
               <Card className="rounded-brand shadow-md border-none overflow-hidden">
-                <CardHeader><CardTitle className="font-black text-primary">إعدادات الواجهة</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="font-black text-primary">{isAr ? "إعدادات الواجهة" : "Interface Settings"}</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-500">عنوان الهيرو</label>
+                    <label className="text-xs font-black text-slate-500">{isAr ? "عنوان الهيرو" : "Hero Title"}</label>
                     <Input value={siteConfig.heroTitle} onChange={e => setSiteConfig({...siteConfig, heroTitle: e.target.value})} className="h-12 rounded-xl font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-500">الوصف</label>
+                    <label className="text-xs font-black text-slate-500">{isAr ? "الوصف" : "Subtitle"}</label>
                     <Textarea value={siteConfig.heroSubtitle} onChange={e => setSiteConfig({...siteConfig, heroSubtitle: e.target.value})} className="rounded-xl font-bold" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -329,14 +342,14 @@ export default function AdminDashboard() {
               </Card>
 
               <Card className="rounded-brand shadow-md border-none overflow-hidden">
-                <CardHeader><CardTitle className="font-black text-primary">بيانات الاتصال</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="font-black text-primary">{isAr ? "بيانات الاتصال" : "Contact Info"}</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-500">هاتف الدعم</label>
+                    <label className="text-xs font-black text-slate-500">{isAr ? "هاتف الدعم" : "Support Phone"}</label>
                     <Input value={siteConfig.contactPhone} onChange={e => setSiteConfig({...siteConfig, contactPhone: e.target.value})} className="h-12 rounded-xl font-black text-xl" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-500">البريد الإلكتروني</label>
+                    <label className="text-xs font-black text-slate-500">{isAr ? "البريد الإلكتروني" : "Email Address"}</label>
                     <Input value={siteConfig.contactEmail} onChange={e => setSiteConfig({...siteConfig, contactEmail: e.target.value})} className="h-12 rounded-xl" />
                   </div>
                 </CardContent>
@@ -346,11 +359,11 @@ export default function AdminDashboard() {
 
           <TabsContent value="ticker">
              <Card className="rounded-brand border-none shadow-md overflow-hidden">
-                <CardHeader><CardTitle className="font-black text-primary flex items-center gap-2"><Megaphone className="text-secondary" /> الأخبار العاجلة</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="font-black text-primary flex items-center gap-2"><Megaphone className="text-secondary" /> {isAr ? "الأخبار العاجلة" : "Breaking News"}</CardTitle></CardHeader>
                 <CardContent className="space-y-8 p-8">
                    <div className="flex gap-4">
-                      <Textarea placeholder="اكتب الخبر العاجل هنا..." value={newNews} onChange={e => setNewNews(e.target.value)} className="rounded-2xl flex-1 font-bold shadow-inner" />
-                      <Button onClick={addNews} className="bg-secondary rounded-2xl px-10 font-black text-white h-auto shadow-lg hover:scale-105 transition-all">نشر</Button>
+                      <Textarea placeholder={isAr ? "اكتب الخبر العاجل هنا..." : "Type breaking news..."} value={newNews} onChange={e => setNewNews(e.target.value)} className="rounded-2xl flex-1 font-bold shadow-inner" />
+                      <Button onClick={addNews} className="bg-secondary rounded-2xl px-10 font-black text-white h-auto shadow-lg hover:scale-105 transition-all">{isAr ? "نشر" : "Publish"}</Button>
                    </div>
                    <div className="grid gap-4">
                       {newsItems.map(item => (
