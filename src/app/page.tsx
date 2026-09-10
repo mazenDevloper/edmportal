@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useFirestore, useCollection, useDoc, useUser } from '@/firebase';
 import { collection, doc, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -21,7 +22,8 @@ import {
   Calendar,
   Gavel,
   Globe,
-  LayoutDashboard
+  LayoutDashboard,
+  ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig } from '@/lib/types';
@@ -31,19 +33,28 @@ const ICON_MAP: Record<string, any> = {
   Building2, FileText, MapPin, CreditCard, UserCircle, Phone, Info, Calendar, Gavel, Globe
 };
 
-const CATEGORIES_AR = ['الكل', 'الرخص', 'المباني', 'الاستثمار', 'البيانات المفتوحة'];
-const CATEGORIES_EN = ['All', 'Licenses', 'Buildings', 'Investment', 'Open Data'];
-
 export default function DhofarPortal() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
   const { language, setLanguage } = useSettingsStore();
-  const [activeCategory, setActiveCategory] = useState('الكل');
+  const [activeCategory, setActiveCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const isAr = language === 'ar';
-  const categories = isAr ? CATEGORIES_AR : CATEGORIES_EN;
+  
+  const CATEGORIES = isAr 
+    ? ['الكل', 'الرخص', 'المباني', 'الاستثمار', 'البيانات المفتوحة'] 
+    : ['All', 'Licenses', 'Buildings', 'Investment', 'Open Data'];
+
+  useEffect(() => {
+    setActiveCategory(isAr ? 'الكل' : 'All');
+  }, [isAr]);
 
   const siteConfigRef = useMemo(() => doc(firestore, 'config', 'site'), [firestore]);
   const { data: siteConfig, loading: siteLoading } = useDoc<SiteConfig>(siteConfigRef);
@@ -56,9 +67,12 @@ export default function DhofarPortal() {
 
   const filteredServices = useMemo(() => {
     return services?.filter(s => {
-      const currentCategoryFilter = activeCategory === 'الكل' || activeCategory === 'All' || s.category === activeCategory;
-      const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || s.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return currentCategoryFilter && matchesSearch;
+      const isAll = activeCategory === 'الكل' || activeCategory === 'All';
+      const categoryMatch = isAll || s.category === activeCategory;
+      const searchMatch = !searchQuery || 
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return categoryMatch && searchMatch;
     }) || [];
   }, [services, activeCategory, searchQuery]);
 
@@ -76,24 +90,22 @@ export default function DhofarPortal() {
       userId: user.uid,
       status: 'pending',
       createdAt: serverTimestamp(),
-      data: { appliedFrom: 'Portal Web WCAG' }
+      data: { source: 'GUP-DS Portal' }
     });
 
     toast({
-      title: isAr ? "تم إرسال الطلب بنجاح" : "Application Submitted",
-      description: isAr ? `تم استلام طلبك لخدمة ${service.title}.` : `Your request for ${service.title} has been received.`,
+      title: isAr ? "تم إرسال الطلب" : "Application Sent",
+      description: isAr ? `تم استلام طلب ${service.title} بنجاح.` : `Application for ${service.title} sent.`,
     });
   };
 
-  if (siteLoading || servicesLoading) {
+  if (!isMounted || siteLoading || servicesLoading) {
     return (
-      <div className="p-8 max-w-7xl mx-auto space-y-4" role="status" aria-live="polite">
-        <Skeleton className="h-16 w-full rounded-md" />
-        <Skeleton className="h-64 w-full rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-48 rounded-lg" />
-          <Skeleton className="h-48 rounded-lg" />
-          <Skeleton className="h-48 rounded-lg" />
+      <div className="p-8 max-w-7xl mx-auto space-y-8" role="status" aria-busy="true">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-[400px] w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-64 rounded-xl" />)}
         </div>
       </div>
     );
@@ -102,96 +114,74 @@ export default function DhofarPortal() {
   return (
     <div className="flex min-h-screen flex-col bg-[#F8FAFC]">
       {/* Semantic Accessible Header */}
-      <header className="relative bg-[#008E91] text-white overflow-hidden pb-4" role="banner">
-        {/* Background Geometric Grid Patterns for Quality aesthetics */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -mr-20 -mt-20 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#94F7F2] rotate-45 -ml-32 -mb-32" />
-        </div>
+      <header className="bg-[#008E91] text-white border-b border-white/10" role="banner">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <Link href="/" aria-label={isAr ? "الرئيسية" : "Home"} className="flex-shrink-0">
+            <Image
+              src="https://edm.gov.om/wp-content/uploads/2026/09/headerlogo2.png"
+              alt={isAr ? "شعار بلدية ظفار" : "Dhofar Municipality Logo"}
+              width={260}
+              height={85}
+              className="brightness-0 invert object-contain"
+              priority
+            />
+          </Link>
 
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-8 relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-6">
-            <Link href="/" aria-label={isAr ? "الصفحة الرئيسية لبلدية ظفار" : "Dhofar Municipality Home"}>
-              <Image
-                src="https://edm.gov.om/wp-content/uploads/2026/09/headerlogo2.png"
-                alt={isAr ? "شعار بلدية ظفار الرسمي" : "Dhofar Municipality Official Logo"}
-                width={260}
-                height={85}
-                className="brightness-0 invert object-contain"
-                priority
-              />
-            </Link>
-          </div>
-
-          <nav className="flex items-center gap-2 text-sm font-bold flex-wrap justify-center" aria-label={isAr ? "القائمة الرئيسية" : "Main Navigation"}>
-            <Link href="#" className="hover:text-[#94F7F2] px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
-              {isAr ? 'عن بلدية ظفار' : 'About Us'}
-            </Link>
-            <Link href="#" className="hover:text-[#94F7F2] px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
-              {isAr ? 'دليل الخدمات الموحد' : 'Services Directory'}
-            </Link>
-            <Link href="#" className="bg-white/10 px-4 py-2 rounded-md hover:bg-white/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-              {isAr ? 'البيانات المفتوحة' : 'Open Data'}
-            </Link>
-            
-            <Button 
-              variant="ghost" 
-              className="text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white"
-              onClick={() => {
-                const nextLang = isAr ? 'en' : 'ar';
-                setLanguage(nextLang);
-                setActiveCategory(nextLang === 'ar' ? 'الكل' : 'All');
-              }}
-              aria-label={isAr ? "Switch to English" : "تغيير اللغة إلى العربية"}
-            >
-              <Globe className="h-4 w-4 mr-2 ml-2" aria-hidden="true" />
-              <span>{isAr ? 'English' : 'العربية'}</span>
-            </Button>
-
-            <Link 
-              href="/admin" 
-              className="p-2 hover:bg-white/10 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              aria-label={isAr ? "لوحة تحكم المشرف" : "Admin Panel Dashboard"}
-            >
-              <LayoutDashboard className="h-5 w-5" aria-hidden="true" />
-            </Link>
+          <nav className="flex items-center gap-6" aria-label={isAr ? "القائمة الرئيسية" : "Main Menu"}>
+            <ul className="flex items-center gap-4 text-sm font-bold list-none p-0 m-0">
+              <li><Link href="#" className="hover:text-[#94F7F2] transition-colors">{isAr ? 'عن البلدية' : 'About'}</Link></li>
+              <li><Link href="#" className="hover:text-[#94F7F2] transition-colors">{isAr ? 'الخدمات' : 'Services'}</Link></li>
+              <li>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-white hover:bg-white/10"
+                  onClick={() => setLanguage(isAr ? 'en' : 'ar')}
+                  aria-label={isAr ? "Switch to English" : "اللغة الإنجليزية"}
+                >
+                  <Globe className="h-4 w-4 mr-2" aria-hidden="true" />
+                  {isAr ? 'English' : 'العربية'}
+                </Button>
+              </li>
+              <li>
+                <Link href="/admin" aria-label="Admin Dashboard">
+                  <Button variant="outline" size="icon" className="rounded-full bg-white/10 border-white/20 hover:bg-white/20 text-white">
+                    <LayoutDashboard className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </li>
+            </ul>
           </nav>
         </div>
 
-        {/* Hero Section Container */}
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-8 text-center relative z-10">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-4 drop-shadow-md text-white">
-            {siteConfig?.heroTitle || (isAr ? 'بوابة بلدية ظفار الإلكترونية الموحدة' : 'Dhofar Municipality Digital Portal')}
+        {/* Hero Section - GUP-DS Style */}
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-8 text-center" aria-labelledby="hero-title">
+          <h1 id="hero-title" className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
+            {siteConfig?.heroTitle || (isAr ? 'بوابة الخدمات الإلكترونية الموحدة' : 'Unified Digital Services Portal')}
           </h1>
-          <p className="text-base sm:text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-            {siteConfig?.heroSubtitle || (isAr ? 'نعمل من أجل خدمتكم بكل سهولة وذكاء رقمي متكامل وفق المعايير العمانية' : 'Serving you with digital excellence and integrated ease.')}
+          <p className="text-lg opacity-90 mb-10 max-w-2xl mx-auto">
+            {siteConfig?.heroSubtitle || (isAr ? 'نخدمكم بذكاء وسهولة وفق أعلى معايير الجودة العمانية' : 'Serving you with smart solutions following Omani quality standards.')}
           </p>
           
-          {/* Accessible Search Form Container */}
           <div className="relative max-w-3xl mx-auto">
-            <label htmlFor="service-search-input" className="sr-only">
-              {isAr ? 'ابحث عن خدمة بلدية...' : 'Search for a municipal service...'}
-            </label>
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 h-6 w-6 pointer-events-none" aria-hidden="true" />
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 h-6 w-6" aria-hidden="true" />
             <Input 
-              id="service-search-input"
               type="search"
-              className="h-16 w-full rounded-full border-none bg-white/95 text-black pl-14 pr-8 text-lg sm:text-xl shadow-2xl focus-visible:ring-4 focus-visible:ring-[#94F7F2]"
-              placeholder={isAr ? 'ابحث عن الخدمة المطلوبة... (مثال: إباحة بناء، شهادة صحية)' : 'Search for services... (e.g., Building permits)'}
+              className="h-16 w-full rounded-full border-none bg-white text-black pl-14 pr-8 text-lg shadow-xl focus-visible:ring-4 focus-visible:ring-[#94F7F2]"
+              placeholder={isAr ? 'ابحث عن الخدمة...' : 'Search for a service...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label={isAr ? "بحث" : "Search"}
             />
           </div>
-        </div>
+        </section>
       </header>
 
-      {/* Main Content Area */}
-      <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-8 flex-grow" role="main">
-        
-        {/* Category Navigation Controls */}
-        <section aria-label={isAr ? "تصنيفات الخدمات الرقمية" : "Service Categories"}>
-          <div className="flex gap-3 overflow-x-auto pb-4 mb-8 border-b scrollbar-hide" role="tablist">
-            {categories.map((cat) => {
+      <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-8 flex-grow" role="main">
+        {/* Category Tabs */}
+        <nav aria-label={isAr ? "تصنيفات الخدمات" : "Service Categories"} className="mb-10">
+          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide" role="tablist">
+            {CATEGORIES.map((cat) => {
               const isSelected = activeCategory === cat;
               return (
                 <Button
@@ -199,7 +189,11 @@ export default function DhofarPortal() {
                   role="tab"
                   aria-selected={isSelected}
                   variant={isSelected ? 'default' : 'outline'}
-                  className={isSelected ? 'dm-gradient-primary font-bold px-6 shrink-0' : 'border-[#008E91] text-[#008E91] font-bold px-6 shrink-0'}
+                  className={`rounded-full px-8 py-6 font-bold transition-all ${
+                    isSelected 
+                      ? 'gup-button-primary shadow-lg scale-105' 
+                      : 'border-[#008E91] text-[#008E91] hover:bg-[#008E91] hover:text-white'
+                  }`}
                   onClick={() => setActiveCategory(cat)}
                 >
                   {cat}
@@ -207,75 +201,71 @@ export default function DhofarPortal() {
               );
             })}
           </div>
-        </section>
+        </nav>
 
-        {/* Dynamic Services Catalog Grid */}
-        <section aria-label={isAr ? "قائمة الخدمات المتاحة" : "Available Services Catalog"}>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4" aria-live="polite">
+        {/* Services Grid */}
+        <section aria-label={isAr ? "الخدمات المتاحة" : "Available Services"}>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {filteredServices.map((service) => {
               const IconComponent = ICON_MAP[service.iconName] || Info;
               return (
-                <Card key={service.id} className="group border-none shadow-sm hover:shadow-lg transition-all overflow-hidden bg-white flex flex-col justify-between">
-                  <div>
-                    <div className="h-2 bg-[#008E91] group-hover:bg-[#470D67] transition-colors" aria-hidden="true" />
-                    <CardHeader className="text-center pb-2">
-                      <div className="mx-auto mb-3 rounded-2xl bg-[#94F7F2]/10 p-4 text-[#008E91] group-hover:bg-[#008E91] group-hover:text-white transition-all duration-300">
-                        <IconComponent className="h-10 w-10" aria-hidden="true" />
-                      </div>
-                      <CardTitle className="text-lg font-bold text-[#008E91]">{service.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center px-4 pb-4">
-                      <CardDescription className="text-slate-600 text-sm line-clamp-3">
-                        {service.description}
-                      </CardDescription>
-                    </CardContent>
-                  </div>
+                <Card key={service.id} className="group relative border-none shadow-md hover:shadow-2xl transition-all duration-300 bg-white flex flex-col">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#008E91] to-[#03CFCB] rounded-t-lg" />
                   
-                  <div className="p-4 pt-0">
+                  <CardHeader className="text-center pt-8 pb-4">
+                    <div className="mx-auto mb-4 rounded-3xl bg-[#94F7F2]/20 p-5 text-[#008E91] group-hover:bg-[#008E91] group-hover:text-white transition-all duration-500">
+                      <IconComponent className="h-10 w-10" />
+                    </div>
+                    <CardTitle className="text-xl font-bold text-slate-800">{service.title}</CardTitle>
+                    <CardDescription className="text-slate-500 font-medium">{service.category}</CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="text-center flex-grow px-6">
+                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-3 mb-6">
+                      {service.description}
+                    </p>
+                  </CardContent>
+                  
+                  <div className="p-6 pt-0 mt-auto">
                     <Button 
-                      className="w-full rounded-full border-2 border-[#008E91] text-[#008E91] hover:bg-[#008E91] hover:text-white transition-all font-bold"
+                      className="w-full rounded-xl border-2 border-[#008E91] text-[#008E91] hover:bg-[#008E91] hover:text-white transition-all font-bold group"
                       variant="outline"
                       onClick={() => handleApply(service)}
-                      aria-label={`${isAr ? 'بدء تقديم خدمة' : 'Start service for'} ${service.title}`}
                     >
-                      {isAr ? 'ابدأ الخدمة الرقمية' : 'Start Service'}
+                      {isAr ? 'ابدأ الخدمة' : 'Start Service'}
+                      <ArrowRight className={`h-4 w-4 ${isAr ? 'rotate-180 mr-2' : 'ml-2'} group-hover:translate-x-1 transition-transform`} />
                     </Button>
                   </div>
                 </Card>
               );
             })}
-            
-            {filteredServices.length === 0 && (
-              <div className="col-span-full py-16 text-center bg-white rounded-xl shadow-inner border border-dashed border-slate-200">
-                <Info className="h-12 w-12 text-slate-300 mx-auto mb-3" aria-hidden="true" />
-                <p className="text-slate-500 font-bold">
-                  {isAr ? 'عذراً، لم نعثر على نتائج تطابق معايير البحث الحالية.' : 'No matching municipal services found.'}
-                </p>
-              </div>
-            )}
           </div>
+
+          {filteredServices.length === 0 && (
+            <div className="py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200" role="status">
+              <Info className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500 text-lg font-bold">
+                {isAr ? 'لا توجد نتائج مطابقة لبحثك' : 'No matching services found.'}
+              </p>
+            </div>
+          )}
         </section>
       </main>
 
-      {/* Semantic Accessible Footer component */}
-      <footer className="bg-[#008E91] text-white py-10" role="contentinfo">
-        <div className="mx-auto max-w-7xl px-4 sm:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-center md:text-right">
-            <p className="text-xl font-bold mb-1">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</p>
-            <p className="opacity-80 text-xs">
-              © {new Date().getFullYear()} {isAr ? 'سلطنة عمان - جميع الحقوق محفوظة للبوابة الموحدة للخدمات الحكومية' : 'Sultanate of Oman - All Rights Reserved.'}
-            </p>
-          </div>
-          <div className="flex gap-6 text-sm flex-wrap justify-center">
-            <Link href="#" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-              {isAr ? 'سياسة الخصوصية والأمن الرقمي' : 'Privacy & Security Policy'}
-            </Link>
-            <Link href="#" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-              {isAr ? 'شروط وأحكام الاستخدام المعياري' : 'Terms & Conditions'}
-            </Link>
-            <Link href="#" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-              { siteConfig?.contactPhone ? `${isAr ? 'الدعم:' : 'Support:'} ${siteConfig.contactPhone}` : (isAr ? 'تواصل معنا' : 'Contact Us') }
-            </Link>
+      <footer className="bg-[#008E91] text-white py-12 border-t border-white/10" role="contentinfo">
+        <div className="mx-auto max-w-7xl px-4 sm:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-8">
+            <div className="text-center md:text-right">
+              <h2 className="text-2xl font-black mb-2">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</h2>
+              <p className="opacity-70 text-sm">
+                © {new Date().getFullYear()} {isAr ? 'جميع الحقوق محفوظة - سلطنة عمان' : 'All Rights Reserved - Sultanate of Oman'}
+              </p>
+            </div>
+            <div className="flex gap-8 text-sm font-bold flex-wrap justify-center">
+              <Link href="#" className="hover:text-[#94F7F2]">{isAr ? 'الخصوصية' : 'Privacy'}</Link>
+              <Link href="#" className="hover:text-[#94F7F2]">{isAr ? 'الشروط' : 'Terms'}</Link>
+              <Link href="#" className="hover:text-[#94F7F2]">{isAr ? 'تواصل معنا' : 'Contact'}</Link>
+            </div>
           </div>
         </div>
       </footer>

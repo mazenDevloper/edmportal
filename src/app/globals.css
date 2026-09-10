@@ -5,10 +5,12 @@
 
 @layer base {
   :root {
+    /* Omani Gov Design System Tokens */
     --dm-turquoise: 179 97% 41%;       /* #03CFCB */
     --dm-teal-dark: 181 100% 28%;      /* #008E91 */
     --dm-purple: 278 78% 23%;          /* #470D67 */
     --dm-turquoise-light: 177 85% 77%; /* #94F7F2 */
+    --dm-gold: 45 100% 50%;            /* Standard Gov Gold */
 
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
@@ -35,7 +37,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: var(--dm-teal-dark);
-    --radius: 1rem;
+    --radius: 0.5rem; /* Following GUP-DS standard radius */
   }
 
   .high-contrast {
@@ -57,21 +59,33 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
+/* Typography Standards for Oman Gov Portal */
 .font-arabic {
   font-family: 'Noto Kufi Arabic', sans-serif !important;
+  line-height: 1.6;
 }
 
-.dm-gradient-primary {
+.font-body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* GUP-DS Component Mimicry */
+.gup-button-primary {
   background: linear-gradient(90deg, hsl(var(--dm-teal-dark)) 60%, hsl(var(--dm-turquoise)) 100%) !important;
-  @apply text-white border-none;
+  @apply text-white border-none shadow-sm transition-all duration-200;
 }
 
-.dm-gradient-hover:hover {
+.gup-button-primary:hover {
   background: linear-gradient(200deg, hsl(var(--dm-turquoise)), hsl(var(--dm-purple))) !important;
-  @apply translate-x-[2px] transition-all duration-200 ease-in-out;
+  @apply translate-x-[2px] shadow-md;
+}
+
+.gup-card {
+  @apply rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
