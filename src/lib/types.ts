@@ -4,7 +4,21 @@ export interface SiteConfig {
   heroSubtitle: string;
   contactPhone: string;
   contactEmail: string;
+  stats?: {
+    transactions: number;
+    permits: number;
+    contracts: number;
+    tickets: number;
+  };
   isMaintenanceMode: boolean;
+}
+
+export interface NewsTicker {
+  id: string;
+  text: string;
+  link?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface Service {

@@ -10,9 +10,30 @@
         "heroSubtitle": { "type": "string" },
         "contactPhone": { "type": "string" },
         "contactEmail": { "type": "string" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "transactions": { "type": "number" },
+            "permits": { "type": "number" },
+            "contracts": { "type": "number" },
+            "tickets": { "type": "number" }
+          }
+        },
         "isMaintenanceMode": { "type": "boolean" }
       },
       "required": ["heroTitle", "contactPhone"]
+    },
+    "NewsTicker": {
+      "title": "News Ticker",
+      "description": "Breaking news items for the top bar ticker.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "link": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text"]
     },
     "Service": {
       "title": "Municipal Service",
@@ -57,6 +78,10 @@
     "/config/site": {
       "schema": "SiteConfig",
       "description": "Singleton document for site configuration."
+    },
+    "/news_ticker/{itemId}": {
+      "schema": "NewsTicker",
+      "description": "Collection of breaking news items."
     },
     "/services/{serviceId}": {
       "schema": "Service",

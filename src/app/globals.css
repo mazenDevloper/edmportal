@@ -63,29 +63,32 @@
   }
 }
 
-/* Typography Standards for Oman Gov Portal */
-.font-arabic {
-  font-family: 'Noto Kufi Arabic', sans-serif !important;
-  line-height: 1.6;
-}
-
-.font-body {
-  font-family: 'Inter', sans-serif;
-}
-
-/* GUP-DS Component Mimicry */
-.gup-button-primary {
+.dm-gradient-primary {
   background: linear-gradient(90deg, hsl(var(--dm-teal-dark)) 60%, hsl(var(--dm-turquoise)) 100%) !important;
   @apply text-white border-none shadow-sm transition-all duration-200;
 }
 
-.gup-button-primary:hover {
+.dm-gradient-primary:hover {
   background: linear-gradient(200deg, hsl(var(--dm-turquoise)), hsl(var(--dm-purple))) !important;
-  @apply translate-x-[2px] shadow-md;
+  @apply translate-x-[1px] shadow-md;
 }
 
-.gup-card {
-  @apply rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md;
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+.rtl .animate-marquee {
+  animation: marquee-rtl 40s linear infinite;
+}
+
+@keyframes marquee-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
 }
 
 .scrollbar-hide::-webkit-scrollbar {
