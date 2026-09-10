@@ -12,6 +12,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
 } from "@/components/ui/sheet";
 
 interface PortalHeaderProps {
@@ -71,9 +72,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           <div className="lg:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon"><Menu /></Button>
+                <Button variant="ghost" size="icon" aria-label={isAr ? "القائمة" : "Menu"}><Menu /></Button>
               </SheetTrigger>
               <SheetContent side={isAr ? "right" : "left"}>
+                <SheetTitle className="sr-only">{isAr ? "قائمة التنقل" : "Navigation Menu"}</SheetTitle>
                 <div className="flex flex-col gap-4 mt-8">
                   <Link href="/" className="text-lg font-bold">{isAr ? 'الرئيسية' : 'Home'}</Link>
                   {menuItems.map(item => (

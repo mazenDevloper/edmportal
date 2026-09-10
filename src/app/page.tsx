@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -137,9 +136,10 @@ export default function DhofarPortal() {
                    </div>
                    <Button 
                      variant="ghost" 
-                     className="mt-4 text-xs font-bold text-slate-400 gap-2"
+                     className="mt-4 text-xs font-bold text-slate-400 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
                      onClick={() => handleReadAloud(siteConfig?.heroTitle + ". " + siteConfig?.heroSubtitle)}
                      disabled={ttsLoading}
+                     aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
                    >
                      {ttsLoading ? <Loader2 className="animate-spin size-3" /> : <Volume2 size={14} />}
                      {isAr ? "استمع للترحيب" : "Listen to Welcome"}
