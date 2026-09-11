@@ -6,7 +6,8 @@
   :root {
     /* Dhofar Municipality Brand Palette - Primary */
     --dm-turquoise: 179 97% 41%;      /* #03CFCB */
-    --dm-teal-dark: 181 100% 28%;     /* #008E91 */
+    /* Darkened from 28% to 23% to meet WCAG 4.5:1 contrast on white */
+    --dm-teal-dark: 181 100% 23%;     /* #007375 */
     --dm-purple: 278 78% 20%;         /* #470D67 */
     
     /* Dhofar Municipality Brand Palette - Secondary/Soft */
