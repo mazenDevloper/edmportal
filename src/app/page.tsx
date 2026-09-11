@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -14,10 +15,14 @@ import {
   FileText,
   Users,
   Star,
-  BookOpen,
   ChevronRight,
-  MessageSquare,
-  Volume2
+  Volume2,
+  Fingerprint,
+  ShieldAlert,
+  ArrowRightLeft,
+  Sparkles,
+  CheckCircle,
+  HelpCircle
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
@@ -34,7 +39,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -47,6 +52,7 @@ export default function DhofarPortal() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [ttsLoading, setTtsLoading] = useState(false);
+  const [pkiStatus, setPkiStatus] = useState<'connected' | 'disconnected'>('connected');
 
   const [services, setServices] = useState<Service[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -116,40 +122,180 @@ export default function DhofarPortal() {
             {/* 1. Hero & Search */}
             <section className="py-20 bg-slate-50 relative overflow-hidden" aria-labelledby="hero-heading">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                 <div className="max-w-3xl">
-                   <h1 id="hero-heading" className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6">
-                     {siteConfig?.heroTitle || (isAr ? "خدماتنا رقمية، أسرع، وأسهل" : "Digital Services")}
-                   </h1>
-                   <p className="text-xl text-slate-500 font-bold mb-10">
-                     {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة" : "Unified Portal")}
-                   </p>
-                   <div className="relative group max-w-xl">
-                     <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400", isAr ? "right-6" : "left-6")} aria-hidden="true" />
-                     <input 
-                       type="text" 
-                       placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
-                       className={cn("w-full h-16 rounded-xl border-2 font-bold focus:border-primary px-16 shadow-lg bg-white outline-none")} 
-                       value={searchQuery} 
-                       onChange={(e) => setSearchQuery(e.target.value)} 
-                       aria-label={isAr ? "البحث في الخدمات" : "Search services"}
-                     />
+                 <div className="grid lg:grid-cols-12 gap-12 items-center">
+                   <div className="lg:col-span-7">
+                     <h1 id="hero-heading" className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6">
+                       {siteConfig?.heroTitle || (isAr ? "خدماتنا رقمية، أسرع، وأسهل" : "Digital Services")}
+                     </h1>
+                     <p className="text-xl text-slate-500 font-bold mb-10">
+                       {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة" : "Unified Portal")}
+                     </p>
+                     <div className="relative group max-w-xl">
+                       <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400", isAr ? "right-6" : "left-6")} aria-hidden="true" />
+                       <input 
+                         type="text" 
+                         placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
+                         className={cn("w-full h-16 rounded-xl border-2 font-bold focus:border-primary px-16 shadow-lg bg-white outline-none")} 
+                         value={searchQuery} 
+                         onChange={(e) => setSearchQuery(e.target.value)} 
+                         aria-label={isAr ? "البحث في الخدمات" : "Search services"}
+                       />
+                     </div>
+                     <Button 
+                       variant="ghost" 
+                       className="mt-4 text-xs font-bold text-slate-400 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
+                       onClick={() => handleReadAloud(siteConfig?.heroTitle + ". " + siteConfig?.heroSubtitle)}
+                       disabled={ttsLoading}
+                       aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
+                     >
+                       {ttsLoading ? <Loader2 className="animate-spin size-3" /> : <Volume2 size={14} />}
+                       {isAr ? "استمع للترحيب" : "Listen to Welcome"}
+                     </Button>
                    </div>
-                   <Button 
-                     variant="ghost" 
-                     className="mt-4 text-xs font-bold text-slate-400 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
-                     onClick={() => handleReadAloud(siteConfig?.heroTitle + ". " + siteConfig?.heroSubtitle)}
-                     disabled={ttsLoading}
-                     aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
-                   >
-                     {ttsLoading ? <Loader2 className="animate-spin size-3" /> : <Volume2 size={14} />}
-                     {isAr ? "استمع للترحيب" : "Listen to Welcome"}
-                   </Button>
+
+                   {/* Quick Theqa Status indicator */}
+                   <div className="lg:col-span-5">
+                     <Card className="border-none shadow-2xl rounded-brand bg-white relative overflow-hidden p-6 border-t-4 border-accent">
+                       <div className="flex items-center justify-between mb-4">
+                         <div className="flex items-center gap-3">
+                           <div className="p-2.5 rounded-xl bg-accent/10 text-primary">
+                             <Fingerprint className="size-6 animate-pulse" />
+                           </div>
+                           <div>
+                             <h4 className="font-black text-sm text-primary">{isAr ? "حالة التصديق الإلكتروني (ثقة)" : "PKI Authentication Status"}</h4>
+                             <p className="text-[10px] text-slate-400 font-bold">{isAr ? "الهوية الرقمية الوطنية الموحدة" : "Unified National Digital ID"}</p>
+                           </div>
+                         </div>
+                         <Badge className={cn("rounded-full border-none px-3 py-1 font-black text-xs", pkiStatus === 'connected' ? "bg-emerald-500 text-white" : "bg-amber-500 text-white")}>
+                           {pkiStatus === 'connected' ? (isAr ? "نشط عبر ثقة" : "Active via Theqa") : (isAr ? "غير متصل" : "Not authenticated")}
+                         </Badge>
+                       </div>
+                       <p className="text-xs text-slate-500 font-bold leading-relaxed mb-4">
+                         {isAr ? "تم تسجيل دخولك تلقائياً وبأمان تام باستخدام نظام الهوية الرقمية العمانية الموحدة (ثقة). لا داعي لإدخال اسمك أو رقمك المدني يدوياً في المعاملات." : "You are automatically and securely authenticated via Oman Unified Identity System (Theqa). No need to enter personal details manually."}
+                       </p>
+                       <div className="flex gap-2">
+                         <Button variant="outline" size="sm" onClick={() => setPkiStatus(pkiStatus === 'connected' ? 'disconnected' : 'connected')} className="text-[10px] font-black rounded-lg w-full">
+                           {isAr ? "تبديل حالة الهوية ثقة (محاكاة)" : "Toggle Theqa Simulation"}
+                         </Button>
+                       </div>
+                     </Card>
+                   </div>
                  </div>
                </div>
                <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
             </section>
 
-            {/* 2. Search Results */}
+            {/* 2. Official Theqa PKI Visual Integration Guide Section */}
+            <section className="py-20 bg-white border-t border-b border-slate-100" aria-label={isAr ? "دليل الهوية الرقمية ثقة" : "Theqa Digital ID Guide"}>
+              <div className="max-w-7xl mx-auto px-6">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 bg-slate-50 p-8 rounded-brand border">
+                  <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-right">
+                    <div className="relative w-32 h-16 shrink-0 bg-white p-2 rounded-xl border shadow-sm flex items-center justify-center">
+                      <Image 
+                        src="https://gov.om/documents/20117/254616/FLIPPED-Theqa-HomePage.png/3a21164e-8832-38df-f66b-6780161591d2?t=1788817339796"
+                        alt="Theqa National Digital Identity Logo"
+                        fill
+                        className="object-contain p-2"
+                        priority
+                      />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-primary tracking-tight">
+                        {isAr ? "بوابة معتمدة بالكامل عبر الهوية الرقمية (ثقة)" : "Fully Accredited via National Digital Identity (Theqa)"}
+                      </h2>
+                      <p className="text-slate-500 font-bold text-sm mt-1 max-w-2xl">
+                        {isAr 
+                          ? "تماشياً مع التوجه الاستراتيجي لسلطنة عمان في التحول الرقمي، تم ربط جميع الخدمات البلدية بـ (ثقة) لتقديم تجربة معاملات آمنة وفورية بدون أوراق."
+                          : "In line with Oman's strategic vision for digital governance, all municipal actions are bound to Theqa for supreme safety."}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="rounded-full border-primary text-primary font-black px-6 shrink-0" asChild>
+                    <Link href="/access-controls">{isAr ? "معرفة المزيد" : "Learn More"}</Link>
+                  </Button>
+                </div>
+
+                {/* 3-Column Steps requested by user matching the reference image layout precisely */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {/* Step 1 */}
+                  <Card className="rounded-brand border-2 border-slate-100 bg-white p-8 flex flex-col justify-between hover:border-primary/20 transition-all shadow-sm group">
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-start">
+                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm">1</span>
+                        <Fingerprint className="text-slate-300 group-hover:text-accent transition-colors" size={24} />
+                      </div>
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-black text-primary leading-snug">
+                          {isAr ? "ما هي الهوية الرقمية (ثقة)، وكيف تستفيد منها؟" : "What is the Digital Identity (Theqa)?"}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                          {isAr 
+                            ? "هوية رقمية آمنة يمكنك الحصول عليها عبر تطبيق الهاتف للوصول للخدمات الحكومية وإنجاز المعاملات فورياً."
+                            : "A secure digital token identity you obtain via your smartphone application to gain instant access to federal state tasks."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-6 mt-6 border-t">
+                      <Button variant="ghost" className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors" asChild>
+                        <Link href="/access-controls">{isAr ? "لمعرفة المزيد" : "Explore Detail"}</Link>
+                      </Button>
+                    </div>
+                  </Card>
+
+                  {/* Step 2 */}
+                  <Card className="rounded-brand border-2 border-slate-100 bg-white p-8 flex flex-col justify-between hover:border-primary/20 transition-all shadow-sm group">
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-start">
+                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm">2</span>
+                        <ShieldCheck className="text-slate-300 group-hover:text-accent transition-colors" size={24} />
+                      </div>
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-black text-primary leading-snug">
+                          {isAr ? "كيف تحصل على خدمات الثقة الرقمية؟" : "How to acquire Theqa authentication?"}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                          {isAr 
+                            ? "من خلال تفعيل شريحة الهاتف الداعمة للتصديق، أو قراءة البطاقة الشخصية/بطاقة الإقامة عبر تطبيق الهاتف (ثقة) بسهولة."
+                            : "Through activating your PKI-enabled SIM card, or utilizing your National ID card sensor within the mobile application."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-6 mt-6 border-t">
+                      <Button variant="ghost" className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors" asChild>
+                        <Link href="/access-controls">{isAr ? "لمعرفة المزيد" : "Explore Detail"}</Link>
+                      </Button>
+                    </div>
+                  </Card>
+
+                  {/* Step 3 */}
+                  <Card className="rounded-brand border-2 border-slate-100 bg-white p-8 flex flex-col justify-between hover:border-primary/20 transition-all shadow-sm group">
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-start">
+                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm">3</span>
+                        <ArrowRightLeft className="text-slate-300 group-hover:text-accent transition-colors" size={24} />
+                      </div>
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-black text-primary leading-snug">
+                          {isAr ? "كيف تبدأ باستخدام الخدمات في Dhofar Portal؟" : "How to initiate applications with us?"}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                          {isAr 
+                            ? "سجّل الدخول التلقائي عن طريق تطبيق ثقة، ليقوم النظام بجلب معلومات السجل التجاري أو الملف السكني فوراً وتأكيد هويتك الحقيقية."
+                            : "Log in seamlessly using the application, letting our ecosystem directly read real property or commercial file indices."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-6 mt-6 border-t">
+                      <Button variant="ghost" className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors" asChild>
+                        <Link href="/access-controls">{isAr ? "لمعرفة المزيد" : "Explore Detail"}</Link>
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            </section>
+
+            {/* 3. Search Results */}
             {searchQuery && (
               <section className="py-12 bg-white border-b animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="max-w-7xl mx-auto px-6">
@@ -172,7 +318,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 3. Featured Services */}
+            {/* 4. Featured Services */}
             {featuredServices.length > 0 && (
               <section className="py-20 bg-white">
                 <div className="max-w-7xl mx-auto px-6">
@@ -187,7 +333,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 4. Public Poll / Survey Section */}
+            {/* 5. Public Poll / Survey Section */}
             {activePoll && (
               <section className="py-20 bg-accent/5">
                 <div className="max-w-4xl mx-auto px-6 text-center">
@@ -229,7 +375,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 5. Khareef Banner */}
+            {/* 6. Carousel Banner */}
             {carouselItems.length > 0 && (
               <section className="relative group overflow-hidden">
                 <Carousel className="w-full" opts={{ loop: true }}>
@@ -261,7 +407,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 6. Stats */}
+            {/* 7. Stats */}
             <section className="py-24 bg-primary text-white relative overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
@@ -290,7 +436,7 @@ export default function DhofarPortal() {
                <div className="absolute inset-0 dm-wave-5 opacity-10" />
             </section>
 
-            {/* 7. Catalog */}
+            {/* 8. Catalog */}
             <section className="py-24 bg-white">
               <div className="max-w-7xl mx-auto px-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
@@ -317,8 +463,8 @@ export default function DhofarPortal() {
               </div>
             </section>
 
-            {/* 8. Identity Showcase */}
-            <section className="py-24 bg-white">
+            {/* 9. Identity Showcase */}
+            <section className="py-24 bg-white border-t">
               <div className="max-w-7xl mx-auto px-6 text-center">
                 <Button onClick={() => setActiveTab('identity')} className="h-16 px-12 rounded-full font-black text-xl dm-gradient-primary shadow-xl">
                   {isAr ? "دليل الهوية البصرية والمكونات" : "Visual Identity & Components Guide"}
