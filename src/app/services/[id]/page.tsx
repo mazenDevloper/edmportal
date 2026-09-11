@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { PortalFooter } from '@/components/portal-footer';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, 
@@ -19,7 +20,6 @@ import {
   CheckCircle2, 
   AlertCircle,
   FileText,
-  ShieldCheck,
   Send,
   ArrowRight,
   CreditCard,
@@ -44,21 +44,49 @@ export default function ServiceApplicationPage() {
 
   useEffect(() => {
     const load = async () => {
-      const data = await fetchBin();
-      if (data) {
-        const foundSvc = data.services?.find((s: Service) => s.id === id);
-        const foundFlow = data.serviceFlows?.find((f: ServiceFlow) => f.serviceId === id || f.id === id);
-        setService(foundSvc || null);
-        setFlow(foundFlow || null);
+      try {
+        const data = await fetchBin();
+        if (data) {
+          const foundSvc = data.services?.find((s: Service) => s.id === id);
+          const foundFlow = data.serviceFlows?.find((f: ServiceFlow) => f.serviceId === id || f.id === id);
+          setService(foundSvc || null);
+          setFlow(foundFlow || null);
+        }
+      } catch (err) {
+        console.error("Application load error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, [id]);
 
   const handleNextStep = () => {
-    if (!flow || currentStepIndex >= flow.steps.length - 1) return;
-    setCurrentStepIndex(currentStepIndex + 1);
+    if (!flow) return;
+    const currentStep = flow.steps[currentStepIndex];
+    
+    // Logic for branching
+    let nextStepId = currentStep.defaultNextStepId;
+    if (currentStep.logic) {
+      for (const rule of currentStep.logic) {
+        if (formData[rule.fieldId] === rule.value) {
+          nextStepId = rule.targetStepId;
+          break;
+        }
+      }
+    }
+
+    if (nextStepId) {
+      const nextIdx = flow.steps.findIndex(s => s.id === nextStepId);
+      if (nextIdx !== -1) {
+        setCurrentStepIndex(nextIdx);
+        return;
+      }
+    }
+
+    if (currentStepIndex < flow.steps.length - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,19 +195,22 @@ export default function ServiceApplicationPage() {
                 <div className="space-y-4 pt-6 border-t">
                   <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{isAr ? "خطوات العمل" : "Workflow Progress"}</h4>
                   <div className="space-y-4">
-                    {flow.steps.map((step, idx) => (
-                      <div key={step.id} className="flex items-center gap-3">
-                        <div className={cn(
-                          "size-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors",
-                          idx === currentStepIndex ? "bg-accent text-white" : idx < currentStepIndex ? "bg-primary text-white" : "bg-slate-100 text-slate-400"
-                        )}>
-                          {idx + 1}
+                    {flow.steps.map((step, idx) => {
+                      const isActive = step.id === currentStep?.id;
+                      return (
+                        <div key={step.id} className="flex items-center gap-3">
+                          <div className={cn(
+                            "size-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors",
+                            isActive ? "bg-accent text-white" : "bg-slate-100 text-slate-400"
+                          )}>
+                            {idx + 1}
+                          </div>
+                          <span className={cn("text-xs font-bold", isActive ? "text-primary" : "text-slate-400")}>
+                            {isAr ? step.titleAr : step.titleEn}
+                          </span>
                         </div>
-                        <span className={cn("text-xs font-bold", idx === currentStepIndex ? "text-primary" : "text-slate-400")}>
-                          {isAr ? step.titleAr : step.titleEn}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -241,11 +272,11 @@ export default function ServiceApplicationPage() {
                     type="button" 
                     variant="ghost" 
                     disabled={currentStepIndex === 0}
-                    onClick={() => setCurrentStepIndex(currentStepIndex - 1)}
+                    onClick={() => setCurrentStepIndex(0)}
                     className="font-black gap-2"
                   >
                      <ArrowLeft className={cn("size-4", isAr && "rotate-180")} />
-                     {isAr ? "السابق" : "Previous"}
+                     {isAr ? "إعادة" : "Restart"}
                    </Button>
                    <Button 
                     type="submit" 

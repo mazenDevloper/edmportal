@@ -4,9 +4,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Languages, Menu, Edit2, Settings } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2 } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
-import { MenuItem, CustomPage, Service, Survey } from '@/lib/types';
+import { MenuItem, CustomPage, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
@@ -31,49 +31,47 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
 
   useEffect(() => {
     const determineEditLink = async () => {
-      // 1. Check if Home
-      if (pathname === '/') {
-        setEditLink('/admin');
-        return;
-      }
-
-      const data = await fetchBin();
-      if (!data) return;
-
-      // 2. Check Custom Pages (/p/slug)
-      if (pathname.startsWith('/p/')) {
-        const slug = pathname.split('/').pop();
-        const page = data.customPages?.find((p: CustomPage) => p.slug === slug);
-        if (page) {
-          setEditLink(`/pagebuild?id=${page.id}`);
+      try {
+        if (pathname === '/') {
+          setEditLink('/admin');
           return;
         }
-      }
 
-      // 3. Check Services (/services/id)
-      if (pathname.startsWith('/services/')) {
-        const id = pathname.split('/').pop();
-        const svc = data.services?.find((s: Service) => s.id === id);
-        if (svc) {
-          setEditLink(`/servicebuild?id=${svc.id}`);
+        const data = await fetchBin();
+        if (!data) return;
+
+        if (pathname.startsWith('/p/')) {
+          const slug = pathname.split('/').pop();
+          const page = data.customPages?.find((p: CustomPage) => p.slug === slug);
+          if (page) {
+            setEditLink(`/pagebuild?id=${page.id}`);
+            return;
+          }
+        }
+
+        if (pathname.startsWith('/services/')) {
+          const id = pathname.split('/').pop();
+          const svc = data.services?.find((s: Service) => s.id === id);
+          if (svc) {
+            setEditLink(`/servicebuild?id=${svc.id}`);
+            return;
+          }
+        }
+
+        const standardSlugs = ['privacy', 'terms', 'payment', 'access-controls', 'faqs', 'sla', 'governor-portal'];
+        const currentSlug = pathname.replace('/', '');
+        if (standardSlugs.includes(currentSlug)) {
+          const page = data.customPages?.find((p: CustomPage) => p.slug === currentSlug);
+          if (page) setEditLink(`/pagebuild?id=${page.id}`);
+          else setEditLink(`/pagebuild?slug=${currentSlug}`);
           return;
         }
-      }
 
-      // 4. Fallback: check if the slug matches a standard page that should be editable
-      const standardSlugs = ['privacy', 'terms', 'payment', 'access-controls', 'faqs', 'sla', 'governor-portal'];
-      const currentSlug = pathname.replace('/', '');
-      if (standardSlugs.includes(currentSlug)) {
-        const page = data.customPages?.find((p: CustomPage) => p.slug === currentSlug);
-        if (page) {
-           setEditLink(`/pagebuild?id=${page.id}`);
-        } else {
-           setEditLink(`/pagebuild?slug=${currentSlug}`);
-        }
-        return;
+        setEditLink(null);
+      } catch (err) {
+        console.error("Edit link determination failed:", err);
+        setEditLink(null);
       }
-
-      setEditLink(null);
     };
 
     determineEditLink();
@@ -81,7 +79,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
 
   return (
     <div className="w-full">
-      {/* Top Utility Bar */}
       <div className="bg-slate-900 text-white py-2 text-[10px] font-bold tracking-widest border-b border-white/5">
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
           <span className="flex items-center gap-2 opacity-70">
@@ -108,7 +105,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
         </div>
       </div>
 
-      {/* Main Navigation Header */}
       <header className="bg-white border-b py-6 sticky top-0 z-[50] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-4">

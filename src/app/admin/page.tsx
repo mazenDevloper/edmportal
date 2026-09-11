@@ -212,58 +212,6 @@ export default function AdminDashboard() {
                   </Link>
                 </Card>
              </div>
-
-             <div className="grid lg:grid-cols-2 gap-8">
-                <Card className="rounded-brand border-none shadow-sm overflow-hidden">
-                   <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black">{isAr ? "الصفحات المنشأة" : "Custom Pages"}</CardTitle></CardHeader>
-                   <CardContent className="p-0">
-                      <Table>
-                        <TableBody>
-                          {customPages.map(page => (
-                            <TableRow key={page.id}>
-                              <TableCell className="font-bold">{isAr ? page.titleAr : page.titleEn}</TableCell>
-                              <TableCell className="text-xs text-slate-400 font-mono">/p/{page.slug}</TableCell>
-                              <TableCell className="text-right flex items-center justify-end gap-2">
-                                <Button variant="ghost" size="icon" asChild className="text-slate-400"><Link href={`/p/${page.slug}`}><Eye size={14}/></Link></Button>
-                                <Button variant="ghost" size="icon" asChild><Link href={`/pagebuild?id=${page.id}`}><Edit2 size={14}/></Link></Button>
-                                <Button variant="ghost" size="icon" onClick={() => setCustomPages(customPages.filter(p => p.id !== page.id))} className="text-red-400"><Trash2 size={14}/></Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                   </CardContent>
-                </Card>
-                <Card className="rounded-brand border-none shadow-sm overflow-hidden">
-                   <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black">{isAr ? "الاستبيانات الفعالة" : "Active Surveys"}</CardTitle></CardHeader>
-                   <CardContent className="p-0">
-                      <Table>
-                        <TableBody>
-                          {surveys.map((survey, sIdx) => (
-                            <TableRow key={survey.id}>
-                              <TableCell className="font-bold">{isAr ? survey.titleAr : survey.titleEn}</TableCell>
-                              <TableCell>
-                                <Badge className={survey.isPublicPoll ? "bg-accent" : "bg-slate-100 text-slate-400"}>
-                                  {isAr ? "تصويت عام" : "Public Poll"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => {
-                                   const ns = [...surveys];
-                                   const current = ns[sIdx].isPublicPoll;
-                                   ns.forEach(s => s.isPublicPoll = false);
-                                   ns[sIdx].isPublicPoll = !current;
-                                   setSurveys(ns);
-                                }}><Star size={14} className={survey.isPublicPoll ? "fill-accent text-accent" : ""}/></Button>
-                                <Button variant="ghost" size="icon" asChild><Link href={`/surveybuild?id=${survey.id}`}><Edit2 size={14}/></Link></Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                   </CardContent>
-                </Card>
-             </div>
           </TabsContent>
 
           <TabsContent value="site" className="space-y-6">
@@ -331,16 +279,6 @@ export default function AdminDashboard() {
                        <Input placeholder="URL (e.g. /terms or /p/slug)" value={link.link} onChange={e => {
                          const n = [...siteConfig.footerLinks!]; n[idx].link = e.target.value; setSiteConfig({...siteConfig, footerLinks: n});
                        }} className="font-mono text-xs text-primary" />
-                       <Select value={link.category} onValueChange={v => {
-                         const n = [...siteConfig.footerLinks!]; n[idx].category = v as any; setSiteConfig({...siteConfig, footerLinks: n});
-                       }}>
-                         <SelectTrigger><SelectValue /></SelectTrigger>
-                         <SelectContent>
-                           <SelectItem value="legal">{isAr ? "قانوني" : "Legal"}</SelectItem>
-                           <SelectItem value="services">{isAr ? "خدمات" : "Services"}</SelectItem>
-                           <SelectItem value="important">{isAr ? "هامة" : "Important"}</SelectItem>
-                         </SelectContent>
-                       </Select>
                     </CardContent>
                   </Card>
                 ))}

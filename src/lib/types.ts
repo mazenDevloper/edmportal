@@ -101,12 +101,20 @@ export interface FormField {
   options?: string[];
 }
 
+export interface StepLogic {
+  fieldId: string;
+  value: string;
+  targetStepId: string;
+}
+
 export interface ServiceStep {
   id: string;
   titleAr: string;
   titleEn: string;
   fields: FormField[];
   actionType?: 'submit' | 'payment';
+  defaultNextStepId?: string;
+  logic?: StepLogic[];
 }
 
 export interface ServiceFlow {
