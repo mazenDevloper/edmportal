@@ -65,7 +65,7 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 rounded-lg bg-slate-50 text-slate-400 hover:text-accent" 
+              className="h-8 w-8 rounded-lg bg-slate-50 text-slate-500 hover:text-accent" 
               onClick={(e) => { e.stopPropagation(); handleTTS(); }} 
               disabled={ttsLoading}
               aria-label={isAr ? `قراءة وصف خدمة ${title}` : `Read aloud description for ${title}`}
@@ -75,7 +75,7 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 rounded-lg bg-slate-50 text-slate-400 hover:text-accent" 
+              className="h-8 w-8 rounded-lg bg-slate-50 text-slate-500 hover:text-accent" 
               onClick={(e) => { e.stopPropagation(); handleSignLanguage(); }} 
               disabled={loadingSign}
               aria-label={isAr ? `ترجمة خدمة ${title} للغة الإشارة` : `Translate ${title} to sign language`}
@@ -83,15 +83,15 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
               {loadingSign ? <Loader2 className="animate-spin size-4" /> : <Video size={16} />}
             </Button>
           </div>
-          <p className="text-[10px] text-slate-500 font-medium mt-3 line-clamp-2">
+          <p className="text-[10px] text-slate-600 font-medium mt-3 line-clamp-2">
             {isAr ? service.description : (service.descriptionEn || service.description)}
           </p>
         </div>
 
-        <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-50">
+        <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-100">
           <Link 
             href={`/services/${service.id}`} 
-            className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-primary flex items-center gap-1"
+            className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-primary flex items-center gap-1"
             aria-label={isAr ? `الدخول لخدمة ${title}` : `Access service for ${title}`}
           >
             {isAr ? "الدخول للخدمة" : "Access Service"}

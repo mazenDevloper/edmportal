@@ -167,7 +167,7 @@ export default function DhofarPortal() {
                      <h1 id="hero-heading" className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6">
                        {siteConfig?.heroTitle || (isAr ? "خدماتنا رقمية، أسرع، وأسهل" : "Digital Services")}
                      </h1>
-                     <p className="text-xl text-slate-500 font-bold mb-10">
+                     <p className="text-xl text-slate-600 font-bold mb-10">
                        {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة" : "Unified Portal")}
                      </p>
                      <div className="relative group max-w-xl">
@@ -183,7 +183,7 @@ export default function DhofarPortal() {
                      </div>
                      <Button 
                        variant="ghost" 
-                       className="mt-4 text-xs font-bold text-slate-400 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
+                       className="mt-4 text-xs font-bold text-slate-500 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
                        onClick={() => handleReadAloud(siteConfig?.heroTitle + ". " + siteConfig?.heroSubtitle)}
                        disabled={ttsLoading}
                        aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
@@ -202,10 +202,10 @@ export default function DhofarPortal() {
                            </div>
                            <div>
                              <CardTitle className="font-black text-sm text-primary">{isAr ? "مركز الهوية الرقمية (ثقة)" : "Digital Identity Hub (Theqa)"}</CardTitle>
-                             <CardDescription className="text-[10px] font-bold">{isAr ? "نظام المصادقة الوطنية الموحد" : "Unified National Auth"}</CardDescription>
+                             <CardDescription className="text-[10px] font-bold text-slate-600">{isAr ? "نظام المصادقة الوطنية الموحد" : "Unified National Auth"}</CardDescription>
                            </div>
                          </div>
-                         <Badge className={cn("rounded-full border-none px-3 py-1 font-black text-[10px] transition-colors", pkiStatus === 'connected' ? "bg-emerald-500 text-white" : "bg-amber-500 text-white")}>
+                         <Badge className={cn("rounded-full border-none px-3 py-1 font-black text-[10px] transition-colors", pkiStatus === 'connected' ? "bg-emerald-700 text-white" : "bg-amber-700 text-white")}>
                            {pkiStatus === 'connected' ? (isAr ? "نشط آمن" : "Active & Secure") : (isAr ? "غير متصل" : "Not Linked")}
                          </Badge>
                        </CardHeader>
@@ -224,7 +224,7 @@ export default function DhofarPortal() {
                          </div>
 
                          <div className="space-y-4">
-                            <p className="text-sm text-slate-600 font-bold leading-relaxed">
+                            <p className="text-sm text-slate-700 font-bold leading-relaxed">
                               {isAr 
                                 ? "أهلاً بك في بوابة بلدية ظفار المعتمدة. نظام ثقة يمنحك وصولاً آمناً وفورياً لجميع الخدمات الحكومية دون الحاجة لإدخال بياناتك يدوياً."
                                 : "Welcome to the Dhofar Municipality Accredited Portal. Theqa provides secure, instant access to all services without manual data entry."}
@@ -289,7 +289,7 @@ export default function DhofarPortal() {
                     </div>
                   ) : (
                     <div className="text-center py-12 border-2 border-dashed rounded-3xl">
-                      <p className="text-slate-400 font-bold">{isAr ? "لم يتم العثور على خدمات" : "No services found"}</p>
+                      <p className="text-slate-500 font-bold">{isAr ? "لم يتم العثور على خدمات" : "No services found"}</p>
                     </div>
                   )}
                 </div>
@@ -320,7 +320,7 @@ export default function DhofarPortal() {
                       <div className="mb-8">
                         <Badge className="bg-accent text-white mb-4">{isAr ? "صوتك يهمنا" : "Your Voice Matters"}</Badge>
                         <h2 id="public-poll-title" className="text-3xl font-black text-primary mb-4">{isAr ? activePoll.titleAr : activePoll.titleEn}</h2>
-                        <p className="text-slate-500 font-bold">{isAr ? activePoll.descriptionAr : activePoll.descriptionEn}</p>
+                        <p className="text-slate-600 font-bold">{isAr ? activePoll.descriptionAr : activePoll.descriptionEn}</p>
                       </div>
                       <Card className="rounded-brand border-none shadow-xl overflow-hidden">
                         <CardContent className="p-8">
@@ -360,7 +360,7 @@ export default function DhofarPortal() {
                                       )}>
                                         {pollValue === opt.id && <div className="size-2.5 rounded-full bg-primary" />}
                                       </div>
-                                      {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 20, className: pollValue === opt.id ? "text-primary" : "text-slate-300", "aria-hidden": "true" })}
+                                      {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 20, className: pollValue === opt.id ? "text-primary" : "text-slate-400", "aria-hidden": "true" })}
                                       <span className="text-lg">{isAr ? opt.textAr : opt.textEn}</span>
                                     </Label>
                                   </div>
@@ -397,7 +397,7 @@ export default function DhofarPortal() {
                         <CheckCircle size={48} />
                       </div>
                       <h2 className="text-4xl font-black text-primary mb-4">{isAr ? "شكراً لمشاركتك" : "Thank You!"}</h2>
-                      <p className="text-xl text-slate-500 font-bold mb-10">{isAr ? "رأيك يساهم في تحسين جودة خدماتنا البلدية." : "Your feedback helps us improve our municipal services."}</p>
+                      <p className="text-xl text-slate-600 font-bold mb-10">{isAr ? "رأيك يساهم في تحسين جودة خدماتنا البلدية." : "Your feedback helps us improve our municipal services."}</p>
                       <Button variant="outline" onClick={() => setPollFinished(false)} className="rounded-full font-black px-10 border-primary text-primary">
                         {isAr ? "عودة" : "Go Back"}
                       </Button>
@@ -446,22 +446,22 @@ export default function DhofarPortal() {
                     <div className="space-y-2">
                        <TrendingUp className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.transactions || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
+                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
                     </div>
                     <div className="space-y-2">
                        <ShieldCheck className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'رخصة بناء' : 'Permits'}</p>
+                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'رخصة بناء' : 'Permits'}</p>
                     </div>
                     <div className="space-y-2">
                        <FileText className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.contracts || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'عقد إيجار' : 'Leases'}</p>
+                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'عقد إيجار' : 'Leases'}</p>
                     </div>
                     <div className="space-y-2">
                        <Users className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.tickets || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
+                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
                     </div>
                  </div>
                </div>
@@ -474,7 +474,7 @@ export default function DhofarPortal() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
                    <div>
                      <h2 id="catalog-title" className="text-4xl font-black text-primary mb-2">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog"}</h2>
-                     <p className="text-slate-400 font-bold">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً" : "Explore all municipal services"}</p>
+                     <p className="text-slate-600 font-bold">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً" : "Explore all municipal services"}</p>
                    </div>
                    <nav className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto" aria-label={isAr ? "فئات الخدمات" : "Service Categories"}>
                      {['all', ...Object.keys(CAT_CONFIG)].map(cid => (
