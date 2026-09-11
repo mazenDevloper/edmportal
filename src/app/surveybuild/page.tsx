@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -66,7 +67,7 @@ export default function SurveyBuilder() {
     try {
       const { translatedText } = await translateToEnglish({ text: surveyMeta.titleAr });
       setSurveyMeta({ ...surveyMeta, titleEn: translatedText });
-      toast({ title: "AI Success", description: "Title translated to English" });
+      toast({ title: "AI Success", description: "Title translated" });
     } finally {
       setAiLoading(false);
     }
@@ -105,17 +106,13 @@ export default function SurveyBuilder() {
         ...surveyMeta,
         questions,
         isActive: true,
-        responsesCount: db.surveys?.find((s: any) => s.id === newId)?.responsesCount || 0
+        responsesCount: 0
       };
 
       const filtered = (db.surveys || []).filter((s: any) => s.id !== newId);
-      const updatedSurveys = surveyMeta.isPublicPoll 
-        ? filtered.map((s: any) => ({ ...s, isPublicPoll: false }))
-        : filtered;
-
       await updateBin({
         ...db,
-        surveys: [...updatedSurveys, newSurvey]
+        surveys: [...filtered, newSurvey]
       });
 
       toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تم تحديث الاستطلاع بنجاح" : "Survey updated successfully" });
@@ -137,14 +134,14 @@ export default function SurveyBuilder() {
         <header className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-3xl font-black text-primary flex items-center gap-3">
-              <ClipboardList className="text-secondary" /> {isAr ? "باني الاستطلاعات والقرارات" : "Survey & Poll Architect"}
+              <ClipboardList className="text-secondary" /> {isAr ? "باني الاستطلاعات" : "Survey Builder"}
             </h1>
           </div>
           <div className="flex gap-4">
             <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">
               <ArrowLeft size={16} className="ml-2" /> {isAr ? "العودة" : "Back"}
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-secondary text-white hover:bg-secondary/90 rounded-full px-8 font-black shadow-lg">
+            <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
               {saving ? <Loader2 className="animate-spin ml-2" /> : <Save size={16} className="ml-2" />}
               {isAr ? "حفظ الاستطلاع" : "Save Survey"}
             </Button>
@@ -162,18 +159,6 @@ export default function SurveyBuilder() {
               <Button variant="outline" onClick={() => addQuestion('text')} className="justify-start gap-2 font-black border-2"><MessageSquare size={14}/> {isAr ? "سؤال مفتوح" : "Open Text"}</Button>
               <Button variant="outline" onClick={() => addQuestion('mcq')} className="justify-start gap-2 font-black border-2"><List size={14}/> {isAr ? "خيارات متعددة" : "Multiple Choice"}</Button>
               <Button variant="outline" onClick={() => addQuestion('rating')} className="justify-start gap-2 font-black border-2"><Star size={14}/> {isAr ? "تقييم" : "Rating Scale"}</Button>
-              
-              <div className="mt-6 pt-6 border-t space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-slate-500">{isAr ? "استطلاع عام" : "Public Poll"}</span>
-                  <input 
-                    type="checkbox" 
-                    checked={surveyMeta.isPublicPoll} 
-                    onChange={e => setSurveyMeta({...surveyMeta, isPublicPoll: e.target.checked})}
-                    className="w-5 h-5 accent-secondary"
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -241,7 +226,7 @@ export default function SurveyBuilder() {
                               const newOpts = q.options!.filter(o => o.id !== opt.id);
                               updateQuestion(q.id, { options: newOpts });
                             }} className="text-red-400">
-                              <X size={16} />
+                              <LucideIcons.X size={16} />
                             </Button>
                           </div>
                         ))}

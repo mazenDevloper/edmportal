@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -20,15 +19,14 @@ import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, Servic
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
-  Settings, Plus, Save, Trash2, X, Search, Loader2, 
+  Settings, Plus, Save, Trash2, Search, Loader2, 
   CloudUpload, Star, Layout, Menu, Image as ImageIcon,
   BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
-  Vote, TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database,
-  Edit2, FileText
+  TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database,
+  Edit2, FileText, Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { generateAltText } from '@/ai/flows/alt-text-flow';
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -37,21 +35,16 @@ export default function AdminDashboard() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [altTextLoading, setAltTextLoading] = useState(false);
 
-  // Global State
   const [services, setServices] = useState<Service[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
   const [applications, setApplications] = useState<ServiceApplication[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
-  const [serviceFlows, setServiceFlows] = useState<ServiceFlow[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
     heroTitle: '', heroSubtitle: '', contactPhone: '', contactEmail: '',
     categories: ['الكل'], isMaintenanceMode: false,
     stats: { transactions: 0, permits: 0, contracts: 0, tickets: 0 }
   });
-  const [newsItems, setNewsItems] = useState<NewsTicker[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
 
@@ -61,15 +54,12 @@ export default function AdminDashboard() {
         const data = await fetchBin();
         if (data) {
           setServices(data.services || []);
-          setCourses(data.courses || []);
           setApplications(data.applications || []);
           setSiteConfig(data.siteConfig || siteConfig);
-          setNewsItems(data.newsItems || []);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
           setSurveys(data.surveys || []);
           setCustomPages(data.customPages || []);
-          setServiceFlows(data.serviceFlows || []);
         }
       } catch (e) {
         toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
@@ -83,32 +73,16 @@ export default function AdminDashboard() {
   const handleGlobalSave = async () => {
     setSaving(true);
     try {
+      const db = await fetchBin();
       await updateBin({
-        services, courses, applications, siteConfig, newsItems, menuItems, carouselItems, surveys, customPages, serviceFlows
+        ...db,
+        services, siteConfig, menuItems, carouselItems, surveys, customPages
       });
       toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تمت المزامنة بنجاح" : "Synced successfully" });
     } catch (e) {
       toast({ title: "Error", description: "Sync failed.", variant: "destructive" });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleAltTextGeneration = async (url: string, index: number, type: 'course' | 'carousel') => {
-    if (!url) return;
-    setAltTextLoading(true);
-    try {
-      const { altText } = await generateAltText({ photoDataUri: url, language: isAr ? 'ar' : 'en' });
-      if (type === 'course') {
-        const newCourses = [...courses];
-        newCourses[index] = { ...newCourses[index], descriptionAr: altText };
-        setCourses(newCourses);
-      }
-      toast({ title: isAr ? "تم توليد النص" : "Alt Text Generated", description: altText });
-    } catch (e) {
-      toast({ variant: "destructive", title: "AI Error", description: "Failed to generate alt text." });
-    } finally {
-      setAltTextLoading(false);
     }
   };
 
@@ -138,9 +112,8 @@ export default function AdminDashboard() {
         <Tabs defaultValue="services" className="w-full">
           <TabsList className="bg-white border mb-10 flex flex-wrap h-auto gap-2 p-1 rounded-xl shadow-sm overflow-x-auto">
             <TabsTrigger value="services" className="font-black"><Layout className="size-4 ml-2" /> {isAr ? "الخدمات" : "Services"}</TabsTrigger>
-            <TabsTrigger value="navigation" className="font-black"><Menu className="size-4 ml-2" /> {isAr ? "التنقل" : "Navigation"}</TabsTrigger>
             <TabsTrigger value="builders" className="font-black"><Sparkles className="size-4 ml-2" /> {isAr ? "المصممات" : "Builders"}</TabsTrigger>
-            <TabsTrigger value="courses" className="font-black"><BookOpen className="size-4 ml-2" /> {isAr ? "الدورات" : "Courses"}</TabsTrigger>
+            <TabsTrigger value="navigation" className="font-black"><Menu className="size-4 ml-2" /> {isAr ? "التنقل" : "Navigation"}</TabsTrigger>
             <TabsTrigger value="applications" className="font-black"><FileCheck className="size-4 ml-2" /> {isAr ? "الطلبات" : "Apps"}</TabsTrigger>
             <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
           </TabsList>
@@ -178,6 +151,9 @@ export default function AdminDashboard() {
                           </Button>
                         </TableCell>
                         <TableCell className="flex gap-2">
+                           <Button variant="ghost" size="icon" asChild className="text-slate-400 hover:text-primary">
+                             <Link href={`/services/${s.id}`}><Eye size={16}/></Link>
+                           </Button>
                            <Button variant="ghost" size="icon" asChild className="text-primary">
                              <Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link>
                            </Button>
@@ -230,8 +206,9 @@ export default function AdminDashboard() {
                           {customPages.map(page => (
                             <TableRow key={page.id}>
                               <TableCell className="font-bold">{isAr ? page.titleAr : page.titleEn}</TableCell>
-                              <TableCell className="text-xs text-slate-400 font-mono">/{page.slug}</TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-xs text-slate-400 font-mono">/p/{page.slug}</TableCell>
+                              <TableCell className="text-right flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="icon" asChild className="text-slate-400"><Link href={`/p/${page.slug}`}><Eye size={14}/></Link></Button>
                                 <Button variant="ghost" size="icon" asChild><Link href={`/pagebuild?id=${page.id}`}><Edit2 size={14}/></Link></Button>
                               </TableCell>
                             </TableRow>
@@ -256,7 +233,9 @@ export default function AdminDashboard() {
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => {
                                    const ns = [...surveys];
-                                   ns[sIdx].isPublicPoll = !ns[sIdx].isPublicPoll;
+                                   const current = ns[sIdx].isPublicPoll;
+                                   ns.forEach(s => s.isPublicPoll = false); // Single poll at a time
+                                   ns[sIdx].isPublicPoll = !current;
                                    setSurveys(ns);
                                 }}><Star size={14} className={survey.isPublicPoll ? "fill-accent text-accent" : ""}/></Button>
                                 <Button variant="ghost" size="icon" asChild><Link href={`/surveybuild?id=${survey.id}`}><Edit2 size={14}/></Link></Button>
@@ -268,89 +247,6 @@ export default function AdminDashboard() {
                    </CardContent>
                 </Card>
              </div>
-          </TabsContent>
-
-          <TabsContent value="navigation" className="space-y-8">
-             <Card className="rounded-brand shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="font-black flex items-center gap-2"><Menu className="text-accent" /> {isAr ? "القائمة الرئيسية" : "Main Menu"}</CardTitle>
-                  <Button size="sm" onClick={() => setMenuItems([...menuItems, { id: Date.now().toString(), labelAr: 'جديد', labelEn: 'New', link: '/', order: menuItems.length }])}>
-                    <Plus size={14} className="ml-1" /> {isAr ? "إضافة عنصر" : "Add Item"}
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {menuItems.map((item, idx) => (
-                      <div key={item.id} className="flex flex-col md:flex-row gap-4 p-4 border rounded-2xl bg-slate-50 group">
-                        <Input placeholder="Label AR" value={item.labelAr} onChange={e => { const nm = [...menuItems]; nm[idx].labelAr = e.target.value; setMenuItems(nm); }} />
-                        <Input placeholder="Label EN" value={item.labelEn} onChange={e => { const nm = [...menuItems]; nm[idx].labelEn = e.target.value; setMenuItems(nm); }} />
-                        <Input placeholder="Link" value={item.link} onChange={e => { const nm = [...menuItems]; nm[idx].link = e.target.value; setMenuItems(nm); }} />
-                        <Button variant="ghost" size="icon" onClick={() => setMenuItems(menuItems.filter(m => m.id !== item.id))} className="text-red-400"><Trash2 size={16}/></Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-             </Card>
-          </TabsContent>
-
-          <TabsContent value="courses">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-primary">{isAr ? "إدارة البرامج التدريبية" : "Training Programs Management"}</h3>
-                <Button onClick={() => setCourses([...courses, { id: Date.now().toString(), titleAr: 'دورة جديدة', titleEn: 'New Course', descriptionAr: '', descriptionEn: '', imageUrl: '', durationAr: 'شهر', durationEn: '1 Month', isOpen: true }])} className="rounded-full bg-primary font-bold"><Plus className="size-4 ml-2"/> {isAr ? "دورة جديدة" : "New Course"}</Button>
-              </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                {courses.map((course, i) => (
-                  <Card key={course.id} className="rounded-brand shadow-sm">
-                    <CardContent className="p-6 space-y-4">
-                      <Input placeholder="Course Title AR" value={course.titleAr} onChange={e => { const nc = [...courses]; nc[i].titleAr = e.target.value; setCourses(nc); }} />
-                      <Input placeholder="Image URL" value={course.imageUrl} onChange={e => { const nc = [...courses]; nc[i].imageUrl = e.target.value; setCourses(nc); }} />
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleAltTextGeneration(course.imageUrl, i, 'course')} disabled={altTextLoading}>
-                          {altTextLoading ? <Loader2 className="animate-spin size-4" /> : <Sparkles size={14} className="ml-2" />}
-                          {isAr ? "توليد وصف للصورة" : "AI Alt-Text"}
-                        </Button>
-                        <Trash2 className="text-red-400 mt-2 cursor-pointer" onClick={() => setCourses(courses.filter(c => c.id !== course.id))} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="applications">
-             <Card className="rounded-brand shadow-lg overflow-hidden border-none">
-                <CardHeader className="bg-slate-900 text-white p-6">
-                  <CardTitle className="font-black flex items-center gap-2"><FileCheck className="text-accent" /> {isAr ? "طلبات المواطنين" : "Citizen Applications"}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader className="bg-slate-50">
-                      <TableRow>
-                        <TableHead>{isAr ? "المواطن" : "Citizen"}</TableHead>
-                        <TableHead>{isAr ? "الخدمة" : "Service"}</TableHead>
-                        <TableHead>{isAr ? "الحالة" : "Status"}</TableHead>
-                        <TableHead>{isAr ? "التاريخ" : "Date"}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {applications.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-bold">{app.citizenName}</TableCell>
-                          <TableCell>{app.serviceName}</TableCell>
-                          <TableCell>
-                            <Badge className={cn("rounded-full", app.status === 'pending' ? 'bg-slate-100 text-slate-500' : app.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600')}>
-                              {app.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-slate-400">{new Date(app.createdAt).toLocaleDateString()}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-             </Card>
           </TabsContent>
 
           <TabsContent value="site">

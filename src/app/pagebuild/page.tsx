@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, Type, TrendingUp, Info, Loader2, Sparkles, MessageSquare, ListChecks } from 'lucide-react';
+import { Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, Type, TrendingUp, Info, Loader2, Sparkles, Eye } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -68,7 +69,7 @@ export default function PageBuilder() {
       type,
       content: type === 'hero' ? { titleAr: 'New Hero', titleEn: 'New Hero', subtitleAr: 'Subtitle', subtitleEn: 'Subtitle' } : 
                type === 'text' ? { bodyAr: 'محتوى نصي جديد', bodyEn: 'New text content' } : 
-               type === 'stats' ? { t1: 'Stats Label', v1: '100', t2: 'Label 2', v2: '200' } : 
+               type === 'stats' ? { t1: 'Label 1', v1: '100', t2: 'Label 2', v2: '200' } : 
                type === 'info' ? { bodyAr: 'معلومات هامة', bodyEn: 'Important info' } : {}
     };
     setComponents([...components, newComp]);
@@ -126,6 +127,11 @@ export default function PageBuilder() {
             <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">
               <ArrowLeft size={16} className="ml-2" /> {isAr ? "العودة" : "Back"}
             </Button>
+            {pageMeta.slug && (
+              <Button variant="outline" asChild className="rounded-full font-bold border-accent text-accent">
+                <a href={`/p/${pageMeta.slug}`} target="_blank"><Eye size={16} className="ml-2" /> {isAr ? "معاينة" : "Preview"}</a>
+              </Button>
+            )}
             <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
               {saving ? <Loader2 className="animate-spin ml-2" /> : <Save size={16} className="ml-2" />}
               {isAr ? "حفظ الصفحة" : "Save Page"}
@@ -196,6 +202,11 @@ export default function PageBuilder() {
                            const nc = [...components]; nc[i].content.subtitleEn = e.target.value; setComponents(nc);
                         }} />
                       </div>
+                    </div>
+                  ) : c.type === 'stats' ? (
+                    <div className="grid grid-cols-2 gap-6">
+                      <Input placeholder="Value 1" value={c.content.v1} onChange={e => { const nc = [...components]; nc[i].content.v1 = e.target.value; setComponents(nc); }} />
+                      <Input placeholder="Label 1" value={c.content.t1} onChange={e => { const nc = [...components]; nc[i].content.t1 = e.target.value; setComponents(nc); }} />
                     </div>
                   ) : (
                     <div className="grid md:grid-cols-2 gap-6">
