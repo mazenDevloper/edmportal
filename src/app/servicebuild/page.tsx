@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Sparkles, Save, ArrowLeft, Upload, Type, Hash, Calendar, Layers, X, CreditCard, Send, CheckCircle2 } from 'lucide-react';
-import Link from 'next/navigation';
+import { Plus, Trash2, Sparkles, Save, ArrowLeft, Upload, Type, Hash, Calendar, Layers, X, CreditCard, Send, CheckCircle2, Settings, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -42,13 +41,13 @@ export default function WorkflowEngine() {
         if (data) {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
-          if (flow) setSteps(flow.steps);
+          if (flow) setSteps(flow.steps || []);
           if (svc) setServiceInfo({
-            title: svc.title,
-            category: svc.category,
-            iconName: svc.iconName,
-            fees: svc.fees,
-            description: svc.description
+            title: svc.title || '',
+            category: svc.category || 'elec',
+            iconName: svc.iconName || 'FileText',
+            fees: svc.fees || '0 OMR',
+            description: svc.description || ''
           });
         }
       });
@@ -59,7 +58,7 @@ export default function WorkflowEngine() {
     const newStep: ServiceStep = {
       id: `step_${Date.now()}`,
       titleAr: isAr ? 'خطوة جديدة' : 'New Step',
-      titleEn: isAr ? 'New Step' : 'خطوة جديدة',
+      titleEn: 'New Step',
       fields: [],
       actionType: 'submit'
     };
@@ -82,6 +81,10 @@ export default function WorkflowEngine() {
   };
 
   const handleSave = async () => {
+    if (!serviceInfo.title) {
+        toast({ variant: "destructive", title: isAr ? "مطلوب" : "Required", description: isAr ? "يرجى إدخال اسم الخدمة" : "Please enter service title" });
+        return;
+    }
     setSaving(true);
     try {
       const data = await fetchBin();

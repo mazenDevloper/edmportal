@@ -26,19 +26,22 @@ export default function PageBuilder() {
   
   const [components, setComponents] = useState<BuilderComponent[]>([]);
   const [pageMeta, setPageMeta] = useState({ title: '', slug: '' });
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (editId) {
+      setLoading(true);
       fetchBin().then(data => {
-        if (data) {
-          const page = data.customPages?.find((p: CustomPage) => p.id === editId);
+        if (data && data.customPages) {
+          const page = data.customPages.find((p: CustomPage) => p.id === editId);
           if (page) {
-            setComponents(page.components);
-            setPageMeta({ title: page.titleAr, slug: page.slug });
+            setComponents(page.components || []);
+            setPageMeta({ title: page.titleAr || '', slug: page.slug || '' });
           }
         }
-      });
+        setLoading(false);
+      }).catch(() => setLoading(false));
     }
   }, [editId]);
 
@@ -87,6 +90,8 @@ export default function PageBuilder() {
       setSaving(false);
     }
   };
+
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
