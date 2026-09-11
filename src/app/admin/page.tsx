@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Table, 
   TableBody, 
@@ -16,7 +17,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication, Survey, CustomPage } from '@/lib/types';
+import { Service, SiteConfig, MenuItem, CarouselItem, ServiceApplication, Survey, CustomPage } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
@@ -24,7 +25,7 @@ import {
   CloudUpload, Star, Layout, Menu, Image as ImageIcon,
   BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
   TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database,
-  Edit2, FileText, Eye
+  Edit2, FileText, Eye, X, Link as LinkIcon
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -43,8 +44,9 @@ export default function AdminDashboard() {
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
     heroTitle: '', heroSubtitle: '', contactPhone: '', contactEmail: '',
-    categories: ['الكل'], isMaintenanceMode: false,
-    stats: { transactions: 0, permits: 0, contracts: 0, tickets: 0 }
+    categories: ['building', 'health', 'invest', 'tech', 'elec'], isMaintenanceMode: false,
+    stats: { transactions: 0, permits: 0, contracts: 0, tickets: 0 },
+    footerLinks: []
   });
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -87,6 +89,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const addFooterLink = () => {
+    const newLinks = [...(siteConfig.footerLinks || []), {
+      id: `fl_${Date.now()}`,
+      labelAr: '',
+      labelEn: '',
+      link: '',
+      category: 'legal' as const
+    }];
+    setSiteConfig({ ...siteConfig, footerLinks: newLinks });
+  };
+
+  const removeFooterLink = (id: string) => {
+    const newLinks = (siteConfig.footerLinks || []).filter(l => l.id !== id);
+    setSiteConfig({ ...siteConfig, footerLinks: newLinks });
+  };
+
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
@@ -114,9 +132,9 @@ export default function AdminDashboard() {
           <TabsList className="bg-white border mb-10 flex flex-wrap h-auto gap-2 p-1 rounded-xl shadow-sm overflow-x-auto">
             <TabsTrigger value="services" className="font-black"><Layout className="size-4 ml-2" /> {isAr ? "الخدمات" : "Services"}</TabsTrigger>
             <TabsTrigger value="builders" className="font-black"><Sparkles className="size-4 ml-2" /> {isAr ? "المصممات" : "Builders"}</TabsTrigger>
-            <TabsTrigger value="navigation" className="font-black"><Menu className="size-4 ml-2" /> {isAr ? "التنقل" : "Navigation"}</TabsTrigger>
-            <TabsTrigger value="applications" className="font-black"><FileCheck className="size-4 ml-2" /> {isAr ? "الطلبات" : "Apps"}</TabsTrigger>
             <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
+            <TabsTrigger value="footer" className="font-black"><LinkIcon className="size-4 ml-2" /> {isAr ? "التذييل" : "Footer"}</TabsTrigger>
+            <TabsTrigger value="applications" className="font-black"><FileCheck className="size-4 ml-2" /> {isAr ? "الطلبات" : "Apps"}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="services" className="space-y-6">
@@ -152,9 +170,6 @@ export default function AdminDashboard() {
                           </Button>
                         </TableCell>
                         <TableCell className="flex gap-2">
-                           <Button variant="ghost" size="icon" asChild className="text-slate-400 hover:text-primary">
-                             <Link href={`/services/${s.id}`}><Eye size={16}/></Link>
-                           </Button>
                            <Button variant="ghost" size="icon" asChild className="text-primary">
                              <Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link>
                            </Button>
@@ -211,6 +226,7 @@ export default function AdminDashboard() {
                               <TableCell className="text-right flex items-center justify-end gap-2">
                                 <Button variant="ghost" size="icon" asChild className="text-slate-400"><Link href={`/p/${page.slug}`}><Eye size={14}/></Link></Button>
                                 <Button variant="ghost" size="icon" asChild><Link href={`/pagebuild?id=${page.id}`}><Edit2 size={14}/></Link></Button>
+                                <Button variant="ghost" size="icon" onClick={() => setCustomPages(customPages.filter(p => p.id !== page.id))} className="text-red-400"><Trash2 size={14}/></Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -250,7 +266,7 @@ export default function AdminDashboard() {
              </div>
           </TabsContent>
 
-          <TabsContent value="site">
+          <TabsContent value="site" className="space-y-6">
             <Card className="rounded-brand shadow-md">
               <CardContent className="p-8 space-y-8">
                 <div className="grid md:grid-cols-2 gap-12">
@@ -289,6 +305,46 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="footer" className="space-y-6">
+             <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-primary">{isAr ? "إدارة روابط التذييل" : "Footer Links Management"}</h3>
+                <Button size="sm" onClick={addFooterLink} className="rounded-full dm-gradient-primary font-black">
+                  <Plus size={14} className="ml-2"/> {isAr ? "إضافة رابط" : "Add Link"}
+                </Button>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {(siteConfig.footerLinks || []).map((link, idx) => (
+                  <Card key={link.id} className="rounded-xl border-2 hover:border-accent transition-colors overflow-hidden">
+                    <CardHeader className="bg-slate-50 py-3 px-4 flex flex-row items-center justify-between border-b">
+                      <Badge variant="outline">{link.category}</Badge>
+                      <Button variant="ghost" size="icon" onClick={() => removeFooterLink(link.id)} className="text-red-400 h-8 w-8"><Trash2 size={14}/></Button>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                       <Input placeholder="Label AR" value={link.labelAr} onChange={e => {
+                         const n = [...siteConfig.footerLinks!]; n[idx].labelAr = e.target.value; setSiteConfig({...siteConfig, footerLinks: n});
+                       }} />
+                       <Input placeholder="Label EN" value={link.labelEn} onChange={e => {
+                         const n = [...siteConfig.footerLinks!]; n[idx].labelEn = e.target.value; setSiteConfig({...siteConfig, footerLinks: n});
+                       }} />
+                       <Input placeholder="URL (e.g. /terms or /p/slug)" value={link.link} onChange={e => {
+                         const n = [...siteConfig.footerLinks!]; n[idx].link = e.target.value; setSiteConfig({...siteConfig, footerLinks: n});
+                       }} className="font-mono text-xs text-primary" />
+                       <Select value={link.category} onValueChange={v => {
+                         const n = [...siteConfig.footerLinks!]; n[idx].category = v as any; setSiteConfig({...siteConfig, footerLinks: n});
+                       }}>
+                         <SelectTrigger><SelectValue /></SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="legal">{isAr ? "قانوني" : "Legal"}</SelectItem>
+                           <SelectItem value="services">{isAr ? "خدمات" : "Services"}</SelectItem>
+                           <SelectItem value="important">{isAr ? "هامة" : "Important"}</SelectItem>
+                         </SelectContent>
+                       </Select>
+                    </CardContent>
+                  </Card>
+                ))}
+             </div>
           </TabsContent>
         </Tabs>
       </div>

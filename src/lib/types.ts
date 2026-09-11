@@ -12,6 +12,13 @@ export interface SiteConfig {
   };
   categories: string[];
   isMaintenanceMode: boolean;
+  footerLinks?: {
+    id: string;
+    labelAr: string;
+    labelEn: string;
+    link: string;
+    category: 'legal' | 'services' | 'important';
+  }[];
 }
 
 export interface NewsTicker {

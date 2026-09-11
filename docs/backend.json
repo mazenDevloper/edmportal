@@ -3,13 +3,26 @@
   "entities": {
     "SiteConfig": {
       "title": "Site Configuration",
-      "description": "Global settings for the portal branding and hero section.",
+      "description": "Global settings for the portal branding, hero section, and footer management.",
       "type": "object",
       "properties": {
         "heroTitle": { "type": "string" },
         "heroSubtitle": { "type": "string" },
         "contactPhone": { "type": "string" },
         "contactEmail": { "type": "string" },
+        "footerLinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "labelAr": { "type": "string" },
+              "labelEn": { "type": "string" },
+              "link": { "type": "string" },
+              "category": { "type": "string", "enum": ["legal", "services", "important"] }
+            }
+          }
+        },
         "stats": {
           "type": "object",
           "properties": {

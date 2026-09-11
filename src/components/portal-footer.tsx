@@ -16,6 +16,12 @@ export function PortalFooter({ siteConfig }: PortalFooterProps) {
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
 
+  const footerLinks = siteConfig?.footerLinks || [];
+  
+  const legalLinks = footerLinks.filter(l => l.category === 'legal');
+  const serviceLinks = footerLinks.filter(l => l.category === 'services');
+  const importantLinks = footerLinks.filter(l => l.category === 'important');
+
   return (
     <footer className="bg-slate-950 text-white py-24 px-6 relative overflow-hidden border-t-8 border-accent">
       <div className="max-w-7xl mx-auto relative z-10">
@@ -45,43 +51,54 @@ export function PortalFooter({ siteConfig }: PortalFooterProps) {
              </div>
           </div>
           
-          {/* Column 1: Legal */}
+          {/* Dynamic Footer Sections */}
           <div className="flex flex-col gap-6">
             <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? "المعلومات القانونية" : "Legal Information"}</h4>
             <div className="flex flex-col gap-4">
-              <Link href="/terms" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link>
-              <Link href="/privacy" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'السياسة والخصوصية' : 'Privacy Policy'}</Link>
-              <Link href="/payment" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'سياسة الدفع' : 'Payment Policy'}</Link>
-              <Link href="/open-data" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'رخصة البيانات المفتوحة' : 'Open Data License'}</Link>
+              {legalLinks.length > 0 ? legalLinks.map(l => (
+                <Link key={l.id} href={l.link} className="text-sm font-bold text-white/60 hover:text-white transition-colors">
+                  {isAr ? l.labelAr : l.labelEn}
+                </Link>
+              )) : (
+                <>
+                  <Link href="/terms" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link>
+                  <Link href="/privacy" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'السياسة والخصوصية' : 'Privacy Policy'}</Link>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Column 2: Service Standards */}
           <div className="flex flex-col gap-6">
             <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? "سياسات الخدمة" : "Service Standards"}</h4>
             <div className="flex flex-col gap-4">
-              <Link href="/faqs" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'الأسئلة الشائعة (FAQs)' : 'FAQs'}</Link>
-              <Link href="/access-controls" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'ضوابط النفاذ' : 'Access Controls'}</Link>
-              <Link href="/service-controls" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'ضوابط الخدمات' : 'Service Controls'}</Link>
-              <Link href="/sla" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'اتفاقية مستوى الخدمة' : 'Service Level Agreement'}</Link>
-              <Link href="/accessibility-statement" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'بيان النفاذ الرقمي' : 'Digital Accessibility'}</Link>
+              {serviceLinks.length > 0 ? serviceLinks.map(l => (
+                <Link key={l.id} href={l.link} className="text-sm font-bold text-white/60 hover:text-white transition-colors">
+                  {isAr ? l.labelAr : l.labelEn}
+                </Link>
+              )) : (
+                <>
+                  <Link href="/faqs" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'الأسئلة الشائعة (FAQs)' : 'FAQs'}</Link>
+                  <Link href="/sla" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'اتفاقية مستوى الخدمة' : 'Service Level Agreement'}</Link>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Column 3: Important Links */}
           <div className="flex flex-col gap-6">
             <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? "روابط هامة" : "Important Links"}</h4>
             <div className="flex flex-col gap-4">
-              <Link href="/governor-portal" className="text-sm font-bold text-white/60 hover:text-white transition-colors flex items-center gap-2">
-                {isAr ? 'بوابة محافظ ظفار' : 'Dhofar Governor Portal'}
-                <ExternalLink size={12} />
-              </Link>
-              <Link href="/tajawoob" className="text-sm font-bold text-white/60 hover:text-white transition-colors flex items-center gap-2">
-                {isAr ? 'منصة تجاوب' : 'Tajawoob Platform'}
-                <ExternalLink size={12} />
-              </Link>
-              <Link href="/sitemap" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'خريطة الموقع' : 'Sitemap'}</Link>
-              <Link href="/admin" className="text-sm font-black text-accent bg-white/5 w-fit px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
+              {importantLinks.length > 0 ? importantLinks.map(l => (
+                <Link key={l.id} href={l.link} className="text-sm font-bold text-white/60 hover:text-white transition-colors flex items-center gap-2">
+                  {isAr ? l.labelAr : l.labelEn}
+                  {l.link.startsWith('http') && <ExternalLink size={12} />}
+                </Link>
+              )) : (
+                <>
+                  <Link href="/governor-portal" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'بوابة محافظ ظفار' : 'Dhofar Governor Portal'}</Link>
+                  <Link href="/tajawoob" className="text-sm font-bold text-white/60 hover:text-white transition-colors">{isAr ? 'منصة تجاوب' : 'Tajawoob Platform'}</Link>
+                </>
+              )}
+              <Link href="/admin" className="text-sm font-black text-accent bg-white/5 w-fit px-4 py-2 rounded-lg hover:bg-white/10 mt-4">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
             </div>
           </div>
         </div>
