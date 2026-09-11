@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, Type, TrendingUp, Info, Loader2, Sparkles, Eye } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, 
+  Type, TrendingUp, Info, Loader2, Sparkles, Eye, 
+  Heading1, Video, FileText, List, Minus
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -57,7 +62,6 @@ export default function PageBuilder() {
     try {
       const { translatedText } = await translateToEnglish({ text: pageMeta.titleAr });
       setPageMeta({ ...pageMeta, titleEn: translatedText });
-      toast({ title: "AI Success", description: "Meta translated" });
     } finally {
       setAiLoading(false);
     }
@@ -70,7 +74,13 @@ export default function PageBuilder() {
       content: type === 'hero' ? { titleAr: 'New Hero', titleEn: 'New Hero', subtitleAr: 'Subtitle', subtitleEn: 'Subtitle' } : 
                type === 'text' ? { bodyAr: 'محتوى نصي جديد', bodyEn: 'New text content' } : 
                type === 'stats' ? { t1: 'Label 1', v1: '100', t2: 'Label 2', v2: '200' } : 
-               type === 'info' ? { bodyAr: 'معلومات هامة', bodyEn: 'Important info' } : {}
+               type === 'info' ? { bodyAr: 'معلومات هامة', bodyEn: 'Important info' } : 
+               type === 'heading' ? { level: 'h1', textAr: 'عنوان', textEn: 'Heading' } :
+               type === 'video' ? { url: '', captionAr: '', captionEn: '' } :
+               type === 'pdf' ? { url: '', labelAr: '', labelEn: '' } :
+               type === 'image' ? { url: 'https://picsum.photos/seed/1/800/400', altAr: '', altEn: '' } :
+               type === 'accordion' ? { items: [{ titleAr: 'سؤال', titleEn: 'Question', contentAr: 'جواب', contentEn: 'Answer' }] } :
+               type === 'separator' ? {} : {}
     };
     setComponents([...components, newComp]);
   };
@@ -81,7 +91,7 @@ export default function PageBuilder() {
 
   const handleSave = async () => {
     if (!pageMeta.slug) {
-      toast({ variant: "destructive", title: "Slug Required", description: "Please provide a page slug." });
+      toast({ variant: "destructive", title: "Slug Required" });
       return;
     }
     setSaving(true);
@@ -101,10 +111,10 @@ export default function PageBuilder() {
         ...data,
         customPages: [...filtered, newPage]
       });
-      toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تم تحديث الصفحة بنجاح" : "Page updated successfully" });
+      toast({ title: isAr ? "تم الحفظ" : "Saved" });
       router.push('/admin');
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to save page." });
+      toast({ variant: "destructive", title: "Error" });
     } finally {
       setSaving(false);
     }
@@ -118,104 +128,122 @@ export default function PageBuilder() {
       
       <main className="max-w-7xl mx-auto px-6 py-12">
         <header className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-3xl font-black text-primary flex items-center gap-3">
-              <Layout className="text-accent" /> {isAr ? "باني الصفحات" : "Page Builder"}
-            </h1>
-          </div>
+          <h1 className="text-3xl font-black text-primary flex items-center gap-3">
+            <Layout className="text-accent" /> {isAr ? "باني الصفحات الشامل" : "Universal Page Builder"}
+          </h1>
           <div className="flex gap-4">
             <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">
               <ArrowLeft size={16} className="ml-2" /> {isAr ? "العودة" : "Back"}
             </Button>
-            {pageMeta.slug && (
-              <Button variant="outline" asChild className="rounded-full font-bold border-accent text-accent">
-                <a href={`/p/${pageMeta.slug}`} target="_blank"><Eye size={16} className="ml-2" /> {isAr ? "معاينة" : "Preview"}</a>
-              </Button>
-            )}
             <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
               {saving ? <Loader2 className="animate-spin ml-2" /> : <Save size={16} className="ml-2" />}
-              {isAr ? "حفظ الصفحة" : "Save Page"}
+              {isAr ? "حفظ ومزامنة" : "Save & Sync"}
             </Button>
           </div>
         </header>
 
         <div className="grid lg:grid-cols-4 gap-8">
           <Card className="lg:col-span-1 rounded-brand shadow-md h-fit sticky top-24 overflow-hidden border-none">
-            <CardHeader className="bg-slate-900 text-white">
-              <CardTitle className="text-sm font-black flex items-center gap-2">
-                <Plus size={16} /> {isAr ? "إضافة مكون" : "Add Component"}
-              </CardTitle>
-            </CardHeader>
+            <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black">{isAr ? "مكتبة الويجيت" : "Widget Library"}</CardTitle></CardHeader>
             <CardContent className="p-4 grid grid-cols-1 gap-2">
-              <Button variant="outline" onClick={() => addComponent('hero')} className="justify-start gap-2 font-black border-2"><ImageIcon size={14}/> {isAr ? "قسم البطل" : "Hero Section"}</Button>
-              <Button variant="outline" onClick={() => addComponent('text')} className="justify-start gap-2 font-black border-2"><Type size={14}/> {isAr ? "محتوى نصي" : "Text Block"}</Button>
-              <Button variant="outline" onClick={() => addComponent('stats')} className="justify-start gap-2 font-black border-2"><TrendingUp size={14}/> {isAr ? "إحصائيات" : "Statistics"}</Button>
-              <Button variant="outline" onClick={() => addComponent('info')} className="justify-start gap-2 font-black border-2"><Info size={14}/> {isAr ? "معلومات" : "Info Card"}</Button>
+              <Button variant="outline" onClick={() => addComponent('hero')} className="justify-start gap-2 font-black"><ImageIcon size={14}/> {isAr ? "قسم البطل" : "Hero"}</Button>
+              <Button variant="outline" onClick={() => addComponent('heading')} className="justify-start gap-2 font-black"><Heading1 size={14}/> {isAr ? "عناوين (H1-H6)" : "Headings"}</Button>
+              <Button variant="outline" onClick={() => addComponent('text')} className="justify-start gap-2 font-black"><Type size={14}/> {isAr ? "محتوى نصي" : "Text Block"}</Button>
+              <Button variant="outline" onClick={() => addComponent('image')} className="justify-start gap-2 font-black"><ImageIcon size={14}/> {isAr ? "صورة" : "Image"}</Button>
+              <Button variant="outline" onClick={() => addComponent('video')} className="justify-start gap-2 font-black"><Video size={14}/> {isAr ? "فيديو" : "Video"}</Button>
+              <Button variant="outline" onClick={() => addComponent('pdf')} className="justify-start gap-2 font-black"><FileText size={14}/> {isAr ? "ملف PDF" : "PDF Link"}</Button>
+              <Button variant="outline" onClick={() => addComponent('accordion')} className="justify-start gap-2 font-black"><List size={14}/> {isAr ? "أكورديون / أسئلة" : "Accordion"}</Button>
+              <Button variant="outline" onClick={() => addComponent('stats')} className="justify-start gap-2 font-black"><TrendingUp size={14}/> {isAr ? "إحصائيات" : "Stats"}</Button>
+              <Button variant="outline" onClick={() => addComponent('info')} className="justify-start gap-2 font-black"><Info size={14}/> {isAr ? "تنبيه معلومة" : "Info Card"}</Button>
+              <Button variant="outline" onClick={() => addComponent('separator')} className="justify-start gap-2 font-black"><Minus size={14}/> {isAr ? "فاصل" : "Separator"}</Button>
             </CardContent>
           </Card>
 
           <div className="lg:col-span-3 space-y-6">
-            <div className="grid md:grid-cols-3 gap-4 bg-white p-6 rounded-3xl shadow-sm border">
-               <div className="space-y-1 relative">
-                 <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الصفحة (AR)" : "Title (AR)"}</label>
-                 <Input value={pageMeta.titleAr} onChange={(e) => setPageMeta({...pageMeta, titleAr: e.target.value})} className="font-bold border-2" />
-                 <Button size="icon" variant="ghost" className="absolute top-7 right-2" onClick={handleAiTranslateMeta} disabled={aiLoading}>
-                   {aiLoading ? <Loader2 className="animate-spin size-3" /> : <Sparkles className="size-3 text-accent" />}
-                 </Button>
+            <Card className="p-6 rounded-3xl shadow-sm border space-y-4">
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="relative">
+                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الصفحة (AR)" : "Page Title (AR)"}</label>
+                   <Input value={pageMeta.titleAr} onChange={(e) => setPageMeta({...pageMeta, titleAr: e.target.value})} className="font-bold border-2" />
+                   <Button size="icon" variant="ghost" className="absolute top-7 right-2" onClick={handleAiTranslateMeta} disabled={aiLoading}>
+                     {aiLoading ? <Loader2 className="animate-spin size-3" /> : <Sparkles className="size-3 text-accent" />}
+                   </Button>
+                 </div>
+                 <div>
+                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "الرابط اللطيف" : "Page Slug"}</label>
+                   <Input value={pageMeta.slug} onChange={(e) => setPageMeta({...pageMeta, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} className="font-mono border-2 text-primary" />
+                 </div>
                </div>
-               <div className="space-y-1">
-                 <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الصفحة (EN)" : "Title (EN)"}</label>
-                 <Input value={pageMeta.titleEn} onChange={(e) => setPageMeta({...pageMeta, titleEn: e.target.value})} className="font-bold border-2" />
-               </div>
-               <div className="space-y-1">
-                 <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "الرابط اللطيف (Slug)" : "Page Slug"}</label>
-                 <Input value={pageMeta.slug} onChange={(e) => setPageMeta({...pageMeta, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} className="font-mono border-2 text-primary" />
-               </div>
-            </div>
+            </Card>
 
             {components.map((c, i) => (
-              <Card key={c.id} className="rounded-[2rem] shadow-sm border-l-8 border-primary overflow-hidden group animate-in slide-in-from-bottom-2 duration-300">
+              <Card key={c.id} className="rounded-[2rem] shadow-sm border-l-8 border-primary overflow-hidden group">
                 <div className="flex justify-between items-center p-4 bg-slate-50 border-b">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                    {isAr ? `المكون ${i+1}: ${c.type}` : `Component ${i+1}: ${c.type}`}
-                  </span>
-                  <Button variant="ghost" size="icon" onClick={() => removeComponent(c.id)} className="text-red-400">
-                    <Trash2 size={16} />
-                  </Button>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{c.type}</span>
+                  <Button variant="ghost" size="icon" onClick={() => removeComponent(c.id)} className="text-red-400"><Trash2 size={16} /></Button>
                 </div>
                 <CardContent className="p-8 space-y-6">
-                  {c.type === 'hero' ? (
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <Input placeholder="Hero Title AR" value={c.content.titleAr} onChange={e => {
-                           const nc = [...components]; nc[i].content.titleAr = e.target.value; setComponents(nc);
-                        }} className="font-bold" />
-                        <Textarea placeholder="Hero Subtitle AR" value={c.content.subtitleAr} onChange={e => {
-                           const nc = [...components]; nc[i].content.subtitleAr = e.target.value; setComponents(nc);
-                        }} />
-                      </div>
-                      <div className="space-y-4">
-                        <Input placeholder="Hero Title EN" value={c.content.titleEn} onChange={e => {
-                           const nc = [...components]; nc[i].content.titleEn = e.target.value; setComponents(nc);
-                        }} className="font-bold" />
-                        <Textarea placeholder="Hero Subtitle EN" value={c.content.subtitleEn} onChange={e => {
-                           const nc = [...components]; nc[i].content.subtitleEn = e.target.value; setComponents(nc);
-                        }} />
-                      </div>
+                  {c.type === 'heading' && (
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <Select value={c.content.level} onValueChange={v => { const nc = [...components]; nc[i].content.level = v; setComponents(nc); }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map(h => <SelectItem key={h} value={h}>{h.toUpperCase()}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Input placeholder="Text AR" value={c.content.textAr} onChange={e => { const nc = [...components]; nc[i].content.textAr = e.target.value; setComponents(nc); }} className="font-bold" />
+                      <Input placeholder="Text EN" value={c.content.textEn} onChange={e => { const nc = [...components]; nc[i].content.textEn = e.target.value; setComponents(nc); }} />
                     </div>
-                  ) : c.type === 'stats' ? (
-                    <div className="grid grid-cols-2 gap-6">
-                      <Input placeholder="Value 1" value={c.content.v1} onChange={e => { const nc = [...components]; nc[i].content.v1 = e.target.value; setComponents(nc); }} />
-                      <Input placeholder="Label 1" value={c.content.t1} onChange={e => { const nc = [...components]; nc[i].content.t1 = e.target.value; setComponents(nc); }} />
+                  )}
+                  
+                  {c.type === 'image' && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Input placeholder="Image URL" value={c.content.url} onChange={e => { const nc = [...components]; nc[i].content.url = e.target.value; setComponents(nc); }} />
+                      <Input placeholder="Alt Text" value={c.content.altAr} onChange={e => { const nc = [...components]; nc[i].content.altAr = e.target.value; setComponents(nc); }} />
                     </div>
-                  ) : (
+                  )}
+
+                  {c.type === 'video' && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Input placeholder="Video URL (YouTube/Direct)" value={c.content.url} onChange={e => { const nc = [...components]; nc[i].content.url = e.target.value; setComponents(nc); }} />
+                      <Input placeholder="Caption" value={c.content.captionAr} onChange={e => { const nc = [...components]; nc[i].content.captionAr = e.target.value; setComponents(nc); }} />
+                    </div>
+                  )}
+
+                  {(c.type === 'text' || c.type === 'hero' || c.type === 'info') && (
                     <div className="grid md:grid-cols-2 gap-6">
-                       <Textarea placeholder="Content AR..." value={c.content.bodyAr} onChange={e => {
-                         const nc = [...components]; nc[i].content.bodyAr = e.target.value; setComponents(nc);
+                       <Textarea placeholder="Content AR..." value={isAr ? c.content.bodyAr || c.content.titleAr : c.content.bodyEn} onChange={e => {
+                         const nc = [...components]; 
+                         if(c.type === 'hero') nc[i].content.titleAr = e.target.value;
+                         else nc[i].content.bodyAr = e.target.value;
+                         setComponents(nc);
                        }} className="min-h-[120px] font-bold" />
-                       <Textarea placeholder="Content EN..." value={c.content.bodyEn} onChange={e => {
-                         const nc = [...components]; nc[i].content.bodyEn = e.target.value; setComponents(nc);
+                       <Textarea placeholder="Content EN..." value={isAr ? c.content.bodyEn || c.content.titleEn : c.content.bodyEn} onChange={e => {
+                         const nc = [...components];
+                         if(c.type === 'hero') nc[i].content.titleEn = e.target.value;
+                         else nc[i].content.bodyEn = e.target.value;
+                         setComponents(nc);
                        }} className="min-h-[120px]" />
+                    </div>
+                  )}
+
+                  {c.type === 'accordion' && (
+                    <div className="space-y-4">
+                      {c.content.items.map((item: any, idx: number) => (
+                        <div key={idx} className="p-4 border rounded-xl space-y-2 relative group">
+                           <Input placeholder="Question" value={item.titleAr} onChange={e => {
+                             const nc = [...components]; nc[i].content.items[idx].titleAr = e.target.value; setComponents(nc);
+                           }} />
+                           <Textarea placeholder="Answer" value={item.contentAr} onChange={e => {
+                             const nc = [...components]; nc[i].content.items[idx].contentAr = e.target.value; setComponents(nc);
+                           }} />
+                        </div>
+                      ))}
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        const nc = [...components]; 
+                        nc[i].content.items.push({ titleAr: '', titleEn: '', contentAr: '', contentEn: '' });
+                        setComponents(nc);
+                      }}>{isAr ? "+ إضافة بند" : "+ Add Item"}</Button>
                     </div>
                   )}
                 </CardContent>
@@ -224,7 +252,6 @@ export default function PageBuilder() {
           </div>
         </div>
       </main>
-      
       <PortalFooter siteConfig={null} />
     </div>
   );

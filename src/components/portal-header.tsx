@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Languages, Menu, Edit2 } from 'lucide-react';
+import { Globe, LayoutDashboard, Languages, Menu, Edit2, Settings } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service, Survey } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
 
   useEffect(() => {
     const determineEditLink = async () => {
+      // 1. Check if Home
       if (pathname === '/') {
         setEditLink('/admin');
         return;
@@ -39,7 +40,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
       const data = await fetchBin();
       if (!data) return;
 
-      // Check Custom Pages
+      // 2. Check Custom Pages (/p/slug)
       if (pathname.startsWith('/p/')) {
         const slug = pathname.split('/').pop();
         const page = data.customPages?.find((p: CustomPage) => p.slug === slug);
@@ -49,7 +50,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
         }
       }
 
-      // Check Services
+      // 3. Check Services (/services/id)
       if (pathname.startsWith('/services/')) {
         const id = pathname.split('/').pop();
         const svc = data.services?.find((s: Service) => s.id === id);
@@ -57,6 +58,19 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           setEditLink(`/servicebuild?id=${svc.id}`);
           return;
         }
+      }
+
+      // 4. Fallback: check if the slug matches a standard page that should be editable
+      const standardSlugs = ['privacy', 'terms', 'payment', 'access-controls', 'faqs', 'sla', 'governor-portal'];
+      const currentSlug = pathname.replace('/', '');
+      if (standardSlugs.includes(currentSlug)) {
+        const page = data.customPages?.find((p: CustomPage) => p.slug === currentSlug);
+        if (page) {
+           setEditLink(`/pagebuild?id=${page.id}`);
+        } else {
+           setEditLink(`/pagebuild?slug=${currentSlug}`);
+        }
+        return;
       }
 
       setEditLink(null);
@@ -75,9 +89,9 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           </span>
           <div className="flex items-center gap-6">
             {editLink && (
-              <Button variant="ghost" asChild className="text-accent hover:text-white h-auto py-0 px-2 font-black gap-2">
+              <Button variant="ghost" asChild className="text-accent hover:text-white h-auto py-0 px-2 font-black gap-2 animate-pulse">
                 <Link href={editLink}>
-                  <Edit2 size={10} /> {isAr ? 'تحرير هذا المكون' : 'Edit This Element'}
+                  <Edit2 size={10} /> {isAr ? 'تحرير المكونات' : 'Edit Components'}
                 </Link>
               </Button>
             )}
@@ -105,7 +119,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
              </div>
           </Link>
           
-          {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-6">
             <Link href="/" className={cn("text-sm font-bold hover:text-primary transition-colors", pathname === '/' ? "text-primary" : "text-slate-600")}>
               {isAr ? 'الرئيسية' : 'Home'}
@@ -117,11 +130,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             ))}
           </nav>
 
-          {/* Mobile Menu */}
           <div className="lg:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label={isAr ? "القائمة" : "Menu"}><Menu /></Button>
+                <Button variant="ghost" size="icon" aria-label="Menu"><Menu /></Button>
               </SheetTrigger>
               <SheetContent side={isAr ? "right" : "left"}>
                 <SheetTitle className="text-primary font-black">{isAr ? "القائمة الرئيسية" : "Main Menu"}</SheetTitle>

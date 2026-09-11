@@ -3,14 +3,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 import { fetchBin } from '@/lib/jsonbin';
 import { CustomPage, BuilderComponent } from '@/lib/types';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
-import { Loader2, TrendingUp, ShieldCheck, FileText, Info } from 'lucide-react';
+import { Loader2, TrendingUp, ShieldCheck, FileText, Info, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Separator } from '@/components/ui/separator';
 
 export default function DynamicCustomPage() {
   const { slug } = useParams();
@@ -46,11 +49,24 @@ export default function DynamicCustomPage() {
       
       <main>
         {page.components.map((comp) => (
-          <section key={comp.id} className="py-20 first:pt-32 border-b last:border-b-0">
+          <section key={comp.id} className="py-16 border-b last:border-b-0 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="max-w-7xl mx-auto px-6">
+              
+              {comp.type === 'heading' && (
+                <div className="mb-8">
+                  {React.createElement(comp.content.level || 'h2', {
+                    className: cn("font-black text-primary tracking-tighter", 
+                      comp.content.level === 'h1' ? "text-5xl md:text-7xl" : 
+                      comp.content.level === 'h2' ? "text-4xl md:text-5xl" : 
+                      "text-2xl md:text-3xl"
+                    )
+                  }, isAr ? comp.content.textAr : comp.content.textEn)}
+                </div>
+              )}
+
               {comp.type === 'hero' && (
-                <div className="max-w-4xl">
-                  <h1 className="text-5xl md:text-7xl font-black text-primary mb-8 tracking-tighter">
+                <div className="max-w-4xl py-12">
+                  <h1 className="text-5xl md:text-8xl font-black text-primary mb-8 tracking-tighter dm-gradient-primary bg-clip-text text-transparent">
                     {isAr ? comp.content.titleAr : comp.content.titleEn}
                   </h1>
                   <p className="text-2xl text-slate-500 font-bold leading-relaxed">
@@ -60,10 +76,47 @@ export default function DynamicCustomPage() {
               )}
 
               {comp.type === 'text' && (
-                <div className="prose prose-xl max-w-4xl text-slate-700 font-medium leading-loose">
+                <div className="prose prose-xl max-w-4xl text-slate-700 font-medium leading-loose whitespace-pre-wrap">
                   {isAr ? comp.content.bodyAr : comp.content.bodyEn}
                 </div>
               )}
+
+              {comp.type === 'image' && (
+                <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-8 border-slate-50 aspect-video">
+                  <Image src={comp.content.url} alt={isAr ? comp.content.altAr : comp.content.altEn} fill className="object-cover" />
+                </div>
+              )}
+
+              {comp.type === 'video' && (
+                <div className="max-w-4xl mx-auto aspect-video rounded-[2rem] overflow-hidden shadow-2xl bg-slate-900 flex items-center justify-center">
+                   {comp.content.url ? (
+                     <iframe src={comp.content.url.replace('watch?v=', 'embed/')} className="w-full h-full" allowFullScreen />
+                   ) : (
+                     <p className="text-white/40 font-bold">Video Widget</p>
+                   )}
+                </div>
+              )}
+
+              {comp.type === 'accordion' && (
+                <Accordion type="single" collapsible className="w-full max-w-4xl mx-auto">
+                  {comp.content.items?.map((item: any, idx: number) => (
+                    <AccordionItem key={idx} value={`item-${idx}`} className="border-slate-100">
+                      <AccordionTrigger className="text-xl font-black text-primary">{isAr ? item.titleAr : item.titleEn}</AccordionTrigger>
+                      <AccordionContent className="text-lg text-slate-500 font-medium">{isAr ? item.contentAr : item.contentEn}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
+
+              {comp.type === 'pdf' && (
+                <a href={comp.content.url} target="_blank" className="inline-flex items-center gap-4 p-6 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 hover:border-primary transition-colors group">
+                  <div className="p-3 bg-red-50 text-red-600 rounded-xl group-hover:bg-red-600 group-hover:text-white transition-colors"><FileText size={24} /></div>
+                  <span className="text-xl font-black text-slate-700">{isAr ? comp.content.labelAr : comp.content.labelEn}</span>
+                  <ExternalLink size={18} className="text-slate-400" />
+                </a>
+              )}
+
+              {comp.type === 'separator' && <Separator className="bg-slate-100 h-1" />}
 
               {comp.type === 'stats' && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center bg-slate-900 p-16 rounded-[3rem] text-white">

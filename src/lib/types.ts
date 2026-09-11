@@ -21,15 +21,6 @@ export interface SiteConfig {
   }[];
 }
 
-export interface NewsTicker {
-  id: string;
-  title?: string;
-  text: string;
-  link?: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
 export interface MenuItem {
   id: string;
   labelAr: string;
@@ -46,18 +37,6 @@ export interface CarouselItem {
   subtitleEn: string;
   imageUrl: string;
   linkUrl?: string;
-}
-
-export interface Course {
-  id: string;
-  titleAr: string;
-  titleEn: string;
-  descriptionAr: string;
-  descriptionEn: string;
-  imageUrl: string;
-  durationAr: string;
-  durationEn: string;
-  isOpen: boolean;
 }
 
 export interface Service {
@@ -88,13 +67,6 @@ export interface ServiceApplication {
   createdAt: string;
 }
 
-export interface UserProfile {
-  uid: string;
-  displayName: string;
-  role: 'citizen' | 'admin';
-  phoneNumber?: string;
-}
-
 export type Vec3 = { x: number; y: number; z: number };
 
 export interface SpatialWindow {
@@ -107,7 +79,7 @@ export interface SpatialWindow {
 
 export interface BuilderComponent {
   id: string;
-  type: 'hero' | 'stats' | 'services' | 'contact' | 'text' | 'image' | 'info';
+  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator';
   content: any;
 }
 
