@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { PortalFooter } from '@/components/portal-footer';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/firebase';
 import { 
   ArrowLeft, 
   Loader2, 
@@ -33,6 +34,7 @@ export default function ServiceApplicationPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { language } = useSettingsStore();
+  const { user } = useUser();
   const isAr = language === 'ar';
 
   const [service, setService] = useState<Service | null>(null);
@@ -65,7 +67,7 @@ export default function ServiceApplicationPage() {
     if (!flow) return;
     const currentStep = flow.steps[currentStepIndex];
     
-    // Logic for branching
+    // Logic for branching (Conditional Flowchart)
     let nextStepId = currentStep.defaultNextStepId;
     if (currentStep.logic) {
       for (const rule of currentStep.logic) {
@@ -105,7 +107,7 @@ export default function ServiceApplicationPage() {
         id: `app_${Date.now()}`,
         serviceId: service?.id || '',
         serviceName: isAr ? service?.title || '' : service?.titleEn || '',
-        citizenName: formData.fullName || 'Anonymous',
+        citizenName: user?.displayName || user?.email || 'PKI Authenticated User',
         status: 'pending',
         data: formData,
         createdAt: new Date().toISOString()
@@ -140,7 +142,7 @@ export default function ServiceApplicationPage() {
   );
 
   const currentStep = flow?.steps[currentStepIndex];
-  const IconComponent = (Icons as any)[service.iconName] || FileText;
+  const IconComponent = (Icons as any)[service.iconName] || Icons.FileText;
 
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
@@ -229,19 +231,7 @@ export default function ServiceApplicationPage() {
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="p-8 space-y-6 min-h-[300px]">
-                  {currentStepIndex === 0 && (
-                    <div className="grid sm:grid-cols-2 gap-6 pb-6 border-b">
-                      <div className="space-y-2">
-                        <Label className="font-bold text-slate-700">{isAr ? "الاسم الكامل" : "Full Name"}</Label>
-                        <Input required value={formData.fullName || ''} onChange={e => setFormData({...formData, fullName: e.target.value})} className="h-12 border-slate-200" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-bold text-slate-700">{isAr ? "الرقم المدني" : "National ID"}</Label>
-                        <Input required value={formData.nationalId || ''} onChange={e => setFormData({...formData, nationalId: e.target.value})} className="h-12 border-slate-200" />
-                      </div>
-                    </div>
-                  )}
-
+                  {/* Digital PKI Auth replaces hardcoded identity fields */}
                   <div className="space-y-6 pt-4">
                     {currentStep?.fields.map((field) => (
                       <div key={field.id} className="space-y-2">
