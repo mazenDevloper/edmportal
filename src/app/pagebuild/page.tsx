@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, 
   Type, TrendingUp, Info, Loader2, Sparkles, Eye, 
-  Heading1, Video, FileText, List, Minus
+  Heading1, Video, FileText, List, Minus, Table as TableIcon,
+  Activity, UserCircle, Tag
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -53,7 +54,6 @@ function PageBuilderContent() {
                 slug: page.slug || '' 
               });
             } else if (editSlug) {
-              // If slug requested but not found, initialize meta with slug
               setPageMeta(prev => ({ ...prev, slug: editSlug }));
             }
           }
@@ -93,6 +93,10 @@ function PageBuilderContent() {
                type === 'pdf' ? { url: '', labelAr: '', labelEn: '' } :
                type === 'image' ? { url: 'https://picsum.photos/seed/1/800/400', altAr: '', altEn: '' } :
                type === 'accordion' ? { items: [{ titleAr: 'سؤال', titleEn: 'Question', contentAr: 'جواب', contentEn: 'Answer' }] } :
+               type === 'table' ? { headers: ['Service', 'Fee'], rows: [{ c1: 'Permit', c2: '50 OMR' }] } :
+               type === 'progress' ? { labelAr: 'الإنجاز', labelEn: 'Progress', value: 50 } :
+               type === 'avatar' ? { src: '', fallback: 'DM' } :
+               type === 'badge' ? { textAr: 'معتمد', textEn: 'Approved', variant: 'default' } :
                type === 'separator' ? {} : {}
     };
     setComponents([...components, newComp]);
@@ -170,13 +174,15 @@ function PageBuilderContent() {
               <Button variant="outline" onClick={() => addComponent('hero')} className="justify-start gap-2 font-black"><ImageIcon size={14}/> {isAr ? "قسم البطل" : "Hero"}</Button>
               <Button variant="outline" onClick={() => addComponent('heading')} className="justify-start gap-2 font-black"><Heading1 size={14}/> {isAr ? "عناوين" : "Headings"}</Button>
               <Button variant="outline" onClick={() => addComponent('text')} className="justify-start gap-2 font-black"><Type size={14}/> {isAr ? "محتوى نصي" : "Text Block"}</Button>
+              <Button variant="outline" onClick={() => addComponent('table')} className="justify-start gap-2 font-black"><TableIcon size={14}/> {isAr ? "جدول بيانات" : "Data Table"}</Button>
+              <Button variant="outline" onClick={() => addComponent('progress')} className="justify-start gap-2 font-black"><Activity size={14}/> {isAr ? "مؤشر تقدم" : "Progress"}</Button>
+              <Button variant="outline" onClick={() => addComponent('accordion')} className="justify-start gap-2 font-black"><List size={14}/> {isAr ? "أكورديون" : "Accordion"}</Button>
+              <Button variant="outline" onClick={() => addComponent('badge')} className="justify-start gap-2 font-black"><Tag size={14}/> {isAr ? "شارة" : "Badge"}</Button>
+              <Button variant="outline" onClick={() => addComponent('avatar')} className="justify-start gap-2 font-black"><UserCircle size={14}/> {isAr ? "أفاتار" : "Avatar"}</Button>
               <Button variant="outline" onClick={() => addComponent('image')} className="justify-start gap-2 font-black"><ImageIcon size={14}/> {isAr ? "صورة" : "Image"}</Button>
               <Button variant="outline" onClick={() => addComponent('video')} className="justify-start gap-2 font-black"><Video size={14}/> {isAr ? "فيديو" : "Video"}</Button>
               <Button variant="outline" onClick={() => addComponent('pdf')} className="justify-start gap-2 font-black"><FileText size={14}/> {isAr ? "ملف PDF" : "PDF Link"}</Button>
-              <Button variant="outline" onClick={() => addComponent('accordion')} className="justify-start gap-2 font-black"><List size={14}/> {isAr ? "أكورديون" : "Accordion"}</Button>
               <Button variant="outline" onClick={() => addComponent('stats')} className="justify-start gap-2 font-black"><TrendingUp size={14}/> {isAr ? "إحصائيات" : "Stats"}</Button>
-              <Button variant="outline" onClick={() => addComponent('info')} className="justify-start gap-2 font-black"><Info size={14}/> {isAr ? "تنبيه" : "Info Card"}</Button>
-              <Button variant="outline" onClick={() => addComponent('separator')} className="justify-start gap-2 font-black"><Minus size={14}/> {isAr ? "فاصل" : "Separator"}</Button>
             </CardContent>
           </Card>
 
@@ -216,6 +222,38 @@ function PageBuilderContent() {
                       <Input placeholder="Text EN" value={c.content.textEn || ''} onChange={e => updateComponentContent(i, { textEn: e.target.value })} />
                     </div>
                   )}
+
+                  {c.type === 'table' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                         <Input placeholder="Header 1" value={c.content.headers[0]} onChange={e => {
+                           const n = [...c.content.headers]; n[0] = e.target.value; updateComponentContent(i, { headers: n });
+                         }} />
+                         <Input placeholder="Header 2" value={c.content.headers[1]} onChange={e => {
+                           const n = [...c.content.headers]; n[1] = e.target.value; updateComponentContent(i, { headers: n });
+                         }} />
+                      </div>
+                      {c.content.rows.map((row: any, rIdx: number) => (
+                        <div key={rIdx} className="grid grid-cols-2 gap-4 relative">
+                          <Input value={row.c1} onChange={e => {
+                            const nr = [...c.content.rows]; nr[rIdx].c1 = e.target.value; updateComponentContent(i, { rows: nr });
+                          }} />
+                          <Input value={row.c2} onChange={e => {
+                            const nr = [...c.content.rows]; nr[rIdx].c2 = e.target.value; updateComponentContent(i, { rows: nr });
+                          }} />
+                        </div>
+                      ))}
+                      <Button variant="ghost" size="sm" onClick={() => updateComponentContent(i, { rows: [...c.content.rows, { c1: '', c2: '' }] })}>{isAr ? "+ إضافة صف" : "+ Add Row"}</Button>
+                    </div>
+                  )}
+
+                  {c.type === 'progress' && (
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <Input placeholder="Label AR" value={c.content.labelAr} onChange={e => updateComponentContent(i, { labelAr: e.target.value })} />
+                      <Input placeholder="Label EN" value={c.content.labelEn} onChange={e => updateComponentContent(i, { labelEn: e.target.value })} />
+                      <Input type="number" placeholder="Value (0-100)" value={c.content.value} onChange={e => updateComponentContent(i, { value: parseInt(e.target.value) })} />
+                    </div>
+                  )}
                   
                   {c.type === 'image' && (
                     <div className="grid md:grid-cols-2 gap-4">
@@ -224,10 +262,18 @@ function PageBuilderContent() {
                     </div>
                   )}
 
-                  {c.type === 'video' && (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <Input placeholder="Video URL" value={c.content.url || ''} onChange={e => updateComponentContent(i, { url: e.target.value })} />
-                      <Input placeholder="Caption" value={c.content.captionAr || ''} onChange={e => updateComponentContent(i, { captionAr: e.target.value })} />
+                  {c.type === 'badge' && (
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <Input placeholder="Text AR" value={c.content.textAr} onChange={e => updateComponentContent(i, { textAr: e.target.value })} />
+                      <Input placeholder="Text EN" value={c.content.textEn} onChange={e => updateComponentContent(i, { textEn: e.target.value })} />
+                      <Select value={c.content.variant} onValueChange={v => updateComponentContent(i, { variant: v })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="secondary">Secondary</SelectItem>
+                          <SelectItem value="outline">Outline</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
 
@@ -241,15 +287,6 @@ function PageBuilderContent() {
                          if(c.type === 'hero') updateComponentContent(i, { titleEn: e.target.value });
                          else updateComponentContent(i, { bodyEn: e.target.value });
                        }} className="min-h-[120px]" />
-                    </div>
-                  )}
-
-                  {c.type === 'stats' && (
-                    <div className="grid md:grid-cols-4 gap-4">
-                      <Input placeholder="Label 1" value={c.content.t1 || ''} onChange={e => updateComponentContent(i, { t1: e.target.value })} />
-                      <Input placeholder="Value 1" value={c.content.v1 || ''} onChange={e => updateComponentContent(i, { v1: e.target.value })} />
-                      <Input placeholder="Label 2" value={c.content.t2 || ''} onChange={e => updateComponentContent(i, { t2: e.target.value })} />
-                      <Input placeholder="Value 2" value={c.content.v2 || ''} onChange={e => updateComponentContent(i, { v2: e.target.value })} />
                     </div>
                   )}
 

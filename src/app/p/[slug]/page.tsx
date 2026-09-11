@@ -14,6 +14,10 @@ import { Loader2, TrendingUp, ShieldCheck, FileText, Info, ExternalLink } from '
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function DynamicCustomPage() {
   const { slug } = useParams();
@@ -72,6 +76,54 @@ export default function DynamicCustomPage() {
                   <p className="text-2xl text-slate-500 font-bold leading-relaxed">
                     {isAr ? comp.content.subtitleAr : comp.content.subtitleEn}
                   </p>
+                </div>
+              )}
+
+              {comp.type === 'table' && (
+                <div className="border rounded-[2rem] overflow-hidden shadow-sm max-w-4xl mx-auto bg-white">
+                  <Table>
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead className="font-black text-primary">{comp.content.headers[0]}</TableHead>
+                        <TableHead className="font-black text-primary">{comp.content.headers[1]}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {comp.content.rows.map((row: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-bold">{row.c1}</TableCell>
+                          <TableCell className="font-black text-emerald-600">{row.c2}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {comp.type === 'progress' && (
+                <div className="max-w-4xl mx-auto space-y-4">
+                  <div className="flex justify-between items-end">
+                    <h4 className="text-xl font-black text-primary">{isAr ? comp.content.labelAr : comp.content.labelEn}</h4>
+                    <span className="text-accent font-black">{comp.content.value}%</span>
+                  </div>
+                  <Progress value={comp.content.value} className="h-4 rounded-full" />
+                </div>
+              )}
+
+              {comp.type === 'badge' && (
+                <div className="flex justify-center">
+                  <Badge variant={comp.content.variant} className="px-8 py-2 rounded-full font-black text-lg">
+                    {isAr ? comp.content.textAr : comp.content.textEn}
+                  </Badge>
+                </div>
+              )}
+
+              {comp.type === 'avatar' && (
+                <div className="flex justify-center">
+                  <Avatar className="h-24 w-24 border-4 border-primary shadow-xl">
+                    <AvatarImage src={comp.content.src} />
+                    <AvatarFallback className="bg-primary text-white font-black text-2xl">{comp.content.fallback}</AvatarFallback>
+                  </Avatar>
                 </div>
               )}
 

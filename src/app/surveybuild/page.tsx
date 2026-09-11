@@ -155,7 +155,7 @@ export default function SurveyBuilder() {
                           }} />
                           <Button variant="ghost" size="icon" onClick={() => {
                             const no = q.options!.filter(oi => oi.id !== opt.id); updateQuestion(q.id, { options: no });
-                          }}><X size={14}/></Button>
+                          }}><LucideIcons.X size={14}/></Button>
                         </div>
                       ))}
                       <Button variant="ghost" size="sm" onClick={() => {

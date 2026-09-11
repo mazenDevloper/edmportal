@@ -79,7 +79,7 @@ export interface SpatialWindow {
 
 export interface BuilderComponent {
   id: string;
-  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator';
+  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator' | 'table' | 'progress' | 'avatar' | 'badge';
   content: any;
 }
 
