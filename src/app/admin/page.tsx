@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { 
   Table, 
   TableBody, 
@@ -15,7 +16,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication, Survey, CustomPage, ServiceFlow } from '@/lib/types';
+import { Service, SiteConfig, NewsTicker, MenuItem, CarouselItem, Course, ServiceApplication, Survey, CustomPage } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
@@ -86,7 +87,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8" dir={isAr ? 'rtl' : 'ltr'}>
@@ -142,7 +143,7 @@ export default function AdminDashboard() {
                           <div className="size-8 rounded-lg bg-slate-100 flex items-center justify-center text-primary">
                             <FileText size={16} />
                           </div>
-                          {isAr ? s.title : s.titleEn}
+                          {isAr ? s.title : (s.titleEn || s.title)}
                         </TableCell>
                         <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
                         <TableCell>
@@ -234,7 +235,7 @@ export default function AdminDashboard() {
                                 <Button variant="ghost" size="icon" onClick={() => {
                                    const ns = [...surveys];
                                    const current = ns[sIdx].isPublicPoll;
-                                   ns.forEach(s => s.isPublicPoll = false); // Single poll at a time
+                                   ns.forEach(s => s.isPublicPoll = false);
                                    ns[sIdx].isPublicPoll = !current;
                                    setSurveys(ns);
                                 }}><Star size={14} className={survey.isPublicPoll ? "fill-accent text-accent" : ""}/></Button>

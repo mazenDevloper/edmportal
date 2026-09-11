@@ -17,8 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Survey, SurveyQuestion } from '@/lib/types';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 
-const ICON_LIST = ['Circle', 'CheckCircle2', 'Heart', 'Star', 'MessageSquare', 'ThumbsUp', 'MapPin', 'Users', 'Target'];
-
 export default function SurveyBuilder() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,11 +27,7 @@ export default function SurveyBuilder() {
   
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [surveyMeta, setSurveyMeta] = useState({ 
-    titleAr: '', 
-    titleEn: '', 
-    descriptionAr: '', 
-    descriptionEn: '',
-    isPublicPoll: false 
+    titleAr: '', titleEn: '', descriptionAr: '', descriptionEn: '', isPublicPoll: false 
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -48,10 +42,8 @@ export default function SurveyBuilder() {
           if (found) {
             setQuestions(found.questions || []);
             setSurveyMeta({
-              titleAr: found.titleAr,
-              titleEn: found.titleEn,
-              descriptionAr: found.descriptionAr || '',
-              descriptionEn: found.descriptionEn || '',
+              titleAr: found.titleAr, titleEn: found.titleEn,
+              descriptionAr: found.descriptionAr || '', descriptionEn: found.descriptionEn || '',
               isPublicPoll: found.isPublicPoll || false
             });
           }
@@ -67,7 +59,6 @@ export default function SurveyBuilder() {
     try {
       const { translatedText } = await translateToEnglish({ text: surveyMeta.titleAr });
       setSurveyMeta({ ...surveyMeta, titleEn: translatedText });
-      toast({ title: "AI Success", description: "Title translated" });
     } finally {
       setAiLoading(false);
     }
@@ -84,41 +75,22 @@ export default function SurveyBuilder() {
     setQuestions([...questions, newQ]);
   };
 
-  const removeQuestion = (id: string) => {
-    setQuestions(questions.filter(q => q.id !== id));
-  };
-
   const updateQuestion = (id: string, updates: Partial<SurveyQuestion>) => {
     setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
   };
 
   const handleSave = async () => {
-    if (!surveyMeta.titleAr && !surveyMeta.titleEn) {
-      toast({ variant: "destructive", title: "Required", description: "Please enter survey title." });
-      return;
-    }
     setSaving(true);
     try {
       const db = await fetchBin();
       const newId = editId || `survey_${Date.now()}`;
-      const newSurvey: Survey = {
-        id: newId,
-        ...surveyMeta,
-        questions,
-        isActive: true,
-        responsesCount: 0
-      };
-
+      const newSurvey = { id: newId, ...surveyMeta, questions, isActive: true, responsesCount: 0 };
       const filtered = (db.surveys || []).filter((s: any) => s.id !== newId);
-      await updateBin({
-        ...db,
-        surveys: [...filtered, newSurvey]
-      });
-
-      toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تم تحديث الاستطلاع بنجاح" : "Survey updated successfully" });
+      await updateBin({ ...db, surveys: [...filtered, newSurvey] });
+      toast({ title: "Saved" });
       router.push('/admin');
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to save survey." });
+      toast({ variant: "destructive", title: "Error" });
     } finally {
       setSaving(false);
     }
@@ -129,108 +101,67 @@ export default function SurveyBuilder() {
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={[]} />
-      
       <main className="max-w-7xl mx-auto px-6 py-12">
         <header className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-3xl font-black text-primary flex items-center gap-3">
-              <ClipboardList className="text-secondary" /> {isAr ? "باني الاستطلاعات" : "Survey Builder"}
-            </h1>
-          </div>
+          <h1 className="text-3xl font-black text-primary flex items-center gap-3">
+            <ClipboardList className="text-secondary" /> {isAr ? "باني الاستطلاعات" : "Survey Builder"}
+          </h1>
           <div className="flex gap-4">
             <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">
               <ArrowLeft size={16} className="ml-2" /> {isAr ? "العودة" : "Back"}
             </Button>
             <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
               {saving ? <Loader2 className="animate-spin ml-2" /> : <Save size={16} className="ml-2" />}
-              {isAr ? "حفظ الاستطلاع" : "Save Survey"}
+              {isAr ? "حفظ" : "Save"}
             </Button>
           </div>
         </header>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          <Card className="lg:col-span-1 rounded-brand shadow-md h-fit sticky top-24 overflow-hidden border-none">
+          <Card className="rounded-brand shadow-md h-fit border-none">
             <CardHeader className="bg-slate-900 text-white">
-              <CardTitle className="text-sm font-black flex items-center gap-2">
-                <Plus size={16} /> {isAr ? "إضافة سؤال" : "Add Question"}
-              </CardTitle>
+              <CardTitle className="text-sm font-black flex items-center gap-2"><Plus size={16} /> {isAr ? "إضافة سؤال" : "Add"}</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 grid grid-cols-1 gap-2">
-              <Button variant="outline" onClick={() => addQuestion('text')} className="justify-start gap-2 font-black border-2"><MessageSquare size={14}/> {isAr ? "سؤال مفتوح" : "Open Text"}</Button>
-              <Button variant="outline" onClick={() => addQuestion('mcq')} className="justify-start gap-2 font-black border-2"><List size={14}/> {isAr ? "خيارات متعددة" : "Multiple Choice"}</Button>
-              <Button variant="outline" onClick={() => addQuestion('rating')} className="justify-start gap-2 font-black border-2"><Star size={14}/> {isAr ? "تقييم" : "Rating Scale"}</Button>
+            <CardContent className="p-4 space-y-2">
+              <Button variant="outline" className="w-full justify-start font-black" onClick={() => addQuestion('mcq')}><List size={14} className="ml-2"/> {isAr ? "خيارات" : "Choices"}</Button>
+              <Button variant="outline" className="w-full justify-start font-black" onClick={() => addQuestion('text')}><MessageSquare size={14} className="ml-2"/> {isAr ? "نص" : "Text"}</Button>
             </CardContent>
           </Card>
 
           <div className="lg:col-span-3 space-y-6">
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border space-y-6">
-               <div className="grid md:grid-cols-2 gap-6">
-                 <div className="space-y-2 relative">
-                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الاستطلاع (AR)" : "Survey Title (AR)"}</label>
-                   <Input value={surveyMeta.titleAr} onChange={e => setSurveyMeta({...surveyMeta, titleAr: e.target.value})} className="h-12 font-bold" />
-                   <Button size="icon" variant="ghost" className="absolute top-7 right-2" onClick={handleAiTranslate} disabled={aiLoading}>
-                     {aiLoading ? <Loader2 className="animate-spin size-3" /> : <Sparkles className="size-3 text-accent" />}
-                   </Button>
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الاستطلاع (EN)" : "Survey Title (EN)"}</label>
-                   <Input value={surveyMeta.titleEn} onChange={e => setSurveyMeta({...surveyMeta, titleEn: e.target.value})} className="h-12" />
-                 </div>
+            <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
+               <div className="relative">
+                 <Input placeholder="Survey Title AR" value={surveyMeta.titleAr} onChange={e => setSurveyMeta({...surveyMeta, titleAr: e.target.value})} className="font-bold" />
+                 <Button variant="ghost" size="icon" className="absolute top-1 right-1" onClick={handleAiTranslate} disabled={aiLoading}><Sparkles className="size-4 text-accent" /></Button>
                </div>
+               <Input placeholder="Survey Title EN" value={surveyMeta.titleEn} onChange={e => setSurveyMeta({...surveyMeta, titleEn: e.target.value})} />
             </div>
 
             {questions.map((q, idx) => (
-              <Card key={q.id} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-                <div className="bg-secondary/10 p-4 border-b flex justify-between items-center">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-secondary">
-                    {isAr ? `سؤال ${idx+1}: ${q.type}` : `Question ${idx+1}: ${q.type}`}
-                  </span>
-                  <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)} className="text-red-400">
-                    <Trash2 size={18} />
-                  </Button>
-                </div>
-                <CardContent className="p-8 space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Input placeholder="Question AR" value={q.questionAr} onChange={e => updateQuestion(q.id, { questionAr: e.target.value })} className="font-bold" />
-                    <Input placeholder="Question EN" value={q.questionEn} onChange={e => updateQuestion(q.id, { questionEn: e.target.value })} />
-                  </div>
-
+              <Card key={q.id} className="rounded-3xl shadow-xl overflow-hidden border-none animate-in slide-in-from-bottom-2">
+                <CardHeader className="bg-secondary/10 flex flex-row items-center justify-between p-4">
+                  <span className="text-[10px] font-black uppercase text-secondary">Q{idx+1}: {q.type}</span>
+                  <Button variant="ghost" size="icon" onClick={() => setQuestions(questions.filter(qi => qi.id !== q.id))}><Trash2 size={16} className="text-red-400" /></Button>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <Input placeholder="Question AR" value={q.questionAr} onChange={e => updateQuestion(q.id, { questionAr: e.target.value })} className="font-bold" />
+                  <Input placeholder="Question EN" value={q.questionEn} onChange={e => updateQuestion(q.id, { questionEn: e.target.value })} />
                   {q.type === 'mcq' && (
-                    <div className="space-y-4 pt-6 border-t">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "خيارات الإجابة" : "Answer Options"}</label>
-                        <Button variant="ghost" size="sm" onClick={() => {
-                          const newOpt = { id: `opt_${Date.now()}`, textAr: '', textEn: '', icon: 'Circle' };
-                          updateQuestion(q.id, { options: [...(q.options || []), newOpt] });
-                        }} className="text-secondary font-black text-xs">
-                          <Plus size={14} className="ml-1" /> {isAr ? "إضافة خيار" : "Add Option"}
-                        </Button>
-                      </div>
-                      <div className="grid gap-3">
-                        {q.options?.map((opt, optIdx) => (
-                          <div key={opt.id} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl group/opt">
-                            <LucideIcons.Circle size={14} className="text-accent" />
-                            <div className="flex-1 grid grid-cols-2 gap-4">
-                              <Input placeholder="Option AR" value={opt.textAr} onChange={e => {
-                                const newOpts = [...q.options!];
-                                newOpts[optIdx].textAr = e.target.value;
-                                updateQuestion(q.id, { options: newOpts });
-                              }} className="bg-white font-bold text-xs" />
-                              <Input placeholder="Option EN" value={opt.textEn} onChange={e => {
-                                const newOpts = [...q.options!];
-                                newOpts[optIdx].textEn = e.target.value;
-                                updateQuestion(q.id, { options: newOpts });
-                              }} className="bg-white text-xs" />
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => {
-                              const newOpts = q.options!.filter(o => o.id !== opt.id);
-                              updateQuestion(q.id, { options: newOpts });
-                            }} className="text-red-400">
-                              <LucideIcons.X size={16} />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="space-y-2">
+                      {q.options?.map((opt, oIdx) => (
+                        <div key={opt.id} className="flex gap-2 items-center">
+                          <Input className="flex-1" value={opt.textAr} onChange={e => {
+                            const no = [...q.options!]; no[oIdx].textAr = e.target.value; updateQuestion(q.id, { options: no });
+                          }} />
+                          <Button variant="ghost" size="icon" onClick={() => {
+                            const no = q.options!.filter(oi => oi.id !== opt.id); updateQuestion(q.id, { options: no });
+                          }}><X size={14}/></Button>
+                        </div>
+                      ))}
+                      <Button variant="ghost" size="sm" onClick={() => {
+                         const no = [...(q.options || []), { id: `o_${Date.now()}`, textAr: '', textEn: '', icon: 'Circle' }];
+                         updateQuestion(q.id, { options: no });
+                      }} className="text-accent font-black">{isAr ? "+ إضافة خيار" : "+ Add Option"}</Button>
                     </div>
                   )}
                 </CardContent>
@@ -239,7 +170,6 @@ export default function SurveyBuilder() {
           </div>
         </div>
       </main>
-      
       <PortalFooter siteConfig={null} />
     </div>
   );
