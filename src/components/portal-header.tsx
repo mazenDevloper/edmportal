@@ -78,44 +78,46 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
   }, [pathname]);
 
   return (
-    <div className="w-full">
-      <div className="bg-slate-900 text-white py-2 text-[10px] font-bold tracking-widest border-b border-white/5">
+    <header className="w-full">
+      {/* Top Bar with Enhanced Contrast for WCAG 2 AA */}
+      <nav className="bg-slate-900 text-white py-2 text-[10px] font-bold tracking-widest border-b border-white/5" aria-label={isAr ? "روابط سريعة" : "Quick Links"}>
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
-          <span className="flex items-center gap-2 opacity-70">
+          <span className="flex items-center gap-2 opacity-80">
             <Globe size={12} /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}
           </span>
           <div className="flex items-center gap-6">
             {editLink && (
-              <Button variant="ghost" asChild className="text-accent hover:text-white h-auto py-0 px-2 font-black gap-2 animate-pulse">
+              <Button variant="ghost" asChild className="text-[#04F0EB] hover:text-white h-auto py-0 px-2 font-black gap-2 animate-pulse">
                 <Link href={editLink}>
                   <Edit2 size={10} /> {isAr ? 'تحرير المكونات' : 'Edit Components'}
                 </Link>
               </Button>
             )}
-            <Link href="/template" className="text-accent hover:underline font-black">
+            <Link href="/template" className="text-[#04F0EB] hover:underline font-black">
               {isAr ? 'المساحة الذكية' : 'Spatial Workspace'}
             </Link>
-            <Link href="/admin" className="text-accent hover:underline flex items-center gap-2">
+            <Link href="/admin" className="text-[#04F0EB] hover:underline flex items-center gap-2">
               <LayoutDashboard size={12} /> {isAr ? 'لوحة التحكم' : 'Admin Panel'}
             </Link>
-            <button onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="hover:text-accent">
+            <button onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="hover:text-[#04F0EB] transition-colors">
               {isAr ? 'English' : 'العربية'}
             </button>
           </div>
         </div>
-      </div>
+      </nav>
 
-      <header className="bg-white border-b py-6 sticky top-0 z-[50] shadow-sm">
+      {/* Main Navigation */}
+      <div className="bg-white border-b py-6 sticky top-0 z-[50] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-4">
-             <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={60} height={60} className="object-contain" />
+          <Link href="/" className="flex items-center gap-4" aria-label={isAr ? 'الرئيسية بلدية ظفار' : 'Dhofar Municipality Home'}>
+             <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="" width={60} height={60} className="object-contain" />
              <div className="flex flex-col">
                <span className="text-2xl font-black text-primary leading-none">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
                <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">{isAr ? 'بوابة الخدمات الإلكترونية' : 'Electronic Services Portal'}</span>
              </div>
           </Link>
           
-          <nav className="hidden lg:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6" aria-label={isAr ? "القائمة الرئيسية" : "Main Navigation"}>
             <Link href="/" className={cn("text-sm font-bold hover:text-primary transition-colors", pathname === '/' ? "text-primary" : "text-slate-600")}>
               {isAr ? 'الرئيسية' : 'Home'}
             </Link>
@@ -129,23 +131,23 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           <div className="lg:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Menu"><Menu /></Button>
+                <Button variant="ghost" size="icon" aria-label={isAr ? "افتح القائمة" : "Open Menu"}><Menu /></Button>
               </SheetTrigger>
               <SheetContent side={isAr ? "right" : "left"}>
                 <SheetTitle className="text-primary font-black">{isAr ? "القائمة الرئيسية" : "Main Menu"}</SheetTitle>
-                <div className="flex flex-col gap-4 mt-8">
+                <nav className="flex flex-col gap-4 mt-8">
                   <Link href="/" className="text-lg font-bold">{isAr ? 'الرئيسية' : 'Home'}</Link>
                   {menuItems.map(item => (
                     <Link key={item.id} href={item.link} className="text-lg font-bold">
                       {isAr ? item.labelAr : item.labelEn}
                     </Link>
                   ))}
-                </div>
+                </nav>
               </SheetContent>
             </Sheet>
           </div>
         </div>
-      </header>
-    </div>
+      </div>
+    </header>
   );
 }

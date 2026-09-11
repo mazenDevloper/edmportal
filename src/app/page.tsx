@@ -22,7 +22,9 @@ import {
   ArrowRightLeft,
   Sparkles,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Plus,
+  Minus
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
@@ -54,6 +56,7 @@ export default function DhofarPortal() {
   const [loading, setLoading] = useState(true);
   const [ttsLoading, setTtsLoading] = useState(false);
   const [pkiStatus, setPkiStatus] = useState<'connected' | 'disconnected'>('connected');
+  const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
   const [services, setServices] = useState<Service[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -113,7 +116,7 @@ export default function DhofarPortal() {
     }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" aria-label="Loading..." /></div>;
 
   return (
     <div className={cn("flex min-h-screen flex-col bg-white", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
@@ -167,7 +170,7 @@ export default function DhofarPortal() {
                              <Fingerprint className="size-6 animate-pulse" />
                            </div>
                            <div>
-                             <h4 className="font-black text-sm text-primary">{isAr ? "حالة التصديق الإلكتروني (ثقة)" : "PKI Authentication Status"}</h4>
+                             <h2 className="font-black text-sm text-primary">{isAr ? "حالة التصديق الإلكتروني (ثقة)" : "PKI Authentication Status"}</h2>
                              <p className="text-[10px] text-slate-400 font-bold">{isAr ? "الهوية الرقمية الوطنية الموحدة" : "Unified National Digital ID"}</p>
                            </div>
                          </div>
@@ -191,21 +194,21 @@ export default function DhofarPortal() {
             </section>
 
             {/* 2. Official Theqa PKI Visual Integration Guide Section */}
-            <section className="py-20 bg-white border-t border-b border-slate-100" aria-label={isAr ? "دليل الهوية الرقمية ثقة" : "Theqa Digital ID Guide"}>
+            <section className="py-20 bg-white border-t border-b border-slate-100" aria-labelledby="theqa-guide-title">
               <div className="max-w-7xl mx-auto px-6">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6 bg-slate-50 p-8 rounded-brand border">
                   <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-right">
                     <div className="relative w-32 h-16 shrink-0 bg-white p-2 rounded-xl border shadow-sm flex items-center justify-center">
                       <Image 
                         src="https://gov.om/documents/20117/254616/FLIPPED-Theqa-HomePage.png/3a21164e-8832-38df-f66b-6780161591d2?t=1788817339796"
-                        alt="Theqa National Digital Identity Logo"
+                        alt=""
                         fill
                         className="object-contain p-2"
                         priority
                       />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-black text-primary tracking-tight">
+                      <h2 id="theqa-guide-title" className="text-2xl font-black text-primary tracking-tight">
                         {isAr ? "بوابة معتمدة بالكامل عبر الهوية الرقمية (ثقة)" : "Fully Accredited via National Digital Identity (Theqa)"}
                       </h2>
                       <p className="text-slate-500 font-bold text-sm mt-1 max-w-2xl">
@@ -216,7 +219,7 @@ export default function DhofarPortal() {
                     </div>
                   </div>
                   <Button variant="outline" className="rounded-full border-primary text-primary font-black px-6 shrink-0" asChild>
-                    <Link href="/access-controls">{isAr ? "معرفة المزيد" : "Learn More"}</Link>
+                    <Link href="/access-controls">{isAr ? "معرفة المزيد عن ثقة" : "Learn More About Theqa"}</Link>
                   </Button>
                 </div>
 
@@ -226,23 +229,31 @@ export default function DhofarPortal() {
                   <Card className="rounded-brand border-2 border-slate-100 bg-white p-8 flex flex-col justify-between hover:border-primary/20 transition-all shadow-sm group">
                     <div className="space-y-6">
                       <div className="flex justify-between items-start">
-                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm">1</span>
-                        <Fingerprint className="text-slate-300 group-hover:text-accent transition-colors" size={24} />
+                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm" aria-hidden="true">1</span>
+                        <Fingerprint className="text-slate-300 group-hover:text-accent transition-colors" size={24} aria-hidden="true" />
                       </div>
                       <div className="space-y-3">
                         <h3 className="text-lg font-black text-primary leading-snug">
                           {isAr ? "ما هي الهوية الرقمية (ثقة)، وكيف تستفيد منها؟" : "What is the Digital Identity (Theqa)?"}
                         </h3>
-                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                          {isAr 
-                            ? "هوية رقمية آمنة يمكنك الحصول عليها عبر تطبيق الهاتف للوصول للخدمات الحكومية وإنجاز المعاملات فورياً."
-                            : "A secure digital token identity you obtain via your smartphone application to gain instant access to federal state tasks."}
-                        </p>
+                        {expandedStep === 1 && (
+                          <p className="text-xs text-slate-500 font-bold leading-relaxed animate-in fade-in slide-in-from-top-1">
+                            {isAr 
+                              ? "هوية رقمية آمنة يمكنك الحصول عليها عبر تطبيق الهاتف للوصول للخدمات الحكومية وإنجاز المعاملات فورياً."
+                              : "A secure digital token identity you obtain via your smartphone application to gain instant access to federal state tasks."}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="pt-6 mt-6 border-t">
-                      <Button variant="ghost" className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors" asChild>
-                        <Link href="/access-controls">{isAr ? "لمعرفة المزيد" : "Explore Detail"}</Link>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
+                        className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors gap-2"
+                        aria-expanded={expandedStep === 1}
+                      >
+                        {expandedStep === 1 ? <Minus size={14} /> : <Plus size={14} />}
+                        {isAr ? "معرفة المزيد" : "Learn More"}
                       </Button>
                     </div>
                   </Card>
@@ -251,23 +262,31 @@ export default function DhofarPortal() {
                   <Card className="rounded-brand border-2 border-slate-100 bg-white p-8 flex flex-col justify-between hover:border-primary/20 transition-all shadow-sm group">
                     <div className="space-y-6">
                       <div className="flex justify-between items-start">
-                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm">2</span>
-                        <ShieldCheck className="text-slate-300 group-hover:text-accent transition-colors" size={24} />
+                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm" aria-hidden="true">2</span>
+                        <ShieldCheck className="text-slate-300 group-hover:text-accent transition-colors" size={24} aria-hidden="true" />
                       </div>
                       <div className="space-y-3">
                         <h3 className="text-lg font-black text-primary leading-snug">
                           {isAr ? "كيف تحصل على خدمات الثقة الرقمية؟" : "How to acquire Theqa authentication?"}
                         </h3>
-                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                          {isAr 
-                            ? "من خلال تفعيل شريحة الهاتف الداعمة للتصديق، أو قراءة البطاقة الشخصية/بطاقة الإقامة عبر تطبيق الهاتف (ثقة) بسهولة."
-                            : "Through activating your PKI-enabled SIM card, or utilizing your National ID card sensor within the mobile application."}
-                        </p>
+                        {expandedStep === 2 && (
+                          <p className="text-xs text-slate-500 font-bold leading-relaxed animate-in fade-in slide-in-from-top-1">
+                            {isAr 
+                              ? "من خلال تفعيل شريحة الهاتف الداعمة للتصديق، أو قراءة البطاقة الشخصية/بطاقة الإقامة عبر تطبيق الهاتف (ثقة) بسهولة."
+                              : "Through activating your PKI-enabled SIM card, or utilizing your National ID card sensor within the mobile application."}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="pt-6 mt-6 border-t">
-                      <Button variant="ghost" className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors" asChild>
-                        <Link href="/access-controls">{isAr ? "لمعرفة المزيد" : "Explore Detail"}</Link>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
+                        className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors gap-2"
+                        aria-expanded={expandedStep === 2}
+                      >
+                        {expandedStep === 2 ? <Minus size={14} /> : <Plus size={14} />}
+                        {isAr ? "معرفة المزيد" : "Learn More"}
                       </Button>
                     </div>
                   </Card>
@@ -276,23 +295,31 @@ export default function DhofarPortal() {
                   <Card className="rounded-brand border-2 border-slate-100 bg-white p-8 flex flex-col justify-between hover:border-primary/20 transition-all shadow-sm group">
                     <div className="space-y-6">
                       <div className="flex justify-between items-start">
-                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm">3</span>
-                        <ArrowRightLeft className="text-slate-300 group-hover:text-accent transition-colors" size={24} />
+                        <span className="size-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-primary text-sm" aria-hidden="true">3</span>
+                        <ArrowRightLeft className="text-slate-300 group-hover:text-accent transition-colors" size={24} aria-hidden="true" />
                       </div>
                       <div className="space-y-3">
                         <h3 className="text-lg font-black text-primary leading-snug">
                           {isAr ? "كيف تبدأ باستخدام الخدمات في Dhofar Portal؟" : "How to initiate applications with us?"}
                         </h3>
-                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                          {isAr 
-                            ? "سجّل الدخول التلقائي عن طريق تطبيق ثقة، ليقوم النظام بجلب معلومات السجل التجاري أو الملف السكني فوراً وتأكيد هويتك الحقيقية."
-                            : "Log in seamlessly using the application, letting our ecosystem directly read real property or commercial file indices."}
-                        </p>
+                        {expandedStep === 3 && (
+                          <p className="text-xs text-slate-500 font-bold leading-relaxed animate-in fade-in slide-in-from-top-1">
+                            {isAr 
+                              ? "سجّل الدخول التلقائي عن طريق تطبيق ثقة، ليقوم النظام بجلب معلومات السجل التجاري أو الملف السكني فوراً وتأكيد هويتك الحقيقية."
+                              : "Log in seamlessly using the application, letting our ecosystem directly read real property or commercial file indices."}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="pt-6 mt-6 border-t">
-                      <Button variant="ghost" className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors" asChild>
-                        <Link href="/access-controls">{isAr ? "لمعرفة المزيد" : "Explore Detail"}</Link>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
+                        className="w-full text-xs font-black text-primary rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-colors gap-2"
+                        aria-expanded={expandedStep === 3}
+                      >
+                        {expandedStep === 3 ? <Minus size={14} /> : <Plus size={14} />}
+                        {isAr ? "معرفة المزيد" : "Learn More"}
                       </Button>
                     </div>
                   </Card>
@@ -302,10 +329,10 @@ export default function DhofarPortal() {
 
             {/* 3. Search Results */}
             {searchQuery && (
-              <section className="py-12 bg-white border-b animate-in fade-in slide-in-from-top-4 duration-500">
+              <section className="py-12 bg-white border-b animate-in fade-in slide-in-from-top-4 duration-500" aria-label={isAr ? "نتائج البحث" : "Search Results"}>
                 <div className="max-w-7xl mx-auto px-6">
                   <div className="flex items-center gap-3 mb-8">
-                    <div className="h-8 w-1.5 bg-accent rounded-full" />
+                    <div className="h-8 w-1.5 bg-accent rounded-full" aria-hidden="true" />
                     <h2 className="text-2xl font-black text-primary">
                       {isAr ? `نتائج البحث عن "${searchQuery}"` : `Search results for "${searchQuery}"`}
                     </h2>
@@ -325,11 +352,11 @@ export default function DhofarPortal() {
 
             {/* 4. Featured Services */}
             {featuredServices.length > 0 && (
-              <section className="py-20 bg-white">
+              <section className="py-20 bg-white" aria-labelledby="featured-services-title">
                 <div className="max-w-7xl mx-auto px-6">
                   <div className="flex items-center gap-3 mb-12">
-                    <Star className="text-accent fill-accent" size={24} />
-                    <h2 className="text-3xl font-black text-primary">{isAr ? "الخدمات الأكثر استخداماً" : "Most Used Services"}</h2>
+                    <Star className="text-accent fill-accent" size={24} aria-hidden="true" />
+                    <h2 id="featured-services-title" className="text-3xl font-black text-primary">{isAr ? "الخدمات الأكثر استخداماً" : "Most Used Services"}</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
                     {featuredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
@@ -340,11 +367,11 @@ export default function DhofarPortal() {
 
             {/* 5. Public Poll / Survey Section */}
             {activePoll && (
-              <section className="py-20 bg-accent/5">
+              <section className="py-20 bg-accent/5" aria-labelledby="public-poll-title">
                 <div className="max-w-4xl mx-auto px-6 text-center">
                   <div className="mb-8">
                     <Badge className="bg-accent text-white mb-4">{isAr ? "صوتك يهمنا" : "Your Voice Matters"}</Badge>
-                    <h2 className="text-3xl font-black text-primary mb-4">{isAr ? activePoll.titleAr : activePoll.titleEn}</h2>
+                    <h2 id="public-poll-title" className="text-3xl font-black text-primary mb-4">{isAr ? activePoll.titleAr : activePoll.titleEn}</h2>
                     <p className="text-slate-500 font-bold">{isAr ? activePoll.descriptionAr : activePoll.descriptionEn}</p>
                   </div>
                   <Card className="rounded-brand border-none shadow-xl">
@@ -352,10 +379,10 @@ export default function DhofarPortal() {
                       {activePoll.questions.map((q) => (
                         <div key={q.id} className="space-y-6">
                           <h3 className="text-xl font-black flex items-center justify-center gap-3">
-                            {q.iconName && React.createElement((Icons as any)[q.iconName] || Icons.Info, { className: "text-accent" })}
+                            {q.iconName && React.createElement((Icons as any)[q.iconName] || Icons.Info, { className: "text-accent", "aria-hidden": "true" })}
                             {isAr ? q.questionAr : q.questionEn}
                           </h3>
-                          <RadioGroup className="grid sm:grid-cols-2 gap-4">
+                          <RadioGroup className="grid sm:grid-cols-2 gap-4" aria-label={isAr ? q.questionAr : q.questionEn}>
                             {q.options?.map((opt) => (
                               <div key={opt.id} className="relative group">
                                 <RadioGroupItem value={opt.id} id={opt.id} className="sr-only" />
@@ -363,7 +390,7 @@ export default function DhofarPortal() {
                                   htmlFor={opt.id} 
                                   className="flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer hover:border-primary hover:bg-slate-50 transition-all font-bold text-slate-700 group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary/5"
                                 >
-                                  {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 18, className: "text-accent" })}
+                                  {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 18, className: "text-accent", "aria-hidden": "true" })}
                                   {isAr ? opt.textAr : opt.textEn}
                                 </Label>
                               </div>
@@ -382,7 +409,7 @@ export default function DhofarPortal() {
 
             {/* 6. Carousel Banner */}
             {carouselItems.length > 0 && (
-              <section className="relative group overflow-hidden">
+              <section className="relative group overflow-hidden" aria-label={isAr ? "إعلانات البوابة" : "Portal Banners"}>
                 <Carousel className="w-full" opts={{ loop: true }}>
                   <CarouselContent>
                     {carouselItems.map(item => (
@@ -390,7 +417,7 @@ export default function DhofarPortal() {
                         <div className="relative h-[500px] w-full flex items-center justify-center">
                           <Image 
                             src={item.imageUrl || "https://picsum.photos/seed/dhofar/1200/600"} 
-                            alt={isAr ? item.titleAr : item.titleEn} 
+                            alt="" 
                             fill 
                             className="object-cover brightness-[0.4]" 
                             data-ai-hint="scenic landscape"
@@ -406,50 +433,50 @@ export default function DhofarPortal() {
                       </CarouselItemUI>
                     ))}
                   </CarouselContent>
-                  <CarouselPrevious className="left-8" />
-                  <CarouselNext className="right-8" />
+                  <CarouselPrevious className="left-8" aria-label={isAr ? "السابق" : "Previous slide"} />
+                  <CarouselNext className="right-8" aria-label={isAr ? "التالي" : "Next slide"} />
                 </Carousel>
               </section>
             )}
 
             {/* 7. Stats */}
-            <section className="py-24 bg-primary text-white relative overflow-hidden">
+            <section className="py-24 bg-primary text-white relative overflow-hidden" aria-label={isAr ? "إحصائيات المنصة" : "Platform Stats"}>
                <div className="max-w-7xl mx-auto px-6 relative z-10">
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
                     <div className="space-y-2">
-                       <TrendingUp className="mx-auto text-accent mb-4" size={40} />
+                       <TrendingUp className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.transactions || '0'}+</h3>
                        <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
                     </div>
                     <div className="space-y-2">
-                       <ShieldCheck className="mx-auto text-accent mb-4" size={40} />
+                       <ShieldCheck className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
                        <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'رخصة بناء' : 'Permits'}</p>
                     </div>
                     <div className="space-y-2">
-                       <FileText className="mx-auto text-accent mb-4" size={40} />
+                       <FileText className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.contracts || '0'}+</h3>
                        <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'عقد إيجار' : 'Leases'}</p>
                     </div>
                     <div className="space-y-2">
-                       <Users className="mx-auto text-accent mb-4" size={40} />
+                       <Users className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
                        <h3 className="text-5xl font-black">{siteConfig?.stats?.tickets || '0'}+</h3>
                        <p className="text-sm font-bold opacity-70 tracking-widest uppercase">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
                     </div>
                  </div>
                </div>
-               <div className="absolute inset-0 dm-wave-5 opacity-10" />
+               <div className="absolute inset-0 dm-wave-5 opacity-10" aria-hidden="true" />
             </section>
 
             {/* 8. Catalog */}
-            <section className="py-24 bg-white">
+            <section className="py-24 bg-white" aria-labelledby="catalog-title">
               <div className="max-w-7xl mx-auto px-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
                    <div>
-                     <h2 className="text-4xl font-black text-primary mb-2">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog"}</h2>
+                     <h2 id="catalog-title" className="text-4xl font-black text-primary mb-2">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog"}</h2>
                      <p className="text-slate-400 font-bold">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً" : "Explore all municipal services"}</p>
                    </div>
-                   <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto">
+                   <nav className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto" aria-label={isAr ? "فئات الخدمات" : "Service Categories"}>
                      {['all', ...Object.keys(CAT_CONFIG)].map(cid => (
                        <Button 
                         key={cid} 
@@ -460,7 +487,7 @@ export default function DhofarPortal() {
                          {cid === 'all' ? (isAr ? 'الكل' : 'All') : (isAr ? CAT_CONFIG[cid as CategoryId].labelAr : CAT_CONFIG[cid as CategoryId].labelEn)}
                        </Button>
                      ))}
-                   </div>
+                   </nav>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   {catalogServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
@@ -469,7 +496,7 @@ export default function DhofarPortal() {
             </section>
 
             {/* 9. Identity Showcase */}
-            <section className="py-24 bg-white border-t">
+            <section className="py-24 bg-white border-t" aria-label={isAr ? "دليل الهوية" : "Identity Guide"}>
               <div className="max-w-7xl mx-auto px-6 text-center">
                 <Button onClick={() => setActiveTab('identity')} className="h-16 px-12 rounded-full font-black text-xl dm-gradient-primary shadow-xl">
                   {isAr ? "دليل الهوية البصرية والمكونات" : "Visual Identity & Components Guide"}
