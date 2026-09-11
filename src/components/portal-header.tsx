@@ -1,15 +1,16 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Globe, LayoutDashboard, Languages, Menu, Edit2 } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
-import { MenuItem } from '@/lib/types';
+import { MenuItem, CustomPage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
+import { fetchBin } from '@/lib/jsonbin';
 import {
   Sheet,
   SheetContent,
@@ -25,6 +26,21 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
   const pathname = usePathname();
   const { language, setLanguage } = useSettingsStore();
   const isAr = language === 'ar';
+  
+  const [currentPageId, setCurrentPageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pathname.startsWith('/p/')) {
+      const slug = pathname.split('/').pop();
+      fetchBin().then(data => {
+        const page = data?.customPages?.find((p: CustomPage) => p.slug === slug);
+        if (page) setCurrentPageId(page.id);
+      });
+    }
+  }, [pathname]);
+
+  const showEditButton = pathname.startsWith('/p/') || pathname === '/';
+  const editLink = pathname === '/' ? '/admin' : `/pagebuild?id=${currentPageId}`;
 
   return (
     <div className="w-full">
@@ -35,10 +51,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             <Globe size={12} /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}
           </span>
           <div className="flex items-center gap-6">
-            {/* Contextual Editor Link for Prototype Admins */}
-            {pathname !== '/admin' && (
+            {/* Dynamic Content Editor Link */}
+            {showEditButton && (
               <Button variant="ghost" asChild className="text-accent hover:text-white h-auto py-0 px-2 font-black gap-2">
-                <Link href={`/pagebuild?slug=${pathname.substring(1) || 'home'}`}>
+                <Link href={editLink}>
                   <Edit2 size={10} /> {isAr ? 'تحرير المحتوى' : 'Edit Content'}
                 </Link>
               </Button>
