@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, ClipboardList, Save, ArrowLeft, MessageSquare, List, Star, X, Info, Loader2 } from 'lucide-react';
+import { Plus, Trash2, ClipboardList, Save, ArrowLeft, MessageSquare, List, Star, X, Info, Loader2, Sparkles } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -15,6 +14,9 @@ import { PortalFooter } from '@/components/portal-footer';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { Survey, SurveyQuestion } from '@/lib/types';
+import { translateToEnglish } from '@/ai/flows/translate-flow';
+
+const ICON_LIST = ['Circle', 'CheckCircle2', 'Heart', 'Star', 'MessageSquare', 'ThumbsUp', 'MapPin', 'Users', 'Target'];
 
 export default function SurveyBuilder() {
   const router = useRouter();
@@ -34,6 +36,7 @@ export default function SurveyBuilder() {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (editId) {
@@ -56,6 +59,18 @@ export default function SurveyBuilder() {
       }).catch(() => setLoading(false));
     }
   }, [editId]);
+
+  const handleAiTranslate = async () => {
+    if (!surveyMeta.titleAr) return;
+    setAiLoading(true);
+    try {
+      const { translatedText } = await translateToEnglish({ text: surveyMeta.titleAr });
+      setSurveyMeta({ ...surveyMeta, titleEn: translatedText });
+      toast({ title: "AI Success", description: "Title translated to English" });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const addQuestion = (type: SurveyQuestion['type']) => {
     const newQ: SurveyQuestion = {
@@ -94,8 +109,6 @@ export default function SurveyBuilder() {
       };
 
       const filtered = (db.surveys || []).filter((s: any) => s.id !== newId);
-      
-      // If this is set as the public poll, disable other public polls
       const updatedSurveys = surveyMeta.isPublicPoll 
         ? filtered.map((s: any) => ({ ...s, isPublicPoll: false }))
         : filtered;
@@ -160,7 +173,6 @@ export default function SurveyBuilder() {
                     className="w-5 h-5 accent-secondary"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 font-bold">{isAr ? "تفعيل هذا الخيار سيظهر الاستطلاع في الصفحة الرئيسية" : "Enabling this shows the poll on the home page"}</p>
               </div>
             </CardContent>
           </Card>
@@ -168,90 +180,77 @@ export default function SurveyBuilder() {
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border space-y-6">
                <div className="grid md:grid-cols-2 gap-6">
-                 <div className="space-y-2">
+                 <div className="space-y-2 relative">
                    <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الاستطلاع (AR)" : "Survey Title (AR)"}</label>
                    <Input value={surveyMeta.titleAr} onChange={e => setSurveyMeta({...surveyMeta, titleAr: e.target.value})} className="h-12 font-bold" />
+                   <Button size="icon" variant="ghost" className="absolute top-7 right-2" onClick={handleAiTranslate} disabled={aiLoading}>
+                     {aiLoading ? <Loader2 className="animate-spin size-3" /> : <Sparkles className="size-3 text-accent" />}
+                   </Button>
                  </div>
                  <div className="space-y-2">
                    <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الاستطلاع (EN)" : "Survey Title (EN)"}</label>
                    <Input value={surveyMeta.titleEn} onChange={e => setSurveyMeta({...surveyMeta, titleEn: e.target.value})} className="h-12" />
                  </div>
                </div>
-               <div className="grid md:grid-cols-2 gap-6">
-                 <div className="space-y-2">
-                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "الوصف (AR)" : "Description (AR)"}</label>
-                   <Input value={surveyMeta.descriptionAr} onChange={e => setSurveyMeta({...surveyMeta, descriptionAr: e.target.value})} />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "الوصف (EN)" : "Description (EN)"}</label>
-                   <Input value={surveyMeta.descriptionEn} onChange={e => setSurveyMeta({...surveyMeta, descriptionEn: e.target.value})} />
-                 </div>
-               </div>
             </div>
 
-            {questions.length === 0 ? (
-              <div className="border-4 border-dashed border-slate-200 rounded-[3rem] p-32 text-center bg-white">
-                <ClipboardList size={64} className="mx-auto text-slate-100 mb-6" />
-                <p className="text-slate-400 font-black text-lg">{isAr ? "لا توجد أسئلة بعد" : "No questions added yet"}</p>
-              </div>
-            ) : (
-              questions.map((q, idx) => (
-                <Card key={q.id} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-                  <div className="bg-secondary/10 p-4 border-b flex justify-between items-center">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-secondary">
-                      {isAr ? `سؤال ${idx+1}: ${q.type}` : `Question ${idx+1}: ${q.type}`}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)} className="text-red-400">
-                      <Trash2 size={18} />
-                    </Button>
+            {questions.map((q, idx) => (
+              <Card key={q.id} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+                <div className="bg-secondary/10 p-4 border-b flex justify-between items-center">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-secondary">
+                    {isAr ? `سؤال ${idx+1}: ${q.type}` : `Question ${idx+1}: ${q.type}`}
+                  </span>
+                  <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)} className="text-red-400">
+                    <Trash2 size={18} />
+                  </Button>
+                </div>
+                <CardContent className="p-8 space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Input placeholder="Question AR" value={q.questionAr} onChange={e => updateQuestion(q.id, { questionAr: e.target.value })} className="font-bold" />
+                    <Input placeholder="Question EN" value={q.questionEn} onChange={e => updateQuestion(q.id, { questionEn: e.target.value })} />
                   </div>
-                  <CardContent className="p-8 space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <Input placeholder="Question AR" value={q.questionAr} onChange={e => updateQuestion(q.id, { questionAr: e.target.value })} className="font-bold" />
-                      <Input placeholder="Question EN" value={q.questionEn} onChange={e => updateQuestion(q.id, { questionEn: e.target.value })} />
-                    </div>
 
-                    {q.type === 'mcq' && (
-                      <div className="space-y-4 pt-6 border-t">
-                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "خيارات الإجابة" : "Answer Options"}</label>
-                          <Button variant="ghost" size="sm" onClick={() => {
-                            const newOpt = { id: `opt_${Date.now()}`, textAr: '', textEn: '', icon: 'Circle' };
-                            updateQuestion(q.id, { options: [...(q.options || []), newOpt] });
-                          }} className="text-secondary font-black text-xs">
-                            <Plus size={14} className="ml-1" /> {isAr ? "إضافة خيار" : "Add Option"}
-                          </Button>
-                        </div>
-                        <div className="grid gap-3">
-                          {q.options?.map((opt, optIdx) => (
-                            <div key={opt.id} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl group/opt">
-                              <div className="flex-1 grid grid-cols-2 gap-4">
-                                <Input placeholder="Option AR" value={opt.textAr} onChange={e => {
-                                  const newOpts = [...q.options!];
-                                  newOpts[optIdx].textAr = e.target.value;
-                                  updateQuestion(q.id, { options: newOpts });
-                                }} className="bg-white" />
-                                <Input placeholder="Option EN" value={opt.textEn} onChange={e => {
-                                  const newOpts = [...q.options!];
-                                  newOpts[optIdx].textEn = e.target.value;
-                                  updateQuestion(q.id, { options: newOpts });
-                                }} className="bg-white" />
-                              </div>
-                              <Button variant="ghost" size="icon" onClick={() => {
-                                const newOpts = q.options!.filter(o => o.id !== opt.id);
-                                updateQuestion(q.id, { options: newOpts });
-                              }} className="text-red-400 opacity-0 group-hover/opt:opacity-100 transition-opacity">
-                                <X size={16} />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
+                  {q.type === 'mcq' && (
+                    <div className="space-y-4 pt-6 border-t">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "خيارات الإجابة" : "Answer Options"}</label>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          const newOpt = { id: `opt_${Date.now()}`, textAr: '', textEn: '', icon: 'Circle' };
+                          updateQuestion(q.id, { options: [...(q.options || []), newOpt] });
+                        }} className="text-secondary font-black text-xs">
+                          <Plus size={14} className="ml-1" /> {isAr ? "إضافة خيار" : "Add Option"}
+                        </Button>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                      <div className="grid gap-3">
+                        {q.options?.map((opt, optIdx) => (
+                          <div key={opt.id} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl group/opt">
+                            <LucideIcons.Circle size={14} className="text-accent" />
+                            <div className="flex-1 grid grid-cols-2 gap-4">
+                              <Input placeholder="Option AR" value={opt.textAr} onChange={e => {
+                                const newOpts = [...q.options!];
+                                newOpts[optIdx].textAr = e.target.value;
+                                updateQuestion(q.id, { options: newOpts });
+                              }} className="bg-white font-bold text-xs" />
+                              <Input placeholder="Option EN" value={opt.textEn} onChange={e => {
+                                const newOpts = [...q.options!];
+                                newOpts[optIdx].textEn = e.target.value;
+                                updateQuestion(q.id, { options: newOpts });
+                              }} className="bg-white text-xs" />
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => {
+                              const newOpts = q.options!.filter(o => o.id !== opt.id);
+                              updateQuestion(q.id, { options: newOpts });
+                            }} className="text-red-400">
+                              <X size={16} />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </main>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, Type, TrendingUp, Info, Loader2, Link as LinkIcon } from 'lucide-react';
+import { Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, Type, TrendingUp, Info, Loader2, Sparkles, MessageSquare, ListChecks } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -15,6 +14,7 @@ import { PortalFooter } from '@/components/portal-footer';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CustomPage, BuilderComponent } from '@/lib/types';
+import { translateToEnglish } from '@/ai/flows/translate-flow';
 
 export default function PageBuilder() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function PageBuilder() {
   const [pageMeta, setPageMeta] = useState({ titleAr: '', titleEn: '', slug: '' });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (editId) {
@@ -45,12 +46,21 @@ export default function PageBuilder() {
           }
         }
         setLoading(false);
-      }).catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+      }).catch(() => setLoading(false));
     }
   }, [editId]);
+
+  const handleAiTranslateMeta = async () => {
+    if (!pageMeta.titleAr) return;
+    setAiLoading(true);
+    try {
+      const { translatedText } = await translateToEnglish({ text: pageMeta.titleAr });
+      setPageMeta({ ...pageMeta, titleEn: translatedText });
+      toast({ title: "AI Success", description: "Meta translated" });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const addComponent = (type: BuilderComponent['type']) => {
     const newComp: BuilderComponent = {
@@ -58,7 +68,8 @@ export default function PageBuilder() {
       type,
       content: type === 'hero' ? { titleAr: 'New Hero', titleEn: 'New Hero', subtitleAr: 'Subtitle', subtitleEn: 'Subtitle' } : 
                type === 'text' ? { bodyAr: 'محتوى نصي جديد', bodyEn: 'New text content' } : 
-               type === 'stats' ? { t1: 'Stats Label', v1: '100', t2: 'Label 2', v2: '200' } : {}
+               type === 'stats' ? { t1: 'Stats Label', v1: '100', t2: 'Label 2', v2: '200' } : 
+               type === 'info' ? { bodyAr: 'معلومات هامة', bodyEn: 'Important info' } : {}
     };
     setComponents([...components, newComp]);
   };
@@ -139,9 +150,12 @@ export default function PageBuilder() {
 
           <div className="lg:col-span-3 space-y-6">
             <div className="grid md:grid-cols-3 gap-4 bg-white p-6 rounded-3xl shadow-sm border">
-               <div className="space-y-1">
+               <div className="space-y-1 relative">
                  <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الصفحة (AR)" : "Title (AR)"}</label>
                  <Input value={pageMeta.titleAr} onChange={(e) => setPageMeta({...pageMeta, titleAr: e.target.value})} className="font-bold border-2" />
+                 <Button size="icon" variant="ghost" className="absolute top-7 right-2" onClick={handleAiTranslateMeta} disabled={aiLoading}>
+                   {aiLoading ? <Loader2 className="animate-spin size-3" /> : <Sparkles className="size-3 text-accent" />}
+                 </Button>
                </div>
                <div className="space-y-1">
                  <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "عنوان الصفحة (EN)" : "Title (EN)"}</label>
@@ -153,64 +167,49 @@ export default function PageBuilder() {
                </div>
             </div>
 
-            {components.length === 0 ? (
-              <div className="border-4 border-dashed border-slate-200 rounded-[3rem] p-32 text-center bg-white shadow-sm">
-                <Layout size={64} className="mx-auto text-slate-100 mb-6" />
-                <p className="text-slate-400 font-bold text-lg">{isAr ? "لم تقم بإضافة أي مكونات بعد" : "No components added yet"}</p>
-              </div>
-            ) : (
-              components.map((c, i) => (
-                <Card key={c.id} className="rounded-[2rem] shadow-sm border-l-8 border-primary overflow-hidden group animate-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex justify-between items-center p-4 bg-slate-50 border-b">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                      {isAr ? `المكون ${i+1}: ${c.type}` : `Component ${i+1}: ${c.type}`}
-                    </span>
-                    <Button variant="ghost" size="icon" onClick={() => removeComponent(c.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50">
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                  <CardContent className="p-8 space-y-6">
-                    {c.type === 'hero' ? (
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <label className="text-[9px] font-black uppercase text-primary">Arabic Content</label>
-                          <Input placeholder="Hero Title AR" value={c.content.titleAr} onChange={e => {
-                             const nc = [...components]; nc[i].content.titleAr = e.target.value; setComponents(nc);
-                          }} className="font-bold" />
-                          <Textarea placeholder="Hero Subtitle AR" value={c.content.subtitleAr} onChange={e => {
-                             const nc = [...components]; nc[i].content.subtitleAr = e.target.value; setComponents(nc);
-                          }} />
-                        </div>
-                        <div className="space-y-4">
-                          <label className="text-[9px] font-black uppercase text-primary">English Content</label>
-                          <Input placeholder="Hero Title EN" value={c.content.titleEn} onChange={e => {
-                             const nc = [...components]; nc[i].content.titleEn = e.target.value; setComponents(nc);
-                          }} className="font-bold" />
-                          <Textarea placeholder="Hero Subtitle EN" value={c.content.subtitleEn} onChange={e => {
-                             const nc = [...components]; nc[i].content.subtitleEn = e.target.value; setComponents(nc);
-                          }} />
-                        </div>
+            {components.map((c, i) => (
+              <Card key={c.id} className="rounded-[2rem] shadow-sm border-l-8 border-primary overflow-hidden group animate-in slide-in-from-bottom-2 duration-300">
+                <div className="flex justify-between items-center p-4 bg-slate-50 border-b">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                    {isAr ? `المكون ${i+1}: ${c.type}` : `Component ${i+1}: ${c.type}`}
+                  </span>
+                  <Button variant="ghost" size="icon" onClick={() => removeComponent(c.id)} className="text-red-400">
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+                <CardContent className="p-8 space-y-6">
+                  {c.type === 'hero' ? (
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <Input placeholder="Hero Title AR" value={c.content.titleAr} onChange={e => {
+                           const nc = [...components]; nc[i].content.titleAr = e.target.value; setComponents(nc);
+                        }} className="font-bold" />
+                        <Textarea placeholder="Hero Subtitle AR" value={c.content.subtitleAr} onChange={e => {
+                           const nc = [...components]; nc[i].content.subtitleAr = e.target.value; setComponents(nc);
+                        }} />
                       </div>
-                    ) : (
-                      <div className="grid md:grid-cols-2 gap-6">
-                         <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase text-primary">Arabic Content</label>
-                            <Textarea placeholder="Content AR..." value={c.content.bodyAr} onChange={e => {
-                              const nc = [...components]; nc[i].content.bodyAr = e.target.value; setComponents(nc);
-                            }} className="min-h-[120px] font-bold" />
-                         </div>
-                         <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase text-primary">English Content</label>
-                            <Textarea placeholder="Content EN..." value={c.content.bodyEn} onChange={e => {
-                              const nc = [...components]; nc[i].content.bodyEn = e.target.value; setComponents(nc);
-                            }} className="min-h-[120px]" />
-                         </div>
+                      <div className="space-y-4">
+                        <Input placeholder="Hero Title EN" value={c.content.titleEn} onChange={e => {
+                           const nc = [...components]; nc[i].content.titleEn = e.target.value; setComponents(nc);
+                        }} className="font-bold" />
+                        <Textarea placeholder="Hero Subtitle EN" value={c.content.subtitleEn} onChange={e => {
+                           const nc = [...components]; nc[i].content.subtitleEn = e.target.value; setComponents(nc);
+                        }} />
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-6">
+                       <Textarea placeholder="Content AR..." value={c.content.bodyAr} onChange={e => {
+                         const nc = [...components]; nc[i].content.bodyAr = e.target.value; setComponents(nc);
+                       }} className="min-h-[120px] font-bold" />
+                       <Textarea placeholder="Content EN..." value={c.content.bodyEn} onChange={e => {
+                         const nc = [...components]; nc[i].content.bodyEn = e.target.value; setComponents(nc);
+                       }} className="min-h-[120px]" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </main>
