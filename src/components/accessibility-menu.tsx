@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -49,7 +50,7 @@ export function AccessibilityMenu() {
         <PopoverTrigger asChild>
           <Button 
             size="icon" 
-            className="h-16 w-16 rounded-full shadow-[0_0_30px_rgba(3,207,203,0.4)] bg-[#008E91] hover:bg-[#470D67] text-white border-2 border-white focus-visible:ring-4 focus-visible:ring-accent"
+            className="h-16 w-16 rounded-full shadow-[0_0_30px_rgba(3,207,203,0.4)] bg-[#008E91] hover:bg-[#470D67] text-white border-2 border-white focus-visible:ring-4 focus-visible:ring-accent animate-pulse"
             aria-label={isAr ? "أدوات النفاذ الرقمي" : "Digital Accessibility Tools"}
           >
             <Accessibility className="h-8 w-8" aria-hidden="true" />
@@ -104,6 +105,14 @@ export function AccessibilityMenu() {
                 <Contrast className="h-5 w-5" />
                 <span>{isAr ? 'تباين عالي' : 'High Contrast'}</span>
               </Button>
+              <Button 
+                variant={spacing === 'wide' ? 'secondary' : 'outline'} 
+                className={cn("w-full justify-start gap-3 h-12 font-bold rounded-xl", spacing === 'wide' && "bg-slate-900 text-white")}
+                onClick={() => setSpacing(spacing === 'wide' ? 'normal' : 'wide')}
+              >
+                <Maximize2 className="h-5 w-5" />
+                <span>{isAr ? 'تباعد مريح' : 'Comfortable Spacing'}</span>
+              </Button>
             </div>
 
             <div className="space-y-3">
@@ -111,7 +120,7 @@ export function AccessibilityMenu() {
               <div className="grid grid-cols-1 gap-3">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start gap-3 h-12 font-bold rounded-xl"
+                  className="w-full justify-start gap-3 h-12 font-black rounded-xl"
                   onClick={() => toast({ title: isAr ? "مساعد لغة الإشارة" : "Sign Language Assistant", description: isAr ? "جاري تفعيل ترجمة الإشارة العمانية..." : "Activating Oman SL Assistant..." })}
                 >
                   <Video className="h-5 w-5 text-accent" />
@@ -119,7 +128,7 @@ export function AccessibilityMenu() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start gap-3 h-12 font-bold rounded-xl"
+                  className="w-full justify-start gap-3 h-12 font-black rounded-xl"
                   onClick={handleKeyboardGuide}
                 >
                   <Keyboard className="h-5 w-5 text-accent" />
