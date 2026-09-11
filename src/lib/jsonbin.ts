@@ -27,7 +27,13 @@ export async function fetchBin() {
       serviceFlows: [],
       customPages: [],
       surveys: [],
-      siteConfig: { heroTitle: 'Dhofar Portal', heroSubtitle: 'Unified Services', stats: { transactions: 0, permits: 0, contracts: 0, tickets: 0 } }
+      popups: [],
+      siteConfig: { 
+        heroTitle: 'Dhofar Portal', 
+        heroSubtitle: 'Unified Services', 
+        stats: { transactions: 0, permits: 0, contracts: 0, tickets: 0 },
+        footerLinks: []
+      }
     };
   }
 }

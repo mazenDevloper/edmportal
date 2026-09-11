@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Table, 
   TableBody, 
@@ -16,7 +18,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Service, SiteConfig, MenuItem, CarouselItem, ServiceApplication, Survey, CustomPage } from '@/lib/types';
+import { Service, SiteConfig, MenuItem, CarouselItem, ServiceApplication, Survey, CustomPage, PopupMessage } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
@@ -24,7 +26,7 @@ import {
   CloudUpload, Star, Layout, Menu, Image as ImageIcon,
   BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
   TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database,
-  Edit2, FileText, Eye, X, Link as LinkIcon
+  Edit2, FileText, Eye, X, Link as LinkIcon, Bell
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -41,6 +43,7 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState<ServiceApplication[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
+  const [popups, setPopups] = useState<PopupMessage[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
     heroTitle: '', heroSubtitle: '', contactPhone: '', contactEmail: '',
     categories: ['building', 'health', 'invest', 'tech', 'elec'], isMaintenanceMode: false,
@@ -62,6 +65,7 @@ export default function AdminDashboard() {
           setCarouselItems(data.carouselItems || []);
           setSurveys(data.surveys || []);
           setCustomPages(data.customPages || []);
+          setPopups(data.popups || []);
         }
       } catch (e) {
         toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
@@ -78,7 +82,7 @@ export default function AdminDashboard() {
       const db = await fetchBin();
       await updateBin({
         ...db,
-        services, siteConfig, menuItems, carouselItems, surveys, customPages
+        services, siteConfig, menuItems, carouselItems, surveys, customPages, popups
       });
       toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تمت المزامنة بنجاح" : "Synced successfully" });
     } catch (e) {
@@ -105,6 +109,17 @@ export default function AdminDashboard() {
       category: 'legal' as const
     }];
     setSiteConfig({ ...siteConfig, footerLinks: newLinks });
+  };
+
+  const addPopup = () => {
+    setPopups([...popups, {
+      id: `pop_${Date.now()}`,
+      type: 'text',
+      titleAr: 'تنبيه جديد',
+      titleEn: 'New Alert',
+      isActive: false,
+      displayDelay: 2
+    }]);
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -136,10 +151,56 @@ export default function AdminDashboard() {
             <TabsTrigger value="pages" className="font-black"><FileText className="size-4 ml-2" /> {isAr ? "الصفحات" : "Pages"}</TabsTrigger>
             <TabsTrigger value="menu" className="font-black"><Menu className="size-4 ml-2" /> {isAr ? "القائمة" : "Menu"}</TabsTrigger>
             <TabsTrigger value="carousel" className="font-black"><ImageIcon className="size-4 ml-2" /> {isAr ? "البنرات" : "Banner"}</TabsTrigger>
+            <TabsTrigger value="popups" className="font-black"><Bell className="size-4 ml-2" /> {isAr ? "المنبثقات" : "Popups"}</TabsTrigger>
             <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
             <TabsTrigger value="surveys" className="font-black"><ClipboardList className="size-4 ml-2" /> {isAr ? "الاستطلاعات" : "Polls"}</TabsTrigger>
-            <TabsTrigger value="apps" className="font-black"><FileCheck className="size-4 ml-2" /> {isAr ? "الطلبات" : "Apps"}</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="popups" className="space-y-6">
+             <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-primary">{isAr ? "تنبيهات الزوار المنبثقة" : "Visitor Popups"}</h3>
+                <Button size="sm" onClick={addPopup} className="rounded-full bg-accent text-accent-foreground font-black">
+                  <Plus size={14} className="ml-2"/> {isAr ? "إضافة تنبيه" : "Add Popup"}
+                </Button>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {popups.map((pop, idx) => (
+                 <Card key={pop.id} className="rounded-brand border shadow-sm">
+                   <CardContent className="p-6 space-y-4">
+                     <div className="flex justify-between items-center">
+                       <Badge className="dm-gradient-primary">{pop.type.toUpperCase()}</Badge>
+                       <div className="flex items-center gap-2">
+                         <span className="text-[10px] font-black">{isAr ? "تفعيل" : "Active"}</span>
+                         <Switch checked={pop.isActive} onCheckedChange={val => {
+                           const n = [...popups]; n[idx].isActive = val; setPopups(n);
+                         }} />
+                         <Button variant="ghost" size="icon" onClick={() => setPopups(popups.filter(p => p.id !== pop.id))} className="text-red-400"><Trash2 size={16}/></Button>
+                       </div>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                       <Input placeholder="Title AR" value={pop.titleAr} onChange={e => { const n = [...popups]; n[idx].titleAr = e.target.value; setPopups(n); }} />
+                       <Input placeholder="Title EN" value={pop.titleEn} onChange={e => { const n = [...popups]; n[idx].titleEn = e.target.value; setPopups(n); }} />
+                     </div>
+                     <Select value={pop.type} onValueChange={val => {
+                       const n = [...popups]; n[idx].type = val as any; setPopups(n);
+                     }}>
+                       <SelectTrigger><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="text">Text Only</SelectItem>
+                         <SelectItem value="image">Image Popup</SelectItem>
+                         <SelectItem value="video">Video Popup</SelectItem>
+                       </SelectContent>
+                     </Select>
+                     {(pop.type === 'image' || pop.type === 'video') && (
+                       <Input placeholder={pop.type === 'image' ? "Image URL" : "Video URL (YouTube/Vimeo)"} value={pop.mediaUrl} onChange={e => {
+                         const n = [...popups]; n[idx].mediaUrl = e.target.value; setPopups(n);
+                       }} className="font-mono text-xs" />
+                     )}
+                   </CardContent>
+                 </Card>
+               ))}
+             </div>
+          </TabsContent>
 
           <TabsContent value="services" className="space-y-6">
              <div className="flex justify-between items-center">
@@ -236,8 +297,14 @@ export default function AdminDashboard() {
                   <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <h4 className="font-black text-primary flex items-center gap-2 border-b pb-2"><PenTool size={16}/> {isAr ? "نصوص البطل" : "Hero Content"}</h4>
-                      <Input placeholder="Hero Title" value={siteConfig.heroTitle} onChange={e => setSiteConfig({...siteConfig, heroTitle: e.target.value})} />
-                      <Input placeholder="Hero Subtitle" value={siteConfig.heroSubtitle} onChange={e => setSiteConfig({...siteConfig, heroSubtitle: e.target.value})} />
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "العنوان الرئيسي" : "Hero Title"}</label>
+                        <Input placeholder="Hero Title" value={siteConfig.heroTitle} onChange={e => setSiteConfig({...siteConfig, heroTitle: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "العنوان الفرعي" : "Hero Subtitle"}</label>
+                        <Input placeholder="Hero Subtitle" value={siteConfig.heroSubtitle} onChange={e => setSiteConfig({...siteConfig, heroSubtitle: e.target.value})} />
+                      </div>
                     </div>
                     <div className="space-y-4">
                       <h4 className="font-black text-primary flex items-center gap-2 border-b pb-2"><TrendingUp size={16}/> {isAr ? "الإحصائيات" : "Platform Stats"}</h4>

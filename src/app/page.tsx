@@ -26,12 +26,13 @@ import {
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
-import { Service, SiteConfig, CarouselItem, Course, Survey } from '@/lib/types';
+import { Service, SiteConfig, CarouselItem, Course, Survey, PopupMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
 import { IdentityShowcase } from '@/components/identity-showcase';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
+import { PopupManager } from '@/components/popup-manager';
 import {
   Carousel,
   CarouselContent,
@@ -60,6 +61,7 @@ export default function DhofarPortal() {
   const [menuItems, setMenuItems] = useState([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [popups, setPopups] = useState<PopupMessage[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -71,6 +73,7 @@ export default function DhofarPortal() {
         setMenuItems(data.menuItems || []);
         setCarouselItems(data.carouselItems || []);
         setSurveys(data.surveys || []);
+        setPopups(data.popups || []);
       }
       setLoading(false);
     };
@@ -115,6 +118,8 @@ export default function DhofarPortal() {
   return (
     <div className={cn("flex min-h-screen flex-col bg-white", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={menuItems} />
+      
+      <PopupManager popups={popups} />
 
       <main className="flex-grow" id="main-content">
         {activeTab === 'home' ? (

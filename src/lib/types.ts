@@ -146,3 +146,15 @@ export interface Survey {
   isPublicPoll?: boolean;
   responsesCount: number;
 }
+
+export interface PopupMessage {
+  id: string;
+  type: 'text' | 'image' | 'video';
+  titleAr: string;
+  titleEn: string;
+  contentAr?: string;
+  contentEn?: string;
+  mediaUrl?: string;
+  isActive: boolean;
+  displayDelay?: number;
+}
