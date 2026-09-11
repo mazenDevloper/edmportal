@@ -25,7 +25,9 @@ import {
   HelpCircle,
   Plus,
   Minus,
-  Info
+  Info,
+  ChevronLeft,
+  Circle
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
@@ -51,6 +53,8 @@ import { textToSpeech } from '@/ai/flows/tts-flow';
 
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
+  const isAr = language === 'ar';
+
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
@@ -58,6 +62,12 @@ export default function DhofarPortal() {
   const [ttsLoading, setTtsLoading] = useState(false);
   const [pkiStatus, setPkiStatus] = useState<'connected' | 'disconnected'>('connected');
   const [showThiqaDetails, setShowThiqaDetails] = useState(false);
+
+  // Poll State
+  const [currentPollQIdx, setCurrentPollQIdx] = useState(0);
+  const [pollValue, setPollValue] = useState<string>("");
+  const [pollAnswers, setPollAnswers] = useState<Record<string, string>>({});
+  const [pollSubmitted, setPollFinished] = useState(false);
 
   const [services, setServices] = useState<Service[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -83,8 +93,6 @@ export default function DhofarPortal() {
     };
     load();
   }, []);
-
-  const isAr = language === 'ar';
 
   const filteredServices = useMemo(() => {
     if (!searchQuery) return [];
@@ -117,6 +125,29 @@ export default function DhofarPortal() {
     }
   };
 
+  const currentQ = activePoll?.questions[currentPollQIdx];
+
+  const handlePollNext = () => {
+    if (!activePoll || !pollValue) return;
+    const newAnswers = { ...pollAnswers, [currentQ?.id || '']: pollValue };
+    setPollAnswers(newAnswers);
+    
+    if (currentPollQIdx < activePoll.questions.length - 1) {
+      setCurrentPollQIdx(currentPollQIdx + 1);
+      setPollValue(newAnswers[activePoll.questions[currentPollQIdx + 1].id] || "");
+    } else {
+      setPollFinished(true);
+    }
+  };
+
+  const handlePollBack = () => {
+    if (currentPollQIdx > 0) {
+      const prevIdx = currentPollQIdx - 1;
+      setCurrentPollQIdx(prevIdx);
+      setPollValue(pollAnswers[activePoll?.questions[prevIdx].id || ""] || "");
+    }
+  };
+
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" aria-label="Loading..." /></div>;
 
   return (
@@ -144,7 +175,7 @@ export default function DhofarPortal() {
                        <input 
                          type="text" 
                          placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
-                         className={cn("w-full h-16 rounded-xl border-2 font-bold focus:border-primary px-16 shadow-lg bg-white outline-none")} 
+                         className={cn("w-full h-16 rounded-xl border-2 font-bold focus:border-primary px-16 shadow-lg bg-white outline-none border-slate-200")} 
                          value={searchQuery} 
                          onChange={(e) => setSearchQuery(e.target.value)} 
                          aria-label={isAr ? "البحث في الخدمات" : "Search services"}
@@ -162,7 +193,6 @@ export default function DhofarPortal() {
                      </Button>
                    </div>
 
-                   {/* Centralized Thiqa Digital Identity Hub */}
                    <div className="lg:col-span-5">
                      <Card className="border-none shadow-2xl rounded-brand bg-white relative overflow-hidden flex flex-col border-t-8 border-primary">
                        <CardHeader className="bg-slate-50 p-6 flex flex-row items-center justify-between border-b">
@@ -285,40 +315,94 @@ export default function DhofarPortal() {
             {activePoll && (
               <section className="py-20 bg-accent/5" aria-labelledby="public-poll-title">
                 <div className="max-w-4xl mx-auto px-6 text-center">
-                  <div className="mb-8">
-                    <Badge className="bg-accent text-white mb-4">{isAr ? "صوتك يهمنا" : "Your Voice Matters"}</Badge>
-                    <h2 id="public-poll-title" className="text-3xl font-black text-primary mb-4">{isAr ? activePoll.titleAr : activePoll.titleEn}</h2>
-                    <p className="text-slate-500 font-bold">{isAr ? activePoll.descriptionAr : activePoll.descriptionEn}</p>
-                  </div>
-                  <Card className="rounded-brand border-none shadow-xl">
-                    <CardContent className="p-8">
-                      {activePoll.questions.map((q) => (
-                        <div key={q.id} className="space-y-6">
-                          <h3 className="text-xl font-black flex items-center justify-center gap-3 text-primary">
-                            {q.iconName && React.createElement((Icons as any)[q.iconName] || Icons.Info, { className: "text-accent", "aria-hidden": "true" })}
-                            {isAr ? q.questionAr : q.questionEn}
-                          </h3>
-                          <RadioGroup className="grid sm:grid-cols-2 gap-4" aria-label={isAr ? q.questionAr : q.questionEn}>
-                            {q.options?.map((opt) => (
-                              <div key={opt.id} className="relative group">
-                                <RadioGroupItem value={opt.id} id={opt.id} className="sr-only" />
-                                <Label 
-                                  htmlFor={opt.id} 
-                                  className="flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer hover:border-primary hover:bg-slate-50 transition-all font-bold text-slate-700 group-data-[state=checked]:border-primary group-data-[state=checked]:bg-primary/5"
-                                >
-                                  {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 18, className: "text-accent", "aria-hidden": "true" })}
-                                  {isAr ? opt.textAr : opt.textEn}
-                                </Label>
+                  {!pollSubmitted ? (
+                    <>
+                      <div className="mb-8">
+                        <Badge className="bg-accent text-white mb-4">{isAr ? "صوتك يهمنا" : "Your Voice Matters"}</Badge>
+                        <h2 id="public-poll-title" className="text-3xl font-black text-primary mb-4">{isAr ? activePoll.titleAr : activePoll.titleEn}</h2>
+                        <p className="text-slate-500 font-bold">{isAr ? activePoll.descriptionAr : activePoll.descriptionEn}</p>
+                      </div>
+                      <Card className="rounded-brand border-none shadow-xl overflow-hidden">
+                        <CardContent className="p-8">
+                          {currentQ && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                              <div className="flex flex-col items-center gap-4">
+                                <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black">
+                                  {currentPollQIdx + 1}
+                                </div>
+                                <h3 className="text-2xl font-black flex items-center justify-center gap-3 text-primary">
+                                  {currentQ.iconName && React.createElement((Icons as any)[currentQ.iconName] || Icons.Info, { className: "text-accent", "aria-hidden": "true" })}
+                                  {isAr ? currentQ.questionAr : currentQ.questionEn}
+                                </h3>
                               </div>
-                            ))}
-                          </RadioGroup>
-                          <Button className="dm-gradient-primary rounded-full px-12 h-14 font-black mt-8 shadow-lg">
-                            {isAr ? "إرسال التصويت" : "Submit Vote"}
-                          </Button>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
+                              
+                              <RadioGroup 
+                                className="grid sm:grid-cols-2 gap-4" 
+                                value={pollValue} 
+                                onValueChange={setPollValue}
+                                aria-label={isAr ? currentQ.questionAr : currentQ.questionEn}
+                              >
+                                {currentQ.options?.map((opt) => (
+                                  <div key={opt.id} className="relative">
+                                    <RadioGroupItem value={opt.id} id={opt.id} className="sr-only" />
+                                    <Label 
+                                      htmlFor={opt.id} 
+                                      className={cn(
+                                        "flex items-center gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-all font-bold text-slate-700",
+                                        pollValue === opt.id 
+                                          ? "border-primary bg-primary/5 text-primary scale-[1.02] shadow-md" 
+                                          : "border-slate-100 bg-white hover:border-primary/30"
+                                      )}
+                                    >
+                                      <div className={cn(
+                                        "size-5 rounded-full border-2 flex items-center justify-center transition-colors",
+                                        pollValue === opt.id ? "border-primary" : "border-slate-300"
+                                      )}>
+                                        {pollValue === opt.id && <div className="size-2.5 rounded-full bg-primary" />}
+                                      </div>
+                                      {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 20, className: pollValue === opt.id ? "text-primary" : "text-slate-300", "aria-hidden": "true" })}
+                                      <span className="text-lg">{isAr ? opt.textAr : opt.textEn}</span>
+                                    </Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                              
+                              <div className="flex justify-between items-center pt-8 border-t">
+                                <Button 
+                                  variant="ghost" 
+                                  onClick={handlePollBack} 
+                                  disabled={currentPollQIdx === 0}
+                                  className="rounded-full font-black px-8 h-12 gap-2"
+                                >
+                                  {isAr ? <ChevronRight /> : <ChevronLeft />}
+                                  {isAr ? "السابق" : "Back"}
+                                </Button>
+                                <Button 
+                                  onClick={handlePollNext} 
+                                  disabled={!pollValue}
+                                  className="dm-gradient-primary rounded-full px-12 h-14 font-black shadow-lg gap-2"
+                                >
+                                  {currentPollQIdx === activePoll.questions.length - 1 ? (isAr ? "إرسال التصويت" : "Submit Poll") : (isAr ? "التالي" : "Next")}
+                                  {currentPollQIdx !== activePoll.questions.length - 1 && (isAr ? <ChevronLeft /> : <ChevronRight />)}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </>
+                  ) : (
+                    <Card className="rounded-brand border-none shadow-xl py-20 px-8 text-center animate-in zoom-in-95 duration-500">
+                      <div className="size-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-8">
+                        <CheckCircle size={48} />
+                      </div>
+                      <h2 className="text-4xl font-black text-primary mb-4">{isAr ? "شكراً لمشاركتك" : "Thank You!"}</h2>
+                      <p className="text-xl text-slate-500 font-bold mb-10">{isAr ? "رأيك يساهم في تحسين جودة خدماتنا البلدية." : "Your feedback helps us improve our municipal services."}</p>
+                      <Button variant="outline" onClick={() => setPollFinished(false)} className="rounded-full font-black px-10 border-primary text-primary">
+                        {isAr ? "عودة" : "Go Back"}
+                      </Button>
+                    </Card>
+                  )}
                 </div>
               </section>
             )}
