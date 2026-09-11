@@ -100,7 +100,7 @@ export interface SpatialWindow {
 
 export interface BuilderComponent {
   id: string;
-  type: 'hero' | 'stats' | 'services' | 'contact' | 'text' | 'image';
+  type: 'hero' | 'stats' | 'services' | 'contact' | 'text' | 'image' | 'info';
   content: any;
 }
 
@@ -122,13 +122,19 @@ export interface FormField {
   options?: string[];
 }
 
-export interface ServiceFlow {
+export interface ServiceStep {
   id: string;
   titleAr: string;
   titleEn: string;
-  descriptionAr: string;
-  descriptionEn: string;
   fields: FormField[];
+}
+
+export interface ServiceFlow {
+  id: string;
+  serviceId: string;
+  titleAr: string;
+  titleEn: string;
+  steps: ServiceStep[];
   isActive: boolean;
 }
 
