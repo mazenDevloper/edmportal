@@ -23,7 +23,8 @@ import {
   Settings, Plus, Save, Trash2, X, Search, Loader2, 
   CloudUpload, Star, Layout, Menu, Image as ImageIcon,
   BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
-  Vote, TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database
+  Vote, TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database,
+  Edit2, FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -138,12 +139,136 @@ export default function AdminDashboard() {
           <TabsList className="bg-white border mb-10 flex flex-wrap h-auto gap-2 p-1 rounded-xl shadow-sm overflow-x-auto">
             <TabsTrigger value="services" className="font-black"><Layout className="size-4 ml-2" /> {isAr ? "الخدمات" : "Services"}</TabsTrigger>
             <TabsTrigger value="navigation" className="font-black"><Menu className="size-4 ml-2" /> {isAr ? "التنقل" : "Navigation"}</TabsTrigger>
-            <TabsTrigger value="courses" className="font-black"><BookOpen className="size-4 ml-2" /> {isAr ? "الدورات" : "Courses"}</TabsTrigger>
-            <TabsTrigger value="accessibility" className="font-black"><Accessibility className="size-4 ml-2" /> {isAr ? "إمكانية الوصول" : "Accessibility"}</TabsTrigger>
             <TabsTrigger value="builders" className="font-black"><Sparkles className="size-4 ml-2" /> {isAr ? "المصممات" : "Builders"}</TabsTrigger>
-            <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
+            <TabsTrigger value="courses" className="font-black"><BookOpen className="size-4 ml-2" /> {isAr ? "الدورات" : "Courses"}</TabsTrigger>
             <TabsTrigger value="applications" className="font-black"><FileCheck className="size-4 ml-2" /> {isAr ? "الطلبات" : "Apps"}</TabsTrigger>
+            <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="services" className="space-y-6">
+             <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-primary">{isAr ? "دليل الخدمات" : "Service Catalog"}</h3>
+                <Button size="sm" asChild className="rounded-full bg-accent text-accent-foreground font-black">
+                  <Link href="/servicebuild"><Plus size={14} className="ml-2"/> {isAr ? "صناعة خدمة" : "Build Service"}</Link>
+                </Button>
+             </div>
+             <div className="bg-white border rounded-[2rem] overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead>{isAr ? "الخدمة" : "Service"}</TableHead>
+                      <TableHead>{isAr ? "الفئة" : "Category"}</TableHead>
+                      <TableHead>{isAr ? "مميزة" : "Featured"}</TableHead>
+                      <TableHead>{isAr ? "إجراء" : "Action"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {services.map((s, idx) => (
+                      <TableRow key={s.id}>
+                        <TableCell className="font-bold flex items-center gap-3">
+                          <div className="size-8 rounded-lg bg-slate-100 flex items-center justify-center text-primary">
+                            <FileText size={16} />
+                          </div>
+                          {isAr ? s.title : s.titleEn}
+                        </TableCell>
+                        <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" onClick={() => { const ns = [...services]; ns[idx].isFeatured = !ns[idx].isFeatured; setServices(ns); }}>
+                            <Star className={cn("size-4", s.isFeatured ? "fill-accent text-accent" : "text-slate-200")} />
+                          </Button>
+                        </TableCell>
+                        <TableCell className="flex gap-2">
+                           <Button variant="ghost" size="icon" asChild className="text-primary">
+                             <Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link>
+                           </Button>
+                           <Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400"><Trash2 size={16}/></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+             </div>
+          </TabsContent>
+
+          <TabsContent value="builders" className="space-y-8">
+             <div className="grid md:grid-cols-3 gap-6">
+                <Card className="rounded-brand shadow-md hover:shadow-xl transition-all cursor-pointer border-none bg-gradient-to-br from-primary to-primary/80 text-white overflow-hidden">
+                  <Link href="/pagebuild">
+                    <CardContent className="p-10 text-center space-y-4">
+                       <Layout size={48} className="mx-auto" />
+                       <h4 className="text-xl font-black">{isAr ? "باني الصفحات" : "Page Builder"}</h4>
+                       <p className="text-xs text-white/60 font-medium">{isAr ? "إنشاء وتعديل محتوى الصفحات الفرعية" : "Create and edit sub-page content"}</p>
+                    </CardContent>
+                  </Link>
+                </Card>
+                <Card className="rounded-brand shadow-md hover:shadow-xl transition-all cursor-pointer border-none bg-gradient-to-br from-accent to-accent/80 text-slate-900 overflow-hidden">
+                  <Link href="/servicebuild">
+                    <CardContent className="p-10 text-center space-y-4">
+                       <Sparkles size={48} className="mx-auto" />
+                       <h4 className="text-xl font-black">{isAr ? "محرك الخدمات" : "Service Engine"}</h4>
+                       <p className="text-xs text-slate-900/60 font-medium">{isAr ? "تصميم خطوات العمل والنماذج" : "Design workflow steps and forms"}</p>
+                    </CardContent>
+                  </Link>
+                </Card>
+                <Card className="rounded-brand shadow-md hover:shadow-xl transition-all cursor-pointer border-none bg-gradient-to-br from-secondary to-secondary/80 text-white overflow-hidden">
+                  <Link href="/surveybuild">
+                    <CardContent className="p-10 text-center space-y-4">
+                       <ClipboardList size={48} className="mx-auto" />
+                       <h4 className="text-xl font-black">{isAr ? "باني الاستطلاعات" : "Survey Builder"}</h4>
+                       <p className="text-xs text-white/60 font-medium">{isAr ? "صناعة الاستبيانات واستطلاعات الرأي" : "Build questionnaires and polls"}</p>
+                    </CardContent>
+                  </Link>
+                </Card>
+             </div>
+
+             <div className="grid lg:grid-cols-2 gap-8">
+                <Card className="rounded-brand border-none shadow-sm overflow-hidden">
+                   <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black">{isAr ? "الصفحات المنشأة" : "Custom Pages"}</CardTitle></CardHeader>
+                   <CardContent className="p-0">
+                      <Table>
+                        <TableBody>
+                          {customPages.map(page => (
+                            <TableRow key={page.id}>
+                              <TableCell className="font-bold">{isAr ? page.titleAr : page.titleEn}</TableCell>
+                              <TableCell className="text-xs text-slate-400 font-mono">/{page.slug}</TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" asChild><Link href={`/pagebuild?id=${page.id}`}><Edit2 size={14}/></Link></Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                   </CardContent>
+                </Card>
+                <Card className="rounded-brand border-none shadow-sm overflow-hidden">
+                   <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black">{isAr ? "الاستبيانات الفعالة" : "Active Surveys"}</CardTitle></CardHeader>
+                   <CardContent className="p-0">
+                      <Table>
+                        <TableBody>
+                          {surveys.map((survey, sIdx) => (
+                            <TableRow key={survey.id}>
+                              <TableCell className="font-bold">{isAr ? survey.titleAr : survey.titleEn}</TableCell>
+                              <TableCell>
+                                <Badge className={survey.isPublicPoll ? "bg-accent" : "bg-slate-100 text-slate-400"}>
+                                  {isAr ? "تصويت عام" : "Public Poll"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" onClick={() => {
+                                   const ns = [...surveys];
+                                   ns[sIdx].isPublicPoll = !ns[sIdx].isPublicPoll;
+                                   setSurveys(ns);
+                                }}><Star size={14} className={survey.isPublicPoll ? "fill-accent text-accent" : ""}/></Button>
+                                <Button variant="ghost" size="icon" asChild><Link href={`/surveybuild?id=${survey.id}`}><Edit2 size={14}/></Link></Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                   </CardContent>
+                </Card>
+             </div>
+          </TabsContent>
 
           <TabsContent value="navigation" className="space-y-8">
              <Card className="rounded-brand shadow-lg">
@@ -166,84 +291,6 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
              </Card>
-
-             <Card className="rounded-brand shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="font-black flex items-center gap-2"><ImageIcon className="text-accent" /> {isAr ? "صور البانر (الخريف)" : "Banner Banners"}</CardTitle>
-                  <Button size="sm" onClick={() => setCarouselItems([...carouselItems, { id: Date.now().toString(), titleAr: 'بانر جديد', titleEn: 'New Banner', subtitleAr: '', subtitleEn: '', imageUrl: '' }])}>
-                    <Plus size={14} className="ml-1" /> {isAr ? "إضافة بانر" : "Add Banner"}
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {carouselItems.map((item, idx) => (
-                      <div key={item.id} className="p-6 border rounded-3xl space-y-4 bg-white shadow-sm">
-                        <Input placeholder="Title AR" value={item.titleAr} onChange={e => { const nc = [...carouselItems]; nc[idx].titleAr = e.target.value; setCarouselItems(nc); }} />
-                        <Input placeholder="Image URL" value={item.imageUrl} onChange={e => { const nc = [...carouselItems]; nc[idx].imageUrl = e.target.value; setCarouselItems(nc); }} />
-                        {item.imageUrl && <div className="h-20 w-full rounded-xl overflow-hidden relative"><img src={item.imageUrl} alt="preview" className="object-cover w-full h-full" /></div>}
-                        <Button variant="ghost" size="sm" onClick={() => setCarouselItems(carouselItems.filter(c => c.id !== item.id))} className="text-red-400 w-full"><Trash2 size={14} className="ml-2"/> {isAr ? "حذف البانر" : "Delete"}</Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-             </Card>
-          </TabsContent>
-
-          <TabsContent value="accessibility">
-            <div className="grid lg:grid-cols-2 gap-8">
-              <Card className="rounded-brand shadow-lg">
-                <CardHeader>
-                  <CardTitle className="font-black flex items-center gap-2">
-                    <ImageIcon className="text-accent" /> {isAr ? "مولد النصوص البديلة AI" : "AI Alt-Text Generator"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-slate-500 font-bold">{isAr ? "استخدم الذكاء الاصطناعي لوصف الصور لضعاف البصر." : "Use AI to describe images for the visually impaired."}</p>
-                  <div className="p-8 border-2 border-dashed rounded-3xl text-center bg-slate-50">
-                    <CloudUpload className="mx-auto text-slate-300 mb-4" size={48} />
-                    <p className="text-sm font-black text-slate-600">{isAr ? "ارفع صورة لتحليلها" : "Upload image to analyze"}</p>
-                    <p className="text-xs text-slate-400 mt-2">{isAr ? "سيتم توليد النص البديل تلقائياً في قاعدة البيانات" : "Alt-text will be saved to bin automatically"}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-brand shadow-lg">
-                <CardHeader>
-                  <CardTitle className="font-black flex items-center gap-2">
-                    <Video className="text-accent" /> {isAr ? "مساعد لغة الإشارة" : "Sign Language Assistant"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-slate-500 font-bold">{isAr ? "توليد فيديوهات لغة الإشارة العمانية للخدمات." : "Generate Oman Sign Language videos for services."}</p>
-                  <Button variant="outline" className="w-full justify-start gap-3 h-14 font-black rounded-2xl border-2 hover:bg-slate-50">
-                    <Video className="text-primary" size={20} />
-                    {isAr ? "إدارة فيديوهات الإشارة" : "Manage Sign Videos"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="builders">
-             <div className="grid md:grid-cols-3 gap-6">
-                {[
-                  { title: isAr ? 'باني الصفحات' : 'Page Builder', icon: Layout, link: '/pagebuild', color: 'text-primary' },
-                  { title: isAr ? 'محرك الخدمات' : 'Service Engine', icon: Sparkles, link: '/servicebuild', color: 'text-accent' },
-                  { title: isAr ? 'باني الاستطلاعات' : 'Survey Builder', icon: ClipboardList, link: '/surveybuild', color: 'text-secondary' }
-                ].map((b, i) => (
-                  <Card key={i} className="rounded-brand shadow-md hover:shadow-xl transition-shadow cursor-pointer overflow-hidden group">
-                    <Link href={b.link}>
-                      <CardContent className="p-10 flex flex-col items-center justify-center text-center space-y-4">
-                        <div className={cn("p-4 rounded-2xl bg-slate-50 group-hover:bg-slate-100 transition-colors", b.color)}>
-                          <b.icon size={48} />
-                        </div>
-                        <h4 className="text-xl font-black">{b.title}</h4>
-                        <ArrowUpRight className="text-slate-300" />
-                      </CardContent>
-                    </Link>
-                  </Card>
-                ))}
-             </div>
           </TabsContent>
 
           <TabsContent value="courses">
@@ -273,7 +320,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="applications">
-             <Card className="rounded-brand shadow-lg overflow-hidden">
+             <Card className="rounded-brand shadow-lg overflow-hidden border-none">
                 <CardHeader className="bg-slate-900 text-white p-6">
                   <CardTitle className="font-black flex items-center gap-2"><FileCheck className="text-accent" /> {isAr ? "طلبات المواطنين" : "Citizen Applications"}</CardTitle>
                 </CardHeader>
@@ -293,7 +340,7 @@ export default function AdminDashboard() {
                           <TableCell className="font-bold">{app.citizenName}</TableCell>
                           <TableCell>{app.serviceName}</TableCell>
                           <TableCell>
-                            <Badge variant={app.status === 'pending' ? 'secondary' : app.status === 'approved' ? 'default' : 'destructive'} className="rounded-full">
+                            <Badge className={cn("rounded-full", app.status === 'pending' ? 'bg-slate-100 text-slate-500' : app.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600')}>
                               {app.status}
                             </Badge>
                           </TableCell>
@@ -304,49 +351,6 @@ export default function AdminDashboard() {
                   </Table>
                 </CardContent>
              </Card>
-          </TabsContent>
-
-          <TabsContent value="services">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-primary">{isAr ? "إدارة دليل الخدمات" : "Service Catalog Management"}</h3>
-                <Button size="sm" onClick={() => setServices([...services, { id: `svc_${Date.now()}`, title: 'خدمة جديدة', description: '', iconName: 'FileText', category: 'building', isActive: true, isFeatured: false, reqsAr: [], reqsEn: [], fees: '0 OMR' }])}>
-                  <Plus size={14} className="ml-2"/> {isAr ? "إضافة خدمة" : "Add Service"}
-                </Button>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{isAr ? "الخدمة" : "Service"}</TableHead>
-                    <TableHead>{isAr ? "الفئة" : "Category"}</TableHead>
-                    <TableHead>{isAr ? "الرسوم" : "Fees"}</TableHead>
-                    <TableHead>{isAr ? "مميزة" : "Featured"}</TableHead>
-                    <TableHead>{isAr ? "إجراء" : "Action"}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {services.map((s, idx) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-bold">
-                        <Input value={s.title} onChange={e => { const ns = [...services]; ns[idx].title = e.target.value; setServices(ns); }} className="h-8 text-xs" />
-                      </TableCell>
-                      <TableCell>
-                         <Badge variant="outline">{s.category}</Badge>
-                      </TableCell>
-                      <TableCell className="text-emerald-600 font-black">{s.fees}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => { const ns = [...services]; ns[idx].isFeatured = !ns[idx].isFeatured; setServices(ns); }}>
-                          <Star className={cn("size-4", s.isFeatured ? "fill-accent text-accent" : "text-slate-200")} />
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                         <Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400"><Trash2 size={16}/></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
           </TabsContent>
 
           <TabsContent value="site">

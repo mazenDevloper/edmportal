@@ -127,6 +127,7 @@ export interface ServiceStep {
   titleAr: string;
   titleEn: string;
   fields: FormField[];
+  actionType?: 'submit' | 'payment';
 }
 
 export interface ServiceFlow {

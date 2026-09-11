@@ -1,13 +1,15 @@
+
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Languages, Menu } from 'lucide-react';
+import { Globe, LayoutDashboard, Languages, Menu, Edit2 } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { usePathname } from 'next/navigation';
 import {
   Sheet,
   SheetContent,
@@ -20,6 +22,7 @@ interface PortalHeaderProps {
 }
 
 export function PortalHeader({ menuItems }: PortalHeaderProps) {
+  const pathname = usePathname();
   const { language, setLanguage } = useSettingsStore();
   const isAr = language === 'ar';
 
@@ -32,6 +35,14 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             <Globe size={12} /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}
           </span>
           <div className="flex items-center gap-6">
+            {/* Contextual Editor Link for Prototype Admins */}
+            {pathname !== '/admin' && (
+              <Button variant="ghost" asChild className="text-accent hover:text-white h-auto py-0 px-2 font-black gap-2">
+                <Link href={`/pagebuild?slug=${pathname.substring(1) || 'home'}`}>
+                  <Edit2 size={10} /> {isAr ? 'تحرير المحتوى' : 'Edit Content'}
+                </Link>
+              </Button>
+            )}
             <Link href="/template" className="text-accent hover:underline font-black">
               {isAr ? 'المساحة الذكية' : 'Spatial Workspace'}
             </Link>

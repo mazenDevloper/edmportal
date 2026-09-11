@@ -1,36 +1,91 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, Type, TrendingUp, Info } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, Type, TrendingUp, Info, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
+import { fetchBin, updateBin } from '@/lib/jsonbin';
+import { useToast } from '@/hooks/use-toast';
+import { CustomPage, BuilderComponent } from '@/lib/types';
 
 export default function PageBuilder() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('id');
+  const { toast } = useToast();
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
   
-  const [components, setComponents] = useState<any[]>([]);
-  const [pageTitle, setPageTitle] = useState('');
+  const [components, setComponents] = useState<BuilderComponent[]>([]);
+  const [pageMeta, setPageMeta] = useState({ title: '', slug: '' });
+  const [saving, setSaving] = useState(false);
 
-  const addComponent = (type: string) => {
-    const newComp = {
+  useEffect(() => {
+    if (editId) {
+      fetchBin().then(data => {
+        if (data) {
+          const page = data.customPages?.find((p: CustomPage) => p.id === editId);
+          if (page) {
+            setComponents(page.components);
+            setPageMeta({ title: page.titleAr, slug: page.slug });
+          }
+        }
+      });
+    }
+  }, [editId]);
+
+  const addComponent = (type: BuilderComponent['type']) => {
+    const newComp: BuilderComponent = {
       id: `comp_${Date.now()}`,
       type,
       content: type === 'hero' ? { title: 'New Hero', subtitle: 'Subtitle' } : 
-               type === 'text' ? { body: 'Sample text content' } : {}
+               type === 'text' ? { body: 'Sample text content' } : 
+               type === 'stats' ? { t1: 'Stats Label', v1: '100' } : {}
     };
     setComponents([...components, newComp]);
   };
 
   const removeComponent = (id: string) => {
     setComponents(components.filter(c => c.id !== id));
+  };
+
+  const handleSave = async () => {
+    if (!pageMeta.slug) {
+      toast({ variant: "destructive", title: "Slug Required", description: "Please provide a page slug." });
+      return;
+    }
+    setSaving(true);
+    try {
+      const data = await fetchBin();
+      const newPage: CustomPage = {
+        id: editId || `page_${Date.now()}`,
+        titleAr: pageMeta.title,
+        titleEn: pageMeta.title,
+        slug: pageMeta.slug,
+        components,
+        createdAt: new Date().toISOString()
+      };
+      
+      const filtered = (data.customPages || []).filter((p: any) => p.id !== newPage.id);
+      await updateBin({
+        ...data,
+        customPages: [...filtered, newPage]
+      });
+      toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تم تحديث الصفحة بنجاح" : "Page updated successfully" });
+      router.push('/admin');
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save page." });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -45,11 +100,12 @@ export default function PageBuilder() {
             </h1>
           </div>
           <div className="flex gap-4">
-            <Button variant="outline" asChild className="rounded-full font-bold">
-              <Link href="/admin"><ArrowLeft size={16} className="ml-2" /> {isAr ? "العودة للوحة" : "Back to Admin"}</Link>
+            <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">
+              <ArrowLeft size={16} className="ml-2" /> {isAr ? "العودة" : "Back"}
             </Button>
-            <Button className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
-              <Save size={16} className="ml-2" /> {isAr ? "حفظ الصفحة" : "Save Page"}
+            <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
+              {saving ? <Loader2 className="animate-spin ml-2" /> : <Save size={16} className="ml-2" />}
+              {isAr ? "حفظ الصفحة" : "Save Page"}
             </Button>
           </div>
         </header>
@@ -70,18 +126,25 @@ export default function PageBuilder() {
           </Card>
 
           <div className="lg:col-span-3 space-y-6">
-            <Input 
-              placeholder={isAr ? "عنوان الصفحة (مثلاً: مرافقنا)" : "Page Title (e.g. Our Facilities)"} 
-              className="h-14 text-xl font-black border-2 rounded-xl"
-              value={pageTitle}
-              onChange={(e) => setPageTitle(e.target.value)}
-            />
+            <div className="grid grid-cols-2 gap-4">
+               <Input 
+                placeholder={isAr ? "عنوان الصفحة" : "Page Title"} 
+                className="h-14 text-xl font-black border-2 rounded-xl"
+                value={pageMeta.title}
+                onChange={(e) => setPageMeta({...pageMeta, title: e.target.value})}
+              />
+              <Input 
+                placeholder={isAr ? "الرابط اللطيف (slug)" : "Page Slug"} 
+                className="h-14 text-xl font-mono border-2 rounded-xl"
+                value={pageMeta.slug}
+                onChange={(e) => setPageMeta({...pageMeta, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
+              />
+            </div>
 
             {components.length === 0 ? (
-              <div className="border-4 border-dashed border-slate-200 rounded-[2rem] p-20 text-center">
-                <Layout size={64} className="mx-auto text-slate-200 mb-6" />
+              <div className="border-4 border-dashed border-slate-200 rounded-[2rem] p-20 text-center bg-white">
+                <Layout size={64} className="mx-auto text-slate-100 mb-6" />
                 <p className="text-slate-400 font-bold text-lg">{isAr ? "لم تقم بإضافة أي مكونات بعد" : "No components added yet"}</p>
-                <p className="text-slate-300 text-sm">{isAr ? "ابدأ بالضغط على خيارات الإضافة من القائمة الجانبية" : "Start by clicking add from the sidebar"}</p>
               </div>
             ) : (
               components.map((c, i) => (
@@ -97,11 +160,17 @@ export default function PageBuilder() {
                   <CardContent className="p-6">
                     {c.type === 'hero' ? (
                       <div className="space-y-4">
-                        <Input placeholder="Hero Title" defaultValue={c.content.title} className="font-bold" />
-                        <Input placeholder="Hero Subtitle" defaultValue={c.content.subtitle} />
+                        <Input placeholder="Hero Title" value={c.content.title} onChange={e => {
+                           const nc = [...components]; nc[i].content.title = e.target.value; setComponents(nc);
+                        }} className="font-bold" />
+                        <Input placeholder="Hero Subtitle" value={c.content.subtitle} onChange={e => {
+                           const nc = [...components]; nc[i].content.subtitle = e.target.value; setComponents(nc);
+                        }} />
                       </div>
                     ) : (
-                      <Textarea placeholder="Content..." defaultValue={c.content.body} className="min-h-[100px]" />
+                      <Textarea placeholder="Content..." value={c.content.body} onChange={e => {
+                        const nc = [...components]; nc[i].content.body = e.target.value; setComponents(nc);
+                      }} className="min-h-[100px]" />
                     )}
                   </CardContent>
                 </Card>
