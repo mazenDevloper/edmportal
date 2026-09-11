@@ -107,7 +107,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
       </nav>
 
       {/* Main Navigation */}
-      <div className="bg-white border-b py-6 sticky top-0 z-[50] shadow-sm">
+      <nav className="bg-white border-b py-6 sticky top-0 z-[50] shadow-sm" aria-label={isAr ? "الملاحة الرئيسية" : "Primary Navigation"}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-4" aria-label={isAr ? 'الرئيسية بلدية ظفار' : 'Dhofar Municipality Home'}>
              <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="" width={60} height={60} className="object-contain" />
@@ -117,7 +117,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
              </div>
           </Link>
           
-          <nav className="hidden lg:flex items-center gap-6" aria-label={isAr ? "القائمة الرئيسية" : "Main Navigation"}>
+          <div className="hidden lg:flex items-center gap-6">
             <Link href="/" className={cn("text-sm font-bold hover:text-primary transition-colors", pathname === '/' ? "text-primary" : "text-slate-600")}>
               {isAr ? 'الرئيسية' : 'Home'}
             </Link>
@@ -126,7 +126,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                 {isAr ? item.labelAr : item.labelEn}
               </Link>
             ))}
-          </nav>
+          </div>
 
           <div className="lg:hidden">
             <Sheet>
@@ -147,7 +147,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             </Sheet>
           </div>
         </div>
-      </div>
+      </nav>
     </header>
   );
 }
