@@ -22,7 +22,8 @@ import {
   ShieldCheck,
   Send,
   ArrowRight,
-  CreditCard
+  CreditCard,
+  ListChecks
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -46,7 +47,7 @@ export default function ServiceApplicationPage() {
       const data = await fetchBin();
       if (data) {
         const foundSvc = data.services?.find((s: Service) => s.id === id);
-        const foundFlow = data.serviceFlows?.find((f: ServiceFlow) => f.serviceId === id);
+        const foundFlow = data.serviceFlows?.find((f: ServiceFlow) => f.serviceId === id || f.id === id);
         setService(foundSvc || null);
         setFlow(foundFlow || null);
       }
@@ -149,26 +150,40 @@ export default function ServiceApplicationPage() {
               </CardContent>
             </Card>
 
-            {flow && (
-              <div className="bg-white p-6 rounded-[1.5rem] shadow-sm space-y-4">
-                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{isAr ? "خطوات العمل" : "Workflow Progress"}</h4>
-                <div className="space-y-4">
-                  {flow.steps.map((step, idx) => (
-                    <div key={step.id} className="flex items-center gap-3">
-                      <div className={cn(
-                        "size-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors",
-                        idx === currentStepIndex ? "bg-accent text-white" : idx < currentStepIndex ? "bg-primary text-white" : "bg-slate-100 text-slate-400"
-                      )}>
-                        {idx + 1}
-                      </div>
-                      <span className={cn("text-xs font-bold", idx === currentStepIndex ? "text-primary" : "text-slate-400")}>
-                        {isAr ? step.titleAr : step.titleEn}
-                      </span>
-                    </div>
+            <div className="bg-white p-6 rounded-[1.5rem] shadow-sm space-y-6">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><ListChecks size={14}/> {isAr ? "المستندات المطلوبة" : "Required Docs"}</h4>
+                <ul className="space-y-2">
+                  {(isAr ? service.reqsAr : service.reqsEn)?.map((req, idx) => (
+                    <li key={idx} className="text-xs font-bold text-slate-600 flex items-start gap-2">
+                      <div className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                      {req}
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
-            )}
+
+              {flow && (
+                <div className="space-y-4 pt-6 border-t">
+                  <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{isAr ? "خطوات العمل" : "Workflow Progress"}</h4>
+                  <div className="space-y-4">
+                    {flow.steps.map((step, idx) => (
+                      <div key={step.id} className="flex items-center gap-3">
+                        <div className={cn(
+                          "size-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors",
+                          idx === currentStepIndex ? "bg-accent text-white" : idx < currentStepIndex ? "bg-primary text-white" : "bg-slate-100 text-slate-400"
+                        )}>
+                          {idx + 1}
+                        </div>
+                        <span className={cn("text-xs font-bold", idx === currentStepIndex ? "text-primary" : "text-slate-400")}>
+                          {isAr ? step.titleAr : step.titleEn}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="md:col-span-2">
@@ -184,7 +199,7 @@ export default function ServiceApplicationPage() {
               <form onSubmit={handleSubmit}>
                 <CardContent className="p-8 space-y-6 min-h-[300px]">
                   {currentStepIndex === 0 && (
-                    <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="grid sm:grid-cols-2 gap-6 pb-6 border-b">
                       <div className="space-y-2">
                         <Label className="font-bold text-slate-700">{isAr ? "الاسم الكامل" : "Full Name"}</Label>
                         <Input required value={formData.fullName || ''} onChange={e => setFormData({...formData, fullName: e.target.value})} className="h-12 border-slate-200" />
@@ -213,6 +228,12 @@ export default function ServiceApplicationPage() {
                         )}
                       </div>
                     ))}
+                    {!currentStep?.fields.length && currentStepIndex > 0 && (
+                      <div className="text-center py-12">
+                        <CheckCircle2 className="mx-auto text-emerald-500 mb-4" size={48} />
+                        <p className="font-bold text-slate-500">{isAr ? "اضغط على زر الإرسال لإتمام العملية" : "Click submit to complete the process"}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
                 <CardFooter className="bg-slate-50 p-8 flex justify-between">
@@ -240,6 +261,7 @@ export default function ServiceApplicationPage() {
           </div>
         </div>
       </main>
+      <PortalFooter siteConfig={null} />
     </div>
   );
 }

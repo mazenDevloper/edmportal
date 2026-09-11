@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,10 +22,11 @@ import { useToast } from '@/hooks/use-toast';
 import { CustomPage, BuilderComponent } from '@/lib/types';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 
-export default function PageBuilder() {
+function PageBuilderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('id');
+  const editSlug = searchParams.get('slug');
   const { toast } = useToast();
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
@@ -37,24 +38,34 @@ export default function PageBuilder() {
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
-    if (editId) {
-      setLoading(true);
-      fetchBin().then(data => {
-        if (data && data.customPages) {
-          const page = data.customPages.find((p: CustomPage) => p.id === editId);
-          if (page) {
-            setComponents(page.components || []);
-            setPageMeta({ 
-              titleAr: page.titleAr || '', 
-              titleEn: page.titleEn || '', 
-              slug: page.slug || '' 
-            });
+    const loadPage = async () => {
+      if (editId || editSlug) {
+        setLoading(true);
+        try {
+          const data = await fetchBin();
+          if (data && data.customPages) {
+            const page = data.customPages.find((p: CustomPage) => p.id === editId || p.slug === editSlug);
+            if (page) {
+              setComponents(page.components || []);
+              setPageMeta({ 
+                titleAr: page.titleAr || '', 
+                titleEn: page.titleEn || '', 
+                slug: page.slug || '' 
+              });
+            } else if (editSlug) {
+              // If slug requested but not found, initialize meta with slug
+              setPageMeta(prev => ({ ...prev, slug: editSlug }));
+            }
           }
+        } catch (e) {
+          console.error("Load error:", e);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
-      }).catch(() => setLoading(false));
-    }
-  }, [editId]);
+      }
+    };
+    loadPage();
+  }, [editId, editSlug]);
 
   const handleAiTranslateMeta = async () => {
     if (!pageMeta.titleAr) return;
@@ -62,6 +73,8 @@ export default function PageBuilder() {
     try {
       const { translatedText } = await translateToEnglish({ text: pageMeta.titleAr });
       setPageMeta({ ...pageMeta, titleEn: translatedText });
+    } catch (e) {
+      toast({ variant: "destructive", title: "AI Error", description: "Gemini API requires an environment key." });
     } finally {
       setAiLoading(false);
     }
@@ -75,7 +88,7 @@ export default function PageBuilder() {
                type === 'text' ? { bodyAr: 'محتوى نصي جديد', bodyEn: 'New text content' } : 
                type === 'stats' ? { t1: 'Label 1', v1: '100', t2: 'Label 2', v2: '200' } : 
                type === 'info' ? { bodyAr: 'معلومات هامة', bodyEn: 'Important info' } : 
-               type === 'heading' ? { level: 'h1', textAr: 'عنوان', textEn: 'Heading' } :
+               type === 'heading' ? { level: 'h2', textAr: 'عنوان', textEn: 'Heading' } :
                type === 'video' ? { url: '', captionAr: '', captionEn: '' } :
                type === 'pdf' ? { url: '', labelAr: '', labelEn: '' } :
                type === 'image' ? { url: 'https://picsum.photos/seed/1/800/400', altAr: '', altEn: '' } :
@@ -83,6 +96,12 @@ export default function PageBuilder() {
                type === 'separator' ? {} : {}
     };
     setComponents([...components, newComp]);
+  };
+
+  const updateComponentContent = (idx: number, updates: any) => {
+    const nc = [...components];
+    nc[idx].content = { ...nc[idx].content, ...updates };
+    setComponents(nc);
   };
 
   const removeComponent = (id: string) => {
@@ -97,8 +116,10 @@ export default function PageBuilder() {
     setSaving(true);
     try {
       const data = await fetchBin();
+      const existingId = editId || data.customPages?.find((p: any) => p.slug === pageMeta.slug)?.id;
+      
       const newPage: CustomPage = {
-        id: editId || `page_${Date.now()}`,
+        id: existingId || `page_${Date.now()}`,
         titleAr: pageMeta.titleAr,
         titleEn: pageMeta.titleEn,
         slug: pageMeta.slug,
@@ -147,14 +168,14 @@ export default function PageBuilder() {
             <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black">{isAr ? "مكتبة الويجيت" : "Widget Library"}</CardTitle></CardHeader>
             <CardContent className="p-4 grid grid-cols-1 gap-2">
               <Button variant="outline" onClick={() => addComponent('hero')} className="justify-start gap-2 font-black"><ImageIcon size={14}/> {isAr ? "قسم البطل" : "Hero"}</Button>
-              <Button variant="outline" onClick={() => addComponent('heading')} className="justify-start gap-2 font-black"><Heading1 size={14}/> {isAr ? "عناوين (H1-H6)" : "Headings"}</Button>
+              <Button variant="outline" onClick={() => addComponent('heading')} className="justify-start gap-2 font-black"><Heading1 size={14}/> {isAr ? "عناوين" : "Headings"}</Button>
               <Button variant="outline" onClick={() => addComponent('text')} className="justify-start gap-2 font-black"><Type size={14}/> {isAr ? "محتوى نصي" : "Text Block"}</Button>
               <Button variant="outline" onClick={() => addComponent('image')} className="justify-start gap-2 font-black"><ImageIcon size={14}/> {isAr ? "صورة" : "Image"}</Button>
               <Button variant="outline" onClick={() => addComponent('video')} className="justify-start gap-2 font-black"><Video size={14}/> {isAr ? "فيديو" : "Video"}</Button>
               <Button variant="outline" onClick={() => addComponent('pdf')} className="justify-start gap-2 font-black"><FileText size={14}/> {isAr ? "ملف PDF" : "PDF Link"}</Button>
-              <Button variant="outline" onClick={() => addComponent('accordion')} className="justify-start gap-2 font-black"><List size={14}/> {isAr ? "أكورديون / أسئلة" : "Accordion"}</Button>
+              <Button variant="outline" onClick={() => addComponent('accordion')} className="justify-start gap-2 font-black"><List size={14}/> {isAr ? "أكورديون" : "Accordion"}</Button>
               <Button variant="outline" onClick={() => addComponent('stats')} className="justify-start gap-2 font-black"><TrendingUp size={14}/> {isAr ? "إحصائيات" : "Stats"}</Button>
-              <Button variant="outline" onClick={() => addComponent('info')} className="justify-start gap-2 font-black"><Info size={14}/> {isAr ? "تنبيه معلومة" : "Info Card"}</Button>
+              <Button variant="outline" onClick={() => addComponent('info')} className="justify-start gap-2 font-black"><Info size={14}/> {isAr ? "تنبيه" : "Info Card"}</Button>
               <Button variant="outline" onClick={() => addComponent('separator')} className="justify-start gap-2 font-black"><Minus size={14}/> {isAr ? "فاصل" : "Separator"}</Button>
             </CardContent>
           </Card>
@@ -185,64 +206,68 @@ export default function PageBuilder() {
                 <CardContent className="p-8 space-y-6">
                   {c.type === 'heading' && (
                     <div className="grid md:grid-cols-3 gap-4">
-                      <Select value={c.content.level} onValueChange={v => { const nc = [...components]; nc[i].content.level = v; setComponents(nc); }}>
+                      <Select value={c.content.level || 'h2'} onValueChange={v => updateComponentContent(i, { level: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map(h => <SelectItem key={h} value={h}>{h.toUpperCase()}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Input placeholder="Text AR" value={c.content.textAr} onChange={e => { const nc = [...components]; nc[i].content.textAr = e.target.value; setComponents(nc); }} className="font-bold" />
-                      <Input placeholder="Text EN" value={c.content.textEn} onChange={e => { const nc = [...components]; nc[i].content.textEn = e.target.value; setComponents(nc); }} />
+                      <Input placeholder="Text AR" value={c.content.textAr || ''} onChange={e => updateComponentContent(i, { textAr: e.target.value })} className="font-bold" />
+                      <Input placeholder="Text EN" value={c.content.textEn || ''} onChange={e => updateComponentContent(i, { textEn: e.target.value })} />
                     </div>
                   )}
                   
                   {c.type === 'image' && (
                     <div className="grid md:grid-cols-2 gap-4">
-                      <Input placeholder="Image URL" value={c.content.url} onChange={e => { const nc = [...components]; nc[i].content.url = e.target.value; setComponents(nc); }} />
-                      <Input placeholder="Alt Text" value={c.content.altAr} onChange={e => { const nc = [...components]; nc[i].content.altAr = e.target.value; setComponents(nc); }} />
+                      <Input placeholder="Image URL" value={c.content.url || ''} onChange={e => updateComponentContent(i, { url: e.target.value })} />
+                      <Input placeholder="Alt Text" value={c.content.altAr || ''} onChange={e => updateComponentContent(i, { altAr: e.target.value })} />
                     </div>
                   )}
 
                   {c.type === 'video' && (
                     <div className="grid md:grid-cols-2 gap-4">
-                      <Input placeholder="Video URL (YouTube/Direct)" value={c.content.url} onChange={e => { const nc = [...components]; nc[i].content.url = e.target.value; setComponents(nc); }} />
-                      <Input placeholder="Caption" value={c.content.captionAr} onChange={e => { const nc = [...components]; nc[i].content.captionAr = e.target.value; setComponents(nc); }} />
+                      <Input placeholder="Video URL" value={c.content.url || ''} onChange={e => updateComponentContent(i, { url: e.target.value })} />
+                      <Input placeholder="Caption" value={c.content.captionAr || ''} onChange={e => updateComponentContent(i, { captionAr: e.target.value })} />
                     </div>
                   )}
 
                   {(c.type === 'text' || c.type === 'hero' || c.type === 'info') && (
                     <div className="grid md:grid-cols-2 gap-6">
-                       <Textarea placeholder="Content AR..." value={isAr ? c.content.bodyAr || c.content.titleAr : c.content.bodyEn} onChange={e => {
-                         const nc = [...components]; 
-                         if(c.type === 'hero') nc[i].content.titleAr = e.target.value;
-                         else nc[i].content.bodyAr = e.target.value;
-                         setComponents(nc);
+                       <Textarea placeholder="Content AR..." value={c.content.bodyAr || c.content.titleAr || ''} onChange={e => {
+                         if(c.type === 'hero') updateComponentContent(i, { titleAr: e.target.value });
+                         else updateComponentContent(i, { bodyAr: e.target.value });
                        }} className="min-h-[120px] font-bold" />
-                       <Textarea placeholder="Content EN..." value={isAr ? c.content.bodyEn || c.content.titleEn : c.content.bodyEn} onChange={e => {
-                         const nc = [...components];
-                         if(c.type === 'hero') nc[i].content.titleEn = e.target.value;
-                         else nc[i].content.bodyEn = e.target.value;
-                         setComponents(nc);
+                       <Textarea placeholder="Content EN..." value={c.content.bodyEn || c.content.titleEn || ''} onChange={e => {
+                         if(c.type === 'hero') updateComponentContent(i, { titleEn: e.target.value });
+                         else updateComponentContent(i, { bodyEn: e.target.value });
                        }} className="min-h-[120px]" />
+                    </div>
+                  )}
+
+                  {c.type === 'stats' && (
+                    <div className="grid md:grid-cols-4 gap-4">
+                      <Input placeholder="Label 1" value={c.content.t1 || ''} onChange={e => updateComponentContent(i, { t1: e.target.value })} />
+                      <Input placeholder="Value 1" value={c.content.v1 || ''} onChange={e => updateComponentContent(i, { v1: e.target.value })} />
+                      <Input placeholder="Label 2" value={c.content.t2 || ''} onChange={e => updateComponentContent(i, { t2: e.target.value })} />
+                      <Input placeholder="Value 2" value={c.content.v2 || ''} onChange={e => updateComponentContent(i, { v2: e.target.value })} />
                     </div>
                   )}
 
                   {c.type === 'accordion' && (
                     <div className="space-y-4">
-                      {c.content.items.map((item: any, idx: number) => (
+                      {c.content.items?.map((item: any, idx: number) => (
                         <div key={idx} className="p-4 border rounded-xl space-y-2 relative group">
-                           <Input placeholder="Question" value={item.titleAr} onChange={e => {
-                             const nc = [...components]; nc[i].content.items[idx].titleAr = e.target.value; setComponents(nc);
+                           <Input placeholder="Question" value={item.titleAr || ''} onChange={e => {
+                             const nItems = [...c.content.items]; nItems[idx].titleAr = e.target.value; updateComponentContent(i, { items: nItems });
                            }} />
-                           <Textarea placeholder="Answer" value={item.contentAr} onChange={e => {
-                             const nc = [...components]; nc[i].content.items[idx].contentAr = e.target.value; setComponents(nc);
+                           <Textarea placeholder="Answer" value={item.contentAr || ''} onChange={e => {
+                             const nItems = [...c.content.items]; nItems[idx].contentAr = e.target.value; updateComponentContent(i, { items: nItems });
                            }} />
                         </div>
                       ))}
                       <Button variant="ghost" size="sm" onClick={() => {
-                        const nc = [...components]; 
-                        nc[i].content.items.push({ titleAr: '', titleEn: '', contentAr: '', contentEn: '' });
-                        setComponents(nc);
+                        const items = c.content.items || [];
+                        updateComponentContent(i, { items: [...items, { titleAr: '', titleEn: '', contentAr: '', contentEn: '' }] });
                       }}>{isAr ? "+ إضافة بند" : "+ Add Item"}</Button>
                     </div>
                   )}
@@ -254,5 +279,13 @@ export default function PageBuilder() {
       </main>
       <PortalFooter siteConfig={null} />
     </div>
+  );
+}
+
+export default function PageBuilder() {
+  return (
+    <Suspense fallback={<Loader2 className="animate-spin" />}>
+      <PageBuilderContent />
+    </Suspense>
   );
 }

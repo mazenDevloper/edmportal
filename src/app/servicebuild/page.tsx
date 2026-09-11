@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -11,7 +11,6 @@ import {
   Upload, Type, Hash, Calendar, Layers, X, 
   CreditCard, Send, Settings, Loader2 
 } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -24,7 +23,7 @@ import { CAT_CONFIG } from '@/lib/constants';
 
 const ICON_LIST = ['FileText', 'ShieldCheck', 'Users', 'TrendingUp', 'Landmark', 'MapPin', 'CreditCard', 'Building2', 'Truck', 'Trash2', 'Wrench', 'Lightbulb'];
 
-export default function WorkflowEngine() {
+function WorkflowEngineContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('id');
@@ -67,7 +66,10 @@ export default function WorkflowEngine() {
           }
         }
         setLoading(false);
-      }).catch(err => setLoading(false));
+      }).catch(err => {
+        console.error("Load error:", err);
+        setLoading(false);
+      });
     }
   }, [editId]);
 
@@ -98,7 +100,7 @@ export default function WorkflowEngine() {
   };
 
   const handleSave = async () => {
-    if (!serviceInfo.titleAr && !serviceInfo.titleEn) {
+    if (!serviceInfo.titleAr) {
         toast({ variant: "destructive", title: "Required", description: "Title missing" });
         return;
     }
@@ -156,7 +158,7 @@ export default function WorkflowEngine() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <header className="flex justify-between items-center mb-10">
           <h1 className="text-3xl font-black text-primary flex items-center gap-3">
-            <Sparkles className="text-accent" /> {isAr ? "محرك الخدمات" : "Service Engine"}
+            <Layers className="text-accent" /> {isAr ? "محرك الخدمات" : "Service Engine"}
           </h1>
           <div className="flex gap-4">
              <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">
@@ -193,7 +195,8 @@ export default function WorkflowEngine() {
                     {ICON_LIST.map(icon => <SelectItem key={icon} value={icon}>{icon}</SelectItem>)}
                   </SelectContent>
                </Select>
-               <Button onClick={addStep} className="w-full dm-gradient-primary rounded-xl font-black"><Layers size={18} className="ml-2"/> {isAr ? "إضافة خطوة" : "Add Step"}</Button>
+               <Input placeholder="Fees (e.g. 50 OMR)" value={serviceInfo.fees} onChange={e => setServiceInfo({...serviceInfo, fees: e.target.value})} />
+               <Button onClick={addStep} className="w-full dm-gradient-primary rounded-xl font-black mt-4"><Layers size={18} className="ml-2"/> {isAr ? "إضافة خطوة" : "Add Step"}</Button>
             </CardContent>
           </Card>
 
@@ -202,23 +205,34 @@ export default function WorkflowEngine() {
               <Card key={step.id} className="rounded-[2rem] shadow-sm border-none overflow-hidden">
                 <CardHeader className="bg-slate-900 text-white p-6 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Badge className="bg-accent text-slate-900">{sIdx + 1}</Badge>
+                    <div className="size-8 rounded-full bg-accent text-slate-900 flex items-center justify-center font-black">{sIdx + 1}</div>
                     <Input className="bg-white/10 border-none text-white h-8" value={step.titleAr} onChange={e => { const ns = [...steps]; ns[sIdx].titleAr = e.target.value; setSteps(ns); }} />
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="text-white/40"><Trash2 size={20} /></Button>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
-                   <div className="flex gap-2 mb-4">
-                     <Button size="sm" variant="outline" onClick={() => addFieldToStep(step.id, 'text')}><Type size={14}/></Button>
-                     <Button size="sm" variant="outline" onClick={() => addFieldToStep(step.id, 'upload')}><Upload size={14}/></Button>
+                   <div className="flex gap-2 mb-4 border-b pb-4">
+                     <Button size="sm" variant="outline" onClick={() => addFieldToStep(step.id, 'text')} className="gap-2"><Type size={14}/> {isAr ? "نص" : "Text"}</Button>
+                     <Button size="sm" variant="outline" onClick={() => addFieldToStep(step.id, 'upload')} className="gap-2"><Upload size={14}/> {isAr ? "رفع" : "Upload"}</Button>
+                     <Button size="sm" variant="outline" onClick={() => addFieldToStep(step.id, 'date')} className="gap-2"><Calendar size={14}/> {isAr ? "تاريخ" : "Date"}</Button>
+                     <div className="ml-auto flex items-center gap-2">
+                       <span className="text-[10px] font-black uppercase text-slate-400">{isAr ? "نوع الإجراء" : "Action"}</span>
+                       <Select value={step.actionType || 'submit'} onValueChange={v => { const ns = [...steps]; ns[sIdx].actionType = v as any; setSteps(ns); }}>
+                          <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="submit">{isAr ? "إرسال" : "Submit"}</SelectItem>
+                            <SelectItem value="payment">{isAr ? "دفع" : "Payment"}</SelectItem>
+                          </SelectContent>
+                       </Select>
+                     </div>
                    </div>
                    {step.fields.map((f, fIdx) => (
-                     <div key={f.id} className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl relative group">
+                     <div key={f.id} className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl relative group border">
                         <Input placeholder="Label AR" value={f.labelAr} onChange={e => { const ns = [...steps]; ns[sIdx].fields[fIdx].labelAr = e.target.value; setSteps(ns); }} />
                         <Input placeholder="Label EN" value={f.labelEn} onChange={e => { const ns = [...steps]; ns[sIdx].fields[fIdx].labelEn = e.target.value; setSteps(ns); }} />
-                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100" onClick={() => {
+                        <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full opacity-0 group-hover:opacity-100 h-6 w-6" onClick={() => {
                            const ns = [...steps]; ns[sIdx].fields.splice(fIdx, 1); setSteps(ns);
-                        }}><X size={14}/></Button>
+                        }}><X size={12}/></Button>
                      </div>
                    ))}
                 </CardContent>
@@ -229,5 +243,13 @@ export default function WorkflowEngine() {
       </main>
       <PortalFooter siteConfig={null} />
     </div>
+  );
+}
+
+export default function WorkflowEngine() {
+  return (
+    <Suspense fallback={<Loader2 className="animate-spin" />}>
+      <WorkflowEngineContent />
+    </Suspense>
   );
 }
