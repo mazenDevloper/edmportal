@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Globe, LayoutDashboard, Languages, Menu, Edit2 } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
-import { MenuItem, CustomPage } from '@/lib/types';
+import { MenuItem, CustomPage, Service, Survey } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
@@ -27,20 +27,43 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
   const { language, setLanguage } = useSettingsStore();
   const isAr = language === 'ar';
   
-  const [currentPageId, setCurrentPageId] = useState<string | null>(null);
+  const [editLink, setEditLink] = useState<string | null>(null);
 
   useEffect(() => {
-    if (pathname.startsWith('/p/')) {
-      const slug = pathname.split('/').pop();
-      fetchBin().then(data => {
-        const page = data?.customPages?.find((p: CustomPage) => p.slug === slug);
-        if (page) setCurrentPageId(page.id);
-      });
-    }
-  }, [pathname]);
+    const determineEditLink = async () => {
+      if (pathname === '/') {
+        setEditLink('/admin');
+        return;
+      }
 
-  const showEditButton = pathname.startsWith('/p/') || pathname === '/';
-  const editLink = pathname === '/' ? '/admin' : `/pagebuild?id=${currentPageId}`;
+      const data = await fetchBin();
+      if (!data) return;
+
+      // Check Custom Pages
+      if (pathname.startsWith('/p/')) {
+        const slug = pathname.split('/').pop();
+        const page = data.customPages?.find((p: CustomPage) => p.slug === slug);
+        if (page) {
+          setEditLink(`/pagebuild?id=${page.id}`);
+          return;
+        }
+      }
+
+      // Check Services
+      if (pathname.startsWith('/services/')) {
+        const id = pathname.split('/').pop();
+        const svc = data.services?.find((s: Service) => s.id === id);
+        if (svc) {
+          setEditLink(`/servicebuild?id=${svc.id}`);
+          return;
+        }
+      }
+
+      setEditLink(null);
+    };
+
+    determineEditLink();
+  }, [pathname]);
 
   return (
     <div className="w-full">
@@ -51,11 +74,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             <Globe size={12} /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}
           </span>
           <div className="flex items-center gap-6">
-            {/* Dynamic Content Editor Link */}
-            {showEditButton && (
+            {editLink && (
               <Button variant="ghost" asChild className="text-accent hover:text-white h-auto py-0 px-2 font-black gap-2">
                 <Link href={editLink}>
-                  <Edit2 size={10} /> {isAr ? 'تحرير المحتوى' : 'Edit Content'}
+                  <Edit2 size={10} /> {isAr ? 'تحرير هذا المكون' : 'Edit This Element'}
                 </Link>
               </Button>
             )}
@@ -85,11 +107,11 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-6">
-            <Link href="/" className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">
+            <Link href="/" className={cn("text-sm font-bold hover:text-primary transition-colors", pathname === '/' ? "text-primary" : "text-slate-600")}>
               {isAr ? 'الرئيسية' : 'Home'}
             </Link>
             {menuItems.map(item => (
-              <Link key={item.id} href={item.link} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">
+              <Link key={item.id} href={item.link} className={cn("text-sm font-bold hover:text-primary transition-colors", pathname === item.link ? "text-primary" : "text-slate-600")}>
                 {isAr ? item.labelAr : item.labelEn}
               </Link>
             ))}
@@ -102,7 +124,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                 <Button variant="ghost" size="icon" aria-label={isAr ? "القائمة" : "Menu"}><Menu /></Button>
               </SheetTrigger>
               <SheetContent side={isAr ? "right" : "left"}>
-                <SheetTitle className="sr-only">{isAr ? "قائمة التنقل" : "Navigation Menu"}</SheetTitle>
+                <SheetTitle className="text-primary font-black">{isAr ? "القائمة الرئيسية" : "Main Menu"}</SheetTitle>
                 <div className="flex flex-col gap-4 mt-8">
                   <Link href="/" className="text-lg font-bold">{isAr ? 'الرئيسية' : 'Home'}</Link>
                   {menuItems.map(item => (
