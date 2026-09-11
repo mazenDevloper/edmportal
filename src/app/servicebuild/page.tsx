@@ -4,13 +4,14 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, Trash2, Save, ArrowLeft, 
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
-  MoveUp, MoveDown
+  MoveUp, MoveDown, Search, Link as LinkIcon
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -33,9 +34,9 @@ function WorkflowEngineContent() {
   const isAr = language === 'ar';
   
   const [steps, setSteps] = useState<ServiceStep[]>([]);
-  const [serviceInfo, setServiceInfo] = useState({
-    titleAr: '', titleEn: '', category: 'elec', iconName: 'FileText',
-    fees: '0 OMR', descriptionAr: '', descriptionEn: ''
+  const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
+    title: '', titleEn: '', category: 'elec', iconName: 'FileText',
+    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -48,12 +49,7 @@ function WorkflowEngineContent() {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
           if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo({
-            titleAr: svc.title || '', titleEn: svc.titleEn || '',
-            category: svc.category || 'elec', iconName: svc.iconName || 'FileText',
-            fees: svc.fees || '0 OMR', descriptionAr: svc.description || '',
-            descriptionEn: svc.descriptionEn || ''
-          });
+          if (svc) setServiceInfo(svc);
         }
       }).finally(() => setLoading(false));
     }
@@ -92,22 +88,22 @@ function WorkflowEngineContent() {
   };
 
   const handleSave = async () => {
-    if (!serviceInfo.titleAr) return toast({ variant: "destructive", title: "Required" });
+    if (!serviceInfo.title) return toast({ variant: "destructive", title: "Required" });
     setSaving(true);
     try {
       const data = await fetchBin();
       const newId = editId || `svc_${Date.now()}`;
       
       const newService: Service = {
-        id: newId, title: serviceInfo.titleAr, titleEn: serviceInfo.titleEn,
-        description: serviceInfo.descriptionAr, descriptionEn: serviceInfo.descriptionEn,
-        category: serviceInfo.category, iconName: serviceInfo.iconName, fees: serviceInfo.fees,
-        isActive: true, reqsAr: steps.flatMap(s => s.fields.map(f => f.labelAr)),
+        ...serviceInfo as Service,
+        id: newId,
+        isActive: true,
+        reqsAr: steps.flatMap(s => s.fields.map(f => f.labelAr)),
         reqsEn: steps.flatMap(s => s.fields.map(f => f.labelEn)),
       };
 
       const newFlow: ServiceFlow = {
-        id: newId, serviceId: newId, titleAr: serviceInfo.titleAr, titleEn: serviceInfo.titleEn,
+        id: newId, serviceId: newId, titleAr: serviceInfo.title || '', titleEn: serviceInfo.titleEn || '',
         steps: steps, isActive: true
       };
 
@@ -151,7 +147,7 @@ function WorkflowEngineContent() {
         </header>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          <Card className="rounded-brand shadow-md h-fit border-none sticky top-24">
+          <Card className="rounded-brand shadow-md h-fit border-none sticky top-24 overflow-hidden">
             <CardHeader className="bg-primary text-white">
               <CardTitle className="text-xs font-black flex items-center gap-2">
                 <Settings size={14} /> {isAr ? "خصائص الخدمة" : "Service Props"}
@@ -159,13 +155,29 @@ function WorkflowEngineContent() {
             </CardHeader>
             <CardContent className="p-4 space-y-4">
                <div className="space-y-2">
-                 <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "العنوان" : "Title"}</label>
-                 <Input value={serviceInfo.titleAr} onChange={e => setServiceInfo({...serviceInfo, titleAr: e.target.value})} />
+                 <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "نوع الخدمة" : "Service Type"}</label>
+                 <Select value={serviceInfo.type} onValueChange={v => setServiceInfo({...serviceInfo, type: v as any})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="workflow">{isAr ? "نظام خطوات (داخلي)" : "Workflow (Internal)"}</SelectItem>
+                       <SelectItem value="link">{isAr ? "رابط خارجي" : "External Link"}</SelectItem>
+                    </SelectContent>
+                 </Select>
                </div>
+               <div className="space-y-2">
+                 <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "العنوان" : "Title"}</label>
+                 <Input value={serviceInfo.title} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="h-8 text-xs font-bold" />
+               </div>
+               {serviceInfo.type === 'link' && (
+                 <div className="space-y-2">
+                   <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "رابط الوجهة" : "Target URL"}</label>
+                   <Input value={serviceInfo.linkUrl} onChange={e => setServiceInfo({...serviceInfo, linkUrl: e.target.value})} className="h-8 text-xs font-mono" />
+                 </div>
+               )}
                <div className="space-y-2">
                  <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الفئة" : "Category"}</label>
                  <Select value={serviceInfo.category} onValueChange={v => setServiceInfo({...serviceInfo, category: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.keys(CAT_CONFIG).map(cid => (
                         <SelectItem key={cid} value={cid}>{isAr ? CAT_CONFIG[cid as any].labelAr : CAT_CONFIG[cid as any].labelEn}</SelectItem>
@@ -176,7 +188,7 @@ function WorkflowEngineContent() {
                <div className="space-y-2">
                  <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الأيقونة" : "Icon"}</label>
                  <Select value={serviceInfo.iconName} onValueChange={v => setServiceInfo({...serviceInfo, iconName: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ICON_LIST.map(icon => (
                         <SelectItem key={icon} value={icon}>{icon}</SelectItem>
@@ -184,12 +196,14 @@ function WorkflowEngineContent() {
                     </SelectContent>
                  </Select>
                </div>
-               <Button onClick={addStep} className="w-full dm-gradient-primary rounded-xl font-black mt-4"><Plus size={18} className="ml-2"/> {isAr ? "إضافة مرحلة" : "Add Step"}</Button>
+               {serviceInfo.type === 'workflow' && (
+                 <Button onClick={addStep} className="w-full dm-gradient-primary rounded-xl font-black mt-4"><Plus size={18} className="ml-2"/> {isAr ? "إضافة مرحلة" : "Add Step"}</Button>
+               )}
             </CardContent>
           </Card>
 
           <div className="lg:col-span-3 space-y-6">
-            {steps.map((step, sIdx) => (
+            {serviceInfo.type === 'workflow' && steps.map((step, sIdx) => (
               <Card key={step.id} className="rounded-3xl shadow-sm border-none overflow-hidden relative">
                 <CardHeader className="bg-slate-900 text-white p-4 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -271,13 +285,16 @@ function WorkflowEngineContent() {
                      </Select>
                    </div>
                 </CardContent>
-                {sIdx < steps.length - 1 && (
-                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10">
-                    <div className="bg-white border rounded-full p-1 shadow-sm"><ArrowRight className="rotate-90 size-4 text-slate-300" /></div>
-                  </div>
-                )}
               </Card>
             ))}
+
+            {serviceInfo.type === 'link' && (
+              <Card className="rounded-[2rem] p-12 text-center border-2 border-dashed border-slate-200">
+                <LinkIcon size={48} className="mx-auto text-slate-300 mb-4" />
+                <h3 className="text-2xl font-black text-primary mb-2">{isAr ? "ربط خارجي نشط" : "Active External Link"}</h3>
+                <p className="text-slate-400 font-bold">{isAr ? "هذه الخدمة ستوجه المستخدم مباشرة إلى الرابط المحدد بدلاً من نظام الخطوات الداخلي." : "This service will redirect users directly to the specified URL."}</p>
+              </Card>
+            )}
           </div>
         </div>
       </main>

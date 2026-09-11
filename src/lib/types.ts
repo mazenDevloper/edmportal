@@ -53,8 +53,8 @@ export interface Service {
   reqsEn: string[];
   fees: string;
   feesEn?: string;
-  colorClass?: string;
   linkUrl?: string;
+  type?: 'workflow' | 'link';
 }
 
 export interface ServiceApplication {
