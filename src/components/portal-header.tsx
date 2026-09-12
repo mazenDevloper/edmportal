@@ -40,6 +40,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
         const data = await fetchBin();
         if (!data) return;
 
+        // 1. Dynamic Pages
         if (pathname.startsWith('/p/')) {
           const slug = pathname.split('/').pop();
           const page = data.customPages?.find((p: CustomPage) => p.slug === slug);
@@ -49,6 +50,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           }
         }
 
+        // 2. Service Workflows
         if (pathname.startsWith('/services/')) {
           const id = pathname.split('/').pop();
           const svc = data.services?.find((s: Service) => s.id === id);
@@ -58,12 +60,17 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           }
         }
 
-        const standardSlugs = ['privacy', 'terms', 'payment', 'access-controls', 'faqs', 'sla', 'governor-portal'];
+        // 3. Standard Pages (Dynamic Overrides)
+        const standardSlugs = ['privacy', 'terms', 'payment', 'access-controls', 'faqs', 'sla', 'governor-portal', 'open-data', 'service-controls', 'sitemap', 'tajawoob'];
         const currentSlug = pathname.replace('/', '');
         if (standardSlugs.includes(currentSlug)) {
           const page = data.customPages?.find((p: CustomPage) => p.slug === currentSlug);
-          if (page) setEditLink(`/pagebuild?id=${page.id}`);
-          else setEditLink(`/pagebuild?slug=${currentSlug}`);
+          if (page) {
+            setEditLink(`/pagebuild?id=${page.id}`);
+          } else {
+            // First time editing a standard page - pass slug to importer
+            setEditLink(`/pagebuild?slug=${currentSlug}`);
+          }
           return;
         }
 
@@ -79,7 +86,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
 
   return (
     <header className="w-full">
-      {/* Top Bar with Enhanced Contrast for WCAG 2 AA */}
       <nav className="bg-slate-900 text-white py-2 text-[10px] font-bold tracking-widest border-b border-white/5" aria-label={isAr ? "روابط سريعة" : "Quick Links"}>
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
           <span className="flex items-center gap-2 opacity-80">
@@ -106,7 +112,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
         </div>
       </nav>
 
-      {/* Main Navigation */}
       <nav className="bg-white border-b py-6 sticky top-0 z-[50] shadow-sm" aria-label={isAr ? "الملاحة الرئيسية" : "Primary Navigation"}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-4" aria-label={isAr ? 'الرئيسية بلدية ظفار' : 'Dhofar Municipality Home'}>

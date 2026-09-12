@@ -56,6 +56,15 @@ export default function AdminDashboard() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
 
+  const standardPages = [
+    { slug: 'privacy', titleAr: 'السياسة والخصوصية', titleEn: 'Privacy Policy' },
+    { slug: 'terms', titleAr: 'الشروط والأحكام', titleEn: 'Terms & Conditions' },
+    { slug: 'faqs', titleAr: 'الأسئلة الشائعة', titleEn: 'FAQs' },
+    { slug: 'sla', titleAr: 'اتفاقية مستوى الخدمة', titleEn: 'SLA' },
+    { slug: 'access-controls', titleAr: 'ضوابط النفاذ', titleEn: 'Access Controls' },
+    { slug: 'open-data', titleAr: 'البيانات المفتوحة', titleEn: 'Open Data' }
+  ];
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -253,29 +262,58 @@ export default function AdminDashboard() {
              </div>
           </TabsContent>
 
-          <TabsContent value="pages" className="space-y-6">
-             <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-primary">{isAr ? "الصفحات المخصصة" : "Custom Pages"}</h3>
-                <Button size="sm" asChild className="rounded-full dm-gradient-primary font-black">
-                  <Link href="/pagebuild"><Plus size={14} className="ml-2"/> {isAr ? "إنشاء صفحة" : "New Page"}</Link>
-                </Button>
+          <TabsContent value="pages" className="space-y-12">
+             <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-black text-primary">{isAr ? "صفحات النظام الأساسية" : "System Pages"}</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {standardPages.map(p => {
+                    const hasOverride = customPages.some(cp => cp.slug === p.slug);
+                    return (
+                      <Card key={p.slug} className="rounded-brand border shadow-sm group hover:shadow-lg transition-all border-dashed">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <Badge variant={hasOverride ? 'default' : 'outline'} className={cn("font-mono text-[9px]", hasOverride ? "bg-accent text-slate-900" : "")}>
+                            {p.slug} {hasOverride && (isAr ? "(معدلة)" : "(Overridden)")}
+                          </Badge>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" asChild className="h-7 w-7"><Link href={`/pagebuild?slug=${p.slug}`}><Edit2 size={12}/></Link></Button>
+                            <Button variant="ghost" size="icon" asChild className="h-7 w-7"><Link href={`/${p.slug}`}><Eye size={12}/></Link></Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <h4 className="font-black text-primary">{isAr ? p.titleAr : p.titleEn}</h4>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
              </div>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               {customPages.map(p => (
-                 <Card key={p.id} className="rounded-brand border shadow-sm group hover:shadow-lg transition-all">
-                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                     <Badge variant="outline" className="font-mono text-[9px]">{p.slug}</Badge>
-                     <div className="flex gap-1">
-                       <Button variant="ghost" size="icon" asChild className="h-7 w-7"><Link href={`/pagebuild?id=${p.id}`}><Edit2 size={12}/></Link></Button>
-                       <Button variant="ghost" size="icon" asChild className="h-7 w-7"><Link href={`/p/${p.slug}`}><Eye size={12}/></Link></Button>
-                     </div>
-                   </CardHeader>
-                   <CardContent>
-                     <h4 className="font-black text-primary">{isAr ? p.titleAr : p.titleEn}</h4>
-                     <p className="text-[10px] text-slate-400 font-bold mt-2">{isAr ? "آخر تعديل: " : "Last modified: "} {new Date(p.createdAt).toLocaleDateString()}</p>
-                   </CardContent>
-                 </Card>
-               ))}
+
+             <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                   <h3 className="text-xl font-black text-primary">{isAr ? "الصفحات المخصصة" : "Custom Pages"}</h3>
+                   <Button size="sm" asChild className="rounded-full dm-gradient-primary font-black">
+                     <Link href="/pagebuild"><Plus size={14} className="ml-2"/> {isAr ? "إنشاء صفحة" : "New Page"}</Link>
+                   </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {customPages.filter(p => !standardPages.some(sp => sp.slug === p.slug)).map(p => (
+                    <Card key={p.id} className="rounded-brand border shadow-sm group hover:shadow-lg transition-all">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <Badge variant="outline" className="font-mono text-[9px]">{p.slug}</Badge>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" asChild className="h-7 w-7"><Link href={`/pagebuild?id=${p.id}`}><Edit2 size={12}/></Link></Button>
+                          <Button variant="ghost" size="icon" asChild className="h-7 w-7"><Link href={`/p/${p.slug}`}><Eye size={12}/></Link></Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <h4 className="font-black text-primary">{isAr ? p.titleAr : p.titleEn}</h4>
+                        <p className="text-[10px] text-slate-400 font-bold mt-2">{isAr ? "آخر تعديل: " : "Last modified: "} {new Date(p.createdAt).toLocaleDateString()}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
              </div>
           </TabsContent>
 

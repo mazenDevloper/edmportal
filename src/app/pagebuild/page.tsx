@@ -54,7 +54,20 @@ function PageBuilderContent() {
                 slug: page.slug || '' 
               });
             } else if (editSlug) {
+              // Standard page import logic
               setPageMeta(prev => ({ ...prev, slug: editSlug }));
+              // Pre-seed with default components based on slug
+              if (editSlug === 'privacy') {
+                setComponents([
+                  { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'السياسة والخصوصية', textEn: 'Privacy Policy' } },
+                  { id: 'c2', type: 'text', content: { bodyAr: 'نحن نلتزم بحماية بياناتك الشخصية...', bodyEn: 'We are committed to protecting your personal data...' } }
+                ]);
+              } else if (editSlug === 'faqs') {
+                setComponents([
+                  { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'الأسئلة الشائعة', textEn: 'FAQs' } },
+                  { id: 'c2', type: 'accordion', content: { items: [{ titleAr: 'كيف أجدد عقدي؟', titleEn: 'How to renew?', contentAr: 'عبر بوابة الخدمات.', contentEn: 'Via services portal.' }] } }
+                ]);
+              }
             }
           }
         } catch (e) {
