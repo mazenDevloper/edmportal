@@ -19,6 +19,19 @@ export interface SiteConfig {
     link: string;
     category: 'legal' | 'services' | 'important';
   }[];
+  integrations?: {
+    accessibilityKey?: string;
+    analyticsId?: string;
+    mapsApiKey?: string;
+    paymentKey?: string;
+    customScripts?: string;
+  };
+  meta?: {
+    titleAr: string;
+    titleEn: string;
+    descriptionAr: string;
+    descriptionEn: string;
+  };
 }
 
 export interface MenuItem {

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Table, 
@@ -26,7 +27,7 @@ import {
   CloudUpload, Star, Layout, Menu, Image as ImageIcon,
   BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
   TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database,
-  Edit2, FileText, Eye, X, Link as LinkIcon, Bell
+  Edit2, FileText, Eye, X, Link as LinkIcon, Bell, ShieldCheck, CreditCard, Share2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -48,7 +49,9 @@ export default function AdminDashboard() {
     heroTitle: '', heroSubtitle: '', contactPhone: '', contactEmail: '',
     categories: ['building', 'health', 'invest', 'tech', 'elec'], isMaintenanceMode: false,
     stats: { transactions: 0, permits: 0, contracts: 0, tickets: 0 },
-    footerLinks: []
+    footerLinks: [],
+    integrations: {},
+    meta: { titleAr: '', titleEn: '', descriptionAr: '', descriptionEn: '' }
   });
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -60,7 +63,12 @@ export default function AdminDashboard() {
         if (data) {
           setServices(data.services || []);
           setApplications(data.applications || []);
-          setSiteConfig(data.siteConfig || siteConfig);
+          setSiteConfig({
+            ...siteConfig,
+            ...data.siteConfig,
+            integrations: data.siteConfig?.integrations || {},
+            meta: data.siteConfig?.meta || { titleAr: '', titleEn: '', descriptionAr: '', descriptionEn: '' }
+          });
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
           setSurveys(data.surveys || []);
@@ -132,7 +140,7 @@ export default function AdminDashboard() {
              <h1 className="text-3xl font-black text-primary flex items-center gap-3">
                <Settings className="h-8 w-8 text-accent" /> {isAr ? "لوحة الإدارة الشاملة" : "Portal Admin"}
              </h1>
-             <p className="text-slate-400 font-bold mt-1">{isAr ? "تحكم كامل بمحتوى البوابة والخدمات" : "Full control over portal content and services"}</p>
+             <p className="text-slate-400 font-bold mt-1">{isAr ? "تحكم كامل بمحتوى البوابة والخدمات والربط" : "Full control over portal content, services & integrations"}</p>
            </div>
            <div className="flex flex-wrap gap-4">
              <Button variant="outline" asChild className="rounded-full font-black border-primary text-primary">
@@ -150,56 +158,56 @@ export default function AdminDashboard() {
             <TabsTrigger value="services" className="font-black"><Layout className="size-4 ml-2" /> {isAr ? "الخدمات" : "Services"}</TabsTrigger>
             <TabsTrigger value="pages" className="font-black"><FileText className="size-4 ml-2" /> {isAr ? "الصفحات" : "Pages"}</TabsTrigger>
             <TabsTrigger value="menu" className="font-black"><Menu className="size-4 ml-2" /> {isAr ? "القائمة" : "Menu"}</TabsTrigger>
+            <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
+            <TabsTrigger value="integrations" className="font-black"><ShieldCheck className="size-4 ml-2" /> {isAr ? "الربط" : "Integrations"}</TabsTrigger>
             <TabsTrigger value="carousel" className="font-black"><ImageIcon className="size-4 ml-2" /> {isAr ? "البنرات" : "Banner"}</TabsTrigger>
             <TabsTrigger value="popups" className="font-black"><Bell className="size-4 ml-2" /> {isAr ? "المنبثقات" : "Popups"}</TabsTrigger>
-            <TabsTrigger value="site" className="font-black"><PenTool className="size-4 ml-2" /> {isAr ? "الموقع" : "Site"}</TabsTrigger>
             <TabsTrigger value="surveys" className="font-black"><ClipboardList className="size-4 ml-2" /> {isAr ? "الاستطلاعات" : "Polls"}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="popups" className="space-y-6">
-             <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-primary">{isAr ? "تنبيهات الزوار المنبثقة" : "Visitor Popups"}</h3>
-                <Button size="sm" onClick={addPopup} className="rounded-full bg-accent text-accent-foreground font-black">
-                  <Plus size={14} className="ml-2"/> {isAr ? "إضافة تنبيه" : "Add Popup"}
-                </Button>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {popups.map((pop, idx) => (
-                 <Card key={pop.id} className="rounded-brand border shadow-sm">
-                   <CardContent className="p-6 space-y-4">
-                     <div className="flex justify-between items-center">
-                       <Badge className="dm-gradient-primary">{pop.type.toUpperCase()}</Badge>
-                       <div className="flex items-center gap-2">
-                         <span className="text-[10px] font-black">{isAr ? "تفعيل" : "Active"}</span>
-                         <Switch checked={pop.isActive} onCheckedChange={val => {
-                           const n = [...popups]; n[idx].isActive = val; setPopups(n);
-                         }} />
-                         <Button variant="ghost" size="icon" onClick={() => setPopups(popups.filter(p => p.id !== pop.id))} className="text-red-400"><Trash2 size={16}/></Button>
-                       </div>
-                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                       <Input placeholder="Title AR" value={pop.titleAr} onChange={e => { const n = [...popups]; n[idx].titleAr = e.target.value; setPopups(n); }} />
-                       <Input placeholder="Title EN" value={pop.titleEn} onChange={e => { const n = [...popups]; n[idx].titleEn = e.target.value; setPopups(n); }} />
-                     </div>
-                     <Select value={pop.type} onValueChange={val => {
-                       const n = [...popups]; n[idx].type = val as any; setPopups(n);
-                     }}>
-                       <SelectTrigger><SelectValue /></SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="text">Text Only</SelectItem>
-                         <SelectItem value="image">Image Popup</SelectItem>
-                         <SelectItem value="video">Video Popup</SelectItem>
-                       </SelectContent>
-                     </Select>
-                     {(pop.type === 'image' || pop.type === 'video') && (
-                       <Input placeholder={pop.type === 'image' ? "Image URL" : "Video URL (YouTube/Vimeo)"} value={pop.mediaUrl} onChange={e => {
-                         const n = [...popups]; n[idx].mediaUrl = e.target.value; setPopups(n);
-                       }} className="font-mono text-xs" />
-                     )}
-                   </CardContent>
-                 </Card>
-               ))}
-             </div>
+          <TabsContent value="integrations" className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-8">
+              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
+                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><Accessibility size={16}/> {isAr ? "أدوات التسهيل والنفاذ" : "Accessibility Tools"}</CardTitle></CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">3rd Party API Key (UserWay/AccessiBe)</label>
+                    <Input placeholder="Enter Key..." value={siteConfig.integrations?.accessibilityKey} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, accessibilityKey: e.target.value}})} />
+                  </div>
+                  <p className="text-xs text-slate-500 font-bold">{isAr ? "اربط أدوات الذكاء الاصطناعي للنفاذ الرقمي لتحسين تجربة أصحاب الهمم." : "Connect AI accessibility tools to improve experience for people of determination."}</p>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
+                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><TrendingUp size={16}/> {isAr ? "التحليلات والتتبع" : "Analytics & Tracking"}</CardTitle></CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Google Analytics / GTM ID</label>
+                    <Input placeholder="UA-XXXXX or G-XXXXX" value={siteConfig.integrations?.analyticsId} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, analyticsId: e.target.value}})} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
+                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><CreditCard size={16}/> {isAr ? "بوابات الدفع" : "Payment Gateways"}</CardTitle></CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Merchant API Key</label>
+                    <Input placeholder="Secret Key..." value={siteConfig.integrations?.paymentKey} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, paymentKey: e.target.value}})} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
+                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><Database size={16}/> {isAr ? "أكواد مخصصة" : "Custom Scripts"}</CardTitle></CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400">Global Header Scripts</label>
+                    <Textarea placeholder="<script>...</script>" className="font-mono text-[10px]" value={siteConfig.integrations?.customScripts} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, customScripts: e.target.value}})} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="services" className="space-y-6">
@@ -271,25 +279,6 @@ export default function AdminDashboard() {
              </div>
           </TabsContent>
 
-          <TabsContent value="menu" className="space-y-6">
-             <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-primary">{isAr ? "قائمة التنقل" : "Navigation Menu"}</h3>
-                <Button size="sm" onClick={addMenuItem} className="rounded-full bg-accent text-accent-foreground font-black">
-                  <Plus size={14} className="ml-2"/> {isAr ? "إضافة عنصر" : "Add Item"}
-                </Button>
-             </div>
-             <div className="bg-white border rounded-[2rem] p-6 space-y-4">
-                {menuItems.map((item, idx) => (
-                  <div key={item.id} className="grid md:grid-cols-4 gap-4 items-end border-b pb-4 last:border-b-0">
-                    <Input placeholder="Label AR" value={item.labelAr} onChange={e => { const n = [...menuItems]; n[idx].labelAr = e.target.value; setMenuItems(n); }} />
-                    <Input placeholder="Label EN" value={item.labelEn} onChange={e => { const n = [...menuItems]; n[idx].labelEn = e.target.value; setMenuItems(n); }} />
-                    <Input placeholder="Link (e.g. /p/about)" value={item.link} onChange={e => { const n = [...menuItems]; n[idx].link = e.target.value; setMenuItems(n); }} />
-                    <Button variant="ghost" size="icon" onClick={() => setMenuItems(menuItems.filter(m => m.id !== item.id))} className="text-red-400"><Trash2 size={16}/></Button>
-                  </div>
-                ))}
-             </div>
-          </TabsContent>
-
           <TabsContent value="site" className="space-y-6">
              <Card className="rounded-brand border-none shadow-xl overflow-hidden">
                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black">{isAr ? "إعدادات الهوية والتواصل" : "Branding & Contact"}</CardTitle></CardHeader>
@@ -307,10 +296,14 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-black text-primary flex items-center gap-2 border-b pb-2"><TrendingUp size={16}/> {isAr ? "الإحصائيات" : "Platform Stats"}</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <Input type="number" placeholder="Trans" value={siteConfig.stats?.transactions} onChange={e => setSiteConfig({...siteConfig, stats: {...siteConfig.stats!, transactions: parseInt(e.target.value)}})} />
-                        <Input type="number" placeholder="Permits" value={siteConfig.stats?.permits} onChange={e => setSiteConfig({...siteConfig, stats: {...siteConfig.stats!, permits: parseInt(e.target.value)}})} />
+                      <h4 className="font-black text-primary flex items-center gap-2 border-b pb-2"><Share2 size={16}/> {isAr ? "تحسين محركات البحث" : "SEO Meta"}</h4>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400">Site Title (EN)</label>
+                        <Input value={siteConfig.meta?.titleEn} onChange={e => setSiteConfig({...siteConfig, meta: {...siteConfig.meta!, titleEn: e.target.value}})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400">Meta Description (EN)</label>
+                        <Textarea value={siteConfig.meta?.descriptionEn} onChange={e => setSiteConfig({...siteConfig, meta: {...siteConfig.meta!, descriptionEn: e.target.value}})} />
                       </div>
                     </div>
                   </div>
@@ -328,12 +321,41 @@ export default function AdminDashboard() {
                           }} className="absolute -top-2 -right-2 bg-white border h-6 w-6 rounded-full text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={10}/></Button>
                           <Input className="h-8 text-xs font-bold" placeholder="Label AR" value={link.labelAr} onChange={e => { const n = [...siteConfig.footerLinks!]; n[idx].labelAr = e.target.value; setSiteConfig({...siteConfig, footerLinks: n}); }} />
                           <Input className="h-8 text-[10px] font-mono" placeholder="Link" value={link.link} onChange={e => { const n = [...siteConfig.footerLinks!]; n[idx].link = e.target.value; setSiteConfig({...siteConfig, footerLinks: n}); }} />
+                          <Select value={link.category} onValueChange={val => {
+                             const n = [...siteConfig.footerLinks!]; n[idx].category = val as any; setSiteConfig({...siteConfig, footerLinks: n});
+                          }}>
+                            <SelectTrigger className="h-7 text-[9px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="legal">Legal Information</SelectItem>
+                              <SelectItem value="services">Service Standards</SelectItem>
+                              <SelectItem value="important">Important Links</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       ))}
                     </div>
                   </div>
                </CardContent>
              </Card>
+          </TabsContent>
+
+          <TabsContent value="menu" className="space-y-6">
+             <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-primary">{isAr ? "قائمة التنقل" : "Navigation Menu"}</h3>
+                <Button size="sm" onClick={addMenuItem} className="rounded-full bg-accent text-accent-foreground font-black">
+                  <Plus size={14} className="ml-2"/> {isAr ? "إضافة عنصر" : "Add Item"}
+                </Button>
+             </div>
+             <div className="bg-white border rounded-[2rem] p-6 space-y-4">
+                {menuItems.map((item, idx) => (
+                  <div key={item.id} className="grid md:grid-cols-4 gap-4 items-end border-b pb-4 last:border-b-0">
+                    <Input placeholder="Label AR" value={item.labelAr} onChange={e => { const n = [...menuItems]; n[idx].labelAr = e.target.value; setMenuItems(n); }} />
+                    <Input placeholder="Label EN" value={item.labelEn} onChange={e => { const n = [...menuItems]; n[idx].labelEn = e.target.value; setMenuItems(n); }} />
+                    <Input placeholder="Link (e.g. /p/about)" value={item.link} onChange={e => { const n = [...menuItems]; n[idx].link = e.target.value; setMenuItems(n); }} />
+                    <Button variant="ghost" size="icon" onClick={() => setMenuItems(menuItems.filter(m => m.id !== item.id))} className="text-red-400"><Trash2 size={16}/></Button>
+                  </div>
+                ))}
+             </div>
           </TabsContent>
           
           <TabsContent value="surveys" className="space-y-6">

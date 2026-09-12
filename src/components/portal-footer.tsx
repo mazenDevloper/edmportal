@@ -61,8 +61,8 @@ export function PortalFooter({ siteConfig }: PortalFooterProps) {
                 </Link>
               )) : (
                 <>
-                  <Link href="/terms" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link>
-                  <Link href="/privacy" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'السياسة والخصوصية' : 'Privacy Policy'}</Link>
+                  <Link href="/p/terms" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link>
+                  <Link href="/p/privacy" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'السياسة والخصوصية' : 'Privacy Policy'}</Link>
                 </>
               )}
             </div>
@@ -77,8 +77,8 @@ export function PortalFooter({ siteConfig }: PortalFooterProps) {
                 </Link>
               )) : (
                 <>
-                  <Link href="/faqs" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'الأسئلة الشائعة (FAQs)' : 'FAQs'}</Link>
-                  <Link href="/sla" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'اتفاقية مستوى الخدمة' : 'Service Level Agreement'}</Link>
+                  <Link href="/p/faqs" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'الأسئلة الشائعة (FAQs)' : 'FAQs'}</Link>
+                  <Link href="/p/sla" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'اتفاقية مستوى الخدمة' : 'Service Level Agreement'}</Link>
                 </>
               )}
             </div>
@@ -94,8 +94,8 @@ export function PortalFooter({ siteConfig }: PortalFooterProps) {
                 </Link>
               )) : (
                 <>
-                  <Link href="/governor-portal" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'بوابة محافظ ظفار' : 'Dhofar Governor Portal'}</Link>
-                  <Link href="/tajawoob" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'منصة تجاوب' : 'Tajawoob Platform'}</Link>
+                  <Link href="/p/governor-portal" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'بوابة محافظ ظفار' : 'Dhofar Governor Portal'}</Link>
+                  <Link href="https://www.tajawoob.gov.om" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'منصة تجاوب' : 'Tajawoob Platform'}</Link>
                 </>
               )}
               <Link href="/admin" className="text-sm font-black text-accent bg-white/5 w-fit px-4 py-2 rounded-lg hover:bg-white/10 mt-4">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
