@@ -68,6 +68,10 @@ export default function DynamicCustomPage() {
                 </div>
               )}
 
+              {comp.type === 'html' && (
+                <div className="max-w-7xl mx-auto my-8" dangerouslySetInnerHTML={{ __html: comp.content.code }} />
+              )}
+
               {comp.type === 'hero' && (
                 <div className="max-w-4xl py-12">
                   <h1 className="text-5xl md:text-8xl font-black text-primary mb-8 tracking-tighter dm-gradient-primary bg-clip-text text-transparent">

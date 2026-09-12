@@ -11,7 +11,7 @@ import {
   Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, 
   Type, TrendingUp, Info, Loader2, Sparkles, Eye, 
   Heading1, Video, FileText, List, Minus, Table as TableIcon,
-  Activity, UserCircle, Tag
+  Activity, UserCircle, Tag, Code
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -22,6 +22,39 @@ import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CustomPage, BuilderComponent } from '@/lib/types';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
+
+const STANDARD_PAGE_SEEDS: Record<string, { titleAr: string, titleEn: string, components: any[] }> = {
+  'privacy': {
+    titleAr: 'السياسة والخصوصية',
+    titleEn: 'Privacy Policy',
+    components: [
+      { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'السياسة والخصوصية', textEn: 'Privacy Policy' } },
+      { id: 'c2', type: 'info', content: { bodyAr: 'نحن نلتزم بحماية خصوصيتك وبياناتك الرقمية وفق أعلى المعايير.', bodyEn: 'We protect your privacy and digital data according to the highest standards.' } },
+      { id: 'c3', type: 'text', content: { bodyAr: 'جمع المعلومات:\nنقوم بجمع المعلومات اللازمة فقط لتقديم الخدمات البلدية بشكل فعال ودقيق.\n\nأمن البيانات:\nنستخدم تقنيات تشفير متطورة لحماية بياناتك من الوصول غير المصرح به.', bodyEn: 'Information Collection:\nWe collect only the information necessary to provide municipal services effectively.\n\nData Security:\nWe use advanced encryption technologies to protect your data.' } }
+    ]
+  },
+  'terms': {
+    titleAr: 'الشروط والأحكام',
+    titleEn: 'Terms & Conditions',
+    components: [
+      { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'الشروط والأحكام', textEn: 'Terms & Conditions' } },
+      { id: 'c2', type: 'accordion', content: { items: [
+        { titleAr: '1. مقدمة', titleEn: '1. Introduction', contentAr: 'باستخدامك لهذه البوابة، فإنك توافق على الالتزام الكامل بهذه الشروط والأحكام.', contentEn: 'By using this portal, you agree to fully comply with these terms.' },
+        { titleAr: '2. الالتزامات', titleEn: '2. Obligations', contentAr: 'يجب على المستخدم تقديم بيانات صحيحة ودقيقة عند استخدام الخدمات الرقمية.', contentEn: 'Users must provide accurate data when using digital services.' }
+      ] } }
+    ]
+  },
+  'faqs': {
+    titleAr: 'الأسئلة الشائعة',
+    titleEn: 'FAQs',
+    components: [
+      { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'الأسئلة الشائعة', textEn: 'FAQs' } },
+      { id: 'c2', type: 'accordion', content: { items: [
+        { titleAr: 'كيف يمكنني تجديد عقد الإيجار؟', titleEn: 'How can I renew a lease?', contentAr: 'يمكنك التجديد عبر خدمة عقود الإيجار الرقمية في دليل الخدمات.', contentEn: 'You can renew via the digital lease service in the catalog.' }
+      ] } }
+    ]
+  }
+};
 
 function PageBuilderContent() {
   const router = useRouter();
@@ -40,41 +73,30 @@ function PageBuilderContent() {
 
   useEffect(() => {
     const loadPage = async () => {
-      if (editId || editSlug) {
-        setLoading(true);
-        try {
-          const data = await fetchBin();
-          if (data && data.customPages) {
-            const page = data.customPages.find((p: CustomPage) => p.id === editId || p.slug === editSlug);
-            if (page) {
-              setComponents(page.components || []);
-              setPageMeta({ 
-                titleAr: page.titleAr || '', 
-                titleEn: page.titleEn || '', 
-                slug: page.slug || '' 
-              });
-            } else if (editSlug) {
-              // Standard page import logic
-              setPageMeta(prev => ({ ...prev, slug: editSlug }));
-              // Pre-seed with default components based on slug
-              if (editSlug === 'privacy') {
-                setComponents([
-                  { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'السياسة والخصوصية', textEn: 'Privacy Policy' } },
-                  { id: 'c2', type: 'text', content: { bodyAr: 'نحن نلتزم بحماية بياناتك الشخصية...', bodyEn: 'We are committed to protecting your personal data...' } }
-                ]);
-              } else if (editSlug === 'faqs') {
-                setComponents([
-                  { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'الأسئلة الشائعة', textEn: 'FAQs' } },
-                  { id: 'c2', type: 'accordion', content: { items: [{ titleAr: 'كيف أجدد عقدي؟', titleEn: 'How to renew?', contentAr: 'عبر بوابة الخدمات.', contentEn: 'Via services portal.' }] } }
-                ]);
-              }
-            }
+      setLoading(true);
+      try {
+        const data = await fetchBin();
+        if (data && data.customPages) {
+          const page = data.customPages.find((p: CustomPage) => p.id === editId || p.slug === editSlug);
+          if (page) {
+            setComponents(page.components || []);
+            setPageMeta({ 
+              titleAr: page.titleAr || '', 
+              titleEn: page.titleEn || '', 
+              slug: page.slug || '' 
+            });
+          } else if (editSlug && STANDARD_PAGE_SEEDS[editSlug]) {
+            const seed = STANDARD_PAGE_SEEDS[editSlug];
+            setPageMeta({ titleAr: seed.titleAr, titleEn: seed.titleEn, slug: editSlug });
+            setComponents(seed.components);
+          } else if (editSlug) {
+            setPageMeta(prev => ({ ...prev, slug: editSlug }));
           }
-        } catch (e) {
-          console.error("Load error:", e);
-        } finally {
-          setLoading(false);
         }
+      } catch (e) {
+        console.error("Load error:", e);
+      } finally {
+        setLoading(false);
       }
     };
     loadPage();
@@ -87,7 +109,7 @@ function PageBuilderContent() {
       const { translatedText } = await translateToEnglish({ text: pageMeta.titleAr });
       setPageMeta({ ...pageMeta, titleEn: translatedText });
     } catch (e) {
-      toast({ variant: "destructive", title: "AI Error", description: "Gemini API requires an environment key." });
+      toast({ variant: "destructive", title: "AI Translation Error" });
     } finally {
       setAiLoading(false);
     }
@@ -110,6 +132,7 @@ function PageBuilderContent() {
                type === 'progress' ? { labelAr: 'الإنجاز', labelEn: 'Progress', value: 50 } :
                type === 'avatar' ? { src: '', fallback: 'DM' } :
                type === 'badge' ? { textAr: 'معتمد', textEn: 'Approved', variant: 'default' } :
+               type === 'html' ? { code: '<!-- Custom HTML/Script Here -->' } :
                type === 'separator' ? {} : {}
     };
     setComponents([...components, newComp]);
@@ -149,10 +172,10 @@ function PageBuilderContent() {
         ...data,
         customPages: [...filtered, newPage]
       });
-      toast({ title: isAr ? "تم الحفظ" : "Saved" });
+      toast({ title: isAr ? "تم الحفظ" : "Saved", description: isAr ? "تم تحديث محتوى الصفحة بنجاح" : "Page content updated successfully" });
       router.push('/admin');
     } catch (e) {
-      toast({ variant: "destructive", title: "Error" });
+      toast({ variant: "destructive", title: "Error", description: "Could not save page." });
     } finally {
       setSaving(false);
     }
@@ -190,6 +213,7 @@ function PageBuilderContent() {
               <Button variant="outline" onClick={() => addComponent('table')} className="justify-start gap-2 font-black"><TableIcon size={14}/> {isAr ? "جدول بيانات" : "Data Table"}</Button>
               <Button variant="outline" onClick={() => addComponent('progress')} className="justify-start gap-2 font-black"><Activity size={14}/> {isAr ? "مؤشر تقدم" : "Progress"}</Button>
               <Button variant="outline" onClick={() => addComponent('accordion')} className="justify-start gap-2 font-black"><List size={14}/> {isAr ? "أكورديون" : "Accordion"}</Button>
+              <Button variant="outline" onClick={() => addComponent('html')} className="justify-start gap-2 font-black"><Code size={14}/> {isAr ? "كود مخصص HTML" : "Custom HTML/Code"}</Button>
               <Button variant="outline" onClick={() => addComponent('badge')} className="justify-start gap-2 font-black"><Tag size={14}/> {isAr ? "شارة" : "Badge"}</Button>
               <Button variant="outline" onClick={() => addComponent('avatar')} className="justify-start gap-2 font-black"><UserCircle size={14}/> {isAr ? "أفاتار" : "Avatar"}</Button>
               <Button variant="outline" onClick={() => addComponent('image')} className="justify-start gap-2 font-black"><ImageIcon size={14}/> {isAr ? "صورة" : "Image"}</Button>
@@ -210,8 +234,8 @@ function PageBuilderContent() {
                    </Button>
                  </div>
                  <div>
-                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "الرابط اللطيف" : "Page Slug"}</label>
-                   <Input value={pageMeta.slug} onChange={(e) => setPageMeta({...pageMeta, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} className="font-mono border-2 text-primary" />
+                   <label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "الرابط اللطيف (Slug)" : "Page Slug"}</label>
+                   <Input value={pageMeta.slug} onChange={(e) => setPageMeta({...pageMeta, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} className="font-mono border-2 text-primary" placeholder="e.g. privacy" />
                  </div>
                </div>
             </Card>
@@ -233,6 +257,18 @@ function PageBuilderContent() {
                       </Select>
                       <Input placeholder="Text AR" value={c.content.textAr || ''} onChange={e => updateComponentContent(i, { textAr: e.target.value })} className="font-bold" />
                       <Input placeholder="Text EN" value={c.content.textEn || ''} onChange={e => updateComponentContent(i, { textEn: e.target.value })} />
+                    </div>
+                  )}
+
+                  {c.type === 'html' && (
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase text-slate-400">Custom HTML / Script Code</label>
+                       <Textarea 
+                        placeholder="<script>...</script>" 
+                        value={c.content.code} 
+                        onChange={e => updateComponentContent(i, { code: e.target.value })} 
+                        className="font-mono text-xs bg-slate-900 text-emerald-400 min-h-[200px]" 
+                       />
                     </div>
                   )}
 
