@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -39,6 +38,7 @@ import {
   Panel,
   useReactFlow,
   ReactFlowProvider,
+  applyNodeChanges,
   NodeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
