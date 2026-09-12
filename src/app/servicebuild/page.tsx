@@ -13,7 +13,7 @@ import {
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
-  Maximize, LayoutGrid, Edit2
+  Maximize, LayoutGrid, Edit2, ListChecks
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -56,18 +56,22 @@ function WorkflowEngineContent() {
   const [steps, setSteps] = useState<ServiceStep[]>([]);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
-    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
+    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
+    reqsAr: [], reqsEn: []
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (editId) {
+    const loadData = async () => {
+      if (!editId) return;
       setLoading(true);
-      fetchBin().then(data => {
+      try {
+        const data = await fetchBin();
         if (data) {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
+          
           if (flow) setSteps(flow.steps || []);
           if (svc) setServiceInfo({
             ...svc,
@@ -75,11 +79,18 @@ function WorkflowEngineContent() {
             titleEn: svc.titleEn || '',
             description: svc.description || '',
             descriptionEn: svc.descriptionEn || '',
-            type: svc.type || 'workflow'
+            type: svc.type || 'workflow',
+            reqsAr: svc.reqsAr || [],
+            reqsEn: svc.reqsEn || []
           });
         }
-      }).finally(() => setLoading(false));
-    }
+      } catch (e) {
+        console.error("Load failed:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, [editId]);
 
   const addStep = useCallback(() => {
@@ -113,7 +124,7 @@ function WorkflowEngineContent() {
   const addLogic = (stepIdx: number) => {
     const ns = [...steps];
     const logic: StepLogic[] = ns[stepIdx].logic || [];
-    ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
+    ns[stepIdx].logic = [...logic, { fieldId: 'none', value: '', targetStepId: 'none' }];
     setSteps(ns);
   };
 
@@ -211,26 +222,32 @@ function WorkflowEngineContent() {
     const e: Edge[] = [];
     steps.forEach(step => {
       if (step.defaultNextStepId && step.defaultNextStepId !== 'none') {
-        e.push({
-          id: `e-${step.id}-${step.defaultNextStepId}`,
-          source: step.id,
-          target: step.defaultNextStepId,
-          label: isAr ? 'افتراضي' : 'Default',
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375', strokeWidth: 2, opacity: 0.5 }
-        });
+        const targetExists = steps.some(s => s.id === step.defaultNextStepId);
+        if (targetExists) {
+          e.push({
+            id: `e-${step.id}-${step.defaultNextStepId}`,
+            source: step.id,
+            target: step.defaultNextStepId,
+            label: isAr ? 'افتراضي' : 'Default',
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
+            style: { stroke: '#007375', strokeWidth: 2, opacity: 0.5 }
+          });
+        }
       }
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId && rule.targetStepId !== 'none') {
-          e.push({
-            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
-            source: step.id,
-            target: rule.targetStepId,
-            label: `${isAr ? 'في حال: ' : 'If: '}${rule.value || '...'}`,
-            animated: true,
-            style: { stroke: '#03CFCB', strokeWidth: 2.5 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
-          });
+          const targetExists = steps.some(s => s.id === rule.targetStepId);
+          if (targetExists) {
+            e.push({
+              id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
+              source: step.id,
+              target: rule.targetStepId,
+              label: `${isAr ? 'في حال: ' : 'If: '}${rule.value || '...'}`,
+              animated: true,
+              style: { stroke: '#03CFCB', strokeWidth: 2.5 },
+              markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
+            });
+          }
         }
       });
     });
@@ -285,11 +302,11 @@ function WorkflowEngineContent() {
                   <Settings size={14} /> {isAr ? "إعدادات الخدمة" : "Service Settings"}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="p-4 space-y-6">
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "نوع التنفيذ" : "Execution Type"}</label>
                    <Select value={serviceInfo.type || 'workflow'} onValueChange={v => setServiceInfo({...serviceInfo, type: v as any})}>
-                      <SelectTrigger className="h-9 font-bold"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 font-bold text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                          <SelectItem value="workflow">{isAr ? "تدفق مراحل (داخلي)" : "Multi-Step Workflow"}</SelectItem>
                          <SelectItem value="link">{isAr ? "تحويل لرابط خارجي" : "External Redirect"}</SelectItem>
@@ -315,7 +332,7 @@ function WorkflowEngineContent() {
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الفئة" : "Category"}</label>
                    <Select value={serviceInfo.category || 'elec'} onValueChange={v => setServiceInfo({...serviceInfo, category: v})}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Object.keys(CAT_CONFIG).map(cid => (
                           <SelectItem key={cid} value={cid}>{isAr ? CAT_CONFIG[cid as any].labelAr : CAT_CONFIG[cid as any].labelEn}</SelectItem>
@@ -327,13 +344,30 @@ function WorkflowEngineContent() {
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
                    <Select value={serviceInfo.iconName || 'FileText'} onValueChange={v => setServiceInfo({...serviceInfo, iconName: v})}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {ICON_LIST.map(icon => (
                           <SelectItem key={icon} value={icon}>{icon}</SelectItem>
                         ))}
                       </SelectContent>
                    </Select>
+                 </div>
+
+                 <div className="space-y-4 pt-4 border-t">
+                    <h4 className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2"><ListChecks size={14}/> {isAr ? "المستندات المطلوبة" : "Prerequisites"}</h4>
+                    <div className="space-y-2">
+                       {(serviceInfo.reqsAr || []).map((req, idx) => (
+                         <div key={idx} className="flex gap-1">
+                           <Input value={req} onChange={e => {
+                             const n = [...(serviceInfo.reqsAr || [])]; n[idx] = e.target.value; setServiceInfo({...serviceInfo, reqsAr: n});
+                           }} className="h-8 text-[10px] font-bold" />
+                           <Button variant="ghost" size="icon" onClick={() => {
+                             const n = serviceInfo.reqsAr!.filter((_, i) => i !== idx); setServiceInfo({...serviceInfo, reqsAr: n});
+                           }} className="h-8 w-8 text-red-400"><Trash2 size={12}/></Button>
+                         </div>
+                       ))}
+                       <Button variant="outline" size="sm" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), '']})} className="w-full h-8 text-[9px] font-black border-dashed">+ {isAr ? "إضافة مستند" : "Add Doc"}</Button>
+                    </div>
                  </div>
 
                  {serviceInfo.type === 'workflow' && (
@@ -439,7 +473,7 @@ function WorkflowEngineContent() {
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "إجراء نهاية المرحلة" : "Phase Terminal Action"}</span>
                          </div>
                          <Select value={step.actionType || 'submit'} onValueChange={v => updateStep(sIdx, { actionType: v as any })}>
-                            <SelectTrigger className="h-9 w-48 bg-slate-50 font-bold"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-9 w-48 bg-slate-50 font-bold text-xs"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                <SelectItem value="submit">{isAr ? "إرسال للمراجعة" : "Submit for Review"}</SelectItem>
                                <SelectItem value="payment">{isAr ? "بوابة الدفع الإلكتروني" : "E-Payment Gateway"}</SelectItem>
