@@ -38,10 +38,7 @@ import {
   Panel,
   useReactFlow,
   ReactFlowProvider,
-  applyNodeChanges,
-  applyEdgeChanges,
   NodeChange,
-  EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -114,24 +111,38 @@ function WorkflowEngineContent() {
   }, [isAr, steps.length]);
 
   const updateStep = (idx: number, updates: Partial<ServiceStep>) => {
-    const ns = [...steps];
-    ns[idx] = { ...ns[idx], ...updates };
-    setSteps(ns);
+    setSteps(prev => {
+      const ns = [...prev];
+      ns[idx] = { ...ns[idx], ...updates };
+      return ns;
+    });
   };
 
-  const removeStep = (id: string) => setSteps(steps.filter(s => s.id !== id));
+  const removeStep = (id: string) => {
+    setSteps(prev => {
+      return prev
+        .filter(s => s.id !== id)
+        .map(s => ({
+          ...s,
+          defaultNextStepId: s.defaultNextStepId === id ? undefined : s.defaultNextStepId,
+          logic: s.logic?.filter(l => l.targetStepId !== id)
+        }));
+    });
+  };
 
   const addFieldToStep = (stepId: string, type: FormField['type']) => {
-    setSteps(steps.map(s => s.id === stepId ? { ...s, fields: [...(s.fields || []), {
+    setSteps(prev => prev.map(s => s.id === stepId ? { ...s, fields: [...(s.fields || []), {
       id: `field_${Date.now()}`, type, labelAr: '', labelEn: '', required: true, options: []
     }] } : s));
   };
 
   const addLogic = (stepIdx: number) => {
-    const ns = [...steps];
-    const logic: StepLogic[] = ns[stepIdx].logic || [];
-    ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
-    setSteps(ns);
+    setSteps(prev => {
+      const ns = [...prev];
+      const logic: StepLogic[] = ns[stepIdx].logic || [];
+      ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
+      return ns;
+    });
   };
 
   const onNodesChange = useCallback(
@@ -189,68 +200,78 @@ function WorkflowEngineContent() {
   };
 
   const nodes: Node[] = useMemo(() => {
-    return steps.map((step, idx) => ({
-      id: step.id,
-      type: (step.logic && step.logic.length > 0) ? 'decision' : 'default',
-      data: { 
-        label: (
-          <div className="flex flex-col gap-2 pointer-events-auto">
-            <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
-            <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
-                <Edit2 size={10} />
-              </Button>
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}>
-                <Trash2 size={10} />
-              </Button>
+    return steps.map((step, idx) => {
+      const hasLogic = step.logic && step.logic.length > 0;
+      return {
+        id: step.id,
+        type: 'default',
+        data: { 
+          label: (
+            <div className="flex flex-col gap-2 pointer-events-auto">
+              <div className="flex items-center justify-center gap-2">
+                {hasLogic && <GitBranch size={10} className="text-secondary" />}
+                <span className="text-[10px] font-black">{isAr ? step.titleAr : step.titleEn}</span>
+              </div>
+              <div className="flex justify-center gap-1">
+                <Button size="xs" variant="ghost" className="h-6 w-6 p-0 hover:bg-slate-100" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+                  <Edit2 size={10} />
+                </Button>
+                <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}>
+                  <Trash2 size={10} />
+                </Button>
+              </div>
             </div>
-          </div>
-        )
-      },
-      position: step.position || { x: 250, y: idx * 180 },
-      className: 'group',
-      style: { 
-        background: '#fff', 
-        color: '#007375', 
-        border: '2px solid #007375', 
-        borderRadius: (step.logic && step.logic.length > 0) ? '8px' : '16px', 
-        padding: '12px', 
-        fontWeight: 'bold',
-        width: 180,
-        textAlign: 'center',
-        boxShadow: '0 4px 12px -2px rgb(0 0 0 / 0.1)',
-        rotate: (step.logic && step.logic.length > 0) ? '45deg' : '0deg'
-      }
-    }));
+          )
+        },
+        position: step.position || { x: 250, y: idx * 180 },
+        className: cn('group transition-shadow hover:shadow-lg', hasLogic ? 'border-secondary' : 'border-primary'),
+        style: { 
+          background: '#fff', 
+          color: hasLogic ? '#470D67' : '#007375', 
+          border: `2px solid ${hasLogic ? '#470D67' : '#007375'}`, 
+          borderRadius: hasLogic ? '4px' : '12px', 
+          padding: '10px', 
+          width: 160,
+          textAlign: 'center',
+          fontSize: '10px',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+        }
+      };
+    });
   }, [steps, isAr]);
 
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
+    const stepIds = new Set(steps.map(s => s.id));
+
     steps.forEach(step => {
-      if (step.defaultNextStepId) {
+      if (step.defaultNextStepId && stepIds.has(step.defaultNextStepId)) {
         e.push({
           id: `e-${step.id}-${step.defaultNextStepId}`,
           source: step.id,
           target: step.defaultNextStepId,
           label: isAr ? 'المسار الافتراضي' : 'Default Path',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375', strokeWidth: 2, opacity: 0.5 }
+          style: { stroke: '#007375', strokeWidth: 2, opacity: 0.5 },
+          type: 'smoothstep'
         });
       }
+
       step.logic?.forEach((rule, idx) => {
-        if (rule.targetStepId) {
+        if (rule.targetStepId && stepIds.has(rule.targetStepId)) {
           e.push({
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
-            label: `${isAr ? 'في حال: ' : 'If: '}${rule.value}`,
+            label: `${isAr ? 'في حال: ' : 'If: '}${rule.value || '...'}`,
             animated: true,
-            labelStyle: { fill: '#470D67', fontWeight: 900, fontSize: '10px' },
-            labelBgPadding: [8, 4],
+            labelStyle: { fill: '#470D67', fontWeight: 900, fontSize: '9px' },
+            labelBgPadding: [6, 3],
             labelBgBorderRadius: 4,
             labelBgStyle: { fill: '#fff', fillOpacity: 0.9, stroke: '#470D67', strokeWidth: 1 },
-            style: { stroke: '#470D67', strokeWidth: 3 },
+            style: { stroke: '#470D67', strokeWidth: 2.5 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#470D67' },
+            type: 'smoothstep'
           });
         }
       });
@@ -261,11 +282,11 @@ function WorkflowEngineContent() {
   const FlowControls = () => {
     const { fitView } = useReactFlow();
     return (
-      <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
+      <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
         <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-9 px-4">
+        <Button size="sm" variant="outline" onClick={() => fitView({ padding: 0.2, duration: 800 })} className="rounded-xl font-black gap-2 h-9 px-4">
           <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
         </Button>
         <Button size="sm" onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-xl font-black gap-2 h-9 px-6 shadow-md">
@@ -308,7 +329,7 @@ function WorkflowEngineContent() {
               <CardContent className="p-4 space-y-6">
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "نوع التنفيذ" : "Execution Type"}</label>
-                   <Select value={serviceInfo.type || 'workflow'} onValueChange={v => setServiceInfo({...serviceInfo, type: v as any})}>
+                   <Select value={serviceInfo.type || 'workflow'} onValueChange={v => setServiceInfo(prev => ({...prev, type: v as any}))}>
                       <SelectTrigger className="h-9 font-bold"><SelectValue /></SelectTrigger>
                       <SelectContent>
                          <SelectItem value="workflow">{isAr ? "تدفق مراحل (داخلي)" : "Multi-Step Workflow"}</SelectItem>
@@ -319,14 +340,14 @@ function WorkflowEngineContent() {
                  
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "العنوان بالعربي" : "Title AR"}</label>
-                   <Input value={serviceInfo.title || ''} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="h-9 text-xs font-bold" />
+                   <Input value={serviceInfo.title || ''} onChange={e => setServiceInfo(prev => ({...prev, title: e.target.value}))} className="h-9 text-xs font-bold" />
                  </div>
 
                  {serviceInfo.type === 'link' && (
                    <div className="space-y-2">
                      <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "رابط الوجهة" : "Destination URL"}</label>
                      <div className="relative">
-                       <Input value={serviceInfo.linkUrl || ''} onChange={e => setServiceInfo({...serviceInfo, linkUrl: e.target.value})} className="h-9 text-xs font-mono pr-10" />
+                       <Input value={serviceInfo.linkUrl || ''} onChange={e => setServiceInfo(prev => ({...prev, linkUrl: e.target.value}))} className="h-9 text-xs font-mono pr-10" />
                        <Upload className="absolute top-2.5 right-3 size-4 text-slate-300" />
                      </div>
                    </div>
@@ -343,7 +364,7 @@ function WorkflowEngineContent() {
                             variant="ghost" 
                             size="icon" 
                             className={cn("h-8 w-8 rounded-lg", serviceInfo.iconName === iconName ? "bg-primary text-white" : "hover:bg-primary/10")}
-                            onClick={() => setServiceInfo({...serviceInfo, iconName})}
+                            onClick={() => setServiceInfo(prev => ({...prev, iconName}))}
                           >
                             <IconComp size={16} />
                           </Button>
@@ -352,7 +373,7 @@ function WorkflowEngineContent() {
                       <div className="col-span-4 mt-2 pt-2 border-t flex flex-col gap-2">
                         <label className="text-[8px] font-black text-slate-400">{isAr ? "أو رفع أيقونة مخصصة (PNG/SVG)" : "Or Upload Custom (PNG/SVG)"}</label>
                         <div className="relative flex gap-1">
-                          <Input className="h-8 text-[9px] pr-8" placeholder="URL or Base64..." value={serviceInfo.customIconUrl || ''} onChange={e => setServiceInfo({...serviceInfo, customIconUrl: e.target.value})} />
+                          <Input className="h-8 text-[9px] pr-8" placeholder="URL or Base64..." value={serviceInfo.customIconUrl || ''} onChange={e => setServiceInfo(prev => ({...prev, customIconUrl: e.target.value}))} />
                           <Button size="icon" variant="outline" className="h-8 w-8 shrink-0"><Upload size={12}/></Button>
                         </div>
                       </div>
@@ -362,15 +383,23 @@ function WorkflowEngineContent() {
                  <div className="space-y-4 pt-4 border-t">
                     <div className="flex justify-between items-center">
                        <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "متطلبات الخدمة" : "Requirements"}</label>
-                       <Button size="xs" variant="ghost" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), '']})} className="h-5 text-accent font-black">+ {isAr ? "إضافة" : "Add"}</Button>
+                       <Button size="xs" variant="ghost" onClick={() => setServiceInfo(prev => ({...prev, reqsAr: [...(prev.reqsAr || []), '']}))} className="h-5 text-accent font-black">+ {isAr ? "إضافة" : "Add"}</Button>
                     </div>
                     {(serviceInfo.reqsAr || []).map((req, idx) => (
                       <div key={idx} className="flex gap-1 items-center">
                         <Input className="h-8 text-[10px] font-bold" value={req || ''} onChange={e => {
-                          const n = [...serviceInfo.reqsAr!]; n[idx] = e.target.value; setServiceInfo({...serviceInfo, reqsAr: n});
+                          setServiceInfo(prev => {
+                            const n = [...(prev.reqsAr || [])];
+                            n[idx] = e.target.value;
+                            return { ...prev, reqsAr: n };
+                          });
                         }} />
                         <Button variant="ghost" size="icon" onClick={() => {
-                          const n = [...serviceInfo.reqsAr!]; n.splice(idx, 1); setServiceInfo({...serviceInfo, reqsAr: n});
+                          setServiceInfo(prev => {
+                            const n = [...(prev.reqsAr || [])];
+                            n.splice(idx, 1);
+                            return { ...prev, reqsAr: n };
+                          });
                         }} className="h-8 w-8 text-red-400"><X size={12}/></Button>
                       </div>
                     ))}
@@ -560,7 +589,7 @@ function WorkflowEngineContent() {
                     <div className="absolute top-4 left-4 z-10 pointer-events-none">
                        <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl border shadow-sm">
                           <p className="text-[10px] font-black text-primary uppercase tracking-widest">{isAr ? "مخطط التدفق التفاعلي" : "Interactive Orchestrator"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "المعين (المربع المائل) يعبر عن وجود مسار شرطي" : "Diamonds/Rotated nodes represent logic branches"}</p>
+                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "المربعات تعبر عن مراحل العمل والخطوط تعبر عن المسارات" : "Nodes represent steps, lines represent the flow"}</p>
                        </div>
                     </div>
                  </Card>

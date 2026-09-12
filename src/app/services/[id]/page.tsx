@@ -72,10 +72,16 @@ export default function ServiceApplicationPage() {
     
     // Logic for branching (Conditional Flowchart)
     let nextStepId = currentStep.defaultNextStepId;
-    if (currentStep.logic) {
+    
+    // Check conditional logic first as it takes precedence
+    if (currentStep.logic && currentStep.logic.length > 0) {
       for (const rule of currentStep.logic) {
-        // Evaluate condition: if formData[fieldId] matches rule.value
-        if (formData[rule.fieldId] === rule.value) {
+        const fieldValue = formData[rule.fieldId];
+        const isMatch = Array.isArray(fieldValue) 
+          ? fieldValue.includes(rule.value)
+          : fieldValue === rule.value;
+
+        if (isMatch && rule.targetStepId) {
           nextStepId = rule.targetStepId;
           break;
         }
@@ -90,6 +96,7 @@ export default function ServiceApplicationPage() {
       }
     }
 
+    // Default linear progress if no logic/target found
     if (currentStepIndex < flow.steps.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);
     }
@@ -282,7 +289,6 @@ export default function ServiceApplicationPage() {
                            <div className="border-2 rounded-xl p-6 bg-slate-50 space-y-4 text-center border-dashed group hover:border-primary transition-all">
                               <MapPin size={32} className="mx-auto text-primary group-hover:animate-bounce" />
                               <p className="text-xs font-bold text-slate-500">{isAr ? "تم تحديد الموقع الجغرافي تلقائياً عبر GIS" : "Geolocation captured via GIS Integration"}</p>
-                              <Button type="button" variant="outline" size="sm" className="rounded-full font-black text-[10px]">{isAr ? "فتح الخريطة" : "Open Map"}</Button>
                               <input type="hidden" value="23.5880,58.3829" />
                            </div>
                         )}
@@ -305,7 +311,7 @@ export default function ServiceApplicationPage() {
                       </div>
                     ))}
 
-                    {!currentStep?.fields.length && currentStepIndex > 0 && (
+                    {(!currentStep?.fields || currentStep?.fields.length === 0) && currentStepIndex > 0 && (
                       <div className="text-center py-12">
                         <CheckCircle2 className="mx-auto text-emerald-500 mb-4" size={48} />
                         <p className="font-bold text-slate-500">{isAr ? "اضغط على زر الإرسال لإتمام العملية" : "Click submit to complete the process"}</p>
