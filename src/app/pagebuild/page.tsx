@@ -53,6 +53,39 @@ const STANDARD_PAGE_SEEDS: Record<string, { titleAr: string, titleEn: string, co
         { titleAr: 'كيف يمكنني تجديد عقد الإيجار؟', titleEn: 'How can I renew a lease?', contentAr: 'يمكنك التجديد عبر خدمة عقود الإيجار الرقمية في دليل الخدمات.', contentEn: 'You can renew via the digital lease service in the catalog.' }
       ] } }
     ]
+  },
+  'sla': {
+    titleAr: 'اتفاقية مستوى الخدمة',
+    titleEn: 'Service Level Agreement (SLA)',
+    components: [
+      { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'اتفاقية مستوى الخدمة', textEn: 'Service Level Agreement' } },
+      { id: 'c2', type: 'text', content: { bodyAr: 'نلتزم بتوفير الخدمات بنسبة توفر 99.9% ومعالجة الطلبات خلال الفترات الزمنية المحددة.', bodyEn: 'We are committed to providing services with 99.9% availability and timely processing.' } },
+      { id: 'c3', type: 'stats', content: { v1: '99.9%', t1: 'Availability', v2: '24/7', t2: 'Support' } }
+    ]
+  },
+  'access-controls': {
+    titleAr: 'ضوابط النفاذ',
+    titleEn: 'Access Controls',
+    components: [
+      { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'ضوابط النفاذ', textEn: 'Access Controls' } },
+      { id: 'c2', type: 'info', content: { bodyAr: 'يتم التحكم في الوصول عبر نظام ثقة (Thiqa) للمصادقة الموحدة.', bodyEn: 'Access is controlled via the Thiqa unified authentication system.' } }
+    ]
+  },
+  'open-data': {
+    titleAr: 'البيانات المفتوحة',
+    titleEn: 'Open Data',
+    components: [
+      { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'رخصة البيانات المفتوحة', textEn: 'Open Data License' } },
+      { id: 'c2', type: 'text', content: { bodyAr: 'تسمح هذه الرخصة باستخدام البيانات لأغراض تجارية وغير تجارية.', bodyEn: 'This license allows use of data for commercial and non-commercial purposes.' } }
+    ]
+  },
+  'payment': {
+    titleAr: 'سياسة الدفع',
+    titleEn: 'Payment Policy',
+    components: [
+      { id: 'c1', type: 'heading', content: { level: 'h1', textAr: 'سياسة الدفع الإلكتروني', textEn: 'Payment Policy' } },
+      { id: 'c2', type: 'table', content: { headers: ['Service', 'Fee'], rows: [{ c1: 'Lease Renewal', c2: '15 OMR' }, { c1: 'Permit', c2: '50 OMR' }] } }
+    ]
   }
 };
 
@@ -128,11 +161,11 @@ function PageBuilderContent() {
                type === 'pdf' ? { url: '', labelAr: '', labelEn: '' } :
                type === 'image' ? { url: 'https://picsum.photos/seed/1/800/400', altAr: '', altEn: '' } :
                type === 'accordion' ? { items: [{ titleAr: 'سؤال', titleEn: 'Question', contentAr: 'جواب', contentEn: 'Answer' }] } :
-               type === 'table' ? { headers: ['Service', 'Fee'], rows: [{ c1: 'Permit', c2: '50 OMR' }] } :
+               type === 'table' ? { headers: ['Column 1', 'Column 2'], rows: [{ c1: 'Value 1', c2: 'Value 2' }] } :
                type === 'progress' ? { labelAr: 'الإنجاز', labelEn: 'Progress', value: 50 } :
                type === 'avatar' ? { src: '', fallback: 'DM' } :
                type === 'badge' ? { textAr: 'معتمد', textEn: 'Approved', variant: 'default' } :
-               type === 'html' ? { code: '<!-- Custom HTML/Script Here -->' } :
+               type === 'html' ? { code: '<!-- Custom HTML/Script Code -->' } :
                type === 'separator' ? {} : {}
     };
     setComponents([...components, newComp]);
@@ -240,6 +273,13 @@ function PageBuilderContent() {
                </div>
             </Card>
 
+            {components.length === 0 && (
+              <div className="text-center py-20 border-2 border-dashed rounded-[2rem] bg-white">
+                <Layout className="mx-auto text-slate-200 mb-4" size={64} />
+                <p className="text-slate-400 font-bold">{isAr ? "لا توجد مكونات بعد. ابدأ بإضافة ويجيت من القائمة الجانبية." : "No components yet. Start by adding a widget from the sidebar."}</p>
+              </div>
+            )}
+
             {components.map((c, i) => (
               <Card key={c.id} className="rounded-[2rem] shadow-sm border-l-8 border-primary overflow-hidden group">
                 <div className="flex justify-between items-center p-4 bg-slate-50 border-b">
@@ -275,14 +315,14 @@ function PageBuilderContent() {
                   {c.type === 'table' && (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                         <Input placeholder="Header 1" value={c.content.headers[0]} onChange={e => {
-                           const n = [...c.content.headers]; n[0] = e.target.value; updateComponentContent(i, { headers: n });
+                         <Input placeholder="Header 1" value={c.content.headers?.[0]} onChange={e => {
+                           const n = [...(c.content.headers || ['', ''])]; n[0] = e.target.value; updateComponentContent(i, { headers: n });
                          }} />
-                         <Input placeholder="Header 2" value={c.content.headers[1]} onChange={e => {
-                           const n = [...c.content.headers]; n[1] = e.target.value; updateComponentContent(i, { headers: n });
+                         <Input placeholder="Header 2" value={c.content.headers?.[1]} onChange={e => {
+                           const n = [...(c.content.headers || ['', ''])]; n[1] = e.target.value; updateComponentContent(i, { headers: n });
                          }} />
                       </div>
-                      {c.content.rows.map((row: any, rIdx: number) => (
+                      {c.content.rows?.map((row: any, rIdx: number) => (
                         <div key={rIdx} className="grid grid-cols-2 gap-4 relative">
                           <Input value={row.c1} onChange={e => {
                             const nr = [...c.content.rows]; nr[rIdx].c1 = e.target.value; updateComponentContent(i, { rows: nr });
@@ -292,7 +332,7 @@ function PageBuilderContent() {
                           }} />
                         </div>
                       ))}
-                      <Button variant="ghost" size="sm" onClick={() => updateComponentContent(i, { rows: [...c.content.rows, { c1: '', c2: '' }] })}>{isAr ? "+ إضافة صف" : "+ Add Row"}</Button>
+                      <Button variant="ghost" size="sm" onClick={() => updateComponentContent(i, { rows: [...(c.content.rows || []), { c1: '', c2: '' }] })}>{isAr ? "+ إضافة صف" : "+ Add Row"}</Button>
                     </div>
                   )}
 
@@ -355,6 +395,19 @@ function PageBuilderContent() {
                         const items = c.content.items || [];
                         updateComponentContent(i, { items: [...items, { titleAr: '', titleEn: '', contentAr: '', contentEn: '' }] });
                       }}>{isAr ? "+ إضافة بند" : "+ Add Item"}</Button>
+                    </div>
+                  )}
+
+                  {c.type === 'stats' && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Input placeholder="Value 1" value={c.content.v1} onChange={e => updateComponentContent(i, { v1: e.target.value })} />
+                        <Input placeholder="Label 1" value={c.content.t1} onChange={e => updateComponentContent(i, { t1: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Input placeholder="Value 2" value={c.content.v2} onChange={e => updateComponentContent(i, { v2: e.target.value })} />
+                        <Input placeholder="Label 2" value={c.content.t2} onChange={e => updateComponentContent(i, { t2: e.target.value })} />
+                      </div>
                     </div>
                   )}
                 </CardContent>
