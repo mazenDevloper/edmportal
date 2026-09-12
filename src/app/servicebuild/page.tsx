@@ -115,7 +115,9 @@ function WorkflowEngineContent() {
             linkUrl: foundSvc.linkUrl || '',
             customIconUrl: foundSvc.customIconUrl || '',
             reqsAr: foundSvc.reqsAr || [],
-            reqsEn: foundSvc.reqsEn || []
+            reqsEn: foundSvc.reqsEn || [],
+            category: foundSvc.category || 'elec',
+            iconName: foundSvc.iconName || 'FileText'
           });
         }
         
@@ -282,7 +284,7 @@ function WorkflowEngineContent() {
     const stepIds = new Set(steps.map(s => s.id));
 
     steps.forEach(step => {
-      if (step.defaultNextStepId && stepIds.has(step.defaultNextStepId)) {
+      if (step.defaultNextStepId && step.defaultNextStepId !== 'none' && stepIds.has(step.defaultNextStepId)) {
         e.push({
           id: `e-${step.id}-${step.defaultNextStepId}`,
           source: step.id,
@@ -295,7 +297,7 @@ function WorkflowEngineContent() {
       }
 
       step.logic?.forEach((rule, idx) => {
-        if (rule.targetStepId && stepIds.has(rule.targetStepId)) {
+        if (rule.targetStepId && rule.targetStepId !== 'none' && stepIds.has(rule.targetStepId)) {
           e.push({
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
@@ -511,10 +513,10 @@ function WorkflowEngineContent() {
                             <div className="space-y-4">
                                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border">
                                  <span className="text-[10px] font-bold text-slate-500">{isAr ? "المسار الافتراضي" : "Default Path"}</span>
-                                 <Select value={step.defaultNextStepId || ''} onValueChange={v => updateStep(sIdx, { defaultNextStepId: v })}>
+                                 <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, { defaultNextStepId: v === 'none' ? '' : v })}>
                                     <SelectTrigger className="h-8 w-40 bg-white font-bold text-xs"><SelectValue placeholder="..." /></SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="">{isAr ? "نهاية التدفق" : "End Flow"}</SelectItem>
+                                      <SelectItem value="none">{isAr ? "نهاية التدفق" : "End Flow"}</SelectItem>
                                       {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                     </SelectContent>
                                  </Select>
@@ -531,24 +533,26 @@ function WorkflowEngineContent() {
                                         }} className="h-5 w-5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></Button>
                                       </div>
                                       <div className="grid grid-cols-1 gap-3">
-                                        <Select value={rule.fieldId || ''} onValueChange={v => {
-                                          const nl = [...(step.logic || [])]; nl[rIdx].fieldId = v; nl[rIdx].value = ''; 
+                                        <Select value={rule.fieldId || 'none'} onValueChange={v => {
+                                          const nl = [...(step.logic || [])]; nl[rIdx].fieldId = v === 'none' ? '' : v; nl[rIdx].value = ''; 
                                           updateStep(sIdx, { logic: nl });
                                         }}>
                                           <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder={isAr ? "اختر الحقل..." : "Select Field..."} /></SelectTrigger>
                                           <SelectContent>
+                                            <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
                                             {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
                                           </SelectContent>
                                         </Select>
                                         
                                         <div className="grid grid-cols-2 gap-3">
                                           {targetField?.type === 'select' ? (
-                                            <Select value={rule.value || ''} onValueChange={v => {
-                                              const nl = [...(step.logic || [])]; nl[rIdx].value = v; updateStep(sIdx, { logic: nl });
+                                            <Select value={rule.value || 'none'} onValueChange={v => {
+                                              const nl = [...(step.logic || [])]; nl[rIdx].value = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
                                             }}>
                                               <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder={isAr ? "اختر القيمة..." : "Select Value..."} /></SelectTrigger>
                                               <SelectContent>
-                                                {(targetField.options || []).map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                                <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
+                                                {(targetField.options || []).filter(o => o !== '').map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                                               </SelectContent>
                                             </Select>
                                           ) : (
@@ -557,11 +561,12 @@ function WorkflowEngineContent() {
                                             }} className="h-8 text-[11px] bg-white" />
                                           )}
                                           
-                                          <Select value={rule.targetStepId || ''} onValueChange={v => {
-                                            const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v; updateStep(sIdx, { logic: nl });
+                                          <Select value={rule.targetStepId || 'none'} onValueChange={v => {
+                                            const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
                                           }}>
                                             <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder={isAr ? "انتقل إلى..." : "Navigate to..."} /></SelectTrigger>
                                             <SelectContent>
+                                              <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
                                               {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                             </SelectContent>
                                           </Select>
