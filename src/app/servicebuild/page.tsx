@@ -431,30 +431,79 @@ function WorkflowEngineContent() {
                                  </Select>
                                </div>
                                
-                               {(step.logic || []).map((rule, rIdx) => (
-                                 <div key={rIdx} className="bg-primary/5 p-4 rounded-2xl space-y-3 border border-primary/10 relative group">
-                                    <div className="flex items-center justify-between text-[9px] font-black text-primary">
-                                      <span>{isAr ? "في حال كانت قيمة الحقل تساوي:" : "IF VALUE EQUALS:"}</span>
-                                      <Button variant="ghost" size="icon" onClick={() => {
-                                        const nl = [...step.logic!]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
-                                      }} className="h-5 w-5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></Button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <Input placeholder={isAr ? "القيمة" : "Value"} value={rule.value || ''} onChange={e => {
-                                        const nl = [...step.logic!]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
-                                      }} className="h-8 text-[11px] bg-white" />
-                                      <Select value={rule.targetStepId || 'none'} onValueChange={v => {
-                                        const nl = [...step.logic!]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
-                                      }}>
-                                        <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder={isAr ? "انتقل إلى..." : "Navigate to..."} /></SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
-                                          {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                 </div>
-                               ))}
+                               {(step.logic || []).map((rule, rIdx) => {
+                                 const targetField = step.fields.find(f => f.id === rule.fieldId);
+                                 const isListField = targetField?.type === 'select' || targetField?.type === 'multichoice';
+
+                                 return (
+                                   <div key={rIdx} className="bg-primary/5 p-4 rounded-2xl space-y-4 border border-primary/10 relative group">
+                                      <div className="flex items-center justify-between text-[9px] font-black text-primary">
+                                        <span>{isAr ? "قاعدة شرطية جديدة:" : "CONDITIONAL RULE:"}</span>
+                                        <Button variant="ghost" size="icon" onClick={() => {
+                                          const nl = [...step.logic!]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
+                                        }} className="h-5 w-5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></Button>
+                                      </div>
+                                      
+                                      <div className="space-y-3">
+                                        {/* Field Selector */}
+                                        <div className="flex flex-col gap-1">
+                                          <span className="text-[8px] font-bold text-slate-400">{isAr ? "اسم الحقل:" : "FIELD NAME:"}</span>
+                                          <Select value={rule.fieldId || 'none'} onValueChange={v => {
+                                            const nl = [...step.logic!];
+                                            nl[rIdx].fieldId = v === 'none' ? '' : v;
+                                            nl[rIdx].value = ''; // Reset value when field changes
+                                            updateStep(sIdx, { logic: nl });
+                                          }}>
+                                            <SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue placeholder={isAr ? "اختر الحقل..." : "Select Field..."} /></SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
+                                              {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div className="flex flex-col gap-1">
+                                            <span className="text-[8px] font-bold text-slate-400">{isAr ? "يساوي القيمة:" : "EQUALS VALUE:"}</span>
+                                            {isListField ? (
+                                              <Select value={rule.value || 'none'} onValueChange={v => {
+                                                const nl = [...step.logic!]; nl[rIdx].value = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
+                                              }}>
+                                                <SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue placeholder="..." /></SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
+                                                  {targetField?.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                                </SelectContent>
+                                              </Select>
+                                            ) : (
+                                              <Input 
+                                                placeholder={isAr ? "القيمة" : "Value"} 
+                                                value={rule.value || ''} 
+                                                onChange={e => {
+                                                  const nl = [...step.logic!]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
+                                                }} 
+                                                className="h-8 text-[11px] bg-white" 
+                                              />
+                                            )}
+                                          </div>
+                                          
+                                          <div className="flex flex-col gap-1">
+                                            <span className="text-[8px] font-bold text-slate-400">{isAr ? "انتقل إلى:" : "NAVIGATE TO:"}</span>
+                                            <Select value={rule.targetStepId || 'none'} onValueChange={v => {
+                                              const nl = [...step.logic!]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
+                                            }}>
+                                              <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder="..." /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
+                                                {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                      </div>
+                                   </div>
+                                 );
+                               })}
                                <Button variant="ghost" size="sm" onClick={() => addLogic(sIdx)} className="text-[10px] font-black text-accent h-8 border-dashed border-2 w-full border-accent/20 hover:bg-accent/5">+ {isAr ? "إضافة مسار شرطي" : "Add Conditional Branch"}</Button>
                             </div>
                          </div>
