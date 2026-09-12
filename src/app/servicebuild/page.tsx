@@ -39,6 +39,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
   NodeChange,
+  applyNodeChanges,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -90,7 +91,9 @@ function WorkflowEngineContent() {
             description: svc.description || '',
             descriptionEn: svc.descriptionEn || '',
             linkUrl: svc.linkUrl || '',
-            customIconUrl: svc.customIconUrl || ''
+            customIconUrl: svc.customIconUrl || '',
+            reqsAr: svc.reqsAr || [],
+            reqsEn: svc.reqsEn || []
           });
         }
       }).finally(() => setLoading(false));
@@ -125,7 +128,7 @@ function WorkflowEngineContent() {
         .map(s => ({
           ...s,
           defaultNextStepId: s.defaultNextStepId === id ? undefined : s.defaultNextStepId,
-          logic: s.logic?.filter(l => l.targetStepId !== id)
+          logic: (s.logic || []).filter(l => l.targetStepId !== id)
         }));
     });
   };
@@ -444,7 +447,7 @@ function WorkflowEngineContent() {
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MapPin size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
                            </div>
                            <div className="space-y-3">
-                            {step.fields.map((f, fIdx) => (
+                            {(step.fields || []).map((f, fIdx) => (
                               <div key={f.id} className="flex flex-col gap-2 bg-slate-50 p-3 rounded-xl border">
                                  <div className="flex gap-2 items-center">
                                    <div className="size-5 rounded bg-white border flex items-center justify-center text-[8px] font-black text-slate-400 uppercase">{f.type}</div>
