@@ -598,20 +598,18 @@ function WorkflowEngineContent() {
 
               <TabsContent value="canvas" className="outline-none">
                  <Card className="rounded-brand overflow-hidden h-[700px] border shadow-inner bg-slate-100 relative">
-                    <ReactFlowProvider>
-                      <ReactFlow 
-                        nodes={nodes} 
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        fitView
-                        className="bg-slate-50"
-                      >
-                        <Background />
-                        <Controls />
-                        <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                        <FlowControls onAdd={addStep} onSave={handleSave} saving={saving} isAr={isAr} />
-                      </ReactFlow>
-                    </ReactFlowProvider>
+                    <ReactFlow 
+                      nodes={nodes} 
+                      edges={edges}
+                      onNodesChange={onNodesChange}
+                      fitView
+                      className="bg-slate-50"
+                    >
+                      <Background />
+                      <Controls />
+                      <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                      <FlowControls onAdd={addStep} onSave={handleSave} saving={saving} isAr={isAr} />
+                    </ReactFlow>
                     <div className="absolute top-4 left-4 z-10 pointer-events-none">
                        <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl border shadow-sm">
                           <p className="text-[10px] font-black text-primary uppercase tracking-widest">{isAr ? "مخطط التدفق التفاعلي" : "Interactive Orchestrator"}</p>
@@ -632,7 +630,9 @@ function WorkflowEngineContent() {
 export default function WorkflowEngine() {
   return (
     <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
-      <WorkflowEngineContent />
+      <ReactFlowProvider>
+        <WorkflowEngineContent />
+      </ReactFlowProvider>
     </Suspense>
   );
 }
