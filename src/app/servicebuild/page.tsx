@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +12,8 @@ import {
   Plus, Trash2, Save, ArrowLeft, 
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
-  MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network
+  MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
+  Maximize, LayoutGrid, Edit2
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -33,6 +34,9 @@ import {
   Node,
   Edge,
   MarkerType,
+  Panel,
+  useReactFlow,
+  ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -46,6 +50,7 @@ function WorkflowEngineContent() {
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
   
+  const [activeTab, setActiveTab] = useState('logic');
   const [steps, setSteps] = useState<ServiceStep[]>([]);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
@@ -68,56 +73,7 @@ function WorkflowEngineContent() {
     }
   }, [editId]);
 
-  // Flowchart Mapping
-  const nodes: Node[] = useMemo(() => {
-    return steps.map((step, idx) => ({
-      id: step.id,
-      data: { label: isAr ? step.titleAr : step.titleEn },
-      position: { x: 250, y: idx * 150 },
-      style: { 
-        background: '#fff', 
-        color: '#007375', 
-        border: '2px solid #007375', 
-        borderRadius: '12px', 
-        padding: '10px', 
-        fontWeight: 'bold',
-        width: 200,
-        textAlign: 'center'
-      }
-    }));
-  }, [steps, isAr]);
-
-  const edges: Edge[] = useMemo(() => {
-    const e: Edge[] = [];
-    steps.forEach(step => {
-      if (step.defaultNextStepId) {
-        e.push({
-          id: `e-${step.id}-${step.defaultNextStepId}`,
-          source: step.id,
-          target: step.defaultNextStepId,
-          label: isAr ? 'افتراضي' : 'Default',
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375' }
-        });
-      }
-      step.logic?.forEach((rule, idx) => {
-        if (rule.targetStepId) {
-          e.push({
-            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
-            source: step.id,
-            target: rule.targetStepId,
-            label: `${rule.value}`,
-            animated: true,
-            style: { stroke: '#03CFCB' },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
-          });
-        }
-      });
-    });
-    return e;
-  }, [steps, isAr]);
-
-  const addStep = () => {
+  const addStep = useCallback(() => {
     const newStep: ServiceStep = {
       id: `step_${Date.now()}`,
       titleAr: isAr ? 'خطوة جديدة' : 'New Step',
@@ -125,8 +81,8 @@ function WorkflowEngineContent() {
       fields: [],
       actionType: 'submit'
     };
-    setSteps([...steps, newStep]);
-  };
+    setSteps(prev => [...prev, newStep]);
+  }, [isAr]);
 
   const updateStep = (idx: number, updates: Partial<ServiceStep>) => {
     const ns = [...steps];
@@ -150,7 +106,7 @@ function WorkflowEngineContent() {
   };
 
   const handleSave = async () => {
-    if (!serviceInfo.title) return toast({ variant: "destructive", title: "Required" });
+    if (!serviceInfo.title) return toast({ variant: "destructive", title: isAr ? "العنوان مطلوب" : "Title Required" });
     setSaving(true);
     try {
       const data = await fetchBin();
@@ -185,6 +141,99 @@ function WorkflowEngineContent() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Flowchart Mapping
+  const nodes: Node[] = useMemo(() => {
+    return steps.map((step, idx) => ({
+      id: step.id,
+      data: { 
+        label: (
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
+            <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+                <Edit2 size={10} />
+              </Button>
+              <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}>
+                <Trash2 size={10} />
+              </Button>
+            </div>
+          </div>
+        )
+      },
+      position: { x: 250, y: idx * 180 },
+      className: 'group',
+      style: { 
+        background: '#fff', 
+        color: '#007375', 
+        border: '2px solid #007375', 
+        borderRadius: '16px', 
+        padding: '12px', 
+        fontWeight: 'bold',
+        width: 180,
+        textAlign: 'center',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+      }
+    }));
+  }, [steps, isAr]);
+
+  const edges: Edge[] = useMemo(() => {
+    const e: Edge[] = [];
+    steps.forEach(step => {
+      if (step.defaultNextStepId) {
+        e.push({
+          id: `e-${step.id}-${step.defaultNextStepId}`,
+          source: step.id,
+          target: step.defaultNextStepId,
+          label: isAr ? 'افتراضي' : 'Default',
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
+          style: { stroke: '#007375', strokeWidth: 2 }
+        });
+      }
+      step.logic?.forEach((rule, idx) => {
+        if (rule.targetStepId) {
+          e.push({
+            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
+            source: step.id,
+            target: rule.targetStepId,
+            label: `${rule.value}`,
+            animated: true,
+            style: { stroke: '#03CFCB', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
+          });
+        }
+      });
+    });
+    return e;
+  }, [steps, isAr]);
+
+  const FlowControls = () => {
+    const { fitView } = useReactFlow();
+    
+    const autoLayout = () => {
+      setSteps(prev => [...prev]); // Trigger re-render to use fixed positioning or dynamic if implemented
+      fitView();
+      toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
+    };
+
+    return (
+      <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
+        <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
+          <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={autoLayout} className="rounded-xl font-black gap-2 h-9 px-4">
+          <LayoutGrid size={14}/> {isAr ? "ترتيب تلقائي" : "Auto Layout"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-9 px-4">
+          <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
+        </Button>
+        <Button size="sm" onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-xl font-black gap-2 h-9 px-6 shadow-md">
+          {saving ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}
+          {isAr ? "حفظ" : "Save"}
+        </Button>
+      </Panel>
+    );
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -277,7 +326,7 @@ function WorkflowEngineContent() {
           </div>
 
           <div className="lg:col-span-3 space-y-6">
-            <Tabs defaultValue="logic" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="bg-white border rounded-full p-1 mb-6">
                 <TabsTrigger value="logic" className="rounded-full font-black px-8"><GitBranch size={16} className="ml-2"/> {isAr ? "بناء المنطق" : "Logic Editor"}</TabsTrigger>
                 <TabsTrigger value="canvas" className="rounded-full font-black px-8"><Network size={16} className="ml-2"/> {isAr ? "عرض المخطط" : "Flowchart Visual"}</TabsTrigger>
@@ -285,7 +334,7 @@ function WorkflowEngineContent() {
 
               <TabsContent value="logic" className="space-y-6 outline-none">
                 {serviceInfo.type === 'workflow' && steps.map((step, sIdx) => (
-                  <Card key={step.id} className="rounded-3xl shadow-sm border-none overflow-hidden relative animate-in slide-in-from-bottom-2">
+                  <Card key={step.id} id={step.id} className="rounded-3xl shadow-sm border-none overflow-hidden relative animate-in slide-in-from-bottom-2 scroll-mt-24">
                     <CardHeader className="bg-slate-900 text-white p-4 flex flex-row items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="size-6 rounded-lg bg-accent text-slate-900 flex items-center justify-center font-black text-xs">{sIdx + 1}</div>
@@ -395,20 +444,23 @@ function WorkflowEngineContent() {
 
               <TabsContent value="canvas" className="outline-none">
                  <Card className="rounded-brand overflow-hidden h-[600px] border shadow-inner bg-slate-100 relative">
-                    <ReactFlow 
-                      nodes={nodes} 
-                      edges={edges}
-                      fitView
-                      className="bg-slate-50"
-                    >
-                      <Background />
-                      <Controls />
-                      <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                    </ReactFlow>
+                    <ReactFlowProvider>
+                      <ReactFlow 
+                        nodes={nodes} 
+                        edges={edges}
+                        fitView
+                        className="bg-slate-50"
+                      >
+                        <Background />
+                        <Controls />
+                        <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                        <FlowControls />
+                      </ReactFlow>
+                    </ReactFlowProvider>
                     <div className="absolute top-4 left-4 z-10 pointer-events-none">
                        <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl border shadow-sm">
-                          <p className="text-[10px] font-black text-primary uppercase tracking-widest">{isAr ? "مخطط التدفق التلقائي" : "Auto-Generated Flowchart"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "يتم رسم المسارات بناءً على منطق الخطوات" : "Paths drawn from step logic"}</p>
+                          <p className="text-[10px] font-black text-primary uppercase tracking-widest">{isAr ? "مخطط التدفق التفاعلي" : "Interactive Orchestrator"}</p>
+                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "استخدم الأدوات لتنظيم مسار المواطن" : "Use tools to organize citizen paths"}</p>
                        </div>
                     </div>
                  </Card>

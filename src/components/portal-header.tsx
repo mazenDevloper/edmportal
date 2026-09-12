@@ -89,13 +89,13 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
       <nav className="bg-slate-900 text-white py-2 text-[10px] font-bold tracking-widest border-b border-white/5" aria-label={isAr ? "روابط سريعة" : "Quick Links"}>
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
           <span className="flex items-center gap-2 opacity-80">
-            <Globe size={12} /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}
+            <Globe size={12} aria-hidden="true" /> {isAr ? 'حكومة سلطنة عُمان' : 'Oman Government'}
           </span>
           <div className="flex items-center gap-6">
             {editLink && (
               <Button variant="ghost" asChild className="text-[#04F0EB] hover:text-white h-auto py-0 px-2 font-black gap-2 animate-pulse">
                 <Link href={editLink}>
-                  <Edit2 size={10} /> {isAr ? 'تحرير المكونات' : 'Edit Components'}
+                  <Edit2 size={10} aria-hidden="true" /> {isAr ? 'تحرير المكونات' : 'Edit Components'}
                 </Link>
               </Button>
             )}
@@ -103,9 +103,9 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
               {isAr ? 'المساحة الذكية' : 'Spatial Workspace'}
             </Link>
             <Link href="/admin" className="text-[#04F0EB] hover:underline flex items-center gap-2">
-              <LayoutDashboard size={12} /> {isAr ? 'لوحة التحكم' : 'Admin Panel'}
+              <LayoutDashboard size={12} aria-hidden="true" /> {isAr ? 'لوحة التحكم' : 'Admin Panel'}
             </Link>
-            <button onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="hover:text-[#04F0EB] transition-colors">
+            <button onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="hover:text-[#04F0EB] transition-colors focus:ring-2 focus:ring-[#04F0EB] rounded px-1">
               {isAr ? 'English' : 'العربية'}
             </button>
           </div>
