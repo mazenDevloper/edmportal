@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -16,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { PortalFooter } from '@/components/portal-footer';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   ArrowLeft, 
   Loader2, 
@@ -26,7 +26,8 @@ import {
   ArrowRight,
   CreditCard,
   ListChecks,
-  MapPin
+  MapPin,
+  Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -44,7 +45,7 @@ export default function ServiceApplicationPage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -262,20 +263,35 @@ export default function ServiceApplicationPage() {
                           </Select>
                         )}
 
+                        {field.type === 'multichoice' && (
+                          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-xl border">
+                             {field.options?.map(opt => (
+                               <div key={opt} className="flex items-center gap-2">
+                                 <Checkbox id={`${field.id}-${opt}`} onCheckedChange={(checked) => {
+                                   const current = formData[field.id] || [];
+                                   const next = checked ? [...current, opt] : current.filter((o: any) => o !== opt);
+                                   setFormData({...formData, [field.id]: next});
+                                 }} />
+                                 <Label htmlFor={`${field.id}-${opt}`} className="text-xs font-bold cursor-pointer">{opt}</Label>
+                               </div>
+                             ))}
+                          </div>
+                        )}
+
                         {field.type === 'map' && (
                            <div className="border-2 rounded-xl p-6 bg-slate-50 space-y-4 text-center border-dashed group hover:border-primary transition-all">
                               <MapPin size={32} className="mx-auto text-primary group-hover:animate-bounce" />
                               <p className="text-xs font-bold text-slate-500">{isAr ? "تم تحديد الموقع الجغرافي تلقائياً عبر GIS" : "Geolocation captured via GIS Integration"}</p>
                               <Button type="button" variant="outline" size="sm" className="rounded-full font-black text-[10px]">{isAr ? "فتح الخريطة" : "Open Map"}</Button>
-                              <Input type="hidden" value="23.5880,58.3829" required={field.required} />
+                              <input type="hidden" value="23.5880,58.3829" />
                            </div>
                         )}
 
                         {field.type === 'upload' && (
-                          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 cursor-pointer hover:border-accent transition-colors group">
+                          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 cursor-pointer hover:border-accent transition-colors group relative">
                             <Upload size={24} className="mx-auto text-slate-300 mb-2 group-hover:text-accent transition-colors" />
                             <p className="text-xs text-slate-400 font-bold">{isAr ? "اضغط لرفع الملفات المطلوبة" : "Click to upload required files"}</p>
-                            <input type="file" className="sr-only" onChange={e => setFormData({...formData, [field.id]: 'attached_file_pki'})} />
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFormData({...formData, [field.id]: 'attached_file_pki'})} />
                           </div>
                         )}
 

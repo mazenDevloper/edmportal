@@ -77,7 +77,7 @@ export interface ServiceApplication {
   serviceName: string;
   citizenName: string;
   status: 'pending' | 'in-review' | 'approved' | 'rejected';
-  data: Record<string, string>;
+  data: Record<string, any>;
   createdAt: string;
 }
 
