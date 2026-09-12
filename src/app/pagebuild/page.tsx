@@ -11,7 +11,7 @@ import {
   Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, 
   Type, TrendingUp, Info, Loader2, Sparkles, Eye, 
   Heading1, Video, FileText, List, Minus, Table as TableIcon,
-  Activity, UserCircle, Tag, Code
+  Activity, UserCircle, Tag, Code, Upload
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -158,7 +158,7 @@ function PageBuilderContent() {
                type === 'info' ? { bodyAr: 'معلومات هامة', bodyEn: 'Important info' } : 
                type === 'heading' ? { level: 'h2', textAr: 'عنوان', textEn: 'Heading' } :
                type === 'video' ? { url: '', captionAr: '', captionEn: '' } :
-               type === 'pdf' ? { url: '', labelAr: '', labelEn: '' } :
+               type === 'pdf' ? { url: '', labelAr: 'تحميل ملف PDF', labelEn: 'Download PDF' } :
                type === 'image' ? { url: 'https://picsum.photos/seed/1/800/400', altAr: '', altEn: '' } :
                type === 'accordion' ? { items: [{ titleAr: 'سؤال', titleEn: 'Question', contentAr: 'جواب', contentEn: 'Answer' }] } :
                type === 'table' ? { headers: ['Column 1', 'Column 2'], rows: [{ c1: 'Value 1', c2: 'Value 2' }] } :
@@ -346,8 +346,21 @@ function PageBuilderContent() {
                   
                   {c.type === 'image' && (
                     <div className="grid md:grid-cols-2 gap-4">
-                      <Input placeholder="Image URL" value={c.content.url || ''} onChange={e => updateComponentContent(i, { url: e.target.value })} />
+                      <div className="relative">
+                        <Input placeholder="Image URL" value={c.content.url || ''} onChange={e => updateComponentContent(i, { url: e.target.value })} />
+                        <Button size="icon" variant="ghost" className="absolute top-1 right-1 h-8 w-8 text-slate-400 hover:text-primary"><Upload size={14}/></Button>
+                      </div>
                       <Input placeholder="Alt Text" value={c.content.altAr || ''} onChange={e => updateComponentContent(i, { altAr: e.target.value })} />
+                    </div>
+                  )}
+
+                  {c.type === 'pdf' && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                       <Input placeholder="Button Label (AR)" value={c.content.labelAr} onChange={e => updateComponentContent(i, { labelAr: e.target.value })} className="font-bold" />
+                       <div className="relative">
+                         <Input placeholder="PDF URL / Link" value={c.content.url} onChange={e => updateComponentContent(i, { url: e.target.value })} className="font-mono pr-10" />
+                         <Button size="icon" variant="ghost" className="absolute top-1 right-1 h-8 w-8 text-slate-400 hover:text-primary"><Upload size={14}/></Button>
+                       </div>
                     </div>
                   )}
 

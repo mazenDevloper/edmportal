@@ -171,7 +171,10 @@ function WorkflowEngineContent() {
                {serviceInfo.type === 'link' && (
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "رابط الوجهة" : "Target URL"}</label>
-                   <Input value={serviceInfo.linkUrl} onChange={e => setServiceInfo({...serviceInfo, linkUrl: e.target.value})} className="h-8 text-xs font-mono" />
+                   <div className="relative">
+                     <Input value={serviceInfo.linkUrl} onChange={e => setServiceInfo({...serviceInfo, linkUrl: e.target.value})} className="h-8 text-xs font-mono pr-10" />
+                     <Button size="icon" variant="ghost" className="absolute top-0 right-0 h-8 w-8 text-slate-400"><Upload size={12}/></Button>
+                   </div>
                  </div>
                )}
                <div className="space-y-2">

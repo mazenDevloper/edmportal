@@ -231,7 +231,6 @@ export default function ServiceApplicationPage() {
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="p-8 space-y-6 min-h-[300px]">
-                  {/* Digital PKI Auth replaces hardcoded identity fields */}
                   <div className="space-y-6 pt-4">
                     {currentStep?.fields.map((field) => (
                       <div key={field.id} className="space-y-2">
