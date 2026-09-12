@@ -14,7 +14,6 @@ import {
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
   Maximize, LayoutGrid, Edit2, Hash, List, MapPin
 } from 'lucide-react';
-import * as Icons from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -95,7 +94,12 @@ function WorkflowEngineContent() {
 
   const addFieldToStep = (stepId: string, type: FormField['type']) => {
     setSteps(steps.map(s => s.id === stepId ? { ...s, fields: [...s.fields, {
-      id: `field_${Date.now()}`, type, labelAr: '', labelEn: '', required: true, options: []
+      id: `field_${Date.now()}`, 
+      type, 
+      labelAr: '', 
+      labelEn: '', 
+      required: true,
+      options: (type === 'select' || type === 'multichoice') ? [] : undefined
     }] } : s));
   };
 
@@ -445,13 +449,12 @@ function WorkflowEngineContent() {
                                       </div>
                                       
                                       <div className="space-y-3">
-                                        {/* Field Selector */}
                                         <div className="flex flex-col gap-1">
                                           <span className="text-[8px] font-bold text-slate-400">{isAr ? "اسم الحقل:" : "FIELD NAME:"}</span>
                                           <Select value={rule.fieldId || 'none'} onValueChange={v => {
                                             const nl = [...step.logic!];
                                             nl[rIdx].fieldId = v === 'none' ? '' : v;
-                                            nl[rIdx].value = ''; // Reset value when field changes
+                                            nl[rIdx].value = ''; 
                                             updateStep(sIdx, { logic: nl });
                                           }}>
                                             <SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue placeholder={isAr ? "اختر الحقل..." : "Select Field..."} /></SelectTrigger>
@@ -577,3 +580,4 @@ export default function WorkflowEngine() {
     </Suspense>
   );
 }
+
