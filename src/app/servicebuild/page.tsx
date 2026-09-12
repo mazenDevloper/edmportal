@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -15,7 +16,7 @@ import {
   Maximize, LayoutGrid, Edit2, ListChecks, ImageIcon, FileText, 
   ShieldCheck, Users, TrendingUp, Landmark, MapPin, Building2, 
   Truck, Wrench, Lightbulb, Hexagon, List, Map, MousePointer2,
-  CheckSquare
+  CheckSquare, RefreshCw
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -39,7 +40,6 @@ import {
   useReactFlow,
   ReactFlowProvider,
   NodeChange,
-  applyNodeChanges,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -58,6 +58,26 @@ const ICON_LIST = {
   'Lightbulb': Lightbulb
 };
 
+// Internal Flow Controls Component
+const FlowControls = ({ onAdd, onSave, saving, isAr }: { onAdd: () => void, onSave: () => void, saving: boolean, isAr: boolean }) => {
+  const { fitView } = useReactFlow();
+  
+  return (
+    <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
+      <Button size="sm" variant="outline" onClick={onAdd} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
+        <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => fitView({ padding: 0.2, duration: 800 })} className="rounded-xl font-black gap-2 h-9 px-4">
+        <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
+      </Button>
+      <Button size="sm" onClick={onSave} disabled={saving} className="dm-gradient-primary rounded-xl font-black gap-2 h-9 px-6 shadow-md">
+        {saving ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}
+        {isAr ? "حفظ" : "Save"}
+      </Button>
+    </Panel>
+  );
+};
+
 function WorkflowEngineContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -71,34 +91,48 @@ function WorkflowEngineContent() {
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
     fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
-    reqsAr: [], reqsEn: [], customIconUrl: ''
+    reqsAr: [], reqsEn: [], customIconUrl: '', isActive: true
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (editId) {
-      setLoading(true);
-      fetchBin().then(data => {
-        if (data) {
-          const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
-          const svc = data.services?.find((s: Service) => s.id === editId);
-          if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo({
-            ...svc,
-            title: svc.title || '',
-            titleEn: svc.titleEn || '',
-            description: svc.description || '',
-            descriptionEn: svc.descriptionEn || '',
-            linkUrl: svc.linkUrl || '',
-            customIconUrl: svc.customIconUrl || '',
-            reqsAr: svc.reqsAr || [],
-            reqsEn: svc.reqsEn || []
+  const loadData = useCallback(async () => {
+    if (!editId) return;
+    setLoading(true);
+    try {
+      const data = await fetchBin();
+      if (data) {
+        const foundSvc = data.services?.find((s: Service) => s.id === editId);
+        const foundFlow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
+        
+        if (foundSvc) {
+          setServiceInfo({
+            ...foundSvc,
+            title: foundSvc.title || '',
+            titleEn: foundSvc.titleEn || '',
+            description: foundSvc.description || '',
+            descriptionEn: foundSvc.descriptionEn || '',
+            linkUrl: foundSvc.linkUrl || '',
+            customIconUrl: foundSvc.customIconUrl || '',
+            reqsAr: foundSvc.reqsAr || [],
+            reqsEn: foundSvc.reqsEn || []
           });
         }
-      }).finally(() => setLoading(false));
+        
+        if (foundFlow) {
+          setSteps(foundFlow.steps || []);
+        }
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Load Error", description: "Failed to fetch service data." });
+    } finally {
+      setLoading(false);
     }
-  }, [editId]);
+  }, [editId, toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const addStep = useCallback(() => {
     const newStep: ServiceStep = {
@@ -127,7 +161,7 @@ function WorkflowEngineContent() {
         .filter(s => s.id !== id)
         .map(s => ({
           ...s,
-          defaultNextStepId: s.defaultNextStepId === id ? undefined : s.defaultNextStepId,
+          defaultNextStepId: s.defaultNextStepId === id ? '' : s.defaultNextStepId,
           logic: (s.logic || []).filter(l => l.targetStepId !== id)
         }));
     });
@@ -176,7 +210,7 @@ function WorkflowEngineContent() {
       const newService: Service = {
         ...serviceInfo as Service,
         id: newId,
-        isActive: true,
+        isActive: serviceInfo.isActive ?? true,
       };
 
       const newFlow: ServiceFlow = {
@@ -202,7 +236,7 @@ function WorkflowEngineContent() {
     }
   };
 
-  const nodes: Node[] = useMemo(() => {
+  const nodes = useMemo(() => {
     return steps.map((step, idx) => {
       const hasLogic = step.logic && step.logic.length > 0;
       return {
@@ -243,7 +277,7 @@ function WorkflowEngineContent() {
     });
   }, [steps, isAr]);
 
-  const edges: Edge[] = useMemo(() => {
+  const edges = useMemo(() => {
     const e: Edge[] = [];
     const stepIds = new Set(steps.map(s => s.id));
 
@@ -282,24 +316,6 @@ function WorkflowEngineContent() {
     return e;
   }, [steps, isAr]);
 
-  const FlowControls = () => {
-    const { fitView } = useReactFlow();
-    return (
-      <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
-        <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
-          <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => fitView({ padding: 0.2, duration: 800 })} className="rounded-xl font-black gap-2 h-9 px-4">
-          <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
-        </Button>
-        <Button size="sm" onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-xl font-black gap-2 h-9 px-6 shadow-md">
-          {saving ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}
-          {isAr ? "حفظ" : "Save"}
-        </Button>
-      </Panel>
-    );
-  };
-
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
@@ -325,8 +341,9 @@ function WorkflowEngineContent() {
           <div className="lg:col-span-1 space-y-6">
             <Card className="rounded-brand shadow-md border-none sticky top-24 overflow-hidden">
               <CardHeader className="bg-primary text-white">
-                <CardTitle className="text-xs font-black flex items-center gap-2">
-                  <Settings size={14} /> {isAr ? "خصائص الخدمة" : "Service Identity"}
+                <CardTitle className="text-xs font-black flex items-center justify-between">
+                  <div className="flex items-center gap-2"><Settings size={14} /> {isAr ? "خصائص الخدمة" : "Service Identity"}</div>
+                  <Button size="icon" variant="ghost" onClick={loadData} className="h-6 w-6 text-white/50 hover:text-white"><RefreshCw size={12}/></Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-6">
@@ -497,6 +514,7 @@ function WorkflowEngineContent() {
                                  <Select value={step.defaultNextStepId || ''} onValueChange={v => updateStep(sIdx, { defaultNextStepId: v })}>
                                     <SelectTrigger className="h-8 w-40 bg-white font-bold text-xs"><SelectValue placeholder="..." /></SelectTrigger>
                                     <SelectContent>
+                                      <SelectItem value="">{isAr ? "نهاية التدفق" : "End Flow"}</SelectItem>
                                       {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                     </SelectContent>
                                  </Select>
@@ -514,7 +532,7 @@ function WorkflowEngineContent() {
                                       </div>
                                       <div className="grid grid-cols-1 gap-3">
                                         <Select value={rule.fieldId || ''} onValueChange={v => {
-                                          const nl = [...(step.logic || [])]; nl[rIdx].fieldId = v; nl[rIdx].value = ''; // Reset value on field change
+                                          const nl = [...(step.logic || [])]; nl[rIdx].fieldId = v; nl[rIdx].value = ''; 
                                           updateStep(sIdx, { logic: nl });
                                         }}>
                                           <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder={isAr ? "اختر الحقل..." : "Select Field..."} /></SelectTrigger>
@@ -586,7 +604,7 @@ function WorkflowEngineContent() {
                         <Background />
                         <Controls />
                         <MiniMap nodeStrokeWidth={3} zoomable pannable />
-                        <FlowControls />
+                        <FlowControls onAdd={addStep} onSave={handleSave} saving={saving} isAr={isAr} />
                       </ReactFlow>
                     </ReactFlowProvider>
                     <div className="absolute top-4 left-4 z-10 pointer-events-none">
