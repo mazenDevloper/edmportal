@@ -13,7 +13,9 @@ import {
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
-  Maximize, LayoutGrid, Edit2
+  Maximize, LayoutGrid, Edit2, ListChecks, ImageIcon, FileText, 
+  ShieldCheck, Users, TrendingUp, Landmark, MapPin, Building2, 
+  Truck, Wrench, Lightbulb, Hexagon
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -36,11 +38,28 @@ import {
   MarkerType,
   Panel,
   useReactFlow,
-  ReactFlowProvider
+  ReactFlowProvider,
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-const ICON_LIST = ['FileText', 'ShieldCheck', 'Users', 'TrendingUp', 'Landmark', 'MapPin', 'CreditCard', 'Building2', 'Truck', 'Trash2', 'Wrench', 'Lightbulb'];
+const ICON_LIST = {
+  'FileText': FileText,
+  'ShieldCheck': ShieldCheck,
+  'Users': Users,
+  'TrendingUp': TrendingUp,
+  'Landmark': Landmark,
+  'MapPin': MapPin,
+  'CreditCard': CreditCard,
+  'Building2': Building2,
+  'Truck': Truck,
+  'Trash2': Trash2,
+  'Wrench': Wrench,
+  'Lightbulb': Lightbulb
+};
 
 function WorkflowEngineContent() {
   const router = useRouter();
@@ -54,7 +73,8 @@ function WorkflowEngineContent() {
   const [steps, setSteps] = useState<ServiceStep[]>([]);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
-    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
+    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
+    reqsAr: [], reqsEn: []
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -79,10 +99,11 @@ function WorkflowEngineContent() {
       titleAr: isAr ? 'خطوة جديدة' : 'New Step',
       titleEn: 'New Step',
       fields: [],
-      actionType: 'submit'
+      actionType: 'submit',
+      position: { x: 250, y: steps.length * 150 }
     };
     setSteps(prev => [...prev, newStep]);
-  }, [isAr]);
+  }, [isAr, steps.length]);
 
   const updateStep = (idx: number, updates: Partial<ServiceStep>) => {
     const ns = [...steps];
@@ -105,6 +126,24 @@ function WorkflowEngineContent() {
     setSteps(ns);
   };
 
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      setSteps((prevSteps) => {
+        const nextSteps = [...prevSteps];
+        changes.forEach((change) => {
+          if (change.type === 'position' && change.position) {
+            const index = nextSteps.findIndex((s) => s.id === change.id);
+            if (index !== -1) {
+              nextSteps[index] = { ...nextSteps[index], position: change.position };
+            }
+          }
+        });
+        return nextSteps;
+      });
+    },
+    []
+  );
+
   const handleSave = async () => {
     if (!serviceInfo.title) return toast({ variant: "destructive", title: isAr ? "العنوان مطلوب" : "Title Required" });
     setSaving(true);
@@ -116,8 +155,6 @@ function WorkflowEngineContent() {
         ...serviceInfo as Service,
         id: newId,
         isActive: true,
-        reqsAr: steps.flatMap(s => s.fields.map(f => f.labelAr)),
-        reqsEn: steps.flatMap(s => s.fields.map(f => f.labelEn)),
       };
 
       const newFlow: ServiceFlow = {
@@ -134,7 +171,7 @@ function WorkflowEngineContent() {
         serviceFlows: [...filteredFlows, newFlow]
       });
 
-      toast({ title: isAr ? "تم حفظ التدفق" : "Workflow Saved" });
+      toast({ title: isAr ? "تم حفظ الخدمة والتدفق" : "Service & Flow Saved" });
       router.push('/admin');
     } catch (e) {
       toast({ variant: "destructive", title: "Error" });
@@ -143,10 +180,10 @@ function WorkflowEngineContent() {
     }
   };
 
-  // Flowchart Mapping
   const nodes: Node[] = useMemo(() => {
     return steps.map((step, idx) => ({
       id: step.id,
+      type: (step.logic && step.logic.length > 0) ? 'decision' : 'default',
       data: { 
         label: (
           <div className="flex flex-col gap-2">
@@ -162,18 +199,19 @@ function WorkflowEngineContent() {
           </div>
         )
       },
-      position: { x: 250, y: idx * 180 },
+      position: step.position || { x: 250, y: idx * 180 },
       className: 'group',
       style: { 
         background: '#fff', 
         color: '#007375', 
         border: '2px solid #007375', 
-        borderRadius: '16px', 
+        borderRadius: (step.logic && step.logic.length > 0) ? '8px' : '16px', 
         padding: '12px', 
         fontWeight: 'bold',
         width: 180,
         textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+        boxShadow: '0 4px 12px -2px rgb(0 0 0 / 0.1)',
+        rotate: (step.logic && step.logic.length > 0) ? '45deg' : '0deg'
       }
     }));
   }, [steps, isAr]);
@@ -186,9 +224,9 @@ function WorkflowEngineContent() {
           id: `e-${step.id}-${step.defaultNextStepId}`,
           source: step.id,
           target: step.defaultNextStepId,
-          label: isAr ? 'افتراضي' : 'Default',
+          label: isAr ? 'المسار الافتراضي' : 'Default Path',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375', strokeWidth: 2 }
+          style: { stroke: '#007375', strokeWidth: 2, opacity: 0.5 }
         });
       }
       step.logic?.forEach((rule, idx) => {
@@ -197,10 +235,14 @@ function WorkflowEngineContent() {
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
-            label: `${rule.value}`,
+            label: `${isAr ? 'في حال: ' : 'If: '}${rule.value}`,
             animated: true,
-            style: { stroke: '#03CFCB', strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
+            labelStyle: { fill: '#470D67', fontWeight: 900, fontSize: '10px' },
+            labelBgPadding: [8, 4],
+            labelBgBorderRadius: 4,
+            labelBgStyle: { fill: '#fff', fillOpacity: 0.9, stroke: '#470D67', strokeWidth: 1 },
+            style: { stroke: '#470D67', strokeWidth: 3 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#470D67' },
           });
         }
       });
@@ -210,20 +252,10 @@ function WorkflowEngineContent() {
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
-    
-    const autoLayout = () => {
-      setSteps(prev => [...prev]); // Trigger re-render to use fixed positioning or dynamic if implemented
-      fitView();
-      toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
-    };
-
     return (
       <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
         <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
-        </Button>
-        <Button size="sm" variant="outline" onClick={autoLayout} className="rounded-xl font-black gap-2 h-9 px-4">
-          <LayoutGrid size={14}/> {isAr ? "ترتيب تلقائي" : "Auto Layout"}
         </Button>
         <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-9 px-4">
           <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
@@ -262,10 +294,10 @@ function WorkflowEngineContent() {
             <Card className="rounded-brand shadow-md border-none sticky top-24 overflow-hidden">
               <CardHeader className="bg-primary text-white">
                 <CardTitle className="text-xs font-black flex items-center gap-2">
-                  <Settings size={14} /> {isAr ? "إعدادات الخدمة" : "Service Settings"}
+                  <Settings size={14} /> {isAr ? "خصائص الخدمة" : "Service Identity"}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="p-4 space-y-6">
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "نوع التنفيذ" : "Execution Type"}</label>
                    <Select value={serviceInfo.type} onValueChange={v => setServiceInfo({...serviceInfo, type: v as any})}>
@@ -293,34 +325,48 @@ function WorkflowEngineContent() {
                  )}
 
                  <div className="space-y-2">
-                   <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الفئة" : "Category"}</label>
-                   <Select value={serviceInfo.category} onValueChange={v => setServiceInfo({...serviceInfo, category: v})}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(CAT_CONFIG).map(cid => (
-                          <SelectItem key={cid} value={cid}>{isAr ? CAT_CONFIG[cid as any].labelAr : CAT_CONFIG[cid as any].labelEn}</SelectItem>
-                        ))}
-                      </SelectContent>
-                   </Select>
+                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
+                    <div className="grid grid-cols-4 gap-2 p-2 border rounded-xl bg-slate-50">
+                      {Object.keys(ICON_LIST).map(iconName => {
+                        const IconComp = (ICON_LIST as any)[iconName];
+                        return (
+                          <Button 
+                            key={iconName} 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn("h-8 w-8 rounded-lg", serviceInfo.iconName === iconName ? "bg-primary text-white" : "hover:bg-primary/10")}
+                            onClick={() => setServiceInfo({...serviceInfo, iconName})}
+                          >
+                            <IconComp size={16} />
+                          </Button>
+                        );
+                      })}
+                      <div className="col-span-4 mt-2 pt-2 border-t flex flex-col gap-2">
+                        <label className="text-[8px] font-black text-slate-400">{isAr ? "أو رفع أيقونة مخصصة (PNG/SVG)" : "Or Upload Custom (PNG/SVG)"}</label>
+                        <div className="relative">
+                          <Input className="h-8 text-[9px] pr-8" placeholder="URL or Base64..." value={serviceInfo.customIconUrl} onChange={e => setServiceInfo({...serviceInfo, customIconUrl: e.target.value})} />
+                          <Upload className="absolute top-2 right-2 size-3 text-slate-300" />
+                        </div>
+                      </div>
+                    </div>
                  </div>
 
-                 <div className="space-y-2">
-                   <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
-                   <Select value={serviceInfo.iconName} onValueChange={v => setServiceInfo({...serviceInfo, iconName: v})}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {ICON_LIST.map(icon => (
-                          <SelectItem key={icon} value={icon}>{icon}</SelectItem>
-                        ))}
-                      </SelectContent>
-                   </Select>
+                 <div className="space-y-4 pt-4 border-t">
+                    <div className="flex justify-between items-center">
+                       <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "متطلبات الخدمة" : "Requirements"}</label>
+                       <Button size="xs" variant="ghost" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), '']})} className="h-5 text-accent font-black">+ {isAr ? "إضافة" : "Add"}</Button>
+                    </div>
+                    {(serviceInfo.reqsAr || []).map((req, idx) => (
+                      <div key={idx} className="flex gap-1 items-center">
+                        <Input className="h-8 text-[10px] font-bold" value={req} onChange={e => {
+                          const n = [...serviceInfo.reqsAr!]; n[idx] = e.target.value; setServiceInfo({...serviceInfo, reqsAr: n});
+                        }} />
+                        <Button variant="ghost" size="icon" onClick={() => {
+                          const n = [...serviceInfo.reqsAr!]; n.splice(idx, 1); setServiceInfo({...serviceInfo, reqsAr: n});
+                        }} className="h-8 w-8 text-red-400"><X size={12}/></Button>
+                      </div>
+                    ))}
                  </div>
-
-                 {serviceInfo.type === 'workflow' && (
-                   <Button onClick={addStep} className="w-full dm-gradient-primary rounded-xl font-black mt-4 py-6 shadow-xl">
-                     <Plus size={18} className="ml-2"/> {isAr ? "إضافة مرحلة جديدة" : "Add Step"}
-                   </Button>
-                 )}
               </CardContent>
             </Card>
           </div>
@@ -427,19 +473,6 @@ function WorkflowEngineContent() {
                     </CardContent>
                   </Card>
                 ))}
-
-                {serviceInfo.type === 'link' && (
-                  <Card className="rounded-[2.5rem] p-16 text-center border-2 border-dashed border-slate-200 bg-white">
-                    <div className="size-20 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-6">
-                      <LinkIcon size={40} className="text-slate-300" />
-                    </div>
-                    <h3 className="text-2xl font-black text-primary mb-3">{isAr ? "خدمة الربط الخارجي نشطة" : "Active External Integration"}</h3>
-                    <p className="text-slate-400 font-bold max-w-md mx-auto">{isAr ? "سيتم توجيه المواطنين مباشرة إلى الأنظمة البلدية القائمة (مثل نظام أبشر أو بوابة عمان الرقمية)." : "Citizens will be redirected to existing municipal systems or standard Omani digital portals."}</p>
-                    <Button variant="outline" className="mt-8 rounded-full px-10 font-bold gap-2" asChild>
-                      <a href={serviceInfo.linkUrl} target="_blank"><Eye size={16}/> {isAr ? "معاينة الوجهة" : "Preview Target"}</a>
-                    </Button>
-                  </Card>
-                )}
               </TabsContent>
 
               <TabsContent value="canvas" className="outline-none">
@@ -448,6 +481,7 @@ function WorkflowEngineContent() {
                       <ReactFlow 
                         nodes={nodes} 
                         edges={edges}
+                        onNodesChange={onNodesChange}
                         fitView
                         className="bg-slate-50"
                       >
@@ -460,7 +494,7 @@ function WorkflowEngineContent() {
                     <div className="absolute top-4 left-4 z-10 pointer-events-none">
                        <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl border shadow-sm">
                           <p className="text-[10px] font-black text-primary uppercase tracking-widest">{isAr ? "مخطط التدفق التفاعلي" : "Interactive Orchestrator"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "استخدم الأدوات لتنظيم مسار المواطن" : "Use tools to organize citizen paths"}</p>
+                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "المعين (المربع المائل) يعبر عن وجود مسار شرطي" : "Diamonds/Rotated nodes represent logic branches"}</p>
                        </div>
                     </div>
                  </Card>

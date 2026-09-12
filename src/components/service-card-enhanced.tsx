@@ -8,6 +8,7 @@ import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { explainInSignLanguage, generateSignVideo } from '@/ai/flows/sign-language-flow';
 import { textToSpeech } from '@/ai/flows/tts-flow';
@@ -20,7 +21,6 @@ interface ServiceCardEnhancedProps {
 
 export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceCardEnhancedProps) => {
   const IconComponent = (Icons as any)[service.iconName] || Icons.Info;
-  const catInfo = CAT_CONFIG[service.category as CategoryId];
   
   const [loadingSign, setLoadingSign] = useState(false);
   const [ttsLoading, setTtsLoading] = useState(false);
@@ -29,7 +29,7 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
     setLoadingSign(true);
     try {
       const text = isAr ? service.title : (service.titleEn || service.title);
-      const { description, videoPrompt } = await explainInSignLanguage({ text, language: isAr ? 'ar' : 'en' });
+      const { description } = await explainInSignLanguage({ text, language: isAr ? 'ar' : 'en' });
       alert(description);
     } finally {
       setLoadingSign(false);
@@ -54,8 +54,12 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
       <article className="p-6 rounded-[2.2rem] bg-white transition-all duration-500 cursor-pointer flex flex-col justify-between h-80 border border-transparent shadow-sm group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:border-primary/20 relative z-10 overflow-hidden">
         <div>
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl bg-gradient-to-br from-primary to-accent" aria-hidden="true">
-              <IconComponent size={28} />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl bg-gradient-to-br from-primary to-accent relative overflow-hidden" aria-hidden="true">
+              {service.customIconUrl ? (
+                <Image src={service.customIconUrl} alt="" fill className="object-contain p-2" />
+              ) : (
+                <IconComponent size={28} />
+              )}
             </div>
             <h3 className="font-black text-sm text-slate-800 leading-tight mt-1">
               {title}
@@ -108,7 +112,7 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
               <span className="text-white font-black text-xs">{isAr ? "المتطلبات" : "Requirements"}</span>
             </div>
             <ul className="space-y-2">
-              {(isAr ? service.reqsAr : service.reqsEn)?.slice(0, 3).map((req, idx) => (
+              {(isAr ? service.reqsAr : service.reqsEn)?.slice(0, 4).map((req, idx) => (
                 <li key={idx} className="text-slate-300 text-[10px] flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true" /> {req}
                 </li>

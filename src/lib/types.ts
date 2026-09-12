@@ -59,6 +59,7 @@ export interface Service {
   description: string;
   descriptionEn?: string;
   iconName: string;
+  customIconUrl?: string;
   category: string;
   isActive: boolean;
   isFeatured?: boolean;
@@ -128,6 +129,7 @@ export interface ServiceStep {
   actionType?: 'submit' | 'payment';
   defaultNextStepId?: string;
   logic?: StepLogic[];
+  position?: { x: number; y: number };
 }
 
 export interface ServiceFlow {
