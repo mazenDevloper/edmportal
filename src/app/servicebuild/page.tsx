@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -13,8 +12,9 @@ import {
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
-  Maximize, LayoutGrid, Edit2, ListChecks
+  Maximize, LayoutGrid, Edit2, Hash, List, MapPin
 } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ import { ServiceStep, FormField, Service, ServiceFlow, StepLogic } from '@/lib/t
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CAT_CONFIG } from '@/lib/constants';
+import { Badge } from '@/components/ui/badge';
 
 // React Flow Imports
 import {
@@ -36,9 +37,7 @@ import {
   MarkerType,
   Panel,
   useReactFlow,
-  ReactFlowProvider,
-  NodeChange,
-  applyNodeChanges
+  ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -56,41 +55,23 @@ function WorkflowEngineContent() {
   const [steps, setSteps] = useState<ServiceStep[]>([]);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
-    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
-    reqsAr: [], reqsEn: []
+    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!editId) return;
+    if (editId) {
       setLoading(true);
-      try {
-        const data = await fetchBin();
+      fetchBin().then(data => {
         if (data) {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
-          
           if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo({
-            ...svc,
-            title: svc.title || '',
-            titleEn: svc.titleEn || '',
-            description: svc.description || '',
-            descriptionEn: svc.descriptionEn || '',
-            type: svc.type || 'workflow',
-            reqsAr: svc.reqsAr || [],
-            reqsEn: svc.reqsEn || []
-          });
+          if (svc) setServiceInfo(svc);
         }
-      } catch (e) {
-        console.error("Load failed:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+      }).finally(() => setLoading(false));
+    }
   }, [editId]);
 
   const addStep = useCallback(() => {
@@ -99,11 +80,10 @@ function WorkflowEngineContent() {
       titleAr: isAr ? 'خطوة جديدة' : 'New Step',
       titleEn: 'New Step',
       fields: [],
-      actionType: 'submit',
-      position: { x: 250, y: steps.length * 150 }
+      actionType: 'submit'
     };
     setSteps(prev => [...prev, newStep]);
-  }, [isAr, steps.length]);
+  }, [isAr]);
 
   const updateStep = (idx: number, updates: Partial<ServiceStep>) => {
     const ns = [...steps];
@@ -111,9 +91,7 @@ function WorkflowEngineContent() {
     setSteps(ns);
   };
 
-  const removeStep = (id: string) => {
-    setSteps(steps.filter(s => s.id !== id));
-  };
+  const removeStep = (id: string) => setSteps(steps.filter(s => s.id !== id));
 
   const addFieldToStep = (stepId: string, type: FormField['type']) => {
     setSteps(steps.map(s => s.id === stepId ? { ...s, fields: [...s.fields, {
@@ -124,27 +102,9 @@ function WorkflowEngineContent() {
   const addLogic = (stepIdx: number) => {
     const ns = [...steps];
     const logic: StepLogic[] = ns[stepIdx].logic || [];
-    ns[stepIdx].logic = [...logic, { fieldId: 'none', value: '', targetStepId: 'none' }];
+    ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
     setSteps(ns);
   };
-
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setSteps((prevSteps) => {
-        const nextSteps = [...prevSteps];
-        changes.forEach((change) => {
-          if (change.type === 'position' && change.position) {
-            const index = nextSteps.findIndex((s) => s.id === change.id);
-            if (index !== -1) {
-              nextSteps[index] = { ...nextSteps[index], position: change.position };
-            }
-          }
-        });
-        return nextSteps;
-      });
-    },
-    []
-  );
 
   const handleSave = async () => {
     if (!serviceInfo.title) return toast({ variant: "destructive", title: isAr ? "العنوان مطلوب" : "Title Required" });
@@ -157,8 +117,8 @@ function WorkflowEngineContent() {
         ...serviceInfo as Service,
         id: newId,
         isActive: true,
-        reqsAr: serviceInfo.reqsAr || [],
-        reqsEn: serviceInfo.reqsEn || [],
+        reqsAr: steps.flatMap(s => s.fields.map(f => f.labelAr)),
+        reqsEn: steps.flatMap(s => s.fields.map(f => f.labelEn)),
       };
 
       const newFlow: ServiceFlow = {
@@ -175,7 +135,7 @@ function WorkflowEngineContent() {
         serviceFlows: [...filteredFlows, newFlow]
       });
 
-      toast({ title: isAr ? "تم حفظ التعديلات" : "Changes Saved" });
+      toast({ title: isAr ? "تم حفظ التدفق" : "Workflow Saved" });
       router.push('/admin');
     } catch (e) {
       toast({ variant: "destructive", title: "Error" });
@@ -203,7 +163,7 @@ function WorkflowEngineContent() {
           </div>
         )
       },
-      position: step.position || { x: 250, y: idx * 180 },
+      position: { x: 250, y: idx * 180 },
       className: 'group',
       style: { 
         background: '#fff', 
@@ -211,9 +171,10 @@ function WorkflowEngineContent() {
         border: '2px solid #007375', 
         borderRadius: '16px', 
         padding: '12px', 
+        fontWeight: 'bold',
         width: 180,
         textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
       }
     }));
   }, [steps, isAr]);
@@ -221,33 +182,27 @@ function WorkflowEngineContent() {
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     steps.forEach(step => {
-      if (step.defaultNextStepId && step.defaultNextStepId !== 'none') {
-        const targetExists = steps.some(s => s.id === step.defaultNextStepId);
-        if (targetExists) {
-          e.push({
-            id: `e-${step.id}-${step.defaultNextStepId}`,
-            source: step.id,
-            target: step.defaultNextStepId,
-            label: isAr ? 'افتراضي' : 'Default',
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-            style: { stroke: '#007375', strokeWidth: 2, opacity: 0.5 }
-          });
-        }
+      if (step.defaultNextStepId) {
+        e.push({
+          id: `e-${step.id}-${step.defaultNextStepId}`,
+          source: step.id,
+          target: step.defaultNextStepId,
+          label: isAr ? 'افتراضي' : 'Default',
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
+          style: { stroke: '#007375', strokeWidth: 2 }
+        });
       }
       step.logic?.forEach((rule, idx) => {
-        if (rule.targetStepId && rule.targetStepId !== 'none') {
-          const targetExists = steps.some(s => s.id === rule.targetStepId);
-          if (targetExists) {
-            e.push({
-              id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
-              source: step.id,
-              target: rule.targetStepId,
-              label: `${isAr ? 'في حال: ' : 'If: '}${rule.value || '...'}`,
-              animated: true,
-              style: { stroke: '#03CFCB', strokeWidth: 2.5 },
-              markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
-            });
-          }
+        if (rule.targetStepId) {
+          e.push({
+            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
+            source: step.id,
+            target: rule.targetStepId,
+            label: `${rule.value}`,
+            animated: true,
+            style: { stroke: '#03CFCB', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
+          });
         }
       });
     });
@@ -257,12 +212,21 @@ function WorkflowEngineContent() {
   const FlowControls = () => {
     const { fitView } = useReactFlow();
     
+    const autoLayout = () => {
+      setSteps(prev => [...prev]); // Trigger re-render to use fixed positioning or dynamic if implemented
+      fitView();
+      toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
+    };
+
     return (
       <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
         <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => fitView({ padding: 0.2, duration: 800 })} className="rounded-xl font-black gap-2 h-9 px-4">
+        <Button size="sm" variant="outline" onClick={autoLayout} className="rounded-xl font-black gap-2 h-9 px-4">
+          <LayoutGrid size={14}/> {isAr ? "ترتيب تلقائي" : "Auto Layout"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-9 px-4">
           <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
         </Button>
         <Button size="sm" onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-xl font-black gap-2 h-9 px-6 shadow-md">
@@ -302,11 +266,11 @@ function WorkflowEngineContent() {
                   <Settings size={14} /> {isAr ? "إعدادات الخدمة" : "Service Settings"}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-6">
+              <CardContent className="p-4 space-y-4">
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "نوع التنفيذ" : "Execution Type"}</label>
                    <Select value={serviceInfo.type || 'workflow'} onValueChange={v => setServiceInfo({...serviceInfo, type: v as any})}>
-                      <SelectTrigger className="h-9 font-bold text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 font-bold"><SelectValue /></SelectTrigger>
                       <SelectContent>
                          <SelectItem value="workflow">{isAr ? "تدفق مراحل (داخلي)" : "Multi-Step Workflow"}</SelectItem>
                          <SelectItem value="link">{isAr ? "تحويل لرابط خارجي" : "External Redirect"}</SelectItem>
@@ -332,7 +296,7 @@ function WorkflowEngineContent() {
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الفئة" : "Category"}</label>
                    <Select value={serviceInfo.category || 'elec'} onValueChange={v => setServiceInfo({...serviceInfo, category: v})}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Object.keys(CAT_CONFIG).map(cid => (
                           <SelectItem key={cid} value={cid}>{isAr ? CAT_CONFIG[cid as any].labelAr : CAT_CONFIG[cid as any].labelEn}</SelectItem>
@@ -344,30 +308,13 @@ function WorkflowEngineContent() {
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
                    <Select value={serviceInfo.iconName || 'FileText'} onValueChange={v => setServiceInfo({...serviceInfo, iconName: v})}>
-                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {ICON_LIST.map(icon => (
                           <SelectItem key={icon} value={icon}>{icon}</SelectItem>
                         ))}
                       </SelectContent>
                    </Select>
-                 </div>
-
-                 <div className="space-y-4 pt-4 border-t">
-                    <h4 className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-2"><ListChecks size={14}/> {isAr ? "المستندات المطلوبة" : "Prerequisites"}</h4>
-                    <div className="space-y-2">
-                       {(serviceInfo.reqsAr || []).map((req, idx) => (
-                         <div key={idx} className="flex gap-1">
-                           <Input value={req} onChange={e => {
-                             const n = [...(serviceInfo.reqsAr || [])]; n[idx] = e.target.value; setServiceInfo({...serviceInfo, reqsAr: n});
-                           }} className="h-8 text-[10px] font-bold" />
-                           <Button variant="ghost" size="icon" onClick={() => {
-                             const n = serviceInfo.reqsAr!.filter((_, i) => i !== idx); setServiceInfo({...serviceInfo, reqsAr: n});
-                           }} className="h-8 w-8 text-red-400"><Trash2 size={12}/></Button>
-                         </div>
-                       ))}
-                       <Button variant="outline" size="sm" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), '']})} className="w-full h-8 text-[9px] font-black border-dashed">+ {isAr ? "إضافة مستند" : "Add Doc"}</Button>
-                    </div>
                  </div>
 
                  {serviceInfo.type === 'workflow' && (
@@ -408,20 +355,64 @@ function WorkflowEngineContent() {
                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest">{isAr ? "مدخلات النموذج" : "Form Inputs"}</h4>
                            <div className="flex flex-wrap gap-2 mb-4">
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'text')} className="h-8 text-[9px] px-3 rounded-lg"><Type size={12} className="ml-1"/> {isAr ? "نص" : "Text"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'number')} className="h-8 text-[9px] px-3 rounded-lg"><Hash size={12} className="ml-1"/> {isAr ? "رقم" : "Number"}</Button>
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'upload')} className="h-8 text-[9px] px-3 rounded-lg"><Upload size={12} className="ml-1"/> {isAr ? "مرفق" : "Upload"}</Button>
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'date')} className="h-8 text-[9px] px-3 rounded-lg"><Calendar size={12} className="ml-1"/> {isAr ? "تاريخ" : "Date"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'select')} className="h-8 text-[9px] px-3 rounded-lg"><List size={12} className="ml-1"/> {isAr ? "قائمة" : "List"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'multichoice')} className="h-8 text-[9px] px-3 rounded-lg"><Layers size={12} className="ml-1"/> {isAr ? "متعدد" : "Multi"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MapPin size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
                            </div>
                            <div className="space-y-3">
-                            {(step.fields || []).map((f, fIdx) => (
-                              <div key={f.id} className="flex gap-2 items-center bg-slate-50 p-2 rounded-xl border">
-                                 <Input placeholder={isAr ? "تسمية الحقل" : "Field Label"} value={(isAr ? f.labelAr : f.labelEn) || ''} onChange={e => {
-                                   const nf = [...step.fields]; 
-                                   if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
-                                   updateStep(sIdx, { fields: nf });
-                                 }} className="h-8 text-xs font-bold bg-white" />
-                                 <Button variant="ghost" size="icon" onClick={() => {
-                                   const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, { fields: nf });
-                                 }} className="text-red-400 h-8 w-8"><X size={14}/></Button>
+                            {step.fields.map((f, fIdx) => (
+                              <div key={f.id} className="space-y-3 p-4 bg-slate-50 rounded-xl border group">
+                                 <div className="flex gap-2 items-center">
+                                    <div className="px-2 py-0.5 rounded-md bg-white border text-[8px] font-black uppercase text-slate-400">{f.type}</div>
+                                    <Input 
+                                      placeholder={isAr ? "تسمية الحقل" : "Field Label"} 
+                                      value={(isAr ? f.labelAr : f.labelEn) || ''} 
+                                      onChange={e => {
+                                        const nf = [...step.fields]; 
+                                        if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
+                                        updateStep(sIdx, { fields: nf });
+                                      }} 
+                                      className="h-8 text-xs font-bold bg-white" 
+                                    />
+                                    <Button variant="ghost" size="icon" onClick={() => {
+                                      const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, { fields: nf });
+                                    }} className="text-red-400 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></Button>
+                                 </div>
+                                 
+                                 {(f.type === 'select' || f.type === 'multichoice') && (
+                                   <div className="space-y-2 pl-6 border-l-2 border-slate-200">
+                                      <div className="flex flex-wrap gap-2">
+                                         {(f.options || []).map((opt, oIdx) => (
+                                           <Badge key={oIdx} variant="secondary" className="text-[9px] font-bold gap-1 px-2 py-1">
+                                             {opt}
+                                             <X size={10} className="cursor-pointer hover:text-red-500" onClick={() => {
+                                               const nf = [...step.fields];
+                                               nf[fIdx].options = nf[fIdx].options?.filter((_, i) => i !== oIdx);
+                                               updateStep(sIdx, { fields: nf });
+                                             }} />
+                                           </Badge>
+                                         ))}
+                                         <Button 
+                                           size="xs" 
+                                           variant="ghost" 
+                                           className="h-6 text-[9px] font-black border-dashed border-2 px-3 rounded-full"
+                                           onClick={() => {
+                                             const val = prompt(isAr ? "اسم الخيار الجديد:" : "New option name:");
+                                             if (val) {
+                                               const nf = [...step.fields];
+                                               nf[fIdx].options = [...(nf[fIdx].options || []), val];
+                                               updateStep(sIdx, { fields: nf });
+                                             }
+                                           }}
+                                         >
+                                           + {isAr ? "خيار" : "Option"}
+                                         </Button>
+                                      </div>
+                                   </div>
+                                 )}
                               </div>
                             ))}
                            </div>
@@ -431,10 +422,10 @@ function WorkflowEngineContent() {
                             <div className="space-y-4">
                                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border">
                                  <span className="text-[10px] font-bold text-slate-500">{isAr ? "المسار الافتراضي" : "Default Path"}</span>
-                                 <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, { defaultNextStepId: v === 'none' ? '' : v })}>
+                                 <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, { defaultNextStepId: v === 'none' ? undefined : v })}>
                                     <SelectTrigger className="h-8 w-40 bg-white font-bold text-xs"><SelectValue placeholder="..." /></SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="none">{isAr ? "نهاية التدفق" : "End Flow"}</SelectItem>
+                                      <SelectItem value="none">{isAr ? "لا يوجد" : "None"}</SelectItem>
                                       {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                     </SelectContent>
                                  </Select>
@@ -445,15 +436,15 @@ function WorkflowEngineContent() {
                                     <div className="flex items-center justify-between text-[9px] font-black text-primary">
                                       <span>{isAr ? "في حال كانت قيمة الحقل تساوي:" : "IF VALUE EQUALS:"}</span>
                                       <Button variant="ghost" size="icon" onClick={() => {
-                                        const nl = [...(step.logic || [])]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
+                                        const nl = [...step.logic!]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
                                       }} className="h-5 w-5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></Button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                       <Input placeholder={isAr ? "القيمة" : "Value"} value={rule.value || ''} onChange={e => {
-                                        const nl = [...(step.logic || [])]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
+                                        const nl = [...step.logic!]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
                                       }} className="h-8 text-[11px] bg-white" />
                                       <Select value={rule.targetStepId || 'none'} onValueChange={v => {
-                                        const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
+                                        const nl = [...step.logic!]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
                                       }}>
                                         <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder={isAr ? "انتقل إلى..." : "Navigate to..."} /></SelectTrigger>
                                         <SelectContent>
@@ -473,7 +464,7 @@ function WorkflowEngineContent() {
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "إجراء نهاية المرحلة" : "Phase Terminal Action"}</span>
                          </div>
                          <Select value={step.actionType || 'submit'} onValueChange={v => updateStep(sIdx, { actionType: v as any })}>
-                            <SelectTrigger className="h-9 w-48 bg-slate-50 font-bold text-xs"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="h-9 w-48 bg-slate-50 font-bold"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                <SelectItem value="submit">{isAr ? "إرسال للمراجعة" : "Submit for Review"}</SelectItem>
                                <SelectItem value="payment">{isAr ? "بوابة الدفع الإلكتروني" : "E-Payment Gateway"}</SelectItem>
@@ -504,7 +495,6 @@ function WorkflowEngineContent() {
                       <ReactFlow 
                         nodes={nodes} 
                         edges={edges}
-                        onNodesChange={onNodesChange}
                         fitView
                         className="bg-slate-50"
                       >
