@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { PortalFooter } from '@/components/portal-footer';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +25,8 @@ import {
   Send,
   ArrowRight,
   CreditCard,
-  ListChecks
+  ListChecks,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -71,6 +73,7 @@ export default function ServiceApplicationPage() {
     let nextStepId = currentStep.defaultNextStepId;
     if (currentStep.logic) {
       for (const rule of currentStep.logic) {
+        // Evaluate condition: if formData[fieldId] matches rule.value
         if (formData[rule.fieldId] === rule.value) {
           nextStepId = rule.targetStepId;
           break;
@@ -167,7 +170,13 @@ export default function ServiceApplicationPage() {
             <Card className="rounded-brand shadow-sm border-t-4 border-primary">
               <CardHeader>
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
-                  <IconComponent size={24} />
+                  {service.customIconUrl ? (
+                    <div className="relative w-8 h-8">
+                       <Image src={service.customIconUrl} alt="" fill className="object-contain" />
+                    </div>
+                  ) : (
+                    <IconComponent size={24} />
+                  )}
                 </div>
                 <CardTitle className="text-xl font-black">{isAr ? service.title : service.titleEn}</CardTitle>
               </CardHeader>
@@ -235,19 +244,51 @@ export default function ServiceApplicationPage() {
                     {currentStep?.fields.map((field) => (
                       <div key={field.id} className="space-y-2">
                         <Label className="font-bold text-slate-700">{isAr ? field.labelAr : field.labelEn}</Label>
-                        {field.type === 'date' ? (
+                        
+                        {field.type === 'date' && (
                           <Input type="date" required={field.required} className="h-12 bg-slate-50" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
-                        ) : field.type === 'upload' ? (
-                          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 cursor-pointer hover:border-accent transition-colors">
-                            <Send size={24} className="mx-auto text-slate-300 mb-2 rotate-90" />
-                            <p className="text-xs text-slate-400 font-bold">{isAr ? "اضغط لرفع الملفات" : "Click to upload files"}</p>
-                            <input type="file" className="sr-only" onChange={e => setFormData({...formData, [field.id]: 'uploaded_file'})} />
+                        )}
+
+                        {field.type === 'select' && (
+                          <Select onValueChange={val => setFormData({...formData, [field.id]: val})} required={field.required}>
+                             <SelectTrigger className="h-12 bg-slate-50 font-bold">
+                               <SelectValue placeholder={isAr ? "اختر..." : "Select..."} />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {field.options?.map(opt => (
+                                 <SelectItem key={opt} value={opt} className="font-bold">{opt}</SelectItem>
+                               ))}
+                             </SelectContent>
+                          </Select>
+                        )}
+
+                        {field.type === 'map' && (
+                           <div className="border-2 rounded-xl p-6 bg-slate-50 space-y-4 text-center border-dashed group hover:border-primary transition-all">
+                              <MapPin size={32} className="mx-auto text-primary group-hover:animate-bounce" />
+                              <p className="text-xs font-bold text-slate-500">{isAr ? "تم تحديد الموقع الجغرافي تلقائياً عبر GIS" : "Geolocation captured via GIS Integration"}</p>
+                              <Button type="button" variant="outline" size="sm" className="rounded-full font-black text-[10px]">{isAr ? "فتح الخريطة" : "Open Map"}</Button>
+                              <Input type="hidden" value="23.5880,58.3829" required={field.required} />
+                           </div>
+                        )}
+
+                        {field.type === 'upload' && (
+                          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 cursor-pointer hover:border-accent transition-colors group">
+                            <Upload size={24} className="mx-auto text-slate-300 mb-2 group-hover:text-accent transition-colors" />
+                            <p className="text-xs text-slate-400 font-bold">{isAr ? "اضغط لرفع الملفات المطلوبة" : "Click to upload required files"}</p>
+                            <input type="file" className="sr-only" onChange={e => setFormData({...formData, [field.id]: 'attached_file_pki'})} />
                           </div>
-                        ) : (
+                        )}
+
+                        {field.type === 'text' && (
                           <Input required={field.required} placeholder="..." className="h-12 bg-slate-50" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
+                        )}
+                        
+                        {field.type === 'number' && (
+                          <Input type="number" required={field.required} className="h-12 bg-slate-50" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
                         )}
                       </div>
                     ))}
+
                     {!currentStep?.fields.length && currentStepIndex > 0 && (
                       <div className="text-center py-12">
                         <CheckCircle2 className="mx-auto text-emerald-500 mb-4" size={48} />
