@@ -14,26 +14,16 @@ import {
   ShieldCheck,
   FileText,
   Users,
-  Star,
-  ChevronRight,
-  Volume2,
   Fingerprint,
-  ShieldAlert,
-  ArrowRightLeft,
-  Sparkles,
-  CheckCircle,
-  HelpCircle,
+  ArrowRight,
   Plus,
   Minus,
-  Info,
-  ChevronLeft,
-  Circle,
   ArrowUpRight,
   Megaphone
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
-import { Service, SiteConfig, CarouselItem, Course, Survey, PopupMessage, ServiceFlow } from '@/lib/types';
+import { Service, SiteConfig, CarouselItem, Survey, PopupMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
 import { IdentityShowcase } from '@/components/identity-showcase';
@@ -49,11 +39,10 @@ import {
 } from "@/components/ui/carousel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import CountUp from 'react-countup';
 import { motion, AnimatePresence } from 'framer-motion';
+import Tilt from 'react-parallax-tilt';
 
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
@@ -73,6 +62,7 @@ export default function DhofarPortal() {
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
+  const [newsTicker, setNewsTicker] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -95,8 +85,7 @@ export default function DhofarPortal() {
             if (flow) {
               flow.steps?.forEach((step: any) => {
                 const title = (step.titleAr || '').toLowerCase();
-                const titleEn = (step.titleEn || '').toLowerCase();
-                const isDocStep = title.includes('مستند') || title.includes('وثائق') || titleEn.includes('doc') || titleEn.includes('requirement');
+                const isDocStep = title.includes('مستند') || title.includes('وثائق');
                 step.fields?.forEach((f: any) => {
                   if (f.type === 'upload' || isDocStep) {
                     docs.push(isAr ? (f.labelAr || f.labelEn) : (f.labelEn || f.labelAr));
@@ -129,6 +118,7 @@ export default function DhofarPortal() {
           setCarouselItems(data.carouselItems || []);
           setSurveys(data.surveys || []);
           setPopups(data.popups || []);
+          setNewsTicker(data.newsTickerText || '');
         }
       } catch (err) {
         console.error("Home Load Error:", err);
@@ -159,20 +149,6 @@ export default function DhofarPortal() {
   const catalogServices = useMemo(() => {
     return (services || []).filter(s => activeCategory === 'all' || s.category === activeCategory);
   }, [services, activeCategory]);
-
-  const handleReadAloud = async (text: string) => {
-    if (ttsLoading) return;
-    setTtsLoading(true);
-    try {
-      const { audioDataUri } = await textToSpeech(text);
-      const audio = new Audio(audioDataUri);
-      audio.play();
-    } catch (e) {
-      console.error("TTS Error:", e);
-    } finally {
-      setTtsLoading(false);
-    }
-  };
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
@@ -224,21 +200,23 @@ export default function DhofarPortal() {
                                 const IconComp = (Icons as any)[s.iconName] || Icons.FileText;
                                 return (
                                   <motion.div initial={{opacity:0, scale:0.9}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.9}} transition={{delay: idx * 0.05}} key={s.id}>
-                                    <Link 
-                                      href={`/services/${s.id}`}
-                                      className="group flex items-center gap-5 p-4 bg-white border-2 border-transparent rounded-[1.5rem] shadow-lg hover:shadow-2xl hover:border-accent/30 transition-all"
-                                    >
-                                      <div className="size-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-slate-900 transition-colors">
-                                        <IconComp size={24} />
-                                      </div>
-                                      <div className="flex-1 overflow-hidden">
-                                        <p className="text-sm font-black text-slate-800 truncate group-hover:text-primary">
-                                          {isAr ? s.title : (s.titleEn || s.title)}
-                                        </p>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "وصول مباشر" : "Direct Access"}</p>
-                                      </div>
-                                      <ArrowUpRight size={18} className="text-slate-300 group-hover:text-accent transition-all" />
-                                    </Link>
+                                    <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.02}>
+                                      <Link 
+                                        href={`/services/${s.id}`}
+                                        className="group flex items-center gap-5 p-4 bg-white border-2 border-transparent rounded-[1.5rem] shadow-lg hover:shadow-2xl hover:border-accent/30 transition-all"
+                                      >
+                                        <div className="size-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-slate-900 transition-colors">
+                                          <IconComp size={24} />
+                                        </div>
+                                        <div className="flex-1 overflow-hidden">
+                                          <p className="text-sm font-black text-slate-800 truncate group-hover:text-primary">
+                                            {isAr ? s.title : (s.titleEn || s.title)}
+                                          </p>
+                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "وصول مباشر" : "Direct Access"}</p>
+                                        </div>
+                                        <ArrowUpRight size={18} className="text-slate-300 group-hover:text-accent transition-all" />
+                                      </Link>
+                                    </Tilt>
                                   </motion.div>
                                 );
                               })}
@@ -324,7 +302,7 @@ export default function DhofarPortal() {
                       <div key={i} className="space-y-3">
                          <div className="mx-auto text-accent mb-4 p-4 rounded-3xl bg-white/10 w-fit shrink-0">{React.cloneElement(stat.icon as any, {size: 32})}</div>
                          <h3 className="text-5xl font-black flex items-center justify-center gap-1">
-                           <CountUp end={stat.val} duration={3} />
+                           <CountUp end={stat.val} duration={3} enableScrollSpy scrollSpyOnce />
                            <span className="text-accent">+</span>
                          </h3>
                          <p className="text-[10px] font-black opacity-60 tracking-[0.2em] uppercase">{isAr ? stat.labelAr : stat.labelEn}</p>
@@ -373,11 +351,12 @@ export default function DhofarPortal() {
                         <div className="relative h-[650px] w-full flex items-center justify-center">
                           {item.imageUrl && (
                             <Image 
-                              src={item.imageUrl} 
+                              src={item.imageUrl || "https://picsum.photos/seed/dhofar/1200/600"} 
                               alt="" 
                               fill 
                               className="object-cover brightness-[0.3]" 
                               priority
+                              unoptimized={item.imageUrl?.includes('brave.com') || item.imageUrl?.includes('omandaily')}
                             />
                           )}
                           <div className="relative z-10 text-center text-white px-6 max-w-5xl">
@@ -397,7 +376,7 @@ export default function DhofarPortal() {
               </section>
             )}
 
-            {/* 5. Ticker & Community Feedback (AI Polls) */}
+            {/* 5. Community Feedback */}
             <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10 grid lg:grid-cols-2 gap-20 items-center">
                   <div className="space-y-8">
@@ -451,4 +430,3 @@ export default function DhofarPortal() {
     </div>
   );
 }
-

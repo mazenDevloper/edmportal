@@ -40,7 +40,8 @@ import {
   Bell, ClipboardList, Sparkles, Palette,
   Zap, FileText, Search, Globe, Volume2, Video, 
   MousePointer2, ArrowUpRight, Megaphone, ListChecks,
-  RefreshCw, Layers, History, ShieldCheck, Mail, Phone, ExternalLink
+  RefreshCw, Layers, History, ShieldCheck, Mail, Phone, ExternalLink,
+  LayoutDashboard
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -86,6 +87,7 @@ export default function AdminDashboard() {
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
   const [applications, setApplications] = useState<ServiceApplication[]>([]);
+  const [tickerText, setTickerText] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -101,6 +103,7 @@ export default function AdminDashboard() {
           setCustomPages(data.customPages || []);
           setPopups(data.popups || []);
           setApplications(data.applications || []);
+          setTickerText(data.newsTickerText || '');
         }
       } catch (e) {
         toast({ title: "Error Loading Data", variant: "destructive" });
@@ -125,7 +128,8 @@ export default function AdminDashboard() {
         surveys, 
         customPages, 
         popups,
-        applications
+        applications,
+        newsTickerText: tickerText
       });
       toast({ title: isAr ? "تم حفظ كافة التغييرات بنجاح" : "All changes saved successfully" });
     } catch (e) {
@@ -415,7 +419,7 @@ export default function AdminDashboard() {
                         <h4 className="text-xl font-black mb-2">{isAr ? page.titleAr : page.titleEn}</h4>
                         <p className="text-xs text-slate-400 font-bold mb-8">Created: {new Date(page.createdAt).toLocaleDateString()}</p>
                         <div className="flex gap-2">
-                           <Button asChild variant="outline" className="flex-1 rounded-xl h-11 font-black"><Link href={`/pagebuild?id=${page.id}`}><Edit2 size={14} className="ml-2"/> {isAr ? "تعديل" : "Edit"}</Link></Button>
+                           <Button asChild variant="outline" className="flex-1 rounded-xl h-11 font-black"><Link href={`/pagebuild?id=${page.id}`}><Edit2 size(14) className="ml-2"/> {isAr ? "تعديل" : "Edit"}</Link></Button>
                            <Button variant="ghost" onClick={() => setCustomPages(customPages.filter(p => p.id !== page.id))} className="size-11 rounded-xl text-red-400 hover:bg-red-50"><Trash2 size={16}/></Button>
                         </div>
                      </CardContent>
@@ -435,11 +439,11 @@ export default function AdminDashboard() {
                     {menuItems.map((item, idx) => (
                       <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} exit={{opacity:0, scale:0.9}} key={item.id} className="flex flex-col md:flex-row gap-4 p-5 border-2 border-slate-100 rounded-[1.5rem] bg-white items-center group hover:border-primary/20 transition-all">
                         <div className="size-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs font-black">{idx + 1}</div>
-                        <Input value={item.labelAr} onChange={e => {
+                        <Input value={item.labelAr || ''} onChange={e => {
                            const nm = [...menuItems]; nm[idx].labelAr = e.target.value; setMenuItems(nm);
                         }} className="font-bold flex-1 h-12 rounded-xl" placeholder="العنوان بالعربية" />
                         
-                        <Select value={item.link} onValueChange={v => {
+                        <Select value={item.link || '/'} onValueChange={v => {
                            const nm = [...menuItems]; nm[idx].link = v; setMenuItems(nm);
                         }}>
                            <SelectTrigger className="flex-1 h-12 rounded-xl font-bold bg-slate-50">
@@ -470,12 +474,12 @@ export default function AdminDashboard() {
                    <div className="space-y-4">
                       <div className="relative">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{isAr ? "عنوان الهيرو الرئيسي" : "Hero Title (AR)"}</Label>
-                        <Input value={siteConfig?.heroTitle} onChange={e => setSiteConfig(s => s ? {...s, heroTitle: e.target.value} : null)} className="h-12 font-black text-xl pr-12" />
+                        <Input value={siteConfig?.heroTitle || ''} onChange={e => setSiteConfig(s => s ? {...s, heroTitle: e.target.value} : null)} className="h-12 font-black text-xl pr-12" />
                         <Button size="icon" variant="ghost" className="absolute bottom-1 right-1 text-accent" onClick={() => handleAiTranslate(siteConfig?.heroTitle || '', 'heroTitle')}><Sparkles size={16}/></Button>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{isAr ? "العنوان الفرعي" : "Hero Subtitle (AR)"}</Label>
-                        <Textarea value={siteConfig?.heroSubtitle} onChange={e => setSiteConfig(s => s ? {...s, heroSubtitle: e.target.value} : null)} className="font-bold min-h-[100px]" />
+                        <Textarea value={siteConfig?.heroSubtitle || ''} onChange={e => setSiteConfig(s => s ? {...s, heroSubtitle: e.target.value} : null)} className="font-bold min-h-[100px]" />
                       </div>
                    </div>
                 </Card>
@@ -486,11 +490,11 @@ export default function AdminDashboard() {
                       <div className="grid grid-cols-2 gap-6">
                          <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase opacity-60">{isAr ? "رقم الهاتف" : "Phone"}</Label>
-                            <Input value={siteConfig?.contactPhone} onChange={e => setSiteConfig(s => s ? {...s, contactPhone: e.target.value} : null)} className="bg-white/10 border-none font-black h-12" />
+                            <Input value={siteConfig?.contactPhone || ''} onChange={e => setSiteConfig(s => s ? {...s, contactPhone: e.target.value} : null)} className="bg-white/10 border-none font-black h-12" />
                          </div>
                          <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase opacity-60">{isAr ? "البريد الإلكتروني" : "Email"}</Label>
-                            <Input value={siteConfig?.contactEmail} onChange={e => setSiteConfig(s => s ? {...s, contactEmail: e.target.value} : null)} className="bg-white/10 border-none font-bold h-12" />
+                            <Input value={siteConfig?.contactEmail || ''} onChange={e => setSiteConfig(s => s ? {...s, contactEmail: e.target.value} : null)} className="bg-white/10 border-none font-bold h-12" />
                          </div>
                       </div>
                       <div className="p-6 bg-accent/10 rounded-3xl border border-accent/20">
@@ -519,7 +523,7 @@ export default function AdminDashboard() {
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-8">
                            <div className="w-full space-y-2">
                              <Label className="text-white text-[10px] font-black uppercase">{isAr ? 'رابط الصورة المباشر' : 'IMAGE URL'}</Label>
-                             <Input value={item.imageUrl} onChange={e => {
+                             <Input value={item.imageUrl || ''} onChange={e => {
                                const ni = [...carouselItems]; ni[idx].imageUrl = e.target.value; setCarouselItems(ni);
                              }} className="bg-white text-xs h-10 rounded-xl" placeholder="https://..." />
                            </div>
@@ -527,10 +531,10 @@ export default function AdminDashboard() {
                      </div>
                      <CardContent className="p-8 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                           <Input placeholder="العنوان (AR)" value={item.titleAr} onChange={e => {
+                           <Input placeholder="العنوان (AR)" value={item.titleAr || ''} onChange={e => {
                              const ni = [...carouselItems]; ni[idx].titleAr = e.target.value; setCarouselItems(ni);
                            }} className="font-black h-12 rounded-xl" />
-                           <Input placeholder="Title (EN)" value={item.titleEn} onChange={e => {
+                           <Input placeholder="Title (EN)" value={item.titleEn || ''} onChange={e => {
                              const ni = [...carouselItems]; ni[idx].titleEn = e.target.value; setCarouselItems(ni);
                            }} className="font-bold h-12 rounded-xl" />
                         </div>
@@ -552,7 +556,7 @@ export default function AdminDashboard() {
                   <div key={popup.id} className="p-8 border-2 border-slate-100 rounded-[2rem] bg-slate-50/50 grid md:grid-cols-4 gap-8 items-start group hover:border-primary/20 transition-all">
                      <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400">{isAr ? "نوع المحتوى" : "CONTENT TYPE"}</Label>
-                        <Select value={popup.type} onValueChange={v => {
+                        <Select value={popup.type || 'text'} onValueChange={v => {
                            const np = [...popups]; np[idx].type = v as any; setPopups(np);
                         }}>
                            <SelectTrigger className="bg-white font-bold h-12 rounded-xl"><SelectValue /></SelectTrigger>
@@ -565,10 +569,10 @@ export default function AdminDashboard() {
                      </div>
                      <div className="md:col-span-2 space-y-4">
                         <div className="grid grid-cols-2 gap-3">
-                           <Input placeholder="العنوان (AR)" value={popup.titleAr} onChange={e => { const np = [...popups]; np[idx].titleAr = e.target.value; setPopups(np); }} className="bg-white font-black h-12 rounded-xl" />
-                           <Input placeholder="Title (EN)" value={popup.titleEn} onChange={e => { const np = [...popups]; np[idx].titleEn = e.target.value; setPopups(np); }} className="bg-white font-bold h-12 rounded-xl" />
+                           <Input placeholder="العنوان (AR)" value={popup.titleAr || ''} onChange={e => { const np = [...popups]; np[idx].titleAr = e.target.value; setPopups(np); }} className="bg-white font-black h-12 rounded-xl" />
+                           <Input placeholder="Title (EN)" value={popup.titleEn || ''} onChange={e => { const np = [...popups]; np[idx].titleEn = e.target.value; setPopups(np); }} className="bg-white font-bold h-12 rounded-xl" />
                         </div>
-                        <Input placeholder="Media URL / Link" value={popup.mediaUrl} onChange={e => { const np = [...popups]; np[idx].mediaUrl = e.target.value; setPopups(np); }} className="bg-white font-mono text-xs h-10 rounded-xl" />
+                        <Input placeholder="Media URL / Link" value={popup.mediaUrl || ''} onChange={e => { const np = [...popups]; np[idx].mediaUrl = e.target.value; setPopups(np); }} className="bg-white font-mono text-xs h-10 rounded-xl" />
                      </div>
                      <div className="flex flex-col gap-4 items-end">
                         <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border shadow-sm">
@@ -629,9 +633,14 @@ export default function AdminDashboard() {
                 <CardContent className="p-8 space-y-6">
                    <div className="p-8 border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50 space-y-4">
                       <Label className="font-black text-primary">{isAr ? "نص الخبر النشط حالياً" : "Current Active Ticker Text"}</Label>
-                      <Textarea placeholder="أدخل الخبر هنا..." className="font-bold min-h-[100px] rounded-[1.5rem] bg-white border-none shadow-sm" />
+                      <Textarea 
+                        value={tickerText}
+                        onChange={(e) => setTickerText(e.target.value)}
+                        placeholder="أدخل الخبر هنا..." 
+                        className="font-bold min-h-[100px] rounded-[1.5rem] bg-white border-none shadow-sm" 
+                      />
                       <div className="flex items-center gap-4 pt-2">
-                         <Button className="dm-gradient-primary rounded-full px-10 font-black h-12 shadow-md">{isAr ? "تحديث شريط الأخبار" : "Push to Ticker"}</Button>
+                         <Button onClick={handleGlobalSave} className="dm-gradient-primary rounded-full px-10 font-black h-12 shadow-md">{isAr ? "تحديث شريط الأخبار" : "Push to Ticker"}</Button>
                          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-xs font-black">
                             <div className="size-2 bg-emerald-500 rounded-full animate-pulse" />
                             {isAr ? "شريط الأخبار نشط" : "Ticker is LIVE"}
@@ -660,11 +669,11 @@ export default function AdminDashboard() {
                            <div className="space-y-2">
                               {siteConfig?.footerLinks?.filter(l => l.category === cat).map((link, lIdx) => (
                                 <div key={link.id} className="p-4 border rounded-2xl bg-slate-50 flex flex-col gap-2 relative group">
-                                   <Input value={link.labelAr} onChange={e => {
+                                   <Input value={link.labelAr || ''} onChange={e => {
                                       const nfl = siteConfig?.footerLinks?.map(l => l.id === link.id ? {...l, labelAr: e.target.value} : l);
                                       setSiteConfig(s => s ? {...s, footerLinks: nfl} : null);
                                    }} className="h-9 font-bold bg-white rounded-lg" />
-                                   <Input value={link.link} onChange={e => {
+                                   <Input value={link.link || ''} onChange={e => {
                                       const nfl = siteConfig?.footerLinks?.map(l => l.id === link.id ? {...l, link: e.target.value} : l);
                                       setSiteConfig(s => s ? {...s, footerLinks: nfl} : null);
                                    }} className="h-8 font-mono text-[10px] bg-white rounded-lg" />
@@ -775,4 +784,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
