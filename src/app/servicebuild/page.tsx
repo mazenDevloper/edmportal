@@ -108,10 +108,13 @@ function WorkflowEngineContent() {
   };
 
   const onNodesChange = useCallback((changes: any) => {
-    setSteps(nds => nds.map(s => {
-      const match = changes.find((c: any) => c.id === s.id && c.type === 'position');
-      return match && match.position ? { ...s, position: match.position } : s;
-    }));
+    setSteps(nds => {
+      const updatedNodes = applyNodeChanges(changes, nds as any) as any[];
+      return nds.map(s => {
+        const updated = updatedNodes.find(n => n.id === s.id);
+        return updated ? { ...s, position: updated.position } : s;
+      });
+    });
   }, []);
 
   const handleSave = async () => {
@@ -159,7 +162,7 @@ function WorkflowEngineContent() {
       data: { 
         label: (
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
+            <span className="text-xs font-black">{isAr ? (step.titleAr || 'مرحلة') : (step.titleEn || 'Step')}</span>
             <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
                 <Edit2 size={10} />
@@ -190,7 +193,7 @@ function WorkflowEngineContent() {
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     steps.forEach(step => {
-      if (step.defaultNextStepId) {
+      if (step.defaultNextStepId && step.defaultNextStepId !== 'none') {
         e.push({
           id: `e-${step.id}-${step.defaultNextStepId}`,
           source: step.id,
@@ -201,13 +204,13 @@ function WorkflowEngineContent() {
         });
       }
       step.logic?.forEach((rule, idx) => {
-        if (rule.targetStepId) {
-          const fieldLabel = step.fields.find(f => f.id === rule.fieldId)?.labelAr || rule.fieldId;
+        if (rule.targetStepId && rule.targetStepId !== 'none') {
+          const fieldLabel = step.fields.find(f => f.id === rule.fieldId)?.labelAr || rule.fieldId || (isAr ? 'حقل' : 'Field');
           e.push({
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
-            label: rule.fieldId ? `${fieldLabel} = ${rule.value}` : `${rule.value}`,
+            label: rule.fieldId ? `${fieldLabel} = ${rule.value || '?'}` : `${rule.value || '?'}`,
             type: 'smoothstep',
             animated: true,
             style: { stroke: '#03CFCB', strokeWidth: 2 },
@@ -224,7 +227,7 @@ function WorkflowEngineContent() {
     
     const autoLayout = () => {
       setSteps(prev => prev.map((s, i) => ({ ...s, position: { x: 250, y: i * 180 } })));
-      fitView();
+      setTimeout(() => fitView(), 50);
       toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
     };
 
