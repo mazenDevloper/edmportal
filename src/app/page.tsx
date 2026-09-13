@@ -84,7 +84,6 @@ export default function DhofarPortal() {
           const fetchedServices = (data.services || []).filter(Boolean);
           const fetchedFlows = (data.serviceFlows || []).filter(Boolean);
           
-          // Data Reconciliation: Merge explicit services and flows
           const allServiceIds = Array.from(new Set([
             ...fetchedServices.map((s: any) => s.id),
             ...fetchedFlows.map((f: any) => f.serviceId || f.id)
@@ -94,23 +93,23 @@ export default function DhofarPortal() {
             const existing = fetchedServices.find((s: any) => s.id === id);
             const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
             
-            // Extract requirements dynamically from steps if missing
-            let dynamicReqsAr: string[] = existing?.reqsAr || [];
-            if (dynamicReqsAr.length === 0 && flow) {
-              const docs: string[] = [];
+            // Comprehensive Requirements Extraction
+            const docs: string[] = [];
+            if (flow) {
               flow.steps?.forEach((step: any) => {
                 const title = (step.titleAr || '').toLowerCase();
-                const isDocStep = title.includes('مستند') || title.includes('وثائق');
+                const titleEn = (step.titleEn || '').toLowerCase();
+                const isDocStep = title.includes('مستند') || title.includes('وثائق') || titleEn.includes('doc') || titleEn.includes('requirement');
                 step.fields?.forEach((f: any) => {
                   if (f.type === 'upload' || isDocStep) {
-                    docs.push(f.labelAr);
+                    docs.push(isAr ? (f.labelAr || f.labelEn) : (f.labelEn || f.labelAr));
                   }
                 });
               });
-              dynamicReqsAr = Array.from(new Set(docs)).filter(Boolean);
             }
+            const dynamicReqs = Array.from(new Set([...(isAr ? (existing?.reqsAr || []) : (existing?.reqsEn || [])), ...docs])).filter(Boolean);
 
-            if (existing) return { ...existing, reqsAr: dynamicReqsAr };
+            if (existing) return { ...existing, [isAr ? 'reqsAr' : 'reqsEn']: dynamicReqs };
             
             return {
               id,
@@ -120,8 +119,8 @@ export default function DhofarPortal() {
               category: id.startsWith('svc_12') || id.startsWith('svc_18') ? 'admin' : id.startsWith('svc_11') ? 'tech' : 'elec',
               iconName: 'FileText',
               isActive: true,
-              reqsAr: dynamicReqsAr,
-              reqsEn: dynamicReqsAr.map(r => `Required: ${r}`),
+              reqsAr: isAr ? dynamicReqs : [],
+              reqsEn: isAr ? [] : dynamicReqs,
               fees: '10 OMR'
             } as Service;
           });

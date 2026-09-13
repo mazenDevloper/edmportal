@@ -50,9 +50,29 @@ export default function ServiceApplicationPage() {
       try {
         const data = await fetchBin();
         if (data) {
-          const foundSvc = data.services?.find((s: Service) => s.id === id);
-          const foundFlow = data.serviceFlows?.find((f: ServiceFlow) => f.serviceId === id || f.id === id);
+          const foundSvc = (data.services || []).find((s: Service) => s.id === id);
+          const foundFlow = (data.serviceFlows || []).find((f: ServiceFlow) => f.serviceId === id || f.id === id);
           
+          // Enhanced Automatic Requirements Extraction
+          const extractDynamicReqs = (f: any) => {
+            if (!f || !f.steps) return [];
+            const docs: string[] = [];
+            f.steps.forEach((step: any) => {
+              const title = (step.titleAr || '').toLowerCase();
+              const titleEn = (step.titleEn || '').toLowerCase();
+              const isDocStep = title.includes('مستند') || title.includes('وثائق') || titleEn.includes('doc') || titleEn.includes('requirement');
+              
+              (step.fields || []).forEach((field: any) => {
+                if (field.type === 'upload' || isDocStep) {
+                  docs.push(isAr ? (field.labelAr || field.labelEn) : (field.labelEn || field.labelAr));
+                }
+              });
+            });
+            return Array.from(new Set(docs)).filter(Boolean);
+          };
+
+          const dynamicReqs = extractDynamicReqs(foundFlow);
+
           if (foundFlow && !foundSvc) {
             // Synthesize service metadata if missing but flow exists
             const synthesizedSvc: Service = {
@@ -63,13 +83,19 @@ export default function ServiceApplicationPage() {
               category: 'elec',
               iconName: 'FileText',
               isActive: true,
-              reqsAr: [],
-              reqsEn: [],
+              reqsAr: isAr ? dynamicReqs : [],
+              reqsEn: isAr ? [] : dynamicReqs,
               fees: '10 OMR'
             };
             setService(synthesizedSvc);
+          } else if (foundSvc) {
+            const updatedSvc = { ...foundSvc };
+            // Supplement missing requirements from flow logic
+            if (isAr && (!updatedSvc.reqsAr || updatedSvc.reqsAr.length === 0)) updatedSvc.reqsAr = dynamicReqs;
+            if (!isAr && (!updatedSvc.reqsEn || updatedSvc.reqsEn.length === 0)) updatedSvc.reqsEn = dynamicReqs;
+            setService(updatedSvc);
           } else {
-            setService(foundSvc || null);
+            setService(null);
           }
           
           setFlow(foundFlow || null);
@@ -216,12 +242,16 @@ export default function ServiceApplicationPage() {
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><ListChecks size={14}/> {isAr ? "المستندات المطلوبة" : "Required Docs"}</h4>
                 <ul className="space-y-2">
-                  {(isAr ? service.reqsAr : service.reqsEn)?.map((req, idx) => (
-                    <li key={idx} className="text-xs font-bold text-slate-600 flex items-start gap-2">
+                  {((isAr ? service.reqsAr : service.reqsEn) || [])?.length > 0 ? (isAr ? service.reqsAr : service.reqsEn)?.map((req, idx) => (
+                    <li key={idx} className="text-xs font-bold text-slate-600 flex items-start gap-2 animate-in fade-in slide-in-from-right-2" style={{ animationDelay: `${idx * 100}ms` }}>
                       <div className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                       {req}
                     </li>
-                  ))}
+                  )) : (
+                    <li className="text-[10px] font-bold text-slate-400 italic">
+                      {isAr ? "لا توجد مستندات مطلوبة لهذه الخدمة" : "No documents required for this service"}
+                    </li>
+                  )}
                 </ul>
               </div>
 

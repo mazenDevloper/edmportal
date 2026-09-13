@@ -195,28 +195,28 @@ function WorkflowEngineContent() {
   const [saving, setSaving] = useState(false);
   const [iconSearch, setIconSearch] = useState('');
 
-  // Automatic Requirements Sync Effect
+  // Robust Automatic Requirements Sync Effect
   useEffect(() => {
     if (steps.length > 0) {
       const derivedDocs: string[] = [];
       steps.filter(Boolean).forEach(step => {
-        const stepTitle = (isAr ? step.titleAr : step.titleEn) || '';
-        const isDocStep = stepTitle.includes('المستندات') || stepTitle.toLowerCase().includes('document');
+        const stepTitle = (step.titleAr || '').toLowerCase();
+        const stepTitleEn = (step.titleEn || '').toLowerCase();
+        // Check for common doc keywords in titles to grab all fields from those steps
+        const isDocStep = stepTitle.includes('المستندات') || stepTitle.includes('مستند') || stepTitleEn.includes('doc') || stepTitleEn.includes('requirement');
 
         (step.fields || []).filter(Boolean).forEach(field => {
-          if (field.type === 'upload') {
-            derivedDocs.push(isAr ? field.labelAr : field.labelEn);
-          } else if (isDocStep) {
-            derivedDocs.push(isAr ? field.labelAr : field.labelEn);
+          if (field.type === 'upload' || isDocStep) {
+            derivedDocs.push(isAr ? (field.labelAr || field.labelEn) : (field.labelEn || field.labelAr));
           }
         });
       });
       
       const uniqueDocs = Array.from(new Set(derivedDocs.filter(Boolean)));
       setServiceInfo(prev => {
-        const currentDocs = prev.reqsAr || [];
+        const currentDocs = isAr ? (prev.reqsAr || []) : (prev.reqsEn || []);
         if (JSON.stringify(currentDocs.sort()) !== JSON.stringify(uniqueDocs.sort())) {
-          return { ...prev, reqsAr: uniqueDocs };
+          return { ...prev, [isAr ? 'reqsAr' : 'reqsEn']: uniqueDocs };
         }
         return prev;
       });
