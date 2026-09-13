@@ -43,7 +43,7 @@ export default function AdminDashboard() {
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
 
-  // Full Master List with updated English Names from user prompt
+  // Comprehensive Master List matching user English Titles
   const MASTER_SERVICES_DATA = [
     { id: "svc_100", titleAr: "ترخيص إقامة عرض ترويجي للسيارات", titleEn: "Get a Permit for Organizing a Promotional Car Event", icon: "Car", cat: "invest", reqAr: ["رسالة الشركة وتحديد الموقع", "السجل التجاري"] },
     { id: "svc_101", titleAr: "تصديق مسارات تمديدات الكهرباء", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)", icon: "Zap", cat: "elec", reqAr: ["الرسم المساحي والملكية", "اعتماد شركة الكهرباء"] },
@@ -66,8 +66,8 @@ export default function AdminDashboard() {
     { id: "svc_118", titleAr: "ذبح حيوانات بالمسلخ المركزي", titleEn: "Request to Slaughter Animals at the Central Slaughterhouse", icon: "Utensils", cat: "health", reqAr: ["استمارة الاستلام", "إيصال ذبح"] },
     { id: "svc_119", titleAr: "شهادة إتلاف مواد", titleEn: "Material Destruction Certificate", icon: "Trash2", cat: "health", reqAr: ["رسالة الشركة", "تفاصيل المواد", "رسالة دائرة البيئة"] },
     { id: "svc_120", titleAr: "إزالة مركبات مهملة", titleEn: "Request the Removal of Abandoned and Long-Term Parked Vehicles in Public Areas", icon: "Truck", cat: "health", reqAr: ["صور الموقع", "البطاقة الشخصية", "طلب ورقي"] },
-    { id: "svc_121", titleAr: "تنظيم الأسواق التخصصية", titleEn: "Get Approval for Organizing Temporary Specialized Markets", icon: "Store", cat: "invest", reqAr: ["تصور الفكرة", "السجل التجاري", "شهادة الدفاع المدني"] },
-    { id: "svc_122", titleAr: "إقامة عروض عالمية", titleEn: "Get Approval to Organize International Shows", icon: "Globe", cat: "invest", reqAr: ["موافقات الجهات"] },
+    { id: "svc_121", titleAr: "تنظيم الأسواق التخصصية", titleEn: "Get Approval for Organizing Temporary Specialized Markets", icon: "Store", cat: "invest", reqAr: ["تصور الفكرة", "السجل التجاري", "شهادة الدفاع المدني والاسعاف"] },
+    { id: "svc_122", titleAr: "إقامة عروض عالمية", titleEn: "Get Approval to Organize International Shows", icon: "Globe", cat: "invest", reqAr: ["موافقات الجهات المختصة"] },
     { id: "svc_123", titleAr: "عروض الإضاءة والإبهار", titleEn: "Get Approval for Hosting Lightning and Visual Shows", icon: "Sparkles", cat: "invest", reqAr: ["تفاصيل العرض"] },
     { id: "svc_124", titleAr: "صرف فواتير المقاولين", titleEn: "Request for Payment of Contractors’ and Consulting Companies’ Invoices", icon: "Receipt", cat: "admin", reqAr: ["الفواتير المعتمدة"] },
     { id: "svc_125", titleAr: "تجديد تصريح قطع الطريق", titleEn: "Renewal of Cutting or Drilling Permit", icon: "RefreshCw", cat: "tech", reqAr: ["التصريح السابق"] },
@@ -81,8 +81,8 @@ export default function AdminDashboard() {
       try {
         const data = await fetchBin();
         if (data) {
-          const fetchedServices = data.services || [];
-          const fetchedFlows = data.serviceFlows || [];
+          const fetchedServices = (data.services || []).filter(Boolean);
+          const fetchedFlows = (data.serviceFlows || []).filter(Boolean);
           
           // Data Reconciliation: Merge explicit services and implicit ones from flows
           const allServiceIds = Array.from(new Set([
@@ -136,7 +136,13 @@ export default function AdminDashboard() {
       const db = await fetchBin();
       await updateBin({
         ...db,
-        services, siteConfig, menuItems, carouselItems, surveys, customPages, popups
+        services: services.filter(Boolean),
+        siteConfig, 
+        menuItems: (menuItems || []).filter(Boolean), 
+        carouselItems: (carouselItems || []).filter(Boolean), 
+        surveys: (surveys || []).filter(Boolean), 
+        customPages: (customPages || []).filter(Boolean), 
+        popups: (popups || []).filter(Boolean)
       });
       toast({ title: isAr ? "تم حفظ كافة التغييرات" : "All changes saved" });
     } catch (e) {
@@ -150,8 +156,8 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const db = await fetchBin();
-      const currentServices = [...(db.services || [])];
-      const currentFlows = [...(db.serviceFlows || [])];
+      const currentServices = [...(db.services || [])].filter(Boolean);
+      const currentFlows = [...(db.serviceFlows || [])].filter(Boolean);
 
       MASTER_SERVICES_DATA.forEach(master => {
         // 1. Reconcile Service Definition
@@ -202,7 +208,6 @@ export default function AdminDashboard() {
             ]
           });
         } else {
-           // Update flow titles if they already exist
            currentFlows[existingFlowIdx].titleAr = master.titleAr;
            currentFlows[existingFlowIdx].titleEn = master.titleEn;
         }

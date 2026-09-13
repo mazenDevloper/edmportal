@@ -12,7 +12,7 @@ import {
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   Maximize, LayoutGrid, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon,
-  ChevronUp, ChevronDown, Sparkles, Search, Network
+  ChevronUp, ChevronDown, Sparkles, Search, Network, RefreshCw
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -45,7 +45,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Updated Master Data Map with Official English Names
+// Accurate Master Data Map based on User Prompt
 const MASTER_DATA_MAP: Record<string, any> = {
   "svc_100": { icon: "Car", cat: "invest", titleEn: "Get a Permit for Organizing a Promotional Car Event" },
   "svc_101": { icon: "Zap", cat: "elec", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)" },
@@ -75,7 +75,9 @@ const MASTER_DATA_MAP: Record<string, any> = {
   "svc_125": { icon: "RefreshCw", cat: "tech", titleEn: "Renewal of Cutting or Drilling Permit" },
   "svc_126": { icon: "FlaskConical", cat: "health", titleEn: "Submit a Request for Laboratory Sample Testing (Food/ Water)" },
   "svc_127": { icon: "GraduationCap", cat: "admin", titleEn: "Training Higher Education Institution Students" },
-  "svc_128": { icon: "Handshake", cat: "admin", titleEn: "Reconciliation and Settlement Request" }
+  "svc_128": { icon: "Handshake", cat: "admin", titleEn: "Reconciliation and Settlement Request" },
+  "svc_129": { icon: "Stethoscope", cat: "health", titleEn: "Pay the Fine for a Health Violation" },
+  "svc_130": { icon: "ShieldCheck", cat: "admin", titleEn: "Pay or Refund the Insurance Fee" }
 };
 
 const ALL_ICON_KEYS = Object.keys(Icons).filter(key => 
@@ -255,6 +257,18 @@ function WorkflowEngineContent() {
       ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
       setSteps(ns);
     }
+  };
+
+  const syncReqsFromSteps = () => {
+    const derivedDocs = steps.flatMap(s => 
+      (s.fields || [])
+        .filter(f => f.type === 'upload')
+        .map(f => isAr ? f.labelAr : f.labelEn)
+    ).filter(Boolean);
+    
+    const uniqueDocs = Array.from(new Set(derivedDocs));
+    setServiceInfo(prev => ({ ...prev, reqsAr: uniqueDocs }));
+    toast({ title: isAr ? "تم تحديث المستندات" : "Docs Synced", description: isAr ? `تم جلب ${uniqueDocs.length} مستند من مراحل العمل.` : `Found ${uniqueDocs.length} upload fields.` });
   };
 
   const handleSave = async () => {
@@ -551,8 +565,13 @@ function WorkflowEngineContent() {
                    </div>
                  </div>
 
-                 <div className="space-y-2 pt-2 border-t">
-                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "المستندات المطلوبة" : "Required Docs"}</label>
+                 <div className="space-y-3 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "المستندات المطلوبة" : "Required Docs"}</label>
+                      <Button variant="ghost" size="xs" onClick={syncReqsFromSteps} className="h-6 px-2 text-[8px] font-black text-accent gap-1 hover:bg-accent/5">
+                        <RefreshCw size={8} /> {isAr ? "جلب من المراحل" : "Sync Flow"}
+                      </Button>
+                    </div>
                     <div className="space-y-1">
                        {(serviceInfo.reqsAr || []).filter(Boolean).map((req, idx) => (
                          <div key={idx} className="flex gap-1">
@@ -564,7 +583,7 @@ function WorkflowEngineContent() {
                             }} className="h-7 w-7 text-red-400"><Trash2 size={10}/></Button>
                          </div>
                        ))}
-                       <Button variant="ghost" size="sm" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), '']})} className="w-full h-7 text-[9px] border-dashed border-2">+ {isAr ? "مستند" : "Add"}</Button>
+                       <Button variant="ghost" size="sm" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), '']})} className="w-full h-7 text-[9px] border-dashed border-2">+ {isAr ? "إضافة يدوية" : "Add Manual"}</Button>
                     </div>
                  </div>
 
