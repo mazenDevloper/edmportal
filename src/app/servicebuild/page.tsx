@@ -12,15 +12,16 @@ import {
   Plus, Trash2, Save, ArrowLeft, 
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
-  MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
+  Search, Link as LinkIcon, Eye, Network,
   Maximize, LayoutGrid, Edit2, MapPin, List
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
+import { useWorkflowStore } from '@/lib/workflow-store';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
-import { ServiceStep, FormField, Service, ServiceFlow, StepLogic } from '@/lib/types';
+import { Service, ServiceFlow, StepLogic } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CAT_CONFIG } from '@/lib/constants';
@@ -48,7 +49,6 @@ const ICON_LIST = ['FileText', 'ShieldCheck', 'Users', 'TrendingUp', 'Landmark',
 
 /**
  * Custom Node Component for Service Steps
- * Lightweight and optimized with Tailwind CSS
  */
 const ServiceStepNode = ({ data, selected }: any) => {
   const isAr = data.language === 'ar';
@@ -88,22 +88,22 @@ function WorkflowEngineContent() {
   const { toast } = useToast();
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
+
+  const { 
+    steps, serviceInfo, setSteps, setServiceInfo, 
+    addStep, updateStep, removeStep, addFieldToStep, addLogic, reset 
+  } = useWorkflowStore();
   
   const [activeTab, setActiveTab] = useState('logic');
-  const [steps, setSteps] = useState<ServiceStep[]>([]);
-  const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
-    title: '', titleEn: '', category: 'elec', iconName: 'FileText',
-    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
-  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // FIX: Force resize event when switching to canvas tab to solve zero-dimension issue
+  // Hidden Tab Fix: Force resize event when switching to canvas tab
   useEffect(() => {
     if (activeTab === 'canvas') {
       const timer = setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
-      }, 100);
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [activeTab]);
@@ -116,70 +116,30 @@ function WorkflowEngineContent() {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
           if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo({
-            ...svc,
-            title: svc.title || '',
-            titleEn: svc.titleEn || '',
-            category: svc.category || 'elec',
-            iconName: svc.iconName || 'FileText',
-            description: svc.description || '',
-            descriptionEn: svc.descriptionEn || '',
-            linkUrl: svc.linkUrl || '',
-            type: svc.type || 'workflow'
-          });
+          if (svc) setServiceInfo(svc);
         }
       }).finally(() => setLoading(false));
+    } else {
+      reset();
     }
-  }, [editId]);
-
-  const addStep = useCallback(() => {
-    const newStep: ServiceStep = {
-      id: `step_${Date.now()}`,
-      titleAr: isAr ? 'خطوة جديدة' : 'New Step',
-      titleEn: 'New Step',
-      fields: [],
-      actionType: 'submit',
-      position: { x: 250, y: steps.length * 200 }
-    };
-    setSteps(prev => [...prev, newStep]);
-  }, [isAr, steps.length]);
-
-  const updateStep = (idx: number, updates: Partial<ServiceStep>) => {
-    const ns = [...steps];
-    ns[idx] = { ...ns[idx], ...updates };
-    setSteps(ns);
-  };
-
-  const removeStep = (id: string) => setSteps(steps.filter(s => s.id !== id));
-
-  const addFieldToStep = (stepId: string, type: FormField['type']) => {
-    setSteps(steps.map(s => s.id === stepId ? { ...s, fields: [...s.fields, {
-      id: `field_${Date.now()}`, type, labelAr: '', labelEn: '', required: true, options: []
-    }] } : s));
-  };
-
-  const addLogic = (stepIdx: number) => {
-    const ns = [...steps];
-    const logic: StepLogic[] = ns[stepIdx].logic || [];
-    ns[stepIdx].logic = [...logic, { fieldId: 'none', value: '', targetStepId: 'none' }];
-    setSteps(ns);
-  };
+  }, [editId, setSteps, setServiceInfo, reset]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setSteps((prevSteps) => {
-      const currentNodes = prevSteps.map(s => ({
-        id: s.id,
-        position: s.position || { x: 0, y: 0 },
-        data: {}
-      }));
-      const updatedNodes = applyNodeChanges(changes, currentNodes as any);
-      
-      return prevSteps.map(step => {
-        const updated = (updatedNodes as any[]).find(un => un.id === step.id);
-        return updated ? { ...step, position: updated.position } : step;
-      });
+    const currentNodes = steps.map(s => ({
+      id: s.id,
+      position: s.position || { x: 0, y: 0 },
+      data: {}
+    }));
+    const updatedNodes = applyNodeChanges(changes, currentNodes as any);
+    
+    const newSteps = steps.map(step => {
+      const updated = (updatedNodes as any[]).find(un => un.id === step.id);
+      return updated ? { ...step, position: updated.position } : step;
     });
-  }, []);
+    
+    // Only update if positions actually changed to avoid loop
+    setSteps(newSteps);
+  }, [steps, setSteps]);
 
   const handleSave = async () => {
     if (!serviceInfo.title) return toast({ variant: "destructive", title: isAr ? "العنوان مطلوب" : "Title Required" });
@@ -271,14 +231,15 @@ function WorkflowEngineContent() {
     const { fitView } = useReactFlow();
     
     const autoLayout = () => {
-      setSteps(prev => prev.map((s, i) => ({ ...s, position: { x: 250, y: i * 200 } })));
+      const newSteps = steps.map((s, i) => ({ ...s, position: { x: 250, y: i * 200 } }));
+      setSteps(newSteps);
       setTimeout(() => fitView({ duration: 800 }), 50);
       toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
     };
 
     return (
       <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
-        <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
+        <Button size="sm" variant="outline" onClick={() => addStep(isAr)} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
         </Button>
         <Button size="sm" variant="outline" onClick={autoLayout} className="rounded-xl font-black gap-2 h-9 px-4">
@@ -376,7 +337,7 @@ function WorkflowEngineContent() {
                  </div>
 
                  {serviceInfo.type === 'workflow' && (
-                   <Button onClick={addStep} className="w-full dm-gradient-primary rounded-xl font-black mt-4 py-6 shadow-xl">
+                   <Button onClick={() => addStep(isAr)} className="w-full dm-gradient-primary rounded-xl font-black mt-4 py-6 shadow-xl">
                      <Plus size={18} className="ml-2"/> {isAr ? "إضافة مرحلة جديدة" : "Add Step"}
                    </Button>
                  )}
