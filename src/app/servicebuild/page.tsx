@@ -62,7 +62,7 @@ function WorkflowEngineContent() {
   // Fix for React Flow hidden dimensions (Zeroing)
   useEffect(() => {
     if (activeTab === 'canvas') {
-      setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
     }
   }, [activeTab]);
 
@@ -199,23 +199,23 @@ function WorkflowEngineContent() {
           source: step.id,
           target: step.defaultNextStepId,
           label: isAr ? 'افتراضي' : 'Default',
+          type: 'straight', // Standard flow is straight
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
           style: { stroke: '#007375', strokeWidth: 2 }
         });
       }
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
-          // Find the field name for a descriptive label
           const field = step.fields.find(f => f.id === rule.fieldId);
           const fieldLabel = isAr ? field?.labelAr : field?.labelEn;
-          const edgeLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`;
+          const edgeLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : rule.value;
 
           e.push({
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
             label: edgeLabel,
-            type: 'smoothstep', // Use smoothstep to prevent overlapping with nodes and other edges
+            type: 'smoothstep', // Prevents overlapping with nodes by curving out
             animated: true,
             style: { stroke: '#03CFCB', strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
