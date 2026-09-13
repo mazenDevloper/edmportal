@@ -26,7 +26,8 @@ import {
   Minus,
   Info,
   ChevronLeft,
-  Circle
+  Circle,
+  ArrowUpRight
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
@@ -121,7 +122,8 @@ export default function DhofarPortal() {
               isActive: true,
               reqsAr: isAr ? dynamicReqs : [],
               reqsEn: isAr ? [] : dynamicReqs,
-              fees: '10 OMR'
+              fees: '10 OMR',
+              isFeatured: false
             } as Service;
           });
 
@@ -152,11 +154,17 @@ export default function DhofarPortal() {
     });
   }, [services, searchQuery, isAr]);
 
+  const featuredServices = useMemo(() => (services || []).filter(s => s.isFeatured), [services]);
+
+  const displayedQuickAccess = useMemo(() => {
+    if (searchQuery) return filteredServices.slice(0, 6);
+    return featuredServices.slice(0, 6);
+  }, [searchQuery, filteredServices, featuredServices]);
+
   const catalogServices = useMemo(() => {
     return (services || []).filter(s => activeCategory === 'all' || s.category === activeCategory);
   }, [services, activeCategory]);
 
-  const featuredServices = useMemo(() => (services || []).filter(s => s.isFeatured), [services]);
   const activePoll = useMemo(() => (surveys || []).find(s => s.isPublicPoll && s.isActive), [surveys]);
 
   const handleReadAloud = async (text: string) => {
@@ -218,27 +226,78 @@ export default function DhofarPortal() {
                      <p className="text-xl text-slate-600 font-bold mb-10">
                        {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة" : "Unified Portal")}
                      </p>
-                     <div className="relative group max-w-xl">
-                       <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400", isAr ? "right-6" : "left-6")} aria-hidden="true" />
-                       <input 
-                         type="text" 
-                         placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
-                         className={cn("w-full h-16 rounded-xl border-2 font-bold focus:border-primary px-16 shadow-lg bg-white outline-none border-slate-200")} 
-                         value={searchQuery} 
-                         onChange={(e) => setSearchQuery(e.target.value)} 
-                         aria-label={isAr ? "البحث في الخدمات" : "Search services"}
-                       />
+                     
+                     <div className="space-y-6 max-w-2xl">
+                       <div className="relative group">
+                         <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400", isAr ? "right-6" : "left-6")} aria-hidden="true" />
+                         <input 
+                           type="text" 
+                           placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
+                           className={cn("w-full h-16 rounded-2xl border-2 font-bold focus:border-primary px-16 shadow-xl bg-white outline-none border-slate-200 transition-all focus:ring-4 focus:ring-primary/10")} 
+                           value={searchQuery} 
+                           onChange={(e) => setSearchQuery(e.target.value)} 
+                           aria-label={isAr ? "البحث في الخدمات" : "Search services"}
+                         />
+                       </div>
+
+                       {/* Results / Featured Mini Grid */}
+                       <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+                         <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                              {searchQuery ? (isAr ? "نتائج البحث" : "Search Results") : (isAr ? "الخدمات الأكثر طلباً" : "Featured Services")}
+                              {searchQuery && <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary">{filteredServices.length}</Badge>}
+                            </h3>
+                            {searchQuery && (
+                              <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')} className="h-6 text-[10px] font-black text-slate-400 hover:text-red-500">
+                                {isAr ? "إلغاء البحث" : "Clear Search"}
+                              </Button>
+                            )}
+                         </div>
+                         
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {displayedQuickAccess.length > 0 ? displayedQuickAccess.map(s => {
+                              const IconComp = (Icons as any)[s.iconName] || Icons.FileText;
+                              return (
+                                <Link 
+                                  key={s.id} 
+                                  href={`/services/${s.id}`}
+                                  className="group flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all animate-in zoom-in-95"
+                                >
+                                  <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                                    <IconComp size={18} />
+                                  </div>
+                                  <div className="flex-1 overflow-hidden">
+                                    <p className="text-xs font-black text-slate-700 truncate group-hover:text-primary">
+                                      {isAr ? s.title : (s.titleEn || s.title)}
+                                    </p>
+                                    <p className="text-[10px] font-bold text-slate-400">{isAr ? "بدء الخدمة" : "Start Service"}</p>
+                                  </div>
+                                  <ArrowUpRight size={14} className="text-slate-300 group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                </Link>
+                              );
+                            }) : (
+                              <div className="col-span-full py-8 px-4 border-2 border-dashed border-slate-200 rounded-2xl text-center">
+                                <p className="text-sm font-bold text-slate-400">
+                                  {isAr ? "لم يتم العثور على نتائج مطابقة" : "No matching results found"}
+                                </p>
+                              </div>
+                            )}
+                         </div>
+                       </div>
+
+                       <div className="flex items-center gap-4">
+                         <Button 
+                           variant="ghost" 
+                           className="text-xs font-bold text-slate-500 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
+                           onClick={() => handleReadAloud((siteConfig?.heroTitle || '') + ". " + (siteConfig?.heroSubtitle || ''))}
+                           disabled={ttsLoading}
+                           aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
+                         >
+                           {ttsLoading ? <Loader2 className="animate-spin size-3" /> : <Volume2 size={14} />}
+                           {isAr ? "استمع للترحيب" : "Listen to Welcome"}
+                         </Button>
+                       </div>
                      </div>
-                     <Button 
-                       variant="ghost" 
-                       className="mt-4 text-xs font-bold text-slate-500 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
-                       onClick={() => handleReadAloud((siteConfig?.heroTitle || '') + ". " + (siteConfig?.heroSubtitle || ''))}
-                       disabled={ttsLoading}
-                       aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
-                     >
-                       {ttsLoading ? <Loader2 className="animate-spin size-3" /> : <Volume2 size={14} />}
-                       {isAr ? "استمع للترحيب" : "Listen to Welcome"}
-                     </Button>
                    </div>
 
                    <div className="lg:col-span-5">
@@ -321,31 +380,8 @@ export default function DhofarPortal() {
                <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
             </section>
 
-            {/* 3. Search Results */}
-            {searchQuery && (
-              <section className="py-12 bg-white border-b animate-in fade-in slide-in-from-top-4 duration-500" aria-label={isAr ? "نتائج البحث" : "Search Results"}>
-                <div className="max-w-7xl mx-auto px-6">
-                  <div className="flex items-center gap-3 mb-8">
-                    <div className="h-8 w-1.5 bg-accent rounded-full" aria-hidden="true" />
-                    <h2 className="text-2xl font-black text-primary">
-                      {isAr ? `نتائج البحث عن "${searchQuery}"` : `Search results for "${searchQuery}"`}
-                    </h2>
-                  </div>
-                  {filteredServices.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                      {filteredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 border-2 border-dashed rounded-3xl">
-                      <p className="text-slate-500 font-bold">{isAr ? "لم يتم العثور على خدمات" : "No services found"}</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* 4. Featured Services */}
-            {featuredServices.length > 0 && (
+            {/* 4. Featured Services Section (Main Catalog Style) */}
+            {featuredServices.length > 0 && !searchQuery && (
               <section className="py-20 bg-white" aria-labelledby="featured-services-title">
                 <div className="max-w-7xl mx-auto px-6">
                   <div className="flex items-center gap-3 mb-12">
