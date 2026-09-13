@@ -5,14 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
-import { Service, ServiceApplication, ServiceFlow, ServiceStep } from '@/lib/types';
+import { Service, ServiceApplication, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { PortalFooter } from '@/components/portal-footer';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,7 +21,6 @@ import {
   CheckCircle2, 
   AlertCircle,
   FileText,
-  Send,
   ArrowRight,
   CreditCard,
   ListChecks,
@@ -59,15 +57,15 @@ export default function ServiceApplicationPage() {
             // Synthesize service metadata if missing but flow exists
             const synthesizedSvc: Service = {
               id: id as string,
-              title: foundFlow.titleAr || 'خدمة غير معرفة',
-              titleEn: foundFlow.titleEn || 'Untitled Service',
-              description: isAr ? 'هذه الخدمة متاحة للتقديم الرقمي.' : 'This service is available for digital application.',
+              title: foundFlow.titleAr || 'خدمة بلدية',
+              titleEn: foundFlow.titleEn || 'Municipal Service',
+              description: isAr ? 'هذه الخدمة متاحة للتقديم الرقمي عبر بوابة بلدية ظفار.' : 'This service is available for digital submission.',
               category: 'elec',
               iconName: 'FileText',
               isActive: true,
               reqsAr: [],
               reqsEn: [],
-              fees: '0 OMR'
+              fees: '10 OMR'
             };
             setService(synthesizedSvc);
           } else {
@@ -148,12 +146,12 @@ export default function ServiceApplicationPage() {
 
       toast({
         title: isAr ? "تم تقديم الطلب" : "Application Submitted",
-        description: isAr ? "تم استلام طلبك بنجاح وسيتم مراجعته قريباً." : "Your application has been received and will be reviewed soon."
+        description: isAr ? "تم استلام طلبك بنجاح وسيتم مراجعته قريباً." : "Your application has been received."
       });
       
       router.push('/');
     } catch (e) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to submit application." });
+      toast({ variant: "destructive", title: "Error" });
     } finally {
       setSubmitting(false);
     }
@@ -203,10 +201,10 @@ export default function ServiceApplicationPage() {
                     <IconComponent size={24} />
                   )}
                 </div>
-                <CardTitle className="text-xl font-black">{isAr ? service.title : service.titleEn}</CardTitle>
+                <CardTitle className="text-xl font-black">{isAr ? service.title : (service.titleEn || service.title)}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-xs text-slate-500 font-bold leading-relaxed">{isAr ? service.description : service.descriptionEn}</p>
+                <p className="text-xs text-slate-500 font-bold leading-relaxed">{isAr ? service.description : (service.descriptionEn || service.description)}</p>
                 <div className="pt-4 border-t flex justify-between items-center">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الرسوم" : "Fees"}</span>
                   <span className="text-emerald-600 font-black">{service.fees}</span>
@@ -224,9 +222,6 @@ export default function ServiceApplicationPage() {
                       {req}
                     </li>
                   ))}
-                  {(!service.reqsAr || service.reqsAr.length === 0) && (
-                    <li className="text-[10px] text-slate-400 italic">{isAr ? "لا توجد مستندات إضافية" : "No additional documents"}</li>
-                  )}
                 </ul>
               </div>
 
@@ -262,9 +257,6 @@ export default function ServiceApplicationPage() {
                 <CardTitle className="text-2xl font-black flex items-center gap-3">
                   <FileText className="text-accent" /> {isAr ? (currentStep?.titleAr || "تقديم الطلب") : (currentStep?.titleEn || "Application Step")}
                 </CardTitle>
-                <p className="text-sm text-white/50 font-bold mt-2">
-                    {isAr ? "يرجى تعبئة الحقول المطلوبة للمتابعة" : "Please fill in required fields to continue"}
-                </p>
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="p-8 space-y-6 min-h-[300px]">
@@ -273,65 +265,21 @@ export default function ServiceApplicationPage() {
                       <div key={field.id} className="space-y-2">
                         <Label className="font-bold text-slate-700">{isAr ? field.labelAr : field.labelEn}</Label>
                         
-                        {field.type === 'date' && (
-                          <Input type="date" required={field.required} className="h-12 bg-slate-50" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
-                        )}
-
-                        {field.type === 'select' && (
-                          <Select onValueChange={val => setFormData({...formData, [field.id]: val})} required={field.required}>
-                             <SelectTrigger className="h-12 bg-slate-50 font-bold">
-                               <SelectValue placeholder={isAr ? "اختر..." : "Select..."} />
-                             </SelectTrigger>
-                             <SelectContent>
-                               {field.options?.map(opt => (
-                                 <SelectItem key={opt} value={opt} className="font-bold">{opt}</SelectItem>
-                               ))}
-                             </SelectContent>
-                          </Select>
-                        )}
-
-                        {field.type === 'multichoice' && (
-                          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-xl border">
-                             {field.options?.map(opt => (
-                               <div key={opt} className="flex items-center gap-2">
-                                 <Checkbox id={`${field.id}-${opt}`} onCheckedChange={(checked) => {
-                                   const current = formData[field.id] || [];
-                                   const next = checked ? [...current, opt] : current.filter((o: any) => o !== opt);
-                                   setFormData({...formData, [field.id]: next});
-                                 }} />
-                                 <Label htmlFor={`${field.id}-${opt}`} className="text-xs font-bold cursor-pointer">{opt}</Label>
-                               </div>
-                             ))}
-                          </div>
-                        )}
-
-                        {field.type === 'map' && (
-                           <div className="border-2 rounded-xl p-6 bg-slate-50 space-y-4 text-center border-dashed group hover:border-primary transition-all">
-                              <MapPin size={32} className="mx-auto text-primary group-hover:animate-bounce" />
-                              <p className="text-xs font-bold text-slate-500">{isAr ? "تم تحديد الموقع الجغرافي تلقائياً عبر GIS" : "Geolocation captured via GIS Integration"}</p>
-                              <input type="hidden" value="23.5880,58.3829" />
-                           </div>
-                        )}
-
                         {field.type === 'upload' && (
                           <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 cursor-pointer hover:border-accent transition-colors group relative">
-                            <Upload size={24} className="mx-auto text-slate-300 mb-2 group-hover:text-accent transition-colors" />
-                            <p className="text-xs text-slate-400 font-bold">{isAr ? "اضغط لرفع الملفات المطلوبة" : "Click to upload required files"}</p>
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFormData({...formData, [field.id]: 'attached_file_pki'})} />
+                            <Upload size={24} className="mx-auto text-slate-300 mb-2 group-hover:text-accent" />
+                            <p className="text-xs text-slate-400 font-bold">{isAr ? "اضغط لرفع الملفات المطلوبة" : "Click to upload files"}</p>
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFormData({...formData, [field.id]: 'attached_file'})} />
                           </div>
                         )}
 
                         {field.type === 'text' && (
                           <Input required={field.required} placeholder="..." className="h-12 bg-slate-50" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
                         )}
-                        
-                        {field.type === 'number' && (
-                          <Input type="number" required={field.required} className="h-12 bg-slate-50" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
-                        )}
                       </div>
                     ))}
 
-                    {(!currentStep?.fields || currentStep?.fields.length === 0) && currentStepIndex >= 0 && (
+                    {(!currentStep?.fields || currentStep?.fields.length === 0) && (
                       <div className="text-center py-12">
                         <CheckCircle2 className="mx-auto text-emerald-500 mb-4" size={48} />
                         <p className="font-bold text-slate-500">{isAr ? "اضغط على زر الإرسال لإتمام العملية" : "Click submit to complete the process"}</p>
@@ -364,7 +312,6 @@ export default function ServiceApplicationPage() {
           </div>
         </div>
       </main>
-      <PortalFooter siteConfig={null} />
     </div>
   );
 }
