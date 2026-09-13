@@ -44,22 +44,38 @@ import '@xyflow/react/dist/style.css';
 
 const ICON_LIST = ['FileText', 'ShieldCheck', 'Users', 'TrendingUp', 'Landmark', 'MapPin', 'CreditCard', 'Building2', 'Truck', 'Trash2', 'Wrench', 'Lightbulb'];
 
-// Custom Node with 4 Connection Points
+// Color Palette for Logic Edges
+const EDGE_COLORS = [
+  '#be123c', // Red 700
+  '#7e22ce', // Purple 700
+  '#c2410c', // Orange 700
+  '#1d4ed8', // Blue 700
+  '#047857', // Emerald 700
+  '#a21caf', // Fuchsia 700
+  '#b91c1c', // Red 800
+  '#4338ca', // Indigo 700
+];
+
+// Custom Node with 4 Connection Points and Step Numbering
 const ServiceStepNode = ({ data }: any) => {
   return (
-    <div className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-3 font-bold w-[180px] text-center shadow-md">
+    <div className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-transform hover:scale-105">
+      {/* 4 Handles for better routing */}
       <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
       <Handle type="target" position={Position.Left} className="!bg-[#007375]" />
+      <Handle type="source" position={Position.Bottom} className="!bg-[#007375]" />
+      <Handle type="source" position={Position.Right} className="!bg-[#007375]" />
       
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-black">{data.label}</span>
-        <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute -top-3 -left-3 bg-[#470D67] text-white size-8 rounded-full flex items-center justify-center text-xs font-black shadow-md border-2 border-white">
+        {data.stepIndex + 1}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <span className="text-xs font-black line-clamp-2">{data.label}</span>
+        <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           {data.actions}
         </div>
       </div>
-
-      <Handle type="source" position={Position.Bottom} className="!bg-[#007375]" />
-      <Handle type="source" position={Position.Right} className="!bg-[#007375]" />
     </div>
   );
 };
@@ -84,7 +100,6 @@ function WorkflowEngineContent() {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [edgeOverrides, setEdgeOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (editId) {
@@ -184,13 +199,6 @@ function WorkflowEngineContent() {
     }
   };
 
-  const onEdgeClick = useCallback((_: any, edge: any) => {
-    setEdgeOverrides((prev) => ({
-      ...prev,
-      [edge.id]: (prev[edge.id] || 'smoothstep') === 'smoothstep' ? 'straight' : 'smoothstep',
-    }));
-  }, []);
-
   // Flowchart Mapping - Grid 3x
   const nodes: Node[] = useMemo(() => {
     return steps.map((step, idx) => {
@@ -201,61 +209,72 @@ function WorkflowEngineContent() {
         id: step.id,
         type: 'serviceStep',
         data: { 
+          stepIndex: idx,
           label: isAr ? step.titleAr : step.titleEn,
           actions: (
             <>
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
-                <Edit2 size={10} />
+              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 hover:bg-accent hover:text-white transition-colors" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+                <Edit2 size={12} />
               </Button>
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={() => removeStep(step.id)}>
-                <Trash2 size={10} />
+              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition-colors" onClick={() => removeStep(step.id)}>
+                <Trash2 size={12} />
               </Button>
             </>
           )
         },
-        position: { x: col * 250, y: row * 220 },
+        position: { x: col * 280, y: row * 250 },
       };
     });
   }, [steps, isAr]);
 
-  // Edges - All Smoothstep by default
+  // Dynamic Colored Edges
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
-    steps.forEach(step => {
+    let logicColorIndex = 0;
+
+    steps.forEach((step, sIdx) => {
+      // Default Path (Teal)
       if (step.defaultNextStepId) {
-        const edgeId = `e-${step.id}-${step.defaultNextStepId}`;
         e.push({
-          id: edgeId,
+          id: `e-${step.id}-${step.defaultNextStepId}`,
           source: step.id,
           target: step.defaultNextStepId,
-          type: edgeOverrides[edgeId] || 'smoothstep',
+          type: 'smoothstep',
           label: isAr ? 'مسار افتراضي' : 'Default Path',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375', strokeWidth: 2 }
+          style: { stroke: '#007375', strokeWidth: 3, opacity: 0.8 }
         });
       }
+
+      // Logic Paths (Unique Colors)
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
-          const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
+          const color = EDGE_COLORS[logicColorIndex % EDGE_COLORS.length];
+          logicColorIndex++;
+
           const targetField = step.fields.find(f => f.id === rule.fieldId);
           const fieldLabel = isAr ? targetField?.labelAr : targetField?.labelEn;
           const conditionLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`;
 
           e.push({
-            id: edgeId,
+            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
-            type: edgeOverrides[edgeId] || 'smoothstep',
+            type: 'smoothstep',
             label: conditionLabel,
             animated: true,
-            style: { stroke: '#be123c', strokeWidth: 4 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#be123c' },
+            style: { stroke: color, strokeWidth: 4 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: color },
+            labelStyle: { fill: color, fontWeight: 900, fontSize: '10px' },
+            labelBgPadding: [8, 4],
+            labelBgBorderRadius: 4,
+            labelBgStyle: { fill: '#fff', fillOpacity: 0.9, stroke: color, strokeWidth: 1 }
           });
         }
       });
     });
     return e;
-  }, [steps, isAr, edgeOverrides]);
+  }, [steps, isAr]);
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
@@ -577,13 +596,12 @@ function WorkflowEngineContent() {
               </TabsContent>
 
               <TabsContent value="canvas" className="outline-none">
-                 <Card className="rounded-brand overflow-hidden h-[600px] border shadow-inner bg-slate-100 relative">
+                 <Card className="rounded-brand overflow-hidden h-[700px] border shadow-inner bg-slate-100 relative">
                     <ReactFlowProvider>
                       <ReactFlow 
                         nodes={nodes} 
                         edges={edges}
                         nodeTypes={nodeTypes}
-                        onEdgeClick={onEdgeClick}
                         fitView
                         className="bg-slate-50"
                       >
