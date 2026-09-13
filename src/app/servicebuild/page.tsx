@@ -164,45 +164,47 @@ function WorkflowEngineContent() {
       ...prev,
       [edge.id]: (prev[edge.id] || edge.type) === 'smoothstep' ? 'straight' : 'smoothstep',
     }));
-    toast({
-      title: isAr ? "تغيير نمط المسار" : "Edge type toggled",
-      description: isAr ? "تم التبديل بين الخط المستقيم والمنكسر لهذه الوصلة" : "Switched style for this individual edge"
-    });
-  }, [isAr, toast]);
+  }, []);
 
   // Flowchart Mapping
   const nodes: Node[] = useMemo(() => {
-    return steps.map((step, idx) => ({
-      id: step.id,
-      data: { 
-        label: (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
-            <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
-                <Edit2 size={10} />
-              </Button>
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}>
-                <Trash2 size={10} />
-              </Button>
+    return steps.map((step, idx) => {
+      const col = idx % 3;
+      const row = Math.floor(idx / 3);
+      
+      return {
+        id: step.id,
+        data: { 
+          label: (
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
+              <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+                  <Edit2 size={10} />
+                </Button>
+                <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}>
+                  <Trash2 size={10} />
+                </Button>
+              </div>
             </div>
-          </div>
-        )
-      },
-      position: { x: 250, y: idx * 180 },
-      className: 'group',
-      style: { 
-        background: '#fff', 
-        color: '#007375', 
-        border: '2px solid #007375', 
-        borderRadius: '16px', 
-        padding: '12px', 
-        fontWeight: 'bold',
-        width: 180,
-        textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
-      }
-    }));
+          )
+        },
+        // Grid 3-column layout
+        position: { x: col * 250, y: row * 220 },
+        className: 'group',
+        style: { 
+          background: '#fff', 
+          color: '#007375', 
+          border: '2px solid #007375', 
+          borderRadius: '16px', 
+          padding: '12px', 
+          fontWeight: 'bold',
+          width: 180,
+          textAlign: 'center',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+        }
+      };
+    });
   }, [steps, isAr]);
 
   const edges: Edge[] = useMemo(() => {
@@ -214,7 +216,6 @@ function WorkflowEngineContent() {
           id: edgeId,
           source: step.id,
           target: step.defaultNextStepId,
-          // المسار الافتراضي يكون مستقيماً
           type: edgeOverrides[edgeId] || 'straight',
           label: isAr ? 'افتراضي' : 'Default',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
@@ -232,11 +233,10 @@ function WorkflowEngineContent() {
             id: edgeId,
             source: step.id,
             target: rule.targetStepId,
-            // المسارات الشرطية تكون منكسرة افتراضياً
             type: edgeOverrides[edgeId] || 'smoothstep',
             label: conditionLabel,
             animated: true,
-            style: { stroke: '#be123c', strokeWidth: 2 }, // لون أحمر/عنابي للشرط
+            style: { stroke: '#be123c', strokeWidth: 4 }, // Increased edge width for logic
             markerEnd: { type: MarkerType.ArrowClosed, color: '#be123c' },
           });
         }
