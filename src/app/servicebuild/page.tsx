@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -17,14 +16,21 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
-import { useWorkflowStore } from '@/lib/workflow-store';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
-import { Service, ServiceFlow, StepLogic } from '@/lib/types';
+import { Service, ServiceFlow, ServiceStep, FormField, StepLogic } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CAT_CONFIG } from '@/lib/constants';
+
+// Redux
+import { Provider, useSelector, useDispatch } from 'react-redux';
+import { 
+  store, RootState, AppDispatch, 
+  setSteps, setServiceInfo, addStep, updateStep, 
+  removeStep, addFieldToStep, addLogic, reset 
+} from '@/lib/store';
 
 // React Flow Imports
 import {
@@ -89,10 +95,9 @@ function WorkflowEngineContent() {
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
 
-  const { 
-    steps, serviceInfo, setSteps, setServiceInfo, 
-    addStep, updateStep, removeStep, addFieldToStep, addLogic, reset 
-  } = useWorkflowStore();
+  const dispatch = useDispatch<AppDispatch>();
+  const steps = useSelector((state: RootState) => state.workflow.steps);
+  const serviceInfo = useSelector((state: RootState) => state.workflow.serviceInfo);
   
   const [activeTab, setActiveTab] = useState('logic');
   const [loading, setLoading] = useState(false);
@@ -115,14 +120,14 @@ function WorkflowEngineContent() {
         if (data) {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
-          if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo(svc);
+          if (flow) dispatch(setSteps(flow.steps || []));
+          if (svc) dispatch(setServiceInfo(svc));
         }
       }).finally(() => setLoading(false));
     } else {
-      reset();
+      dispatch(reset());
     }
-  }, [editId, setSteps, setServiceInfo, reset]);
+  }, [editId, dispatch]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     const currentNodes = steps.map(s => ({
@@ -137,9 +142,8 @@ function WorkflowEngineContent() {
       return updated ? { ...step, position: updated.position } : step;
     });
     
-    // Only update if positions actually changed to avoid loop
-    setSteps(newSteps);
-  }, [steps, setSteps]);
+    dispatch(setSteps(newSteps));
+  }, [steps, dispatch]);
 
   const handleSave = async () => {
     if (!serviceInfo.title) return toast({ variant: "destructive", title: isAr ? "العنوان مطلوب" : "Title Required" });
@@ -232,14 +236,14 @@ function WorkflowEngineContent() {
     
     const autoLayout = () => {
       const newSteps = steps.map((s, i) => ({ ...s, position: { x: 250, y: i * 200 } }));
-      setSteps(newSteps);
+      dispatch(setSteps(newSteps));
       setTimeout(() => fitView({ duration: 800 }), 50);
       toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
     };
 
     return (
       <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
-        <Button size="sm" variant="outline" onClick={() => addStep(isAr)} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
+        <Button size="sm" variant="outline" onClick={() => dispatch(addStep(isAr))} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
         </Button>
         <Button size="sm" variant="outline" onClick={autoLayout} className="rounded-xl font-black gap-2 h-9 px-4">
@@ -288,7 +292,7 @@ function WorkflowEngineContent() {
               <CardContent className="p-4 space-y-4">
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "نوع التنفيذ" : "Execution Type"}</label>
-                   <Select value={serviceInfo.type || 'workflow'} onValueChange={v => setServiceInfo({...serviceInfo, type: v as any})}>
+                   <Select value={serviceInfo.type || 'workflow'} onValueChange={v => dispatch(setServiceInfo({...serviceInfo, type: v as any}))}>
                       <SelectTrigger className="h-9 font-bold"><SelectValue /></SelectTrigger>
                       <SelectContent>
                          <SelectItem value="workflow">{isAr ? "تدفق مراحل (داخلي)" : "Multi-Step Workflow"}</SelectItem>
@@ -299,14 +303,14 @@ function WorkflowEngineContent() {
                  
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "العنوان بالعربي" : "Title AR"}</label>
-                   <Input value={serviceInfo.title || ''} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="h-9 text-xs font-bold" />
+                   <Input value={serviceInfo.title || ''} onChange={e => dispatch(setServiceInfo({...serviceInfo, title: e.target.value}))} className="h-9 text-xs font-bold" />
                  </div>
 
                  {serviceInfo.type === 'link' && (
                    <div className="space-y-2">
                      <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "رابط الوجهة" : "Destination URL"}</label>
                      <div className="relative">
-                       <Input value={serviceInfo.linkUrl || ''} onChange={e => setServiceInfo({...serviceInfo, linkUrl: e.target.value})} className="h-9 text-xs font-mono pr-10" />
+                       <Input value={serviceInfo.linkUrl || ''} onChange={e => dispatch(setServiceInfo({...serviceInfo, linkUrl: e.target.value}))} className="h-9 text-xs font-mono pr-10" />
                        <Upload className="absolute top-2.5 right-3 size-4 text-slate-300" />
                      </div>
                    </div>
@@ -314,7 +318,7 @@ function WorkflowEngineContent() {
 
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الفئة" : "Category"}</label>
-                   <Select value={serviceInfo.category || 'elec'} onValueChange={v => setServiceInfo({...serviceInfo, category: v})}>
+                   <Select value={serviceInfo.category || 'elec'} onValueChange={v => dispatch(setServiceInfo({...serviceInfo, category: v}))}>
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Object.keys(CAT_CONFIG).map(cid => (
@@ -326,7 +330,7 @@ function WorkflowEngineContent() {
 
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
-                   <Select value={serviceInfo.iconName || 'FileText'} onValueChange={v => setServiceInfo({...serviceInfo, iconName: v})}>
+                   <Select value={serviceInfo.iconName || 'FileText'} onValueChange={v => dispatch(setServiceInfo({...serviceInfo, iconName: v}))}>
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {ICON_LIST.map(icon => (
@@ -337,7 +341,7 @@ function WorkflowEngineContent() {
                  </div>
 
                  {serviceInfo.type === 'workflow' && (
-                   <Button onClick={() => addStep(isAr)} className="w-full dm-gradient-primary rounded-xl font-black mt-4 py-6 shadow-xl">
+                   <Button onClick={() => dispatch(addStep(isAr))} className="w-full dm-gradient-primary rounded-xl font-black mt-4 py-6 shadow-xl">
                      <Plus size={18} className="ml-2"/> {isAr ? "إضافة مرحلة جديدة" : "Add Step"}
                    </Button>
                  )}
@@ -361,11 +365,11 @@ function WorkflowEngineContent() {
                         <Input 
                           className="bg-white/10 border-none text-white h-8 text-sm font-bold w-64" 
                           value={(isAr ? step.titleAr : step.titleEn) || ''} 
-                          onChange={e => isAr ? updateStep(sIdx, { titleAr: e.target.value }) : updateStep(sIdx, { titleEn: e.target.value })} 
+                          onChange={e => isAr ? dispatch(updateStep({ idx: sIdx, updates: { titleAr: e.target.value } })) : dispatch(updateStep({ idx: sIdx, updates: { titleEn: e.target.value } }))} 
                         />
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="text-white/40 h-8 w-8 hover:text-red-400 transition-colors"><Trash2 size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => dispatch(removeStep(step.id))} className="text-white/40 h-8 w-8 hover:text-red-400 transition-colors"><Trash2 size={16} /></Button>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
@@ -373,12 +377,12 @@ function WorkflowEngineContent() {
                          <div className="space-y-4 border-r pr-8">
                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest">{isAr ? "مدخلات النموذج" : "Form Inputs"}</h4>
                            <div className="flex flex-wrap gap-2 mb-4">
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'text')} className="h-8 text-[9px] px-3 rounded-lg"><Type size={12} className="ml-1"/> {isAr ? "نص" : "Text"}</Button>
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'number')} className="h-8 text-[9px] px-3 rounded-lg"><Layers size={12} className="ml-1"/> {isAr ? "رقم" : "Number"}</Button>
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'upload')} className="h-8 text-[9px] px-3 rounded-lg"><Upload size={12} className="ml-1"/> {isAr ? "مرفق" : "Upload"}</Button>
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'date')} className="h-8 text-[9px] px-3 rounded-lg"><Calendar size={12} className="ml-1"/> {isAr ? "تاريخ" : "Date"}</Button>
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'select')} className="h-8 text-[9px] px-3 rounded-lg"><List size={12} className="ml-1"/> {isAr ? "قائمة" : "List"}</Button>
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MapPin size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => dispatch(addFieldToStep({ stepId: step.id, type: 'text' }))} className="h-8 text-[9px] px-3 rounded-lg"><Type size={12} className="ml-1"/> {isAr ? "نص" : "Text"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => dispatch(addFieldToStep({ stepId: step.id, type: 'number' }))} className="h-8 text-[9px] px-3 rounded-lg"><Layers size={12} className="ml-1"/> {isAr ? "رقم" : "Number"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => dispatch(addFieldToStep({ stepId: step.id, type: 'upload' }))} className="h-8 text-[9px] px-3 rounded-lg"><Upload size={12} className="ml-1"/> {isAr ? "مرفق" : "Upload"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => dispatch(addFieldToStep({ stepId: step.id, type: 'date' }))} className="h-8 text-[9px] px-3 rounded-lg"><Calendar size={12} className="ml-1"/> {isAr ? "تاريخ" : "Date"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => dispatch(addFieldToStep({ stepId: step.id, type: 'select' }))} className="h-8 text-[9px] px-3 rounded-lg"><List size={12} className="ml-1"/> {isAr ? "قائمة" : "List"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => dispatch(addFieldToStep({ stepId: step.id, type: 'map' }))} className="h-8 text-[9px] px-3 rounded-lg"><MapPin size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
                            </div>
                            <div className="space-y-4">
                             {step.fields.map((f, fIdx) => (
@@ -387,11 +391,14 @@ function WorkflowEngineContent() {
                                    <div className="text-[8px] font-black bg-white border px-1.5 py-0.5 rounded uppercase">{f.type}</div>
                                    <Input placeholder={isAr ? "تسمية الحقل" : "Field Label"} value={(isAr ? f.labelAr : f.labelEn) || ''} onChange={e => {
                                      const nf = [...step.fields]; 
-                                     if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
-                                     updateStep(sIdx, { fields: nf });
+                                     const newField = { ...nf[fIdx] };
+                                     if (isAr) newField.labelAr = e.target.value; else newField.labelEn = e.target.value;
+                                     nf[fIdx] = newField;
+                                     dispatch(updateStep({ idx: sIdx, updates: { fields: nf } }));
                                    }} className="h-8 text-xs font-bold bg-white" />
                                    <Button variant="ghost" size="icon" onClick={() => {
-                                     const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, { fields: nf });
+                                     const nf = step.fields.filter(fi => fi.id !== f.id); 
+                                     dispatch(updateStep({ idx: sIdx, updates: { fields: nf } }));
                                    }} className="text-red-400 h-8 w-8"><X size={14}/></Button>
                                  </div>
                                  {(f.type === 'select' || f.type === 'multichoice') && (
@@ -399,15 +406,31 @@ function WorkflowEngineContent() {
                                       {f.options?.map((opt, oIdx) => (
                                         <div key={oIdx} className="flex gap-1 items-center">
                                           <Input className="h-6 text-[10px] bg-white" value={opt} onChange={e => {
-                                            const nf = [...step.fields]; const opts = [...(nf[fIdx].options || [])]; opts[oIdx] = e.target.value; nf[fIdx].options = opts; updateStep(sIdx, { fields: nf });
+                                            const nf = [...step.fields]; 
+                                            const newField = { ...nf[fIdx] };
+                                            const opts = [...(newField.options || [])]; 
+                                            opts[oIdx] = e.target.value; 
+                                            newField.options = opts;
+                                            nf[fIdx] = newField;
+                                            dispatch(updateStep({ idx: sIdx, updates: { fields: nf } }));
                                           }} />
                                           <Button size="icon" variant="ghost" className="h-6 w-6 text-red-300" onClick={() => {
-                                            const nf = [...step.fields]; const opts = (nf[fIdx].options || []).filter((_, i) => i !== oIdx); nf[fIdx].options = opts; updateStep(sIdx, { fields: nf });
+                                            const nf = [...step.fields]; 
+                                            const newField = { ...nf[fIdx] };
+                                            const opts = (newField.options || []).filter((_, i) => i !== oIdx); 
+                                            newField.options = opts;
+                                            nf[fIdx] = newField;
+                                            dispatch(updateStep({ idx: sIdx, updates: { fields: nf } }));
                                           }}><X size={10}/></Button>
                                         </div>
                                       ))}
                                       <Button size="xs" variant="ghost" className="text-[9px] h-6 text-primary" onClick={() => {
-                                        const nf = [...step.fields]; const opts = [...(nf[fIdx].options || []), '']; nf[fIdx].options = opts; updateStep(sIdx, { fields: nf });
+                                        const nf = [...step.fields]; 
+                                        const newField = { ...nf[fIdx] };
+                                        const opts = [...(newField.options || []), '']; 
+                                        newField.options = opts;
+                                        nf[fIdx] = newField;
+                                        dispatch(updateStep({ idx: sIdx, updates: { fields: nf } }));
                                       }}>+ {isAr ? "إضافة خيار" : "Add Option"}</Button>
                                    </div>
                                  )}
@@ -420,7 +443,7 @@ function WorkflowEngineContent() {
                             <div className="space-y-4">
                                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border">
                                  <span className="text-[10px] font-bold text-slate-500">{isAr ? "المسار الافتراضي" : "Default Path"}</span>
-                                 <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, { defaultNextStepId: v === 'none' ? undefined : v })}>
+                                 <Select value={step.defaultNextStepId || 'none'} onValueChange={v => dispatch(updateStep({ idx: sIdx, updates: { defaultNextStepId: v === 'none' ? undefined : v } }))}>
                                     <SelectTrigger className="h-8 w-40 bg-white font-bold text-xs"><SelectValue placeholder="..." /></SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="none">{isAr ? "لا يوجد" : "None"}</SelectItem>
@@ -434,7 +457,8 @@ function WorkflowEngineContent() {
                                     <div className="flex items-center justify-between text-[9px] font-black text-primary">
                                       <span>{isAr ? "قاعدة شرطية:" : "CONDITIONAL RULE:"}</span>
                                       <Button variant="ghost" size="icon" onClick={() => {
-                                        const nl = [...step.logic!]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
+                                        const nl = [...step.logic!]; nl.splice(rIdx, 1); 
+                                        dispatch(updateStep({ idx: sIdx, updates: { logic: nl } }));
                                       }} className="h-5 w-5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></Button>
                                     </div>
                                     <div className="space-y-3">
@@ -442,7 +466,9 @@ function WorkflowEngineContent() {
                                         <div className="space-y-1">
                                           <label className="text-[8px] font-black uppercase text-slate-400">{isAr ? "الحقل المرجعي" : "FIELD"}</label>
                                           <Select value={rule.fieldId || 'none'} onValueChange={v => {
-                                            const nl = [...step.logic!]; nl[rIdx].fieldId = v; updateStep(sIdx, { logic: nl });
+                                            const nl = [...step.logic!]; 
+                                            nl[rIdx] = { ...nl[rIdx], fieldId: v };
+                                            dispatch(updateStep({ idx: sIdx, updates: { logic: nl } }));
                                           }}>
                                             <SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger>
                                             <SelectContent>
@@ -455,7 +481,9 @@ function WorkflowEngineContent() {
                                           <label className="text-[8px] font-black uppercase text-slate-400">{isAr ? "قيمة المطابقة" : "VALUE"}</label>
                                           {step.fields.find(f => f.id === rule.fieldId)?.options ? (
                                             <Select value={rule.value || 'none'} onValueChange={v => {
-                                              const nl = [...step.logic!]; nl[rIdx].value = v; updateStep(sIdx, { logic: nl });
+                                              const nl = [...step.logic!]; 
+                                              nl[rIdx] = { ...nl[rIdx], value: v };
+                                              dispatch(updateStep({ idx: sIdx, updates: { logic: nl } }));
                                             }}>
                                               <SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger>
                                               <SelectContent>
@@ -465,7 +493,9 @@ function WorkflowEngineContent() {
                                             </Select>
                                           ) : (
                                             <Input placeholder="..." value={rule.value || ''} onChange={e => {
-                                              const nl = [...step.logic!]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
+                                              const nl = [...step.logic!]; 
+                                              nl[rIdx] = { ...nl[rIdx], value: e.target.value };
+                                              dispatch(updateStep({ idx: sIdx, updates: { logic: nl } }));
                                             }} className="h-8 text-[11px] bg-white" />
                                           )}
                                         </div>
@@ -473,7 +503,9 @@ function WorkflowEngineContent() {
                                       <div className="space-y-1">
                                         <label className="text-[8px] font-black uppercase text-slate-400">{isAr ? "الوجهة" : "TARGET"}</label>
                                         <Select value={rule.targetStepId || 'none'} onValueChange={v => {
-                                          const nl = [...step.logic!]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
+                                          const nl = [...step.logic!]; 
+                                          nl[rIdx] = { ...nl[rIdx], targetStepId: v === 'none' ? '' : v };
+                                          dispatch(updateStep({ idx: sIdx, updates: { logic: nl } }));
                                         }}>
                                           <SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder={isAr ? "انتقل إلى..." : "Navigate to..."} /></SelectTrigger>
                                           <SelectContent>
@@ -485,7 +517,7 @@ function WorkflowEngineContent() {
                                     </div>
                                  </div>
                                ))}
-                               <Button variant="ghost" size="sm" onClick={() => addLogic(sIdx)} className="text-[10px] font-black text-accent h-8 border-dashed border-2 w-full border-accent/20 hover:bg-accent/5">+ {isAr ? "إضافة مسار شرطي" : "Add Conditional Branch"}</Button>
+                               <Button variant="ghost" size="sm" onClick={() => dispatch(addLogic(sIdx))} className="text-[10px] font-black text-accent h-8 border-dashed border-2 w-full border-accent/20 hover:bg-accent/5">+ {isAr ? "إضافة مسار شرطي" : "Add Conditional Branch"}</Button>
                             </div>
                          </div>
                        </div>
@@ -493,7 +525,7 @@ function WorkflowEngineContent() {
                          <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "إجراء نهاية المرحلة" : "Phase Terminal Action"}</span>
                          </div>
-                         <Select value={step.actionType || 'submit'} onValueChange={v => updateStep(sIdx, { actionType: v as any })}>
+                         <Select value={step.actionType || 'submit'} onValueChange={v => dispatch(updateStep({ idx: sIdx, updates: { actionType: v as any } }))}>
                             <SelectTrigger className="h-9 w-48 bg-slate-50 font-bold"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                <SelectItem value="submit">{isAr ? "إرسال للمراجعة" : "Submit for Review"}</SelectItem>
@@ -553,10 +585,18 @@ function WorkflowEngineContent() {
   );
 }
 
+function WorkflowEngineWithRedux() {
+  return (
+    <Provider store={store}>
+      <WorkflowEngineContent />
+    </Provider>
+  );
+}
+
 export default function WorkflowEngine() {
   return (
     <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>}>
-      <WorkflowEngineContent />
+      <WorkflowEngineWithRedux />
     </Suspense>
   );
 }
