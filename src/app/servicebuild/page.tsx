@@ -12,7 +12,7 @@ import {
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
-  Maximize, LayoutGrid, Edit2, Hash, List, MapPin
+  Maximize, LayoutGrid, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -24,6 +24,9 @@ import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CAT_CONFIG } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import * as Icons from 'lucide-react';
 
 // React Flow Imports
 import {
@@ -42,7 +45,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-const ICON_LIST = ['FileText', 'ShieldCheck', 'Users', 'TrendingUp', 'Landmark', 'MapPin', 'CreditCard', 'Building2', 'Truck', 'Trash2', 'Wrench', 'Lightbulb'];
+const ICON_LIST = Object.keys(Icons).filter(key => typeof (Icons as any)[key] === 'function' && key !== 'createLucideIcon');
 
 // Color Palette for Logic Edges
 const EDGE_COLORS = [
@@ -60,7 +63,6 @@ const EDGE_COLORS = [
 const ServiceStepNode = ({ data }: any) => {
   return (
     <div className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-transform hover:scale-105">
-      {/* 4 Handles for better routing */}
       <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
       <Handle type="target" position={Position.Left} className="!bg-[#007375]" />
       <Handle type="source" position={Position.Bottom} className="!bg-[#007375]" />
@@ -96,10 +98,12 @@ function WorkflowEngineContent() {
   const [steps, setSteps] = useState<ServiceStep[]>([]);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
-    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
+    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
+    reqsAr: []
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [iconSearch, setIconSearch] = useState('');
 
   useEffect(() => {
     if (editId) {
@@ -109,13 +113,12 @@ function WorkflowEngineContent() {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
           if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo(svc);
+          if (svc) setServiceInfo({ ...svc, reqsAr: svc.reqsAr || [] });
         }
       }).finally(() => setLoading(false));
     }
   }, [editId]);
 
-  // Fix for Canvas Dimensions in hidden tabs
   useEffect(() => {
     if (activeTab === 'canvas') {
       setTimeout(() => {
@@ -161,6 +164,34 @@ function WorkflowEngineContent() {
     setSteps(ns);
   };
 
+  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setServiceInfo({ ...serviceInfo, customIconUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addRequirement = () => {
+    const current = serviceInfo.reqsAr || [];
+    setServiceInfo({ ...serviceInfo, reqsAr: [...current, ''] });
+  };
+
+  const removeRequirement = (idx: number) => {
+    const current = [...(serviceInfo.reqsAr || [])];
+    current.splice(idx, 1);
+    setServiceInfo({ ...serviceInfo, reqsAr: current });
+  };
+
+  const updateRequirement = (idx: number, val: string) => {
+    const current = [...(serviceInfo.reqsAr || [])];
+    current[idx] = val;
+    setServiceInfo({ ...serviceInfo, reqsAr: current });
+  };
+
   const handleSave = async () => {
     if (!serviceInfo.title) return toast({ variant: "destructive", title: isAr ? "العنوان مطلوب" : "Title Required" });
     setSaving(true);
@@ -172,8 +203,8 @@ function WorkflowEngineContent() {
         ...serviceInfo as Service,
         id: newId,
         isActive: true,
-        reqsAr: steps.flatMap(s => s.fields.map(f => f.labelAr)),
-        reqsEn: steps.flatMap(s => s.fields.map(f => f.labelEn)),
+        reqsAr: serviceInfo.reqsAr || [],
+        reqsEn: serviceInfo.reqsAr || [], // Simplification for MVP
       };
 
       const newFlow: ServiceFlow = {
@@ -199,7 +230,8 @@ function WorkflowEngineContent() {
     }
   };
 
-  // Flowchart Mapping - Grid 3x
+  const filteredIcons = ICON_LIST.filter(icon => icon.toLowerCase().includes(iconSearch.toLowerCase()));
+
   const nodes: Node[] = useMemo(() => {
     return steps.map((step, idx) => {
       const col = idx % 3;
@@ -227,13 +259,11 @@ function WorkflowEngineContent() {
     });
   }, [steps, isAr]);
 
-  // Dynamic Colored Edges
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     let logicColorIndex = 0;
 
     steps.forEach((step, sIdx) => {
-      // Default Path (Teal)
       if (step.defaultNextStepId) {
         e.push({
           id: `e-${step.id}-${step.defaultNextStepId}`,
@@ -246,7 +276,6 @@ function WorkflowEngineContent() {
         });
       }
 
-      // Logic Paths (Unique Colors)
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
           const color = EDGE_COLORS[logicColorIndex % EDGE_COLORS.length];
@@ -341,6 +370,16 @@ function WorkflowEngineContent() {
                    <Input value={serviceInfo.title || ''} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="h-9 text-xs font-bold" />
                  </div>
 
+                 <div className="space-y-2">
+                   <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "العنوان بالإنجليزي" : "Title EN"}</label>
+                   <Input value={serviceInfo.titleEn || ''} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} className="h-9 text-xs" />
+                 </div>
+
+                 <div className="space-y-2">
+                   <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الرسوم (مثلاً: 50 OMR)" : "Fees"}</label>
+                   <Input value={serviceInfo.fees || ''} onChange={e => setServiceInfo({...serviceInfo, fees: e.target.value})} className="h-9 text-xs font-black text-emerald-600" />
+                 </div>
+
                  {serviceInfo.type === 'link' && (
                    <div className="space-y-2">
                      <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "رابط الوجهة" : "Destination URL"}</label>
@@ -365,14 +404,61 @@ function WorkflowEngineContent() {
 
                  <div className="space-y-2">
                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "أيقونة الخدمة" : "Service Icon"}</label>
-                   <Select value={serviceInfo.iconName || 'FileText'} onValueChange={v => setServiceInfo({...serviceInfo, iconName: v})}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {ICON_LIST.map(icon => (
-                          <SelectItem key={icon} value={icon}>{icon}</SelectItem>
-                        ))}
-                      </SelectContent>
-                   </Select>
+                   <div className="flex gap-2">
+                     <Popover>
+                        <PopoverTrigger asChild>
+                           <Button variant="outline" className="flex-1 h-9 gap-2 justify-start overflow-hidden">
+                              {serviceInfo.customIconUrl ? (
+                                <img src={serviceInfo.customIconUrl} className="size-4 object-contain" alt="" />
+                              ) : (
+                                React.createElement((Icons as any)[serviceInfo.iconName || 'FileText'] || FileText, { size: 16 })
+                              )}
+                              <span className="text-[10px] truncate">{serviceInfo.iconName || 'Select...'}</span>
+                           </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-0" align="start">
+                           <div className="p-2 border-b">
+                              <Input 
+                                placeholder={isAr ? "ابحث عن أيقونة..." : "Search icons..."} 
+                                value={iconSearch} 
+                                onChange={e => setIconSearch(e.target.value)}
+                                className="h-8 text-xs"
+                              />
+                           </div>
+                           <ScrollArea className="h-64 p-2">
+                              <div className="grid grid-cols-4 gap-1">
+                                 {filteredIcons.map(icon => (
+                                   <Button 
+                                    key={icon} 
+                                    variant="ghost" 
+                                    className={cn("h-12 w-full p-0", serviceInfo.iconName === icon && "bg-primary/10")}
+                                    onClick={() => setServiceInfo({...serviceInfo, iconName: icon, customIconUrl: undefined})}
+                                   >
+                                      {React.createElement((Icons as any)[icon], { size: 18 })}
+                                   </Button>
+                                 ))}
+                              </div>
+                           </ScrollArea>
+                        </PopoverContent>
+                     </Popover>
+                     <Button variant="outline" size="icon" className="h-9 w-9 relative overflow-hidden">
+                        <Upload size={14} />
+                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handleIconUpload} />
+                     </Button>
+                   </div>
+                 </div>
+
+                 <div className="space-y-4 pt-4 border-t">
+                    <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "المستندات المطلوبة" : "Required Docs"}</label>
+                    <div className="space-y-2">
+                       {(serviceInfo.reqsAr || []).map((req, idx) => (
+                         <div key={idx} className="flex gap-2">
+                            <Input value={req} onChange={e => updateRequirement(idx, e.target.value)} className="h-8 text-[10px]" placeholder="..." />
+                            <Button variant="ghost" size="icon" onClick={() => removeRequirement(idx)} className="h-8 w-8 text-red-400"><Trash2 size={12}/></Button>
+                         </div>
+                       ))}
+                       <Button variant="ghost" size="sm" onClick={addRequirement} className="w-full h-8 text-[10px] border-dashed border-2">+ {isAr ? "إضافة مستند" : "Add Doc"}</Button>
+                    </div>
                  </div>
 
                  {serviceInfo.type === 'workflow' && (
