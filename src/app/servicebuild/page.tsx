@@ -46,7 +46,11 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-const ICON_LIST = Object.keys(Icons).filter(key => typeof (Icons as any)[key] === 'function' && key !== 'createLucideIcon');
+// Filter valid icon keys from Lucide
+const ALL_ICONS = Object.keys(Icons).filter(key => 
+  typeof (Icons as any)[key] === 'function' || 
+  typeof (Icons as any)[key] === 'object'
+).filter(key => key !== 'createLucideIcon' && key !== 'LucideIcon');
 
 // Color Palette for Logic Edges
 const EDGE_COLORS = [
@@ -63,7 +67,10 @@ const EDGE_COLORS = [
 // Custom Node with 4 Connection Points and Step Numbering
 const ServiceStepNode = ({ data }: any) => {
   return (
-    <div className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-transform hover:scale-105">
+    <div 
+      className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-all duration-300"
+      style={{ opacity: data.isFocused === false ? 0.05 : 1 }}
+    >
       <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
       <Handle type="target" position={Position.Left} className="!bg-[#007375]" />
       <Handle type="source" position={Position.Bottom} className="!bg-[#007375]" />
@@ -244,34 +251,9 @@ function WorkflowEngineContent() {
     }
   };
 
-  const filteredIcons = ICON_LIST.filter(icon => icon.toLowerCase().includes(iconSearch.toLowerCase()));
-
-  const nodes: Node[] = useMemo(() => {
-    return steps.map((step, idx) => {
-      const col = idx % 3;
-      const row = Math.floor(idx / 3);
-      
-      return {
-        id: step.id,
-        type: 'serviceStep',
-        data: { 
-          stepIndex: idx,
-          label: isAr ? step.titleAr : step.titleEn,
-          actions: (
-            <>
-              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 hover:bg-accent hover:text-white transition-colors" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
-                <Edit2 size={12} />
-              </Button>
-              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition-colors" onClick={() => removeStep(step.id)}>
-                <Trash2 size={12} />
-              </Button>
-            </>
-          )
-        },
-        position: { x: col * 280, y: row * 250 },
-      };
-    });
-  }, [steps, isAr]);
+  const filteredIcons = useMemo(() => {
+    return ALL_ICONS.filter(icon => icon.toLowerCase().includes(iconSearch.toLowerCase()));
+  }, [iconSearch]);
 
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
@@ -293,7 +275,7 @@ function WorkflowEngineContent() {
           style: { 
             stroke: '#007375', 
             strokeWidth: isHovered ? 6 : 3, 
-            opacity: otherHovered ? 0.1 : 0.8,
+            opacity: otherHovered ? 0.05 : 0.8,
             transition: 'opacity 0.2s, stroke-width 0.2s'
           }
         });
@@ -336,6 +318,40 @@ function WorkflowEngineContent() {
     });
     return e;
   }, [steps, isAr, hoveredEdgeId]);
+
+  const nodes: Node[] = useMemo(() => {
+    // Find source and target nodes of the hovered edge
+    const hoveredEdge = hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
+    const connectedNodeIds = hoveredEdge ? [hoveredEdge.source, hoveredEdge.target] : null;
+
+    return steps.map((step, idx) => {
+      const col = idx % 3;
+      const row = Math.floor(idx / 3);
+      
+      const isFocused = connectedNodeIds ? connectedNodeIds.includes(step.id) : true;
+
+      return {
+        id: step.id,
+        type: 'serviceStep',
+        data: { 
+          stepIndex: idx,
+          isFocused,
+          label: isAr ? step.titleAr : step.titleEn,
+          actions: (
+            <>
+              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 hover:bg-accent hover:text-white transition-colors" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+                <Edit2 size={12} />
+              </Button>
+              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition-colors" onClick={() => removeStep(step.id)}>
+                <Trash2 size={12} />
+              </Button>
+            </>
+          )
+        },
+        position: { x: col * 280, y: row * 250 },
+      };
+    });
+  }, [steps, isAr, hoveredEdgeId, edges]);
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
@@ -459,16 +475,20 @@ function WorkflowEngineContent() {
                            </div>
                            <ScrollArea className="h-64 p-2">
                               <div className="grid grid-cols-4 gap-1">
-                                 {filteredIcons.map(icon => (
-                                   <Button 
-                                    key={icon} 
-                                    variant="ghost" 
-                                    className={cn("h-12 w-full p-0", serviceInfo.iconName === icon && "bg-primary/10")}
-                                    onClick={() => setServiceInfo({...serviceInfo, iconName: icon, customIconUrl: undefined})}
-                                   >
-                                      {React.createElement((Icons as any)[icon], { size: 18 })}
-                                   </Button>
-                                 ))}
+                                 {filteredIcons.map(icon => {
+                                   const IconComp = (Icons as any)[icon];
+                                   if (!IconComp) return null;
+                                   return (
+                                     <Button 
+                                      key={icon} 
+                                      variant="ghost" 
+                                      className={cn("h-12 w-full p-0", serviceInfo.iconName === icon && "bg-primary/10")}
+                                      onClick={() => setServiceInfo({...serviceInfo, iconName: icon, customIconUrl: undefined})}
+                                     >
+                                        <IconComp size={18} />
+                                     </Button>
+                                   );
+                                 })}
                               </div>
                            </ScrollArea>
                         </PopoverContent>
