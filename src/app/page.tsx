@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -79,51 +78,57 @@ export default function DhofarPortal() {
 
   useEffect(() => {
     const load = async () => {
-      const data = await fetchBin();
-      if (data) {
-        // Reconciliation logic for Service Catalog
-        const fetchedServices = data.services || [];
-        const fetchedFlows = data.serviceFlows || [];
-        const allServiceIds = Array.from(new Set([
-          ...fetchedServices.map((s: any) => s.id),
-          ...fetchedFlows.map((f: any) => f.serviceId || f.id)
-        ]));
+      try {
+        const data = await fetchBin();
+        if (data) {
+          // Data Reconciliation: Gather all service IDs from both arrays
+          const fetchedServices = data.services || [];
+          const fetchedFlows = data.serviceFlows || [];
+          const allServiceIds = Array.from(new Set([
+            ...fetchedServices.map((s: any) => s.id),
+            ...fetchedFlows.map((f: any) => f.serviceId || f.id)
+          ])).filter(Boolean);
 
-        const reconciled = allServiceIds.map(id => {
-          const existing = fetchedServices.find((s: any) => s.id === id);
-          if (existing) return existing;
-          
-          const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
-          return {
-            id,
-            title: flow?.titleAr || 'خدمة بلدية',
-            titleEn: flow?.titleEn || '',
-            description: isAr ? 'خدمة بلدية رقمية معتمدة عبر البوابة.' : 'Approved municipal digital service.',
-            category: 'elec',
-            iconName: 'FileText',
-            isActive: true,
-            reqsAr: [],
-            reqsEn: [],
-            fees: '10 OMR'
-          } as Service;
-        });
+          const reconciled = allServiceIds.map(id => {
+            const existing = fetchedServices.find((s: any) => s.id === id);
+            if (existing) return existing;
+            
+            const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
+            // Default fallbacks for common svc_ codes
+            return {
+              id,
+              title: flow?.titleAr || (isAr ? 'خدمة بلدية' : 'Municipal Service'),
+              titleEn: flow?.titleEn || 'Municipal Service',
+              description: isAr ? 'هذه الخدمة متاحة للتقديم الرقمي عبر بوابة بلدية ظفار.' : 'This service is available for digital submission.',
+              category: id.startsWith('svc_12') ? 'admin' : id.startsWith('svc_11') ? 'tech' : 'elec',
+              iconName: 'FileText',
+              isActive: true,
+              reqsAr: [],
+              reqsEn: [],
+              fees: '10 OMR'
+            } as Service;
+          });
 
-        setServices(reconciled);
-        setCourses(data.courses || []);
-        setSiteConfig(data.siteConfig || null);
-        setMenuItems(data.menuItems || []);
-        setCarouselItems(data.carouselItems || []);
-        setSurveys(data.surveys || []);
-        setPopups(data.popups || []);
+          setServices(reconciled);
+          setCourses(data.courses || []);
+          setSiteConfig(data.siteConfig || null);
+          setMenuItems(data.menuItems || []);
+          setCarouselItems(data.carouselItems || []);
+          setSurveys(data.surveys || []);
+          setPopups(data.popups || []);
+        }
+      } catch (err) {
+        console.error("Home Load Error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, [isAr]);
 
   const filteredServices = useMemo(() => {
     if (!searchQuery) return [];
-    return services.filter(s => {
+    return (services || []).filter(s => {
       const title = (isAr ? s.title : (s.titleEn || s.title || '')).toLowerCase();
       const desc = (isAr ? s.description : (s.descriptionEn || s.description || '')).toLowerCase();
       const query = searchQuery.toLowerCase();
@@ -132,11 +137,11 @@ export default function DhofarPortal() {
   }, [services, searchQuery, isAr]);
 
   const catalogServices = useMemo(() => {
-    return services.filter(s => activeCategory === 'all' || s.category === activeCategory);
+    return (services || []).filter(s => activeCategory === 'all' || s.category === activeCategory);
   }, [services, activeCategory]);
 
-  const featuredServices = useMemo(() => services.filter(s => s.isFeatured), [services]);
-  const activePoll = useMemo(() => surveys.find(s => s.isPublicPoll && s.isActive), [surveys]);
+  const featuredServices = useMemo(() => (services || []).filter(s => s.isFeatured), [services]);
+  const activePoll = useMemo(() => (surveys || []).find(s => s.isPublicPoll && s.isActive), [surveys]);
 
   const handleReadAloud = async (text: string) => {
     if (ttsLoading) return;
@@ -152,14 +157,14 @@ export default function DhofarPortal() {
     }
   };
 
-  const currentQ = activePoll?.questions[currentPollQIdx];
+  const currentQ = activePoll?.questions?.[currentPollQIdx];
 
   const handlePollNext = () => {
-    if (!activePoll || !pollValue) return;
-    const newAnswers = { ...pollAnswers, [currentQ?.id || '']: pollValue };
+    if (!activePoll || !pollValue || !currentQ) return;
+    const newAnswers = { ...pollAnswers, [currentQ.id]: pollValue };
     setPollAnswers(newAnswers);
     
-    if (currentPollQIdx < activePoll.questions.length - 1) {
+    if (currentPollQIdx < (activePoll.questions?.length || 0) - 1) {
       setCurrentPollQIdx(currentPollQIdx + 1);
       setPollValue(newAnswers[activePoll.questions[currentPollQIdx + 1].id] || "");
     } else {
@@ -168,10 +173,10 @@ export default function DhofarPortal() {
   };
 
   const handlePollBack = () => {
-    if (currentPollQIdx > 0) {
+    if (currentPollQIdx > 0 && activePoll) {
       const prevIdx = currentPollQIdx - 1;
       setCurrentPollQIdx(prevIdx);
-      setPollValue(pollAnswers[activePoll?.questions[prevIdx].id || ""] || "");
+      setPollValue(pollAnswers[activePoll.questions[prevIdx].id] || "");
     }
   };
 
@@ -211,7 +216,7 @@ export default function DhofarPortal() {
                      <Button 
                        variant="ghost" 
                        className="mt-4 text-xs font-bold text-slate-500 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
-                       onClick={() => handleReadAloud(siteConfig?.heroTitle + ". " + siteConfig?.heroSubtitle)}
+                       onClick={() => handleReadAloud((siteConfig?.heroTitle || '') + ". " + (siteConfig?.heroSubtitle || ''))}
                        disabled={ttsLoading}
                        aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
                      >
@@ -339,7 +344,7 @@ export default function DhofarPortal() {
             )}
 
             {/* 5. Public Poll / Survey Section */}
-            {activePoll && (
+            {activePoll && activePoll.questions?.length > 0 && (
               <section className="py-20 bg-accent/5" aria-labelledby="public-poll-title">
                 <div className="max-w-4xl mx-auto px-6 text-center">
                   {!pollSubmitted ? (
@@ -409,8 +414,8 @@ export default function DhofarPortal() {
                                   disabled={!pollValue}
                                   className="dm-gradient-primary rounded-full px-12 h-14 font-black shadow-lg gap-2"
                                 >
-                                  {currentPollQIdx === activePoll.questions.length - 1 ? (isAr ? "إرسال التصويت" : "Submit Poll") : (isAr ? "التالي" : "Next")}
-                                  {currentPollQIdx !== activePoll.questions.length - 1 && (isAr ? <ChevronLeft /> : <ChevronRight />)}
+                                  {currentPollQIdx === (activePoll.questions?.length || 0) - 1 ? (isAr ? "إرسال التصويت" : "Submit Poll") : (isAr ? "التالي" : "Next")}
+                                  {currentPollQIdx !== (activePoll.questions?.length || 0) - 1 && (isAr ? <ChevronLeft /> : <ChevronRight />)}
                                 </Button>
                               </div>
                             </div>

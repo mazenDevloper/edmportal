@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -12,9 +11,8 @@ import {
   Plus, Trash2, Save, ArrowLeft, 
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
-  MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
   Maximize, LayoutGrid, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon,
-  ChevronUp, ChevronDown, Sparkles
+  ChevronUp, ChevronDown, Sparkles, Search, Network
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -47,16 +45,39 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Master data for fallback titles/icons
+// Updated Master Data Map with Official English Names
 const MASTER_DATA_MAP: Record<string, any> = {
-  "svc_100": { icon: "Car", cat: "invest" },
-  "svc_101": { icon: "Zap", cat: "elec" },
-  "svc_102": { icon: "Truck", cat: "health" },
-  "svc_127": { icon: "GraduationCap", cat: "admin" },
-  "svc_128": { icon: "Handshake", cat: "admin" }
+  "svc_100": { icon: "Car", cat: "invest", titleEn: "Get a Permit for Organizing a Promotional Car Event" },
+  "svc_101": { icon: "Zap", cat: "elec", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)" },
+  "svc_102": { icon: "Truck", cat: "health", titleEn: "Get a Permit for a Sewage Tanker" },
+  "svc_103": { icon: "FileImage", cat: "invest", titleEn: "Get Approval of Print Advertisements, Posters, and Publications Service" },
+  "svc_104": { icon: "Tent", cat: "invest", titleEn: "Request to Hold an Activity, Event or Exhibition During the Fall Season" },
+  "svc_105": { icon: "UserPlus", cat: "admin", titleEn: "Registration of Citizens' Requests at Dhofar Municipality" },
+  "svc_106": { icon: "Droplets", cat: "tech", titleEn: "Get Municipal Approval for Sanitary Sewer Service Extensions (Household Connections)" },
+  "svc_107": { icon: "Grid3X3", cat: "tech", titleEn: "Application for obtaining the Municipality's approval for paving with interlocking tiles in front of houses." },
+  "svc_108": { icon: "Hash", cat: "admin", titleEn: "Get House Numbering" },
+  "svc_109": { icon: "Type", cat: "admin", titleEn: "Building Naming License" },
+  "svc_110": { icon: "SignpostBig", cat: "invest", titleEn: "Directional Signage Permit" },
+  "svc_111": { icon: "Landmark", cat: "invest", titleEn: "Manage Site Investment" },
+  "svc_112": { icon: "Lock", cat: "admin", titleEn: "Receiving a Reserved Vehicle" },
+  "svc_113": { icon: "Construction", cat: "tech", titleEn: "Request Road Cutting or Perforation Permit" },
+  "svc_114": { icon: "Map", cat: "tech", titleEn: "Get Approval for Additional Copies of Maps" },
+  "svc_115": { icon: "Lightbulb", cat: "tech", titleEn: "Request Road and Complex Lighting Plans Approval" },
+  "svc_116": { icon: "Umbrella", cat: "tech", titleEn: "License for the Installation of Car Park Shelters" },
+  "svc_117": { icon: "ShieldAlert", cat: "admin", titleEn: "Request for Assessment of Material Damages (Traffic Accidents)" },
+  "svc_118": { icon: "Utensils", cat: "health", titleEn: "Request to Slaughter Animals at the Central Slaughterhouse" },
+  "svc_119": { icon: "Trash2", cat: "health", titleEn: "Material Destruction Certificate" },
+  "svc_120": { icon: "Truck", cat: "health", titleEn: "Request the Removal of Abandoned and Long-Term Parked Vehicles in Public Areas" },
+  "svc_121": { icon: "Store", cat: "invest", titleEn: "Get Approval for Organizing Temporary Specialized Markets" },
+  "svc_122": { icon: "Globe", cat: "invest", titleEn: "Get Approval to Organize International Shows" },
+  "svc_123": { icon: "Sparkles", cat: "invest", titleEn: "Get Approval for Hosting Lightning and Visual Shows" },
+  "svc_124": { icon: "Receipt", cat: "admin", titleEn: "Request for Payment of Contractors’ and Consulting Companies’ Invoices" },
+  "svc_125": { icon: "RefreshCw", cat: "tech", titleEn: "Renewal of Cutting or Drilling Permit" },
+  "svc_126": { icon: "FlaskConical", cat: "health", titleEn: "Submit a Request for Laboratory Sample Testing (Food/ Water)" },
+  "svc_127": { icon: "GraduationCap", cat: "admin", titleEn: "Training Higher Education Institution Students" },
+  "svc_128": { icon: "Handshake", cat: "admin", titleEn: "Reconciliation and Settlement Request" }
 };
 
-// Extract valid icons safely
 const ALL_ICON_KEYS = Object.keys(Icons).filter(key => 
   key !== 'createLucideIcon' && 
   key !== 'LucideIcon' && 
@@ -70,7 +91,7 @@ const EDGE_COLORS = [
 const ServiceStepNode = ({ data }: any) => {
   return (
     <div 
-      className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-all duration-300"
+      className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[220px] text-center shadow-lg transition-all duration-300"
       style={{ opacity: data.isFocused === false ? 0.05 : 1 }}
     >
       <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
@@ -83,7 +104,7 @@ const ServiceStepNode = ({ data }: any) => {
       </div>
 
       <div className="flex flex-col gap-3">
-        <span className="text-xs font-black line-clamp-2">{data.label}</span>
+        <span className="text-[11px] font-black line-clamp-2 uppercase tracking-tight">{data.label}</span>
         <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           {data.actions}
         </div>
@@ -131,46 +152,46 @@ function WorkflowEngineContent() {
               titleAr: s.titleAr || '',
               titleEn: s.titleEn || '',
               fields: (s.fields || []).filter(Boolean).map((f: any) => ({ ...f, options: f.options || [] })),
-              logic: (s.logic || []).filter(Boolean),
+              logic: (s.logic || []).filter(Boolean).map((l: any) => ({ ...l, fieldId: l.fieldId || '', targetStepId: l.targetStepId || '' })),
               actionType: s.actionType || 'submit'
             }));
             setSteps(sanitizedSteps);
-
-            // Reconcile serviceInfo from flow if svc metadata is missing
-            if (!svc) {
-              const master = MASTER_DATA_MAP[editId] || {};
-              setServiceInfo({
-                id: editId,
-                title: flow.titleAr || '',
-                titleEn: flow.titleEn || '',
-                description: 'خدمة رقمية معتمدة عبر البوابة.',
-                category: master.cat || 'elec',
-                iconName: master.icon || 'FileText',
-                fees: '10 OMR',
-                type: 'workflow',
-                isActive: true,
-                reqsAr: [],
-                reqsEn: []
-              });
-            }
           }
           
+          const master = MASTER_DATA_MAP[editId] || {};
           if (svc) {
             setServiceInfo({
               ...svc,
-              title: svc.title || flow?.titleAr || '',
-              titleEn: svc.titleEn || flow?.titleEn || '',
+              title: svc.title || flow?.titleAr || master.titleAr || '',
+              titleEn: svc.titleEn || master.titleEn || flow?.titleEn || '',
               type: svc.type || 'workflow',
               reqsAr: svc.reqsAr || [],
-              reqsEn: svc.reqsEn || svc.reqsAr || []
+              reqsEn: svc.reqsEn || master.reqsEn || [],
+              category: svc.category || master.cat || 'elec',
+              iconName: svc.iconName || master.icon || 'FileText',
+              fees: svc.fees || '10 OMR'
+            });
+          } else {
+            setServiceInfo({
+              id: editId,
+              title: flow?.titleAr || master.titleAr || '',
+              titleEn: master.titleEn || flow?.titleEn || '',
+              description: isAr ? 'خدمة رقمية معتمدة عبر البوابة.' : 'Approved municipal digital service.',
+              category: master.cat || 'elec',
+              iconName: master.icon || 'FileText',
+              fees: '10 OMR',
+              type: 'workflow',
+              isActive: true,
+              reqsAr: [],
+              reqsEn: []
             });
           }
         }
       }).catch(err => {
-        console.error("Load error:", err);
+        console.error("Workflow Load Error:", err);
       }).finally(() => setLoading(false));
     }
-  }, [editId]);
+  }, [editId, isAr]);
 
   useEffect(() => {
     if (activeTab === 'canvas') {
@@ -248,7 +269,7 @@ function WorkflowEngineContent() {
         id: newId,
         isActive: true,
         reqsAr: serviceInfo.reqsAr || [],
-        reqsEn: serviceInfo.reqsEn || serviceInfo.reqsAr || [],
+        reqsEn: serviceInfo.reqsEn || serviceInfo.reqsAr?.map(r => `Required: ${r}`) || [],
       };
 
       const newFlow: ServiceFlow = {
@@ -754,19 +775,6 @@ function WorkflowEngineContent() {
                     </CardContent>
                   </Card>
                 ))}
-
-                {serviceInfo.type === 'link' && (
-                  <Card className="rounded-[2.5rem] p-16 text-center border-2 border-dashed border-slate-200 bg-white">
-                    <div className="size-20 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-6">
-                      <LinkIcon size={40} className="text-slate-300" />
-                    </div>
-                    <h3 className="text-2xl font-black text-primary mb-3">{isAr ? "خدمة الربط الخارجي نشطة" : "Active External Integration"}</h3>
-                    <p className="text-slate-400 font-bold max-w-md mx-auto">{isAr ? "سيتم توجيه المواطنين مباشرة إلى الأنظمة البلدية القائمة." : "Citizens will be redirected to existing systems."}</p>
-                    <Button variant="outline" className="mt-8 rounded-full px-10 font-bold gap-2" asChild>
-                      <a href={serviceInfo.linkUrl} target="_blank"><Eye size={16}/> {isAr ? "معاينة الوجهة" : "Preview Target"}</a>
-                    </Button>
-                  </Card>
-                )}
               </TabsContent>
 
               <TabsContent value="canvas" className="outline-none">
@@ -787,12 +795,6 @@ function WorkflowEngineContent() {
                         <FlowControls />
                       </ReactFlow>
                     </ReactFlowProvider>
-                    <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                       <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl border shadow-sm">
-                          <p className="text-[10px] font-black text-primary uppercase tracking-widest">{isAr ? "مخطط التدفق التفاعلي" : "Interactive Orchestrator"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "استخدم الأدوات لتنظيم مسار المواطن" : "Use tools to organize citizen paths"}</p>
-                       </div>
-                    </div>
                  </Card>
               </TabsContent>
             </Tabs>
