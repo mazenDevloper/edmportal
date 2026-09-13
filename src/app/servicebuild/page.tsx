@@ -56,10 +56,10 @@ function WorkflowEngineContent() {
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
     fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Fix for Zeroing (Zero Dimensions in hidden tabs)
+  // Fix for React Flow hidden dimensions (Zeroing)
   useEffect(() => {
     if (activeTab === 'canvas') {
       setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
@@ -77,6 +77,8 @@ function WorkflowEngineContent() {
           if (svc) setServiceInfo(svc);
         }
       }).finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
   }, [editId]);
 
@@ -212,7 +214,7 @@ function WorkflowEngineContent() {
             source: step.id,
             target: rule.targetStepId,
             label: fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`,
-            type: 'smoothstep', // Multi-edge visual differentiation
+            type: 'smoothstep',
             animated: true,
             style: { stroke: '#03CFCB', strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
