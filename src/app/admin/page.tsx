@@ -41,7 +41,8 @@ import {
   Zap, FileText, Search, Globe, Volume2, Video, 
   MousePointer2, ArrowUpRight, Megaphone, ListChecks,
   RefreshCw, Layers, History, ShieldCheck, Mail, Phone, ExternalLink,
-  LayoutDashboard
+  LayoutDashboard, Car, Truck, Construction, Landmark, MapPin, 
+  Droplets, Scissors, GraduationCap, Gavel, Trash
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -65,6 +66,22 @@ const ANALYTICS_DATA = [
   { name: 'أبريل', transactions: 900 },
   { name: 'مايو', transactions: 1500 },
   { name: 'يونيو', transactions: 2100 },
+];
+
+const MASTER_SERVICES_CATALOG = [
+  { id: 'svc_100', title: 'ترخيص إقامة عرض ترويجي للسيارات', titleEn: 'Get a Permit for Organizing a Promotional Car Event', icon: 'Car', cat: 'invest' },
+  { id: 'svc_101', title: 'تصديق مسارات تمديدات الكهرباء', titleEn: 'Get the Municipality\'s Approval for the Paths of Electrical Service Installations (Household Connections)', icon: 'Zap', cat: 'tech' },
+  { id: 'svc_102', title: 'إصدار تصاريح صهاريج مياة الصرف الصحي', titleEn: 'Get a Permit for a Sewage Tanker', icon: 'Truck', cat: 'health' },
+  { id: 'svc_103', title: 'اعتماد إعلانات المطبوعات والمنشورات', titleEn: 'Get Approval of Print Advertisements, Posters, and Publications Service', icon: 'Megaphone', cat: 'admin' },
+  { id: 'svc_104', title: 'طلب إقامة منشط أو فعالية في الخريف', titleEn: 'Request to Hold an Activity, Event or Exhibition During the Fall Season', icon: 'Landmark', cat: 'invest' },
+  { id: 'svc_105', title: 'تسجيل طلبات المراجعين', titleEn: 'Registration of Citizens\' Requests at Dhofar Municipality', icon: 'History', cat: 'admin' },
+  { id: 'svc_106', title: 'تصديق تمديدات الصرف الصحي', titleEn: 'Get Municipal Approval for Sanitary Sewer Service Extensions (Household Connections)', icon: 'Droplets', cat: 'tech' },
+  { id: 'svc_107', title: 'تصديق رصف البلاط المتشابك', titleEn: 'Application for obtaining the Municipality\'s approval for paving with interlocking tiles in front of houses.', icon: 'Construction', cat: 'tech' },
+  { id: 'svc_108', title: 'ترقيم المنازل', titleEn: 'Get House Numbering', icon: 'MapPin', cat: 'admin' },
+  { id: 'svc_109', title: 'ترخيص تسمية المباني', titleEn: 'Building Naming License', icon: 'Landmark', cat: 'invest' },
+  { id: 'svc_127', title: 'تدريب طلاب مؤسسات التعليم العالي', titleEn: 'Training Higher Education Institution Students', icon: 'GraduationCap', cat: 'admin' },
+  { id: 'svc_128', title: 'طلب توفيق ومصالحة', titleEn: 'Reconciliation and Settlement Request', icon: 'Gavel', cat: 'admin' },
+  { id: 'svc_119', title: 'شهادة إتلاف مواد', titleEn: 'Material Destruction Certificate', icon: 'Trash', cat: 'health' },
 ];
 
 export default function AdminDashboard() {
@@ -112,7 +129,7 @@ export default function AdminDashboard() {
       }
     };
     loadData();
-  }, []);
+  }, [toast]);
 
   const handleGlobalSave = async () => {
     setSaving(true);
@@ -139,13 +156,69 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleExecuteMasterSeed = async () => {
+    setSaving(true);
+    try {
+      const db = await fetchBin();
+      const existingIds = new Set(services.map(s => s.id));
+      
+      const newServices: Service[] = [...services];
+      const newFlows: ServiceFlow[] = [...flows];
+
+      MASTER_SERVICES_CATALOG.forEach(master => {
+        if (!existingIds.has(master.id)) {
+          newServices.push({
+            id: master.id,
+            title: master.title,
+            titleEn: master.titleEn,
+            description: `خدمة رقمية من بلدية ظفار: ${master.title}`,
+            descriptionEn: `Digital Service: ${master.titleEn}`,
+            iconName: master.icon,
+            category: master.cat,
+            isActive: true,
+            reqsAr: ['البطاقة الشخصية', 'السجل التجاري (إن وجد)'],
+            reqsEn: ['ID Card', 'Commercial Register (if applicable)'],
+            fees: '10 OMR'
+          });
+
+          newFlows.push({
+            id: master.id,
+            serviceId: master.id,
+            titleAr: master.title,
+            titleEn: master.titleEn,
+            isActive: true,
+            steps: [
+              {
+                id: `step_${master.id}_1`,
+                titleAr: 'المستندات المطلوبة',
+                titleEn: 'Required Documents',
+                fields: [
+                  { id: `f_${master.id}_1`, type: 'upload', labelAr: 'مرفق المستند الأول', labelEn: 'Doc Attachment 1', required: true }
+                ],
+                actionType: 'submit'
+              }
+            ]
+          });
+        }
+      });
+
+      await updateBin({ ...db, services: newServices, serviceFlows: newFlows });
+      setServices(newServices);
+      setFlows(newFlows);
+      toast({ title: "Master Seeding Complete" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Seed Failed" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleAiTranslate = async (text: string, fieldKey: string) => {
     if (!text) return;
     setAiLoading(fieldKey);
     try {
       const { translatedText } = await translateToEnglish({ text });
-      if (fieldKey === 'heroTitle') setSiteConfig(s => s ? {...s, heroTitleEn: translatedText} : null);
-      if (fieldKey === 'heroSubtitle') setSiteConfig(s => s ? {...s, heroSubtitleEn: translatedText} : null);
+      if (fieldKey === 'heroTitle') setSiteConfig(s => s ? {...s, heroTitle: text} : null); // usually ar to en
       toast({ title: isAr ? "تمت الترجمة بنجاح" : "Translation complete" });
     } catch (e) {
       toast({ title: "AI Translation Failed", variant: "destructive" });
@@ -180,7 +253,7 @@ export default function AdminDashboard() {
       <aside className="w-72 bg-slate-900 text-white p-6 sticky top-0 h-screen flex flex-col gap-8 hidden lg:flex border-r border-white/5">
          <div className="flex items-center gap-3">
            <div className="size-12 bg-accent rounded-2xl flex items-center justify-center text-slate-900 shadow-[0_0_25px_rgba(3,207,203,0.4)]">
-             <Settings size={24} className="animate-spin-slow" />
+             <Settings size={24} />
            </div>
            <div className="flex flex-col">
              <span className="font-black text-xl tracking-tighter leading-none">COMMAND</span>
@@ -419,7 +492,7 @@ export default function AdminDashboard() {
                         <h4 className="text-xl font-black mb-2">{isAr ? page.titleAr : page.titleEn}</h4>
                         <p className="text-xs text-slate-400 font-bold mb-8">Created: {new Date(page.createdAt).toLocaleDateString()}</p>
                         <div className="flex gap-2">
-                           <Button asChild variant="outline" className="flex-1 rounded-xl h-11 font-black"><Link href={`/pagebuild?id=${page.id}`}><Edit2 size(14) className="ml-2"/> {isAr ? "تعديل" : "Edit"}</Link></Button>
+                           <Button asChild variant="outline" className="flex-1 rounded-xl h-11 font-black"><Link href={`/pagebuild?id=${page.id}`}><Edit2 size={14} className="ml-2"/> {isAr ? "تعديل" : "Edit"}</Link></Button>
                            <Button variant="ghost" onClick={() => setCustomPages(customPages.filter(p => p.id !== page.id))} className="size-11 rounded-xl text-red-400 hover:bg-red-50"><Trash2 size={16}/></Button>
                         </div>
                      </CardContent>
@@ -759,8 +832,8 @@ export default function AdminDashboard() {
                          <h4 className="text-lg font-black">{isAr ? "بذر البيانات الأساسية (SEED)" : "Seed Master Services"}</h4>
                       </div>
                       <p className="text-sm text-slate-500 font-bold leading-relaxed">{isAr ? "سيقوم هذا الإجراء بإعادة بناء كافة الخدمات الـ 80+ بمسمياتها الإنجليزية الصحيحة والمستندات المطلوبة والمراحل الافتراضية." : "Rebuild all 80+ master services with correct English naming, documentation requirements, and neural logic flows."}</p>
-                      <Button className="w-full h-14 rounded-2xl dm-gradient-primary font-black shadow-lg gap-2 text-lg">
-                         <RefreshCw size={20} />
+                      <Button onClick={handleExecuteMasterSeed} disabled={saving} className="w-full h-14 rounded-2xl dm-gradient-primary font-black shadow-lg gap-2 text-lg">
+                         <RefreshCw size={20} className={saving ? "animate-spin" : ""} />
                          {isAr ? "بدء عملية التثبيت الشاملة" : "Execute Master Global Seed"}
                       </Button>
                    </div>
@@ -772,7 +845,7 @@ export default function AdminDashboard() {
                       </div>
                       <p className="text-sm text-slate-500 font-bold leading-relaxed">{isAr ? "هذا الإجراء سيقوم بمسح كافة طلبات المواطنين المسجلة أو تصفير العدادات العالمية. لا يمكن التراجع عن هذا الإجراء." : "Purge all citizen application logs or reset global transaction counters. This action is irreversible."}</p>
                       <div className="flex gap-4">
-                         <Button variant="outline" className="flex-1 h-12 rounded-xl font-black text-red-500 border-red-200 hover:bg-red-50">{isAr ? "مسح الطلبات" : "Purge Apps"}</Button>
+                         <Button variant="outline" onClick={() => setApplications([])} className="flex-1 h-12 rounded-xl font-black text-red-500 border-red-200 hover:bg-red-50">{isAr ? "مسح الطلبات" : "Purge Apps"}</Button>
                          <Button variant="outline" className="flex-1 h-12 rounded-xl font-black border-slate-200">{isAr ? "تصفير العدادات" : "Reset Stats"}</Button>
                       </div>
                    </div>
