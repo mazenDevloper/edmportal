@@ -46,13 +46,13 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Filter valid icon keys from Lucide
-const ALL_ICONS = Object.keys(Icons).filter(key => 
-  (typeof (Icons as any)[key] === 'function' || typeof (Icons as any)[key] === 'object') &&
-  key !== 'createLucideIcon' && key !== 'LucideIcon'
+// Extract valid icons safely
+const ALL_ICON_KEYS = Object.keys(Icons).filter(key => 
+  key !== 'createLucideIcon' && 
+  key !== 'LucideIcon' && 
+  typeof (Icons as any)[key] !== 'undefined'
 );
 
-// Color Palette for Logic Edges
 const EDGE_COLORS = [
   '#be123c', '#7e22ce', '#c2410c', '#1d4ed8', '#047857', '#a21caf', '#b91c1c', '#4338ca',
 ];
@@ -61,7 +61,7 @@ const ServiceStepNode = ({ data }: any) => {
   return (
     <div 
       className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-all duration-300"
-      style={{ opacity: data.isFocused === false ? 0.02 : 1 }}
+      style={{ opacity: data.isFocused === false ? 0.05 : 1 }}
     >
       <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
       <Handle type="target" position={Position.Left} className="!bg-[#007375]" />
@@ -115,11 +115,15 @@ function WorkflowEngineContent() {
           const svc = (data.services || []).find((s: any) => s.id === editId);
           
           if (flow) {
-            // Robust Sanitization
+            // Robust Sanitization to prevent TypeError
             const sanitizedSteps = (flow.steps || []).filter(Boolean).map((s: any) => ({
               ...s,
-              fields: (s.fields || []).filter(Boolean),
-              logic: (s.logic || []).filter(Boolean)
+              id: s.id || `step_${Math.random()}`,
+              titleAr: s.titleAr || '',
+              titleEn: s.titleEn || '',
+              fields: (s.fields || []).filter(Boolean).map((f: any) => ({ ...f, options: f.options || [] })),
+              logic: (s.logic || []).filter(Boolean),
+              actionType: s.actionType || 'submit'
             }));
             setSteps(sanitizedSteps);
           }
@@ -247,8 +251,8 @@ function WorkflowEngineContent() {
 
   const filteredIcons = useMemo(() => {
     const query = iconSearch.toLowerCase();
-    if (!query) return ALL_ICONS.slice(0, 48);
-    return ALL_ICONS.filter(icon => icon.toLowerCase().includes(query)).slice(0, 48);
+    if (!query) return ALL_ICON_KEYS.slice(0, 48);
+    return ALL_ICON_KEYS.filter(icon => icon.toLowerCase().includes(query)).slice(0, 48);
   }, [iconSearch]);
 
   const edges: Edge[] = useMemo(() => {
