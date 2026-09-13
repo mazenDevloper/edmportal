@@ -12,7 +12,8 @@ import {
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
-  Maximize, LayoutGrid, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon
+  Maximize, LayoutGrid, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon,
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -96,6 +97,7 @@ function WorkflowEngineContent() {
   
   const [activeTab, setActiveTab] = useState('logic');
   const [steps, setSteps] = useState<ServiceStep[]>([]);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
     fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
@@ -142,6 +144,18 @@ function WorkflowEngineContent() {
     const ns = [...steps];
     ns[idx] = { ...ns[idx], ...updates };
     setSteps(ns);
+  };
+
+  const moveStep = (idx: number, direction: 'up' | 'down') => {
+    const ns = [...steps];
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= ns.length) return;
+    
+    const temp = ns[idx];
+    ns[idx] = ns[targetIdx];
+    ns[targetIdx] = temp;
+    setSteps(ns);
+    toast({ title: isAr ? "تم تغيير الترتيب" : "Order Changed" });
   };
 
   const removeStep = (id: string) => setSteps(steps.filter(s => s.id !== id));
@@ -265,19 +279,32 @@ function WorkflowEngineContent() {
 
     steps.forEach((step, sIdx) => {
       if (step.defaultNextStepId) {
+        const edgeId = `e-${step.id}-${step.defaultNextStepId}`;
+        const isHovered = hoveredEdgeId === edgeId;
+        const otherHovered = hoveredEdgeId && hoveredEdgeId !== edgeId;
+
         e.push({
-          id: `e-${step.id}-${step.defaultNextStepId}`,
+          id: edgeId,
           source: step.id,
           target: step.defaultNextStepId,
           type: 'smoothstep',
           label: isAr ? 'مسار افتراضي' : 'Default Path',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375', strokeWidth: 3, opacity: 0.8 }
+          style: { 
+            stroke: '#007375', 
+            strokeWidth: isHovered ? 6 : 3, 
+            opacity: otherHovered ? 0.1 : 0.8,
+            transition: 'opacity 0.2s, stroke-width 0.2s'
+          }
         });
       }
 
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
+          const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
+          const isHovered = hoveredEdgeId === edgeId;
+          const otherHovered = hoveredEdgeId && hoveredEdgeId !== edgeId;
+          
           const color = EDGE_COLORS[logicColorIndex % EDGE_COLORS.length];
           logicColorIndex++;
 
@@ -286,15 +313,20 @@ function WorkflowEngineContent() {
           const conditionLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`;
 
           e.push({
-            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
+            id: edgeId,
             source: step.id,
             target: rule.targetStepId,
             type: 'smoothstep',
             label: conditionLabel,
-            animated: true,
-            style: { stroke: color, strokeWidth: 4 },
+            animated: isHovered,
+            style: { 
+              stroke: color, 
+              strokeWidth: isHovered ? 8 : 4,
+              opacity: otherHovered ? 0.05 : 1,
+              transition: 'opacity 0.2s, stroke-width 0.2s'
+            },
             markerEnd: { type: MarkerType.ArrowClosed, color: color },
-            labelStyle: { fill: color, fontWeight: 900, fontSize: '10px' },
+            labelStyle: { fill: color, fontWeight: 900, fontSize: isHovered ? '14px' : '10px' },
             labelBgPadding: [8, 4],
             labelBgBorderRadius: 4,
             labelBgStyle: { fill: '#fff', fillOpacity: 0.9, stroke: color, strokeWidth: 1 }
@@ -303,7 +335,7 @@ function WorkflowEngineContent() {
       });
     });
     return e;
-  }, [steps, isAr]);
+  }, [steps, isAr, hoveredEdgeId]);
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
@@ -490,6 +522,8 @@ function WorkflowEngineContent() {
                         />
                       </div>
                       <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'up')} disabled={sIdx === 0} className="text-white/40 h-8 w-8 hover:text-accent transition-colors"><ChevronUp size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'down')} disabled={sIdx === steps.length - 1} className="text-white/40 h-8 w-8 hover:text-accent transition-colors"><ChevronDown size={16} /></Button>
                         <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="text-white/40 h-8 w-8 hover:text-red-400 transition-colors"><Trash2 size={16} /></Button>
                       </div>
                     </CardHeader>
@@ -688,6 +722,8 @@ function WorkflowEngineContent() {
                         nodes={nodes} 
                         edges={edges}
                         nodeTypes={nodeTypes}
+                        onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+                        onEdgeMouseLeave={() => setHoveredEdgeId(null)}
                         fitView
                         className="bg-slate-50"
                       >
