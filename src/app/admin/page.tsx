@@ -43,30 +43,30 @@ export default function AdminDashboard() {
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
 
-  // Master List for Seeding
+  // Full Master List based on user prompt requirements
   const MASTER_SERVICES_DATA = [
     { id: "svc_100", titleAr: "ترخيص إقامة عرض ترويجي للسيارات", titleEn: "Car Promotion License", icon: "Car", cat: "invest", reqAr: ["رسالة الشركة وتحديد الموقع", "السجل التجاري"] },
     { id: "svc_101", titleAr: "تصديق مسارات تمديدات الكهرباء", titleEn: "Electricity Route Certification", icon: "Zap", cat: "elec", reqAr: ["الرسم المساحي والملكية", "اعتماد شركة الكهرباء"] },
     { id: "svc_102", titleAr: "تصاريح ناقلات مياه الصرف الصحي", titleEn: "Sewage Tanker Permit", icon: "Truck", cat: "health", reqAr: ["البطاقة الشخصية", "السجل التجاري", "ملكية الشاحنة"] },
     { id: "svc_103", titleAr: "اعتماد إعلانات المطبوعات والملصقات", titleEn: "Ads & Publications Approval", icon: "FileImage", cat: "invest", reqAr: ["صورة من المطبوعات", "موافقة وزارة الإعلام"] },
-    { id: "svc_104", titleAr: "فعالية أو معرض خلال موسم الخريف", titleEn: "Khareef Event Request", icon: "Tent", cat: "invest", reqAr: ["السجل التجاري", "مخطط توضيحي"] },
+    { id: "svc_104", titleAr: "فعالية أو معرض خلال موسم الخريف", titleEn: "Khareef Event Request", icon: "Tent", cat: "invest", reqAr: ["السجل التجاري", "البطاقة الشخصية", "مخطط توضيحي", "مخطط هندسي"] },
     { id: "svc_105", titleAr: "تسجيل طلبات المراجعين", titleEn: "Visitor Request Registration", icon: "UserPlus", cat: "admin", reqAr: ["تفاصيل المراجعة"] },
     { id: "svc_106", titleAr: "تصديق تمديدات الصرف الصحي", titleEn: "Sewage Connection Approval", icon: "Droplets", cat: "tech", reqAr: ["خطاب المقاول", "اعتمادات الجهات المختصة"] },
     { id: "svc_107", titleAr: "تصديق الرصف بالبلاط المتشابك", titleEn: "Interlock Paving Approval", icon: "Grid3X3", cat: "tech", reqAr: ["البطاقة الشخصية", "ملكية المنزل"] },
     { id: "svc_108", titleAr: "ترقيم المنازل", titleEn: "House Numbering", icon: "Hash", cat: "admin", reqAr: ["ملكية المنزل", "الرسم المساحي"] },
-    { id: "svc_109", titleAr: "ترخيص تسمية المباني", titleEn: "Building Naming Permit", icon: "Type", cat: "admin", reqAr: ["ملكية المبنى", "البطاقة الشخصية"] },
+    { id: "svc_109", titleAr: "ترخيص تسمية المباني", titleEn: "Building Naming Permit", icon: "Type", cat: "admin", reqAr: ["ملكية المبنى", "البطاقة الشخصية", "عقد استثمار"] },
     { id: "svc_110", titleAr: "ترخيص اللوحات الإرشادية", titleEn: "Guidance Signs Permit", icon: "SignpostBig", cat: "invest", reqAr: ["الترخيص البلدي", "السجل التجاري"] },
     { id: "svc_111", titleAr: "إدارة استثمار موقع", titleEn: "Site Investment Management", icon: "Landmark", cat: "invest", reqAr: ["خطاب المنشأة", "مخطط كروكي تفصيلي"] },
     { id: "svc_112", titleAr: "استلام مركبة محجوزة", titleEn: "Impounded Vehicle Release", icon: "Lock", cat: "admin", reqAr: ["ملكية السيارة", "البطاقة الشخصية"] },
-    { id: "svc_113", titleAr: "تصريح قطع أو ثقب الطريق", titleEn: "Road Cutting Permit", icon: "Construction", cat: "tech", reqAr: ["ملكية الأرض", "رسالة رسمية"] },
+    { id: "svc_113", titleAr: "تصريح قطع أو ثقب الطريق", titleEn: "Road Cutting Permit", icon: "Construction", cat: "tech", reqAr: ["ملكية الأرض", "رسالة رسمية", "موافقة دائرة الطرق"] },
     { id: "svc_114", titleAr: "اعتماد النسخ الإضافية من الخرائط", titleEn: "Extra Maps Approval", icon: "Map", cat: "tech", reqAr: ["البطاقة الشخصية", "رخصة البناء"] },
     { id: "svc_115", titleAr: "التصديق على مخططات إنارة الطرق", titleEn: "Street Lighting Design Approval", icon: "Lightbulb", cat: "tech", reqAr: ["المخطط الهندسي"] },
-    { id: "svc_116", titleAr: "ترخيص مظلات مواقف السيارات", titleEn: "Parking Shade Permit", icon: "Umbrella", cat: "tech", reqAr: ["صور الكروكي", "الملكية"] },
+    { id: "svc_116", titleAr: "ترخيص مظلات مواقف السيارات", titleEn: "Parking Shade Permit", icon: "Umbrella", cat: "tech", reqAr: ["صور الكروكي", "الملكية", "البطاقة الشخصية"] },
     { id: "svc_117", titleAr: "تقييم أضرار مادية مرورية", titleEn: "Traffic Damage Assessment", icon: "ShieldAlert", cat: "admin", reqAr: ["تقرير الشرطة"] },
-    { id: "svc_118", titleAr: "ذبح حيوانات بالمسلخ المركزي", titleEn: "Slaughterhouse Request", icon: "Utensils", cat: "health", reqAr: ["استمارة الاستلام"] },
-    { id: "svc_119", titleAr: "شهادة إتلاف مواد", titleEn: "Materials Destruction Certificate", icon: "Trash2", cat: "health", reqAr: ["رسالة الشركة", "تفاصيل المواد"] },
-    { id: "svc_120", titleAr: "إزالة مركبات مهملة", titleEn: "Abandoned Vehicle Removal", icon: "Truck", cat: "health", reqAr: ["صور الموقع", "البطاقة الشخصية"] },
-    { id: "svc_121", titleAr: "تنظيم الأسواق التخصصية", titleEn: "Specialized Market Org Approval", icon: "Store", cat: "invest", reqAr: ["تصور الفكرة", "السجل التجاري"] },
+    { id: "svc_118", titleAr: "ذبح حيوانات بالمسلخ المركزي", titleEn: "Slaughterhouse Request", icon: "Utensils", cat: "health", reqAr: ["استمارة الاستلام", "إيصال ذبح"] },
+    { id: "svc_119", titleAr: "شهادة إتلاف مواد", titleEn: "Materials Destruction Certificate", icon: "Trash2", cat: "health", reqAr: ["رسالة الشركة", "تفاصيل المواد", "رسالة دائرة البيئة"] },
+    { id: "svc_120", titleAr: "إزالة مركبات مهملة", titleEn: "Abandoned Vehicle Removal", icon: "Truck", cat: "health", reqAr: ["صور الموقع", "البطاقة الشخصية", "طلب ورقي"] },
+    { id: "svc_121", titleAr: "تنظيم الأسواق التخصصية", titleEn: "Specialized Market Org Approval", icon: "Store", cat: "invest", reqAr: ["تصور الفكرة", "السجل التجاري", "شهادة الدفاع المدني"] },
     { id: "svc_122", titleAr: "إقامة عروض عالمية", titleEn: "International Show Approval", icon: "Globe", cat: "invest", reqAr: ["موافقات الجهات"] },
     { id: "svc_123", titleAr: "عروض الإضاءة والإبهار", titleEn: "Lighting Show Approval", icon: "Sparkles", cat: "invest", reqAr: ["تفاصيل العرض"] },
     { id: "svc_124", titleAr: "صرف فواتير المقاولين", titleEn: "Contractor Invoice Payment", icon: "Receipt", cat: "admin", reqAr: ["الفواتير المعتمدة"] },
@@ -84,24 +84,24 @@ export default function AdminDashboard() {
           const fetchedServices = data.services || [];
           const fetchedFlows = data.serviceFlows || [];
           
-          // Data Reconciliation: Ensuring all flows have service entries
-          const allServiceIds = new Set([
+          // Reconcile missing services that exist in flows
+          const allServiceIds = Array.from(new Set([
             ...fetchedServices.map((s: any) => s.id),
             ...fetchedFlows.map((f: any) => f.serviceId || f.id)
-          ]);
+          ]));
 
-          const combinedServices = Array.from(allServiceIds).map(id => {
-            const existingSvc = fetchedServices.find((s: any) => s.id === id);
-            if (existingSvc) return existingSvc;
+          const reconciledServices = allServiceIds.map(id => {
+            const existing = fetchedServices.find((s: any) => s.id === id);
+            if (existing) return existing;
             
             const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
             const master = MASTER_SERVICES_DATA.find(m => m.id === id);
             
             return {
               id,
-              title: flow?.titleAr || master?.titleAr || 'Untitled Service',
+              title: flow?.titleAr || master?.titleAr || 'خدمة جديدة',
               titleEn: flow?.titleEn || master?.titleEn || '',
-              description: 'خدمة رقمية مقدمة من بلدية ظفار.',
+              description: 'خدمة بلدية رقمية معتمدة.',
               category: master?.cat || 'elec',
               iconName: master?.icon || 'FileText',
               isActive: true,
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
             } as Service;
           });
 
-          setServices(combinedServices);
+          setServices(reconciledServices);
           setSiteConfig(data.siteConfig || null);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
           setPopups(data.popups || []);
         }
       } catch (e) {
-        toast({ title: "Error", description: "Failed to load database.", variant: "destructive" });
+        toast({ title: "Error Loading Data", variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -137,9 +137,9 @@ export default function AdminDashboard() {
         ...db,
         services, siteConfig, menuItems, carouselItems, surveys, customPages, popups
       });
-      toast({ title: isAr ? "تم الحفظ" : "Saved" });
+      toast({ title: isAr ? "تم حفظ كافة التغييرات" : "All changes saved" });
     } catch (e) {
-      toast({ title: "Error", variant: "destructive" });
+      toast({ title: "Save Failed", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -153,25 +153,31 @@ export default function AdminDashboard() {
       const currentFlows = [...(db.serviceFlows || [])];
 
       MASTER_SERVICES_DATA.forEach(master => {
-        // 1. Check/Add Service Metadata
-        if (!currentServices.some(s => s.id === master.id)) {
-          currentServices.push({
-            id: master.id,
-            title: master.titleAr,
-            titleEn: master.titleEn,
-            description: `خدمة رقمية رسمية لـ ${master.titleAr}.`,
-            iconName: master.icon,
-            category: master.cat,
-            isActive: true,
-            reqsAr: master.reqAr,
-            reqsEn: master.reqAr.map(r => `Document for ${r}`),
-            fees: "10 OMR",
-            type: "workflow"
-          });
+        // 1. Add Service Definition
+        const existingSvcIdx = currentServices.findIndex(s => s.id === master.id);
+        const svcData: Service = {
+          id: master.id,
+          title: master.titleAr,
+          titleEn: master.titleEn,
+          description: `خدمة رقمية معتمدة لـ ${master.titleAr}.`,
+          iconName: master.icon,
+          category: master.cat,
+          isActive: true,
+          reqsAr: master.reqAr,
+          reqsEn: master.reqAr.map(r => `Document for ${r}`),
+          fees: "10 OMR",
+          type: "workflow"
+        };
+
+        if (existingSvcIdx > -1) {
+          currentServices[existingSvcIdx] = svcData;
+        } else {
+          currentServices.push(svcData);
         }
 
-        // 2. Check/Add Workflow Flow
-        if (!currentFlows.some(f => (f.serviceId || f.id) === master.id)) {
+        // 2. Add Workflow Flow
+        const existingFlowIdx = currentFlows.findIndex(f => (f.serviceId || f.id) === master.id);
+        if (existingFlowIdx === -1) {
           currentFlows.push({
             id: master.id,
             serviceId: master.id,
@@ -180,7 +186,7 @@ export default function AdminDashboard() {
             isActive: true,
             steps: [
               {
-                id: `step_${master.id}_initial`,
+                id: `step_${master.id}_main`,
                 titleAr: "المستندات المطلوبة",
                 titleEn: "Required Documents",
                 fields: master.reqAr.map((r, i) => ({
@@ -203,7 +209,7 @@ export default function AdminDashboard() {
         serviceFlows: currentFlows
       });
 
-      toast({ title: "Success", description: "All master services seeded successfully." });
+      toast({ title: "Success", description: "All 29 master services have been seeded." });
       window.location.reload();
     } catch (e) {
       toast({ variant: "destructive", title: "Seed Failed" });
