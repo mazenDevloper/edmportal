@@ -13,7 +13,7 @@ import {
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
   Maximize, LayoutGrid, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon,
-  ChevronUp, ChevronDown
+  ChevronUp, ChevronDown, Sparkles
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -61,7 +61,7 @@ const ServiceStepNode = ({ data }: any) => {
   return (
     <div 
       className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-all duration-300"
-      style={{ opacity: data.isFocused === false ? 0.05 : 1 }}
+      style={{ opacity: data.isFocused === false ? 0.02 : 1 }}
     >
       <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
       <Handle type="target" position={Position.Left} className="!bg-[#007375]" />
@@ -111,15 +111,15 @@ function WorkflowEngineContent() {
       setLoading(true);
       fetchBin().then(data => {
         if (data) {
-          const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
-          const svc = data.services?.find((s: Service) => s.id === editId);
+          const flow = (data.serviceFlows || []).find((f: any) => f.id === editId || f.serviceId === editId);
+          const svc = (data.services || []).find((s: any) => s.id === editId);
           
           if (flow) {
-            // Sanitize steps to ensure fields and logic are arrays
-            const sanitizedSteps = (flow.steps || []).map(s => ({
+            // Robust Sanitization
+            const sanitizedSteps = (flow.steps || []).filter(Boolean).map((s: any) => ({
               ...s,
-              fields: s.fields || [],
-              logic: s.logic || []
+              fields: (s.fields || []).filter(Boolean),
+              logic: (s.logic || []).filter(Boolean)
             }));
             setSteps(sanitizedSteps);
           }
@@ -129,7 +129,7 @@ function WorkflowEngineContent() {
               ...svc,
               type: svc.type || 'workflow',
               reqsAr: svc.reqsAr || [],
-              reqsEn: svc.reqsEn || []
+              reqsEn: svc.reqsEn || svc.reqsAr || []
             });
           }
         }
@@ -246,15 +246,16 @@ function WorkflowEngineContent() {
   };
 
   const filteredIcons = useMemo(() => {
-    if (!iconSearch) return ALL_ICONS.slice(0, 48);
-    return ALL_ICONS.filter(icon => icon.toLowerCase().includes(iconSearch.toLowerCase())).slice(0, 48);
+    const query = iconSearch.toLowerCase();
+    if (!query) return ALL_ICONS.slice(0, 48);
+    return ALL_ICONS.filter(icon => icon.toLowerCase().includes(query)).slice(0, 48);
   }, [iconSearch]);
 
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     let logicColorIndex = 0;
 
-    (steps || []).forEach((step) => {
+    (steps || []).filter(Boolean).forEach((step) => {
       if (step.defaultNextStepId) {
         const edgeId = `e-${step.id}-${step.defaultNextStepId}`;
         const isHovered = hoveredEdgeId === edgeId;
@@ -276,7 +277,7 @@ function WorkflowEngineContent() {
         });
       }
 
-      (step.logic || []).forEach((rule, idx) => {
+      (step.logic || []).filter(Boolean).forEach((rule, idx) => {
         if (rule.targetStepId) {
           const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
           const isHovered = hoveredEdgeId === edgeId;
@@ -295,7 +296,7 @@ function WorkflowEngineContent() {
             target: rule.targetStepId,
             type: 'smoothstep',
             label: conditionLabel,
-            animated: isHovered,
+            animated: true,
             style: { 
               stroke: color, 
               strokeWidth: isHovered ? 8 : 4,
@@ -318,10 +319,10 @@ function WorkflowEngineContent() {
     const hoveredEdge = hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
     const connectedNodeIds = hoveredEdge ? [hoveredEdge.source, hoveredEdge.target] : null;
 
-    return (steps || []).map((step, idx) => {
+    return (steps || []).filter(Boolean).map((step, idx) => {
       const col = idx % 3;
       const row = Math.floor(idx / 3);
-      const isFocused = connectedNodeIds ? connectedNodeIds.includes(step.id) : true;
+      const isFocused = connectedNodeIds ? connectedNodeIds.includes(step.id) : !hoveredEdgeId;
 
       return {
         id: step.id,
@@ -464,7 +465,7 @@ function WorkflowEngineContent() {
                            </div>
                            <ScrollArea className="h-64 p-2">
                               <div className="grid grid-cols-4 gap-1">
-                                 {filteredIcons.map(icon => {
+                                 {(filteredIcons || []).map(icon => {
                                    const IconComp = (Icons as any)[icon];
                                    if (!IconComp) return null;
                                    return (
@@ -499,7 +500,7 @@ function WorkflowEngineContent() {
                  <div className="space-y-2 pt-2 border-t">
                     <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "المستندات المطلوبة" : "Required Docs"}</label>
                     <div className="space-y-1">
-                       {(serviceInfo.reqsAr || []).map((req, idx) => (
+                       {(serviceInfo.reqsAr || []).filter(Boolean).map((req, idx) => (
                          <div key={idx} className="flex gap-1">
                             <Input value={req} onChange={e => {
                               const nr = [...(serviceInfo.reqsAr || [])]; nr[idx] = e.target.value; setServiceInfo({...serviceInfo, reqsAr: nr});
@@ -530,7 +531,7 @@ function WorkflowEngineContent() {
               </TabsList>
 
               <TabsContent value="logic" className="space-y-6 outline-none">
-                {serviceInfo.type === 'workflow' && (steps || []).map((step, sIdx) => (
+                {serviceInfo.type === 'workflow' && (steps || []).filter(Boolean).map((step, sIdx) => (
                   <Card key={step.id} id={step.id} className="rounded-3xl shadow-sm border-none overflow-hidden relative animate-in slide-in-from-bottom-2 scroll-mt-24">
                     <CardHeader className="bg-slate-900 text-white p-4 flex flex-row items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -561,7 +562,7 @@ function WorkflowEngineContent() {
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MapPin size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
                            </div>
                            <div className="space-y-3">
-                            {(step.fields || []).map((f, fIdx) => (
+                            {(step.fields || []).filter(Boolean).map((f, fIdx) => (
                               <div key={f.id} className="space-y-3 p-4 bg-slate-50 rounded-xl border group">
                                  <div className="flex gap-2 items-center">
                                     <div className="px-2 py-0.5 rounded-md bg-white border text-[8px] font-black uppercase text-slate-400">{f.type}</div>
@@ -583,7 +584,7 @@ function WorkflowEngineContent() {
                                  {(f.type === 'select' || f.type === 'multichoice') && (
                                    <div className="space-y-2 pl-6 border-l-2 border-slate-200">
                                       <div className="flex flex-wrap gap-2">
-                                         {(f.options || []).map((opt, oIdx) => (
+                                         {(f.options || []).filter(Boolean).map((opt, oIdx) => (
                                            <Badge key={oIdx} variant="secondary" className="text-[9px] font-bold gap-1 px-2 py-1">
                                              {opt}
                                              <X size={10} className="cursor-pointer hover:text-red-500" onClick={() => {
@@ -624,12 +625,12 @@ function WorkflowEngineContent() {
                                     <SelectTrigger className="h-8 w-40 bg-white font-bold text-xs"><SelectValue placeholder="..." /></SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="none">{isAr ? "لا يوجد" : "None"}</SelectItem>
-                                      {(steps || []).filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                      {(steps || []).filter(s => s && s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                     </SelectContent>
                                  </Select>
                                </div>
                                
-                               {(step.logic || []).map((rule, rIdx) => {
+                               {(step.logic || []).filter(Boolean).map((rule, rIdx) => {
                                  const targetField = (step.fields || []).find(f => f.id === rule.fieldId);
                                  const isListField = targetField?.type === 'select' || targetField?.type === 'multichoice';
 
@@ -654,7 +655,7 @@ function WorkflowEngineContent() {
                                             <SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue placeholder={isAr ? "اختر الحقل..." : "Select Field..."} /></SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
-                                              {(step.fields || []).map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
+                                              {(step.fields || []).filter(Boolean).map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
                                             </SelectContent>
                                           </Select>
                                         </div>
@@ -669,7 +670,7 @@ function WorkflowEngineContent() {
                                                 <SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue placeholder="..." /></SelectTrigger>
                                                 <SelectContent>
                                                   <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
-                                                  {targetField?.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                                  {(targetField?.options || []).filter(Boolean).map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                                                 </SelectContent>
                                               </Select>
                                             ) : (
@@ -692,7 +693,7 @@ function WorkflowEngineContent() {
                                               <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder="..." /></SelectTrigger>
                                               <SelectContent>
                                                 <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
-                                                {(steps || []).filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                                {(steps || []).filter(s => s && s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                               </SelectContent>
                                             </Select>
                                           </div>
