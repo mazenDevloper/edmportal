@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -27,7 +28,8 @@ import {
   Info,
   ChevronLeft,
   Circle,
-  ArrowUpRight
+  ArrowUpRight,
+  Megaphone
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
@@ -50,6 +52,8 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { textToSpeech } from '@/ai/flows/tts-flow';
+import CountUp from 'react-countup';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
@@ -63,14 +67,7 @@ export default function DhofarPortal() {
   const [pkiStatus, setPkiStatus] = useState<'connected' | 'disconnected'>('connected');
   const [showThiqaDetails, setShowThiqaDetails] = useState(false);
 
-  // Poll State
-  const [currentPollQIdx, setCurrentPollQIdx] = useState(0);
-  const [pollValue, setPollValue] = useState<string>("");
-  const [pollAnswers, setPollAnswers] = useState<Record<string, string>>({});
-  const [pollSubmitted, setPollFinished] = useState(false);
-
   const [services, setServices] = useState<Service[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [menuItems, setMenuItems] = useState([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
@@ -94,7 +91,6 @@ export default function DhofarPortal() {
             const existing = fetchedServices.find((s: any) => s.id === id);
             const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
             
-            // Comprehensive Requirements Extraction
             const docs: string[] = [];
             if (flow) {
               flow.steps?.forEach((step: any) => {
@@ -117,7 +113,7 @@ export default function DhofarPortal() {
               title: flow?.titleAr || (isAr ? 'خدمة بلدية' : 'Municipal Service'),
               titleEn: flow?.titleEn || 'Municipal Service',
               description: isAr ? 'هذه الخدمة متاحة للتقديم الرقمي عبر بوابة بلدية ظفار.' : 'This service is available for digital submission.',
-              category: id.startsWith('svc_12') || id.startsWith('svc_18') ? 'admin' : id.startsWith('svc_11') ? 'tech' : 'elec',
+              category: 'elec',
               iconName: 'FileText',
               isActive: true,
               reqsAr: isAr ? dynamicReqs : [],
@@ -128,7 +124,6 @@ export default function DhofarPortal() {
           });
 
           setServices(reconciled);
-          setCourses(data.courses || []);
           setSiteConfig(data.siteConfig || null);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
@@ -165,8 +160,6 @@ export default function DhofarPortal() {
     return (services || []).filter(s => activeCategory === 'all' || s.category === activeCategory);
   }, [services, activeCategory]);
 
-  const activePoll = useMemo(() => (surveys || []).find(s => s.isPublicPoll && s.isActive), [surveys]);
-
   const handleReadAloud = async (text: string) => {
     if (ttsLoading) return;
     setTtsLoading(true);
@@ -181,30 +174,7 @@ export default function DhofarPortal() {
     }
   };
 
-  const currentQ = activePoll?.questions?.[currentPollQIdx];
-
-  const handlePollNext = () => {
-    if (!activePoll || !pollValue || !currentQ) return;
-    const newAnswers = { ...pollAnswers, [currentQ.id]: pollValue };
-    setPollAnswers(newAnswers);
-    
-    if (currentPollQIdx < (activePoll.questions?.length || 0) - 1) {
-      setCurrentPollQIdx(currentPollQIdx + 1);
-      setPollValue(newAnswers[activePoll.questions[currentPollQIdx + 1].id] || "");
-    } else {
-      setPollFinished(true);
-    }
-  };
-
-  const handlePollBack = () => {
-    if (currentPollQIdx > 0 && activePoll) {
-      const prevIdx = currentPollQIdx - 1;
-      setCurrentPollQIdx(prevIdx);
-      setPollValue(pollAnswers[activePoll.questions[prevIdx].id] || "");
-    }
-  };
-
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" aria-label="Loading..." /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   return (
     <div className={cn("flex min-h-screen flex-col bg-white", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
@@ -216,110 +186,88 @@ export default function DhofarPortal() {
         {activeTab === 'home' ? (
           <div className="space-y-0">
             {/* 1. Hero & Search */}
-            <section className="py-20 bg-slate-50 relative overflow-hidden" aria-labelledby="hero-heading">
+            <section className="py-24 bg-slate-50 relative overflow-hidden">
                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                 <div className="grid lg:grid-cols-12 gap-12 items-center">
-                   <div className="lg:col-span-7">
-                     <h1 id="hero-heading" className="text-5xl md:text-7xl font-black text-primary tracking-tighter mb-6">
+                 <div className="grid lg:grid-cols-12 gap-16 items-center">
+                   <motion.div initial={{opacity:0, x:-50}} animate={{opacity:1, x:0}} transition={{duration:0.8}} className="lg:col-span-7">
+                     <h1 className="text-6xl md:text-8xl font-black text-primary tracking-tighter mb-8 leading-[0.9]">
                        {siteConfig?.heroTitle || (isAr ? "خدماتنا رقمية، أسرع، وأسهل" : "Digital Services")}
                      </h1>
-                     <p className="text-xl text-slate-600 font-bold mb-10">
-                       {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة" : "Unified Portal")}
+                     <p className="text-2xl text-slate-500 font-bold mb-12 max-w-xl leading-relaxed">
+                       {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة لخدمة المواطن والمقيم وفق رؤية عُمان 2040." : "Unified Portal Serving Dhofar.")}
                      </p>
                      
-                     <div className="space-y-6 max-w-2xl">
-                       <div className="relative group">
-                         <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400", isAr ? "right-6" : "left-6")} aria-hidden="true" />
+                     <div className="space-y-8 max-w-2xl">
+                       <div className="relative group scale-105">
+                         <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent transition-colors", isAr ? "right-6" : "left-6")} size={24} />
                          <input 
                            type="text" 
                            placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
-                           className={cn("w-full h-16 rounded-2xl border-2 font-bold focus:border-primary px-16 shadow-xl bg-white outline-none border-slate-200 transition-all focus:ring-4 focus:ring-primary/10")} 
+                           className={cn("w-full h-20 rounded-[2rem] border-2 font-black text-xl focus:border-accent px-16 shadow-2xl bg-white outline-none border-slate-100 transition-all focus:ring-8 focus:ring-accent/10")} 
                            value={searchQuery} 
                            onChange={(e) => setSearchQuery(e.target.value)} 
-                           aria-label={isAr ? "البحث في الخدمات" : "Search services"}
                          />
                        </div>
 
-                       {/* Results / Featured Mini Grid */}
                        <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-2">
-                              {searchQuery ? (isAr ? "نتائج البحث" : "Search Results") : (isAr ? "الخدمات الأكثر طلباً" : "Featured Services")}
-                              {searchQuery && <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary">{filteredServices.length}</Badge>}
+                         <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
+                              <div className="size-2 bg-accent rounded-full animate-ping" />
+                              {searchQuery ? (isAr ? "نتائج البحث الفورية" : "Neural Search Results") : (isAr ? "الخدمات الأكثر طلباً" : "Top Municipal Services")}
+                              {searchQuery && <Badge variant="outline" className="bg-accent/10 border-accent/20 text-accent font-black">{filteredServices.length}</Badge>}
                             </h3>
-                            {searchQuery && (
-                              <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')} className="h-6 text-[10px] font-black text-slate-400 hover:text-red-500">
-                                {isAr ? "إلغاء البحث" : "Clear Search"}
-                              </Button>
-                            )}
                          </div>
                          
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {displayedQuickAccess.length > 0 ? displayedQuickAccess.map(s => {
-                              const IconComp = (Icons as any)[s.iconName] || Icons.FileText;
-                              return (
-                                <Link 
-                                  key={s.id} 
-                                  href={`/services/${s.id}`}
-                                  className="group flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all animate-in zoom-in-95"
-                                >
-                                  <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <IconComp size={18} />
-                                  </div>
-                                  <div className="flex-1 overflow-hidden">
-                                    <p className="text-xs font-black text-slate-700 truncate group-hover:text-primary">
-                                      {isAr ? s.title : (s.titleEn || s.title)}
-                                    </p>
-                                    <p className="text-[10px] font-bold text-slate-400">{isAr ? "بدء الخدمة" : "Start Service"}</p>
-                                  </div>
-                                  <ArrowUpRight size={14} className="text-slate-300 group-hover:text-accent group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                                </Link>
-                              );
-                            }) : (
-                              <div className="col-span-full py-8 px-4 border-2 border-dashed border-slate-200 rounded-2xl text-center">
-                                <p className="text-sm font-bold text-slate-400">
-                                  {isAr ? "لم يتم العثور على نتائج مطابقة" : "No matching results found"}
-                                </p>
-                              </div>
-                            )}
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <AnimatePresence mode="popLayout">
+                              {displayedQuickAccess.map((s, idx) => {
+                                const IconComp = (Icons as any)[s.iconName] || Icons.FileText;
+                                return (
+                                  <motion.div initial={{opacity:0, scale:0.9}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.9}} transition={{delay: idx * 0.05}} key={s.id}>
+                                    <Link 
+                                      href={`/services/${s.id}`}
+                                      className="group flex items-center gap-5 p-4 bg-white border-2 border-transparent rounded-[1.5rem] shadow-lg hover:shadow-2xl hover:border-accent/30 transition-all"
+                                    >
+                                      <div className="size-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center shrink-0 group-hover:bg-accent group-hover:text-slate-900 transition-colors">
+                                        <IconComp size={24} />
+                                      </div>
+                                      <div className="flex-1 overflow-hidden">
+                                        <p className="text-sm font-black text-slate-800 truncate group-hover:text-primary">
+                                          {isAr ? s.title : (s.titleEn || s.title)}
+                                        </p>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "وصول مباشر" : "Direct Access"}</p>
+                                      </div>
+                                      <ArrowUpRight size={18} className="text-slate-300 group-hover:text-accent transition-all" />
+                                    </Link>
+                                  </motion.div>
+                                );
+                              })}
+                            </AnimatePresence>
                          </div>
-                       </div>
-
-                       <div className="flex items-center gap-4">
-                         <Button 
-                           variant="ghost" 
-                           className="text-xs font-bold text-slate-500 gap-2 hover:bg-primary/5 hover:text-primary transition-colors"
-                           onClick={() => handleReadAloud((siteConfig?.heroTitle || '') + ". " + (siteConfig?.heroSubtitle || ''))}
-                           disabled={ttsLoading}
-                           aria-label={isAr ? "استمع إلى الترحيب" : "Listen to Welcome"}
-                         >
-                           {ttsLoading ? <Loader2 className="animate-spin size-3" /> : <Volume2 size={14} />}
-                           {isAr ? "استمع للترحيب" : "Listen to Welcome"}
-                         </Button>
                        </div>
                      </div>
-                   </div>
+                   </motion.div>
 
-                   <div className="lg:col-span-5">
-                     <Card className="border-none shadow-2xl rounded-brand bg-white relative overflow-hidden flex flex-col border-t-8 border-primary">
-                       <CardHeader className="bg-slate-50 p-6 flex flex-row items-center justify-between border-b">
-                         <div className="flex items-center gap-3">
-                           <div className="p-2.5 rounded-xl bg-primary text-white shadow-lg">
-                             <Fingerprint className="size-6" />
+                   <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5">
+                     <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.15)] rounded-[3rem] bg-white relative overflow-hidden flex flex-col border-t-[12px] border-primary">
+                       <CardHeader className="bg-slate-50 p-8 flex flex-row items-center justify-between border-b">
+                         <div className="flex items-center gap-4">
+                           <div className="p-3.5 rounded-2xl bg-primary text-white shadow-xl">
+                             <Fingerprint className="size-8" />
                            </div>
                            <div>
-                             <CardTitle className="font-black text-sm text-primary">{isAr ? "مركز الهوية الرقمية (ثقة)" : "Digital Identity Hub (Theqa)"}</CardTitle>
-                             <CardDescription className="text-[10px] font-bold text-slate-600">{isAr ? "نظام المصادقة الوطنية الموحد" : "Unified National Auth"}</CardDescription>
+                             <CardTitle className="font-black text-lg text-primary">{isAr ? "الهوية الرقمية (ثقة)" : "Neural ID (Theqa)"}</CardTitle>
+                             <CardDescription className="text-xs font-bold text-slate-500">{isAr ? "نظام المصادقة الوطنية الموحد" : "Unified National Security"}</CardDescription>
                            </div>
                          </div>
-                         <Badge className={cn("rounded-full border-none px-3 py-1 font-black text-[10px] transition-colors", pkiStatus === 'connected' ? "bg-emerald-700 text-white" : "bg-amber-700 text-white")}>
-                           {pkiStatus === 'connected' ? (isAr ? "نشط آمن" : "Active & Secure") : (isAr ? "غير متصل" : "Not Linked")}
+                         <Badge className={cn("rounded-full border-none px-4 py-1.5 font-black text-[10px] transition-all", pkiStatus === 'connected' ? "bg-emerald-600 text-white" : "bg-amber-600 text-white")}>
+                           {pkiStatus === 'connected' ? (isAr ? "نشط وآمن" : "Active & Secure") : (isAr ? "غير متصل" : "Not Linked")}
                          </Badge>
                        </CardHeader>
                        
-                       <CardContent className="p-8 space-y-6">
-                         <div className="flex justify-center py-4 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-100 relative group transition-all hover:bg-white hover:border-primary/20">
-                            <div className="relative w-48 h-20">
+                       <CardContent className="p-10 space-y-8">
+                         <div className="flex justify-center py-8 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 relative group transition-all hover:bg-white hover:border-accent/40">
+                            <div className="relative w-64 h-24">
                                <Image 
                                  src="https://gov.om/documents/20117/254616/FLIPPED-Theqa-HomePage.png/3a21164e-8832-38df-f66b-6780161591d2?t=1788817339796"
                                  alt="Theqa National Digital Identity Logo"
@@ -330,262 +278,170 @@ export default function DhofarPortal() {
                             </div>
                          </div>
 
-                         <div className="space-y-4">
-                            <p className="text-sm text-slate-700 font-bold leading-relaxed">
+                         <div className="space-y-6">
+                            <p className="text-md text-slate-700 font-bold leading-loose text-center">
                               {isAr 
-                                ? "أهلاً بك في بوابة بلدية ظفار المعتمدة. نظام ثقة يمنحك وصولاً آمناً وفورياً لجميع الخدمات الحكومية دون الحاجة لإدخال بياناتك يدوياً."
-                                : "Welcome to the Dhofar Municipality Accredited Portal. Theqa provides secure, instant access to all services without manual data entry."}
+                                ? "نظام ثقة يمنحك وصولاً فورياً لكافة الخدمات الحكومية دون الحاجة لإدخال بياناتك يدوياً، مع حماية فائقة لخصوصيتك."
+                                : "Theqa provides instant, secure access to all e-services without manual data entry."}
                             </p>
 
-                            {showThiqaDetails && (
-                              <div className="space-y-4 pt-4 border-t animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-1 gap-3">
-                                  {[
-                                    { step: 1, icon: <Fingerprint size={16}/>, textAr: "تفعيل الهوية الرقمية عبر تطبيق ثقة بالهاتف.", textEn: "Activate digital ID via Theqa mobile app." },
-                                    { step: 2, icon: <ShieldCheck size={16}/>, textAr: "المصادقة باستخدام شريحة الهاتف أو البطاقة الشخصية.", textEn: "Authenticate via SIM PKI or National ID." },
-                                    { step: 3, icon: <ArrowRightLeft size={16}/>, textAr: "الدخول التلقائي والآمن للخدمات البلدية.", textEn: "Seamless entry to municipal e-services." }
-                                  ].map((item) => (
-                                    <div key={item.step} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                      <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shrink-0">{item.step}</div>
-                                      <p className="text-[11px] font-bold text-slate-700">{isAr ? item.textAr : item.textEn}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex flex-col gap-3 pt-4">
+                            <div className="flex flex-col gap-4">
                               <Button 
                                 variant="outline" 
-                                className="w-full h-12 rounded-xl font-black text-primary border-primary hover:bg-primary/5 gap-2"
+                                className="w-full h-14 rounded-2xl font-black text-primary border-primary hover:bg-primary/5 gap-3 transition-all"
                                 onClick={() => setShowThiqaDetails(!showThiqaDetails)}
                               >
-                                {showThiqaDetails ? <Minus size={16}/> : <Plus size={16}/>}
-                                {isAr ? "معلومات إضافية عن ثقة" : "More about Theqa"}
+                                {showThiqaDetails ? <Minus size={20}/> : <Plus size={20}/>}
+                                {isAr ? "كيفية التفعيل والاستخدام" : "How to Activate"}
                               </Button>
                               <Button 
-                                className="w-full h-12 dm-gradient-primary rounded-xl font-black shadow-lg gap-2"
+                                className="w-full h-16 dm-gradient-primary rounded-2xl font-black shadow-2xl gap-4 text-lg"
                                 onClick={() => setPkiStatus(pkiStatus === 'connected' ? 'disconnected' : 'connected')}
                               >
-                                <Fingerprint size={18} />
-                                {isAr ? "تبديل حالة الدخول الرقمي (محاكاة)" : "Toggle Digital Entry (Sim)"}
+                                <Fingerprint size={24} />
+                                {isAr ? "تسجيل دخول رقمي آمن" : "Secure Digital Sign-In"}
                               </Button>
                             </div>
                          </div>
                        </CardContent>
                      </Card>
-                   </div>
+                   </motion.div>
                  </div>
                </div>
                <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
             </section>
 
-            {/* 4. Featured Services Section (Main Catalog Style) */}
-            {featuredServices.length > 0 && !searchQuery && (
-              <section className="py-20 bg-white" aria-labelledby="featured-services-title">
-                <div className="max-w-7xl mx-auto px-6">
-                  <div className="flex items-center gap-3 mb-12">
-                    <Star className="text-accent fill-accent" size={24} aria-hidden="true" />
-                    <h2 id="featured-services-title" className="text-3xl font-black text-primary">{isAr ? "الخدمات الأكثر استخداماً" : "Most Used Services"}</h2>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-                    {featuredServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 5. Public Poll / Survey Section */}
-            {activePoll && activePoll.questions?.length > 0 && (
-              <section className="py-20 bg-accent/5" aria-labelledby="public-poll-title">
-                <div className="max-w-4xl mx-auto px-6 text-center">
-                  {!pollSubmitted ? (
-                    <>
-                      <div className="mb-8">
-                        <Badge className="bg-accent text-white mb-4">{isAr ? "صوتك يهمنا" : "Your Voice Matters"}</Badge>
-                        <h2 id="public-poll-title" className="text-3xl font-black text-primary mb-4">{isAr ? activePoll.titleAr : activePoll.titleEn}</h2>
-                        <p className="text-slate-600 font-bold">{isAr ? activePoll.descriptionAr : activePoll.descriptionEn}</p>
+            {/* 2. Stats Section with CountUp */}
+            <section className="py-24 bg-primary text-white relative overflow-hidden">
+               <div className="max-w-7xl mx-auto px-6 relative z-10">
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
+                    {[
+                      { icon: <TrendingUp/>, val: siteConfig?.stats?.transactions || 25000, labelAr: 'معاملة رقمية', labelEn: 'Digital Transactions' },
+                      { icon: <ShieldCheck/>, val: siteConfig?.stats?.permits || 4200, labelAr: 'رخصة بناء', labelEn: 'Building Permits' },
+                      { icon: <FileText/>, val: siteConfig?.stats?.contracts || 8500, labelAr: 'عقد إيجار', labelEn: 'Lease Contracts' },
+                      { icon: <Users/>, val: siteConfig?.stats?.tickets || 12000, labelAr: 'مستفيد نشط', labelEn: 'Active Citizens' },
+                    ].map((stat, i) => (
+                      <div key={i} className="space-y-3">
+                         <div className="mx-auto text-accent mb-4 p-4 rounded-3xl bg-white/10 w-fit shrink-0">{React.cloneElement(stat.icon as any, {size: 32})}</div>
+                         <h3 className="text-5xl font-black flex items-center justify-center gap-1">
+                           <CountUp end={stat.val} duration={3} />
+                           <span className="text-accent">+</span>
+                         </h3>
+                         <p className="text-[10px] font-black opacity-60 tracking-[0.2em] uppercase">{isAr ? stat.labelAr : stat.labelEn}</p>
                       </div>
-                      <Card className="rounded-brand border-none shadow-xl overflow-hidden">
-                        <CardContent className="p-8">
-                          {currentQ && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                              <div className="flex flex-col items-center gap-4">
-                                <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black">
-                                  {currentPollQIdx + 1}
-                                </div>
-                                <h3 className="text-2xl font-black flex items-center justify-center gap-3 text-primary">
-                                  {currentQ.iconName && React.createElement((Icons as any)[currentQ.iconName] || Icons.Info, { className: "text-accent", "aria-hidden": "true" })}
-                                  {isAr ? currentQ.questionAr : currentQ.questionEn}
-                                </h3>
-                              </div>
-                              
-                              <RadioGroup 
-                                className="grid sm:grid-cols-2 gap-4" 
-                                value={pollValue} 
-                                onValueChange={setPollValue}
-                                aria-label={isAr ? currentQ.questionAr : currentQ.questionEn}
-                              >
-                                {currentQ.options?.map((opt) => (
-                                  <div key={opt.id} className="relative">
-                                    <RadioGroupItem value={opt.id} id={opt.id} className="sr-only" />
-                                    <Label 
-                                      htmlFor={opt.id} 
-                                      className={cn(
-                                        "flex items-center gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-all font-bold text-slate-700",
-                                        pollValue === opt.id 
-                                          ? "border-primary bg-primary/5 text-primary scale-[1.02] shadow-md" 
-                                          : "border-slate-100 bg-white hover:border-primary/30"
-                                      )}
-                                    >
-                                      <div className={cn(
-                                        "size-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                                        pollValue === opt.id ? "border-primary" : "border-slate-300"
-                                      )}>
-                                        {pollValue === opt.id && <div className="size-2.5 rounded-full bg-primary" />}
-                                      </div>
-                                      {opt.icon && React.createElement((Icons as any)[opt.icon] || Icons.Circle, { size: 20, className: pollValue === opt.id ? "text-primary" : "text-slate-400", "aria-hidden": "true" })}
-                                      <span className="text-lg">{isAr ? opt.textAr : opt.textEn}</span>
-                                    </Label>
-                                  </div>
-                                ))}
-                              </RadioGroup>
-                              
-                              <div className="flex justify-between items-center pt-8 border-t">
-                                <Button 
-                                  variant="ghost" 
-                                  onClick={handlePollBack} 
-                                  disabled={currentPollQIdx === 0}
-                                  className="rounded-full font-black px-8 h-12 gap-2"
-                                >
-                                  {isAr ? <ChevronRight /> : <ChevronLeft />}
-                                  {isAr ? "السابق" : "Back"}
-                                </Button>
-                                <Button 
-                                  onClick={handlePollNext} 
-                                  disabled={!pollValue}
-                                  className="dm-gradient-primary rounded-full px-12 h-14 font-black shadow-lg gap-2"
-                                >
-                                  {currentPollQIdx === (activePoll.questions?.length || 0) - 1 ? (isAr ? "إرسال التصويت" : "Submit Poll") : (isAr ? "التالي" : "Next")}
-                                  {currentPollQIdx !== (activePoll.questions?.length || 0) - 1 && (isAr ? <ChevronLeft /> : <ChevronRight />)}
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </>
-                  ) : (
-                    <Card className="rounded-brand border-none shadow-xl py-20 px-8 text-center animate-in zoom-in-95 duration-500">
-                      <div className="size-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-8">
-                        <CheckCircle size={48} />
-                      </div>
-                      <h2 className="text-4xl font-black text-primary mb-4">{isAr ? "شكراً لمشاركتك" : "Thank You!"}</h2>
-                      <p className="text-xl text-slate-600 font-bold mb-10">{isAr ? "رأيك يساهم في تحسين جودة خدماتنا البلدية." : "Your feedback helps us improve our municipal services."}</p>
-                      <Button variant="outline" onClick={() => setPollFinished(false)} className="rounded-full font-black px-10 border-primary text-primary">
-                        {isAr ? "عودة" : "Go Back"}
-                      </Button>
-                    </Card>
-                  )}
-                </div>
-              </section>
-            )}
+                    ))}
+                 </div>
+               </div>
+               <div className="absolute inset-0 dm-wave-5 opacity-5" />
+            </section>
 
-            {/* 6. Carousel Banner */}
+            {/* 3. Catalog Section */}
+            <section className="py-24 bg-white">
+              <div className="max-w-7xl mx-auto px-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
+                   <div className="space-y-4">
+                     <Badge className="bg-accent/10 text-accent font-black border-none rounded-lg px-4 py-1.5">{isAr ? "بوابة الخدمات الشاملة" : "Global Service Hub"}</Badge>
+                     <h2 className="text-5xl font-black text-primary tracking-tighter">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog Matrix"}</h2>
+                     <p className="text-slate-500 font-bold max-w-xl">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً عبر نظامنا الموحد." : "Explore all municipal services available digitally."}</p>
+                   </div>
+                   <nav className="flex gap-2 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
+                     {['all', ...Object.keys(CAT_CONFIG)].map(cid => (
+                       <Button 
+                        key={cid} 
+                        onClick={() => setActiveCategory(cid)} 
+                        variant={activeCategory === cid ? 'default' : 'outline'} 
+                        className={cn("rounded-full font-black px-10 h-14 transition-all whitespace-nowrap", activeCategory === cid ? "dm-gradient-primary shadow-xl" : "text-primary border-primary border-2 hover:bg-primary/5")}
+                      >
+                         {cid === 'all' ? (isAr ? 'كافة الخدمات' : 'All Services') : (isAr ? CAT_CONFIG[cid as CategoryId].labelAr : CAT_CONFIG[cid as CategoryId].labelEn)}
+                       </Button>
+                     ))}
+                   </nav>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                  {catalogServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
+                </div>
+              </div>
+            </section>
+
+            {/* 4. Banner Carousel */}
             {carouselItems.length > 0 && (
-              <section className="relative group overflow-hidden" aria-label={isAr ? "إعلانات البوابة" : "Portal Banners"}>
+              <section className="relative group overflow-hidden border-y-[20px] border-slate-50">
                 <Carousel className="w-full" opts={{ loop: true }}>
                   <CarouselContent>
                     {carouselItems.map(item => (
                       <CarouselItemUI key={item.id}>
-                        <div className="relative h-[500px] w-full flex items-center justify-center">
-                          <Image 
-                            src={item.imageUrl || "https://picsum.photos/seed/dhofar/1200/600"} 
-                            alt="" 
-                            fill 
-                            className="object-cover brightness-[0.4]" 
-                            data-ai-hint="scenic landscape"
-                          />
-                          <div className="relative z-10 text-center text-white px-6 max-w-4xl">
-                            <h2 className="text-5xl md:text-7xl font-black mb-6 drop-shadow-2xl">{isAr ? item.titleAr : item.titleEn}</h2>
-                            <p className="text-xl md:text-2xl font-bold opacity-90 mb-10">{isAr ? item.subtitleAr : item.subtitleEn}</p>
-                            <Button className="dm-gradient-primary rounded-full px-12 h-14 text-lg font-black shadow-2xl">
-                              {isAr ? 'استكشف الآن' : 'Explore Now'}
+                        <div className="relative h-[650px] w-full flex items-center justify-center">
+                          {item.imageUrl && (
+                            <Image 
+                              src={item.imageUrl} 
+                              alt="" 
+                              fill 
+                              className="object-cover brightness-[0.3]" 
+                              priority
+                            />
+                          )}
+                          <div className="relative z-10 text-center text-white px-6 max-w-5xl">
+                            <motion.h2 initial={{y:30, opacity:0}} whileInView={{y:0, opacity:1}} className="text-6xl md:text-8xl font-black mb-8 drop-shadow-2xl tracking-tighter">{isAr ? item.titleAr : item.titleEn}</motion.h2>
+                            <motion.p initial={{y:30, opacity:0}} whileInView={{y:0, opacity:1}} transition={{delay:0.2}} className="text-2xl md:text-3xl font-bold opacity-80 mb-12 leading-relaxed">{isAr ? item.subtitleAr : item.subtitleEn}</motion.p>
+                            <Button className="dm-gradient-primary rounded-full px-16 h-16 text-xl font-black shadow-[0_20px_50px_rgba(3,207,203,0.3)]">
+                              {isAr ? 'ابدأ الخدمة الآن' : 'Start Service Now'}
                             </Button>
                           </div>
                         </div>
                       </CarouselItemUI>
                     ))}
                   </CarouselContent>
-                  <CarouselPrevious className="left-8" aria-label={isAr ? "السابق" : "Previous slide"} />
-                  <CarouselNext className="right-8" aria-label={isAr ? "التالي" : "Next slide"} />
+                  <CarouselPrevious className="left-12 size-12 bg-white/10 border-white/20 text-white hover:bg-accent hover:text-slate-900" />
+                  <CarouselNext className="right-12 size-12 bg-white/10 border-white/20 text-white hover:bg-accent hover:text-slate-900" />
                 </Carousel>
               </section>
             )}
 
-            {/* 7. Stats */}
-            <section className="py-24 bg-primary text-white relative overflow-hidden" aria-label={isAr ? "إحصائيات المنصة" : "Platform Stats"}>
-               <div className="max-w-7xl mx-auto px-6 relative z-10">
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-                    <div className="space-y-2">
-                       <TrendingUp className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
-                       <h3 className="text-5xl font-black">{siteConfig?.stats?.transactions || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'معاملة رقمية' : 'Transactions'}</p>
+            {/* 5. Ticker & Community Feedback (AI Polls) */}
+            <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
+               <div className="max-w-7xl mx-auto px-6 relative z-10 grid lg:grid-cols-2 gap-20 items-center">
+                  <div className="space-y-8">
+                     <Badge className="bg-accent text-slate-900 font-black px-6 py-2 rounded-xl text-md">{isAr ? "أخبار البلدية" : "Breaking News"}</Badge>
+                     <h3 className="text-5xl font-black leading-tight">{isAr ? "مواكبة دائمة لمشاريع التطوير في محافظة ظفار" : "Continuous Development Projects in Dhofar."}</h3>
+                     <div className="space-y-6">
+                        {[
+                          { date: '24 May', text: isAr ? 'افتتاح مشروع رصف الطرق في منطقة صحلنوت الشمالية.' : 'Opening of the paving project in Sahalnoot.' },
+                          { date: '18 May', text: isAr ? 'بلدية ظفار تطلق حملة التفتيش الصحي السنوية لموسم الخريف.' : 'Health inspection campaign for Khareef season.' },
+                        ].map((news, i) => (
+                          <div key={i} className="flex gap-6 p-6 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
+                             <div className="text-accent font-black text-sm shrink-0 uppercase tracking-widest">{news.date}</div>
+                             <p className="font-bold text-lg group-hover:text-accent transition-colors">{news.text}</p>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
+
+                  <Card className="rounded-[3rem] border-none shadow-2xl bg-white text-slate-900 p-10 overflow-hidden relative">
+                    <div className="relative z-10 space-y-8">
+                       <div className="flex items-center gap-4">
+                          <div className="size-14 rounded-3xl bg-accent text-slate-900 flex items-center justify-center shadow-lg"><Megaphone size={28}/></div>
+                          <div>
+                             <h4 className="text-2xl font-black text-primary">{isAr ? "صوتك يهمنا" : "Voice of Citizen"}</h4>
+                             <p className="text-sm font-bold text-slate-400">{isAr ? "ساهم في تحسين جودة خدماتنا" : "Help us improve quality"}</p>
+                          </div>
+                       </div>
+                       <div className="space-y-6">
+                          <h5 className="text-xl font-bold leading-relaxed">{isAr ? "ما هي أكثر قناة تفضلها للتواصل مع بلدية ظفار؟" : "What is your preferred contact channel?"}</h5>
+                          <div className="grid grid-cols-1 gap-3">
+                             {['تطبيق الهاتف', 'البوابة الإلكترونية', 'مركز الاتصال 1771', 'زيارة المبنى'].map((opt, i) => (
+                               <Button key={i} variant="outline" className="h-14 rounded-2xl justify-between px-6 font-black border-2 hover:border-accent hover:bg-accent/5">
+                                  {opt}
+                                  <div className="size-5 rounded-full border-2 border-slate-200" />
+                               </Button>
+                             ))}
+                          </div>
+                          <Button className="w-full h-16 dm-gradient-primary rounded-2xl font-black text-lg shadow-xl">{isAr ? "إرسال التصويت" : "Submit Poll"}</Button>
+                       </div>
                     </div>
-                    <div className="space-y-2">
-                       <ShieldCheck className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
-                       <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'رخصة بناء' : 'Permits'}</p>
-                    </div>
-                    <div className="space-y-2">
-                       <FileText className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
-                       <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'عقد إيجار' : 'Leases'}</p>
-                    </div>
-                    <div className="space-y-2">
-                       <Users className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
-                       <h3 className="text-5xl font-black">{siteConfig?.stats?.tickets || '0'}+</h3>
-                       <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'تذكرة دعم' : 'Tickets'}</p>
-                    </div>
-                 </div>
+                    <div className="absolute top-0 right-0 size-64 dm-wave-5 opacity-10 -rotate-45 translate-x-32 -translate-y-32" />
+                  </Card>
                </div>
-               <div className="absolute inset-0 dm-wave-5 opacity-10" aria-hidden="true" />
-            </section>
-
-            {/* 8. Catalog */}
-            <section className="py-24 bg-white" aria-labelledby="catalog-title">
-              <div className="max-w-7xl mx-auto px-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
-                   <div>
-                     <h2 id="catalog-title" className="text-4xl font-black text-primary mb-2">{isAr ? "دليل الخدمات الإلكترونية" : "Service Catalog"}</h2>
-                     <p className="text-slate-600 font-bold">{isAr ? "استكشف كافة الخدمات البلدية المتاحة رقمياً" : "Explore all municipal services"}</p>
-                   </div>
-                   <nav className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto" aria-label={isAr ? "فئات الخدمات" : "Service Categories"}>
-                     {['all', ...Object.keys(CAT_CONFIG)].map(cid => (
-                       <Button 
-                        key={cid} 
-                        onClick={() => setActiveCategory(cid)} 
-                        variant={activeCategory === cid ? 'default' : 'outline'} 
-                        className={cn("rounded-full font-black px-8 h-12 transition-all", activeCategory === cid ? "dm-gradient-primary" : "text-primary border-primary")}
-                      >
-                         {cid === 'all' ? (isAr ? 'الكل' : 'All') : (isAr ? CAT_CONFIG[cid as CategoryId].labelAr : CAT_CONFIG[cid as CategoryId].labelEn)}
-                       </Button>
-                     ))}
-                   </nav>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {catalogServices.map(s => <ServiceCardEnhanced key={s.id} service={s} isAr={isAr} />)}
-                </div>
-              </div>
-            </section>
-
-            {/* 9. Identity Showcase */}
-            <section className="py-24 bg-white border-t" aria-label={isAr ? "دليل الهوية" : "Identity Guide"}>
-              <div className="max-w-7xl mx-auto px-6 text-center">
-                <Button onClick={() => setActiveTab('identity')} className="h-16 px-12 rounded-full font-black text-xl dm-gradient-primary shadow-xl">
-                  {isAr ? "دليل الهوية البصرية والمكونات" : "Visual Identity & Components Guide"}
-                </Button>
-              </div>
+               <div className="absolute bottom-0 left-0 w-full h-1/2 dm-wave-5 opacity-5 pointer-events-none" />
             </section>
           </div>
         ) : <IdentityShowcase isAr={isAr} />}
@@ -595,3 +451,4 @@ export default function DhofarPortal() {
     </div>
   );
 }
+
