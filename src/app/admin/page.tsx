@@ -456,8 +456,8 @@ export default function AdminDashboard() {
                       {applications.map(app => (
                         <TableRow key={app.id}>
                            <TableCell className="font-mono text-xs font-bold text-slate-400">{app.id}</TableCell>
-                           <TableCell className="font-bold">{app.citizenName}</TableCell>
-                           <TableCell className="font-bold text-primary">{app.serviceName}</TableCell>
+                           <TableCell className="font-bold">{app.citizenName || ''}</TableCell>
+                           <TableCell className="font-bold text-primary">{app.serviceName || ''}</TableCell>
                            <TableCell>
                               <Badge className={cn(
                                 "rounded-full font-black",
