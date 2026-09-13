@@ -56,7 +56,7 @@ function WorkflowEngineContent() {
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
     fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: ''
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Fix for React Flow hidden dimensions (Zeroing)
@@ -77,8 +77,6 @@ function WorkflowEngineContent() {
           if (svc) setServiceInfo(svc);
         }
       }).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
     }
   }, [editId]);
 
@@ -207,14 +205,17 @@ function WorkflowEngineContent() {
       }
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
+          // Find the field name for a descriptive label
           const field = step.fields.find(f => f.id === rule.fieldId);
           const fieldLabel = isAr ? field?.labelAr : field?.labelEn;
+          const edgeLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`;
+
           e.push({
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
-            label: fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`,
-            type: 'smoothstep',
+            label: edgeLabel,
+            type: 'smoothstep', // Use smoothstep to prevent overlapping with nodes and other edges
             animated: true,
             style: { stroke: '#03CFCB', strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
