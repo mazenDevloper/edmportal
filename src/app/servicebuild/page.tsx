@@ -59,13 +59,7 @@ function WorkflowEngineContent() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [edgeType, setEdgeType] = useState<string>('straight');
-
-  // Fix for React Flow hidden dimensions (Zeroing)
-  useEffect(() => {
-    if (activeTab === 'canvas') {
-      setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
-    }
-  }, [activeTab]);
+  const [edgeOverrides, setEdgeOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (editId) {
@@ -195,11 +189,12 @@ function WorkflowEngineContent() {
     const e: Edge[] = [];
     steps.forEach(step => {
       if (step.defaultNextStepId) {
+        const edgeId = `e-${step.id}-${step.defaultNextStepId}`;
         e.push({
-          id: `e-${step.id}-${step.defaultNextStepId}`,
+          id: edgeId,
           source: step.id,
           target: step.defaultNextStepId,
-          type: edgeType,
+          type: edgeOverrides[edgeId] || edgeType,
           label: isAr ? 'افتراضي' : 'Default',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
           style: { stroke: '#007375', strokeWidth: 2 }
@@ -207,11 +202,12 @@ function WorkflowEngineContent() {
       }
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
+          const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
           e.push({
-            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
+            id: edgeId,
             source: step.id,
             target: rule.targetStepId,
-            type: edgeType,
+            type: edgeOverrides[edgeId] || edgeType,
             label: `${rule.value}`,
             animated: true,
             style: { stroke: '#03CFCB', strokeWidth: 2 },
@@ -221,7 +217,18 @@ function WorkflowEngineContent() {
       });
     });
     return e;
-  }, [steps, isAr, edgeType]);
+  }, [steps, isAr, edgeType, edgeOverrides]);
+
+  const onEdgeClick = useCallback((_: any, edge: any) => {
+    setEdgeOverrides((prev) => ({
+      ...prev,
+      [edge.id]: (prev[edge.id] || edgeType) === 'smoothstep' ? 'straight' : 'smoothstep',
+    }));
+    toast({
+      title: isAr ? "تم تغيير نوع المسار" : "Path style toggled",
+      description: isAr ? "تم التبديل بين الخط المستقيم والمنكسر لهذه الوصلة" : "Switched between straight and broken style for this edge"
+    });
+  }, [edgeType, isAr, toast]);
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
@@ -569,6 +576,7 @@ function WorkflowEngineContent() {
                       <ReactFlow 
                         nodes={nodes} 
                         edges={edges}
+                        onEdgeClick={onEdgeClick}
                         fitView
                         className="bg-slate-50"
                       >
