@@ -43,7 +43,7 @@ export default function AdminDashboard() {
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
 
-  // Comprehensive Master List matching user English Titles
+  // Updated Master List with Official English Titles
   const MASTER_SERVICES_DATA = [
     { id: "svc_100", titleAr: "ترخيص إقامة عرض ترويجي للسيارات", titleEn: "Get a Permit for Organizing a Promotional Car Event", icon: "Car", cat: "invest", reqAr: ["رسالة الشركة وتحديد الموقع", "السجل التجاري"] },
     { id: "svc_101", titleAr: "تصديق مسارات تمديدات الكهرباء", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)", icon: "Zap", cat: "elec", reqAr: ["الرسم المساحي والملكية", "اعتماد شركة الكهرباء"] },
@@ -219,7 +219,7 @@ export default function AdminDashboard() {
         serviceFlows: currentFlows
       });
 
-      toast({ title: isAr ? "تم التثبيت" : "Success", description: isAr ? "تم تحديث كافة خدمات MASTER." : "All 29 master services updated." });
+      toast({ title: isAr ? "تم التثبيت" : "Success", description: isAr ? "تم تحديث كافة خدمات MASTER." : "All master services updated." });
       window.location.reload();
     } catch (e) {
       toast({ variant: "destructive", title: "Seed Failed" });

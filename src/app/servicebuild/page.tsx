@@ -45,7 +45,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Accurate Master Data Map based on User Prompt
+// Comprehensive Master Data Map with requested English titles
 const MASTER_DATA_MAP: Record<string, any> = {
   "svc_100": { icon: "Car", cat: "invest", titleEn: "Get a Permit for Organizing a Promotional Car Event" },
   "svc_101": { icon: "Zap", cat: "elec", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)" },
@@ -260,15 +260,30 @@ function WorkflowEngineContent() {
   };
 
   const syncReqsFromSteps = () => {
-    const derivedDocs = steps.flatMap(s => 
-      (s.fields || [])
-        .filter(f => f.type === 'upload')
-        .map(f => isAr ? f.labelAr : f.labelEn)
-    ).filter(Boolean);
+    const derivedDocs: string[] = [];
     
-    const uniqueDocs = Array.from(new Set(derivedDocs));
+    (steps || []).filter(Boolean).forEach(step => {
+      const stepTitle = (isAr ? step.titleAr : step.titleEn) || '';
+      const isDocStep = stepTitle.includes('المستندات') || stepTitle.toLowerCase().includes('document');
+
+      (step.fields || []).filter(Boolean).forEach(field => {
+        // Rule 1: Always include upload fields
+        if (field.type === 'upload') {
+          derivedDocs.push(isAr ? field.labelAr : field.labelEn);
+        } 
+        // Rule 2: If the entire step is for "Documents", include all field labels
+        else if (isDocStep) {
+          derivedDocs.push(isAr ? field.labelAr : field.labelEn);
+        }
+      });
+    });
+    
+    const uniqueDocs = Array.from(new Set(derivedDocs.filter(Boolean)));
     setServiceInfo(prev => ({ ...prev, reqsAr: uniqueDocs }));
-    toast({ title: isAr ? "تم تحديث المستندات" : "Docs Synced", description: isAr ? `تم جلب ${uniqueDocs.length} مستند من مراحل العمل.` : `Found ${uniqueDocs.length} upload fields.` });
+    toast({ 
+      title: isAr ? "تم تحديث المستندات" : "Docs Synced", 
+      description: isAr ? `تم جلب ${uniqueDocs.length} مستند من مراحل العمل.` : `Found ${uniqueDocs.length} required documents.` 
+    });
   };
 
   const handleSave = async () => {
