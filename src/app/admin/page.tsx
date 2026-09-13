@@ -70,7 +70,43 @@ export default function AdminDashboard() {
       try {
         const data = await fetchBin();
         if (data) {
-          setServices(data.services || []);
+          // Robust Service Reconciliation
+          const fetchedServices = data.services || [];
+          const fetchedFlows = data.serviceFlows || [];
+          
+          // Create a Map of all unique service IDs from both sources
+          const allServiceIds = new Set([
+            ...fetchedServices.map((s: any) => s.id),
+            ...fetchedFlows.map((f: any) => f.serviceId || f.id)
+          ]);
+
+          const combinedServices = Array.from(allServiceIds).map(id => {
+            const existingSvc = fetchedServices.find((s: any) => s.id === id);
+            if (existingSvc) return {
+              ...existingSvc,
+              title: existingSvc.title || existingSvc.titleAr || 'Untitled',
+              reqsAr: existingSvc.reqsAr || [],
+              reqsEn: existingSvc.reqsEn || []
+            };
+            
+            // If service metadata is missing but flow exists, synthesize it
+            const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
+            return {
+              id,
+              title: flow?.titleAr || flow?.title || 'Untitled Service',
+              titleEn: flow?.titleEn || '',
+              description: 'Generated from workflow data',
+              category: 'elec',
+              iconName: 'FileText',
+              isActive: true,
+              reqsAr: [],
+              reqsEn: [],
+              fees: '0 OMR',
+              type: 'workflow'
+            } as Service;
+          });
+
+          setServices(combinedServices);
           setApplications(data.applications || []);
           setSiteConfig({
             ...siteConfig,
@@ -85,6 +121,7 @@ export default function AdminDashboard() {
           setPopups(data.popups || []);
         }
       } catch (e) {
+        console.error("Dashboard load error:", e);
         toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
       } finally {
         setLoading(false);
@@ -174,51 +211,6 @@ export default function AdminDashboard() {
             <TabsTrigger value="surveys" className="font-black"><ClipboardList className="size-4 ml-2" /> {isAr ? "الاستطلاعات" : "Polls"}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="integrations" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-8">
-              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
-                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><Accessibility size={16}/> {isAr ? "أدوات التسهيل والنفاذ" : "Accessibility Tools"}</CardTitle></CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400">3rd Party API Key (UserWay/AccessiBe)</label>
-                    <Input placeholder="Enter Key..." value={siteConfig.integrations?.accessibilityKey} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, accessibilityKey: e.target.value}})} />
-                  </div>
-                  <p className="text-xs text-slate-500 font-bold">{isAr ? "اربط أدوات الذكاء الاصطناعي للنفاذ الرقمي لتحسين تجربة أصحاب الهمم." : "Connect AI accessibility tools to improve experience for people of determination."}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
-                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><TrendingUp size={16}/> {isAr ? "التحليلات والتتبع" : "Analytics & Tracking"}</CardTitle></CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400">Google Analytics / GTM ID</label>
-                    <Input placeholder="UA-XXXXX or G-XXXXX" value={siteConfig.integrations?.analyticsId} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, analyticsId: e.target.value}})} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
-                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><CreditCard size={16}/> {isAr ? "بوابات الدفع" : "Payment Gateways"}</CardTitle></CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400">Merchant API Key</label>
-                    <Input placeholder="Secret Key..." value={siteConfig.integrations?.paymentKey} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, paymentKey: e.target.value}})} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-brand shadow-sm border-none overflow-hidden">
-                <CardHeader className="bg-slate-900 text-white"><CardTitle className="text-sm font-black flex items-center gap-2"><Database size={16}/> {isAr ? "أكواد مخصصة" : "Custom Scripts"}</CardTitle></CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400">Global Header Scripts</label>
-                    <Textarea placeholder="<script>...</script>" className="font-mono text-[10px]" value={siteConfig.integrations?.customScripts} onChange={e => setSiteConfig({...siteConfig, integrations: {...siteConfig.integrations, customScripts: e.target.value}})} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
           <TabsContent value="services" className="space-y-6">
              <div className="flex justify-between items-center">
                 <h3 className="text-xl font-black text-primary">{isAr ? "دليل الخدمات" : "Service Catalog"}</h3>
@@ -240,7 +232,7 @@ export default function AdminDashboard() {
                   <TableBody>
                     {services.map((s, idx) => (
                       <TableRow key={s.id}>
-                        <TableCell className="font-bold">{isAr ? s.title : s.titleEn}</TableCell>
+                        <TableCell className="font-bold">{isAr ? (s.title || s.titleAr) : (s.titleEn || s.title)}</TableCell>
                         <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
                         <TableCell><Badge className="bg-slate-100 text-slate-600 border-none">{s.type || 'workflow'}</Badge></TableCell>
                         <TableCell>
@@ -251,12 +243,19 @@ export default function AdminDashboard() {
                            </Button>
                         </TableCell>
                         <TableCell className="flex gap-2">
-                           <Button variant="ghost" size="icon" asChild className="text-primary"><Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link></Button>
-                           <Button variant="ghost" size="icon" asChild className="text-accent"><Link href={`/services/${s.id}`}><Eye size={16}/></Link></Button>
-                           <Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400"><Trash2 size={16}/></Button>
+                           <Button variant="ghost" size="icon" asChild className="text-primary" title={isAr ? "تعديل التدفق" : "Edit Workflow"}><Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link></Button>
+                           <Button variant="ghost" size="icon" asChild className="text-accent" title={isAr ? "معاينة" : "Preview"}><Link href={`/services/${s.id}`}><Eye size={16}/></Link></Button>
+                           <Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400" title={isAr ? "حذف" : "Delete"}><Trash2 size={16}/></Button>
                         </TableCell>
                       </TableRow>
                     ))}
+                    {services.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-10 text-slate-400 font-bold">
+                          {isAr ? "لا توجد خدمات متاحة حالياً" : "No services found"}
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
              </div>
@@ -396,6 +395,43 @@ export default function AdminDashboard() {
              </div>
           </TabsContent>
           
+          <TabsContent value="popups" className="space-y-6">
+             <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-primary">{isAr ? "إعلانات منبثقة" : "Popup Announcements"}</h3>
+                <Button size="sm" onClick={addPopup} className="rounded-full bg-accent text-accent-foreground font-black">
+                  <Plus size={14} className="ml-2"/> {isAr ? "إضافة تنبيه" : "Add Popup"}
+                </Button>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {popups.map((pop, idx) => (
+                 <Card key={pop.id} className="rounded-brand border-none shadow-sm overflow-hidden bg-white">
+                   <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
+                     <Badge variant={pop.isActive ? 'default' : 'outline'}>{pop.isActive ? 'Active' : 'Draft'}</Badge>
+                     <Button variant="ghost" size="icon" onClick={() => setPopups(popups.filter(p => p.id !== pop.id))} className="text-red-400 h-8 w-8"><Trash2 size={14}/></Button>
+                   </CardHeader>
+                   <CardContent className="p-6 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input placeholder="Title AR" value={pop.titleAr} onChange={e => { const n = [...popups]; n[idx].titleAr = e.target.value; setPopups(n); }} />
+                        <Input placeholder="Title EN" value={pop.titleEn} onChange={e => { const n = [...popups]; n[idx].titleEn = e.target.value; setPopups(n); }} />
+                      </div>
+                      <Select value={pop.type} onValueChange={v => { const n = [...popups]; n[idx].type = v as any; setPopups(n); }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Text Only</SelectItem>
+                          <SelectItem value="image">Image Banner</SelectItem>
+                          <SelectItem value="video">Video Embed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <span className="text-xs font-bold">{isAr ? "حالة النشاط" : "Active Status"}</span>
+                        <Switch checked={pop.isActive} onCheckedChange={v => { const n = [...popups]; n[idx].isActive = v; setPopups(n); }} />
+                      </div>
+                   </CardContent>
+                 </Card>
+               ))}
+             </div>
+          </TabsContent>
+
           <TabsContent value="surveys" className="space-y-6">
              <div className="flex justify-between items-center">
                 <h3 className="text-xl font-black text-primary">{isAr ? "الاستطلاعات العامة" : "Public Surveys"}</h3>
@@ -403,7 +439,7 @@ export default function AdminDashboard() {
                   <Link href="/surveybuild"><Plus size={14} className="ml-2"/> {isAr ? "إنشاء استبيان" : "Build Survey"}</Link>
                 </Button>
              </div>
-             <div className="bg-white border rounded-[2rem] overflow-hidden">
+             <div className="bg-white border rounded-[2rem] overflow-hidden shadow-sm">
                 <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
