@@ -48,23 +48,15 @@ import '@xyflow/react/dist/style.css';
 
 // Filter valid icon keys from Lucide
 const ALL_ICONS = Object.keys(Icons).filter(key => 
-  typeof (Icons as any)[key] === 'function' || 
-  typeof (Icons as any)[key] === 'object'
-).filter(key => key !== 'createLucideIcon' && key !== 'LucideIcon');
+  (typeof (Icons as any)[key] === 'function' || typeof (Icons as any)[key] === 'object') &&
+  key !== 'createLucideIcon' && key !== 'LucideIcon'
+);
 
 // Color Palette for Logic Edges
 const EDGE_COLORS = [
-  '#be123c', // Red 700
-  '#7e22ce', // Purple 700
-  '#c2410c', // Orange 700
-  '#1d4ed8', // Blue 700
-  '#047857', // Emerald 700
-  '#a21caf', // Fuchsia 700
-  '#b91c1c', // Red 800
-  '#4338ca', // Indigo 700
+  '#be123c', '#7e22ce', '#c2410c', '#1d4ed8', '#047857', '#a21caf', '#b91c1c', '#4338ca',
 ];
 
-// Custom Node with 4 Connection Points and Step Numbering
 const ServiceStepNode = ({ data }: any) => {
   return (
     <div 
@@ -121,9 +113,28 @@ function WorkflowEngineContent() {
         if (data) {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
-          if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo({ ...svc, reqsAr: svc.reqsAr || [] });
+          
+          if (flow) {
+            // Sanitize steps to ensure fields and logic are arrays
+            const sanitizedSteps = (flow.steps || []).map(s => ({
+              ...s,
+              fields: s.fields || [],
+              logic: s.logic || []
+            }));
+            setSteps(sanitizedSteps);
+          }
+          
+          if (svc) {
+            setServiceInfo({
+              ...svc,
+              type: svc.type || 'workflow',
+              reqsAr: svc.reqsAr || [],
+              reqsEn: svc.reqsEn || []
+            });
+          }
         }
+      }).catch(err => {
+        console.error("Load error:", err);
       }).finally(() => setLoading(false));
     }
   }, [editId]);
@@ -132,7 +143,7 @@ function WorkflowEngineContent() {
     if (activeTab === 'canvas') {
       setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
-      }, 50);
+      }, 100);
     }
   }, [activeTab]);
 
@@ -142,6 +153,7 @@ function WorkflowEngineContent() {
       titleAr: isAr ? 'خطوة جديدة' : 'New Step',
       titleEn: 'New Step',
       fields: [],
+      logic: [],
       actionType: 'submit'
     };
     setSteps(prev => [...prev, newStep]);
@@ -149,8 +161,10 @@ function WorkflowEngineContent() {
 
   const updateStep = (idx: number, updates: Partial<ServiceStep>) => {
     const ns = [...steps];
-    ns[idx] = { ...ns[idx], ...updates };
-    setSteps(ns);
+    if (ns[idx]) {
+      ns[idx] = { ...ns[idx], ...updates };
+      setSteps(ns);
+    }
   };
 
   const moveStep = (idx: number, direction: 'up' | 'down') => {
@@ -162,55 +176,31 @@ function WorkflowEngineContent() {
     ns[idx] = ns[targetIdx];
     ns[targetIdx] = temp;
     setSteps(ns);
-    toast({ title: isAr ? "تم تغيير الترتيب" : "Order Changed" });
   };
 
-  const removeStep = (id: string) => setSteps(steps.filter(s => s.id !== id));
+  const removeStep = (id: string) => setSteps(prev => prev.filter(s => s.id !== id));
 
   const addFieldToStep = (stepId: string, type: FormField['type']) => {
-    setSteps(steps.map(s => s.id === stepId ? { ...s, fields: [...s.fields, {
-      id: `field_${Date.now()}`, 
-      type, 
-      labelAr: '', 
-      labelEn: '', 
-      required: true,
-      options: (type === 'select' || type === 'multichoice') ? [] : undefined
-    }] } : s));
+    setSteps(prev => prev.map(s => s.id === stepId ? { 
+      ...s, 
+      fields: [...(s.fields || []), {
+        id: `field_${Date.now()}`, 
+        type, 
+        labelAr: '', 
+        labelEn: '', 
+        required: true,
+        options: (type === 'select' || type === 'multichoice') ? [] : undefined
+      }] 
+    } : s));
   };
 
   const addLogic = (stepIdx: number) => {
     const ns = [...steps];
-    const logic: StepLogic[] = ns[stepIdx].logic || [];
-    ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
-    setSteps(ns);
-  };
-
-  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setServiceInfo({ ...serviceInfo, customIconUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (ns[stepIdx]) {
+      const logic = ns[stepIdx].logic || [];
+      ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
+      setSteps(ns);
     }
-  };
-
-  const addRequirement = () => {
-    const current = serviceInfo.reqsAr || [];
-    setServiceInfo({ ...serviceInfo, reqsAr: [...current, ''] });
-  };
-
-  const removeRequirement = (idx: number) => {
-    const current = [...(serviceInfo.reqsAr || [])];
-    current.splice(idx, 1);
-    setServiceInfo({ ...serviceInfo, reqsAr: current });
-  };
-
-  const updateRequirement = (idx: number, val: string) => {
-    const current = [...(serviceInfo.reqsAr || [])];
-    current[idx] = val;
-    setServiceInfo({ ...serviceInfo, reqsAr: current });
   };
 
   const handleSave = async () => {
@@ -225,12 +215,16 @@ function WorkflowEngineContent() {
         id: newId,
         isActive: true,
         reqsAr: serviceInfo.reqsAr || [],
-        reqsEn: serviceInfo.reqsAr || [], // Simplification for MVP
+        reqsEn: serviceInfo.reqsEn || serviceInfo.reqsAr || [],
       };
 
       const newFlow: ServiceFlow = {
-        id: newId, serviceId: newId, titleAr: serviceInfo.title || '', titleEn: serviceInfo.titleEn || '',
-        steps: steps, isActive: true
+        id: newId, 
+        serviceId: newId, 
+        titleAr: serviceInfo.title || '', 
+        titleEn: serviceInfo.titleEn || '',
+        steps: steps, 
+        isActive: true
       };
 
       const filteredServices = (data.services || []).filter((s: any) => s.id !== newId);
@@ -242,24 +236,25 @@ function WorkflowEngineContent() {
         serviceFlows: [...filteredFlows, newFlow]
       });
 
-      toast({ title: isAr ? "تم حفظ التدفق" : "Workflow Saved" });
+      toast({ title: isAr ? "تم حفظ التغييرات" : "Changes Saved" });
       router.push('/admin');
     } catch (e) {
-      toast({ variant: "destructive", title: "Error" });
+      toast({ variant: "destructive", title: "Error", description: "Failed to sync data." });
     } finally {
       setSaving(false);
     }
   };
 
   const filteredIcons = useMemo(() => {
-    return ALL_ICONS.filter(icon => icon.toLowerCase().includes(iconSearch.toLowerCase()));
+    if (!iconSearch) return ALL_ICONS.slice(0, 48);
+    return ALL_ICONS.filter(icon => icon.toLowerCase().includes(iconSearch.toLowerCase())).slice(0, 48);
   }, [iconSearch]);
 
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     let logicColorIndex = 0;
 
-    steps.forEach((step, sIdx) => {
+    (steps || []).forEach((step) => {
       if (step.defaultNextStepId) {
         const edgeId = `e-${step.id}-${step.defaultNextStepId}`;
         const isHovered = hoveredEdgeId === edgeId;
@@ -270,7 +265,7 @@ function WorkflowEngineContent() {
           source: step.id,
           target: step.defaultNextStepId,
           type: 'smoothstep',
-          label: isAr ? 'مسار افتراضي' : 'Default Path',
+          label: isAr ? 'افتراضي' : 'Default',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
           style: { 
             stroke: '#007375', 
@@ -281,7 +276,7 @@ function WorkflowEngineContent() {
         });
       }
 
-      step.logic?.forEach((rule, idx) => {
+      (step.logic || []).forEach((rule, idx) => {
         if (rule.targetStepId) {
           const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
           const isHovered = hoveredEdgeId === edgeId;
@@ -290,7 +285,7 @@ function WorkflowEngineContent() {
           const color = EDGE_COLORS[logicColorIndex % EDGE_COLORS.length];
           logicColorIndex++;
 
-          const targetField = step.fields.find(f => f.id === rule.fieldId);
+          const targetField = (step.fields || []).find(f => f.id === rule.fieldId);
           const fieldLabel = isAr ? targetField?.labelAr : targetField?.labelEn;
           const conditionLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`;
 
@@ -320,14 +315,12 @@ function WorkflowEngineContent() {
   }, [steps, isAr, hoveredEdgeId]);
 
   const nodes: Node[] = useMemo(() => {
-    // Find source and target nodes of the hovered edge
     const hoveredEdge = hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
     const connectedNodeIds = hoveredEdge ? [hoveredEdge.source, hoveredEdge.target] : null;
 
-    return steps.map((step, idx) => {
+    return (steps || []).map((step, idx) => {
       const col = idx % 3;
       const row = Math.floor(idx / 3);
-      
       const isFocused = connectedNodeIds ? connectedNodeIds.includes(step.id) : true;
 
       return {
@@ -339,10 +332,10 @@ function WorkflowEngineContent() {
           label: isAr ? step.titleAr : step.titleEn,
           actions: (
             <>
-              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 hover:bg-accent hover:text-white transition-colors" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 hover:bg-accent hover:text-white" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
                 <Edit2 size={12} />
               </Button>
-              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white transition-colors" onClick={() => removeStep(step.id)}>
+              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white" onClick={() => removeStep(step.id)}>
                 <Trash2 size={12} />
               </Button>
             </>
@@ -355,10 +348,9 @@ function WorkflowEngineContent() {
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
-    
     return (
       <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
-        <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
+        <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
         </Button>
         <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-9 px-4">
@@ -424,17 +416,14 @@ function WorkflowEngineContent() {
                  </div>
 
                  <div className="space-y-2">
-                   <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الرسوم (مثلاً: 50 OMR)" : "Fees"}</label>
+                   <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "الرسوم" : "Fees"}</label>
                    <Input value={serviceInfo.fees || ''} onChange={e => setServiceInfo({...serviceInfo, fees: e.target.value})} className="h-9 text-xs font-black text-emerald-600" />
                  </div>
 
                  {serviceInfo.type === 'link' && (
                    <div className="space-y-2">
                      <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "رابط الوجهة" : "Destination URL"}</label>
-                     <div className="relative">
-                       <Input value={serviceInfo.linkUrl || ''} onChange={e => setServiceInfo({...serviceInfo, linkUrl: e.target.value})} className="h-9 text-xs font-mono pr-10" />
-                       <Upload className="absolute top-2.5 right-3 size-4 text-slate-300" />
-                     </div>
+                     <Input value={serviceInfo.linkUrl || ''} onChange={e => setServiceInfo({...serviceInfo, linkUrl: e.target.value})} className="h-9 text-xs font-mono" />
                    </div>
                  )}
 
@@ -495,21 +484,32 @@ function WorkflowEngineContent() {
                      </Popover>
                      <Button variant="outline" size="icon" className="h-9 w-9 relative overflow-hidden">
                         <Upload size={14} />
-                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={handleIconUpload} />
+                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setServiceInfo({...serviceInfo, customIconUrl: reader.result as string, iconName: 'ImageIcon'});
+                            reader.readAsDataURL(file);
+                          }
+                        }} />
                      </Button>
                    </div>
                  </div>
 
-                 <div className="space-y-4 pt-4 border-t">
+                 <div className="space-y-2 pt-2 border-t">
                     <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "المستندات المطلوبة" : "Required Docs"}</label>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                        {(serviceInfo.reqsAr || []).map((req, idx) => (
-                         <div key={idx} className="flex gap-2">
-                            <Input value={req} onChange={e => updateRequirement(idx, e.target.value)} className="h-8 text-[10px]" placeholder="..." />
-                            <Button variant="ghost" size="icon" onClick={() => removeRequirement(idx)} className="h-8 w-8 text-red-400"><Trash2 size={12}/></Button>
+                         <div key={idx} className="flex gap-1">
+                            <Input value={req} onChange={e => {
+                              const nr = [...(serviceInfo.reqsAr || [])]; nr[idx] = e.target.value; setServiceInfo({...serviceInfo, reqsAr: nr});
+                            }} className="h-7 text-[9px]" />
+                            <Button variant="ghost" size="icon" onClick={() => {
+                              const nr = (serviceInfo.reqsAr || []).filter((_, i) => i !== idx); setServiceInfo({...serviceInfo, reqsAr: nr});
+                            }} className="h-7 w-7 text-red-400"><Trash2 size={10}/></Button>
                          </div>
                        ))}
-                       <Button variant="ghost" size="sm" onClick={addRequirement} className="w-full h-8 text-[10px] border-dashed border-2">+ {isAr ? "إضافة مستند" : "Add Doc"}</Button>
+                       <Button variant="ghost" size="sm" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), '']})} className="w-full h-7 text-[9px] border-dashed border-2">+ {isAr ? "مستند" : "Add"}</Button>
                     </div>
                  </div>
 
@@ -530,7 +530,7 @@ function WorkflowEngineContent() {
               </TabsList>
 
               <TabsContent value="logic" className="space-y-6 outline-none">
-                {serviceInfo.type === 'workflow' && steps.map((step, sIdx) => (
+                {serviceInfo.type === 'workflow' && (steps || []).map((step, sIdx) => (
                   <Card key={step.id} id={step.id} className="rounded-3xl shadow-sm border-none overflow-hidden relative animate-in slide-in-from-bottom-2 scroll-mt-24">
                     <CardHeader className="bg-slate-900 text-white p-4 flex flex-row items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -542,9 +542,9 @@ function WorkflowEngineContent() {
                         />
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'up')} disabled={sIdx === 0} className="text-white/40 h-8 w-8 hover:text-accent transition-colors"><ChevronUp size={16} /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'down')} disabled={sIdx === steps.length - 1} className="text-white/40 h-8 w-8 hover:text-accent transition-colors"><ChevronDown size={16} /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="text-white/40 h-8 w-8 hover:text-red-400 transition-colors"><Trash2 size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'up')} disabled={sIdx === 0} className="text-white/40 h-8 w-8 hover:text-accent"><ChevronUp size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'down')} disabled={sIdx === (steps || []).length - 1} className="text-white/40 h-8 w-8 hover:text-accent"><ChevronDown size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => removeStep(step.id)} className="text-white/40 h-8 w-8 hover:text-red-400"><Trash2 size={16} /></Button>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
@@ -561,7 +561,7 @@ function WorkflowEngineContent() {
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MapPin size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
                            </div>
                            <div className="space-y-3">
-                            {step.fields.map((f, fIdx) => (
+                            {(step.fields || []).map((f, fIdx) => (
                               <div key={f.id} className="space-y-3 p-4 bg-slate-50 rounded-xl border group">
                                  <div className="flex gap-2 items-center">
                                     <div className="px-2 py-0.5 rounded-md bg-white border text-[8px] font-black uppercase text-slate-400">{f.type}</div>
@@ -624,21 +624,21 @@ function WorkflowEngineContent() {
                                     <SelectTrigger className="h-8 w-40 bg-white font-bold text-xs"><SelectValue placeholder="..." /></SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="none">{isAr ? "لا يوجد" : "None"}</SelectItem>
-                                      {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                      {(steps || []).filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                     </SelectContent>
                                  </Select>
                                </div>
                                
                                {(step.logic || []).map((rule, rIdx) => {
-                                 const targetField = step.fields.find(f => f.id === rule.fieldId);
+                                 const targetField = (step.fields || []).find(f => f.id === rule.fieldId);
                                  const isListField = targetField?.type === 'select' || targetField?.type === 'multichoice';
 
                                  return (
                                    <div key={rIdx} className="bg-primary/5 p-4 rounded-2xl space-y-4 border border-primary/10 relative group">
                                       <div className="flex items-center justify-between text-[9px] font-black text-primary">
-                                        <span>{isAr ? "قاعدة شرطية جديدة:" : "CONDITIONAL RULE:"}</span>
+                                        <span>{isAr ? "قاعدة شرطية:" : "RULE:"}</span>
                                         <Button variant="ghost" size="icon" onClick={() => {
-                                          const nl = [...step.logic!]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
+                                          const nl = [...(step.logic || [])]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
                                         }} className="h-5 w-5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></Button>
                                       </div>
                                       
@@ -646,7 +646,7 @@ function WorkflowEngineContent() {
                                         <div className="flex flex-col gap-1">
                                           <span className="text-[8px] font-bold text-slate-400">{isAr ? "اسم الحقل:" : "FIELD NAME:"}</span>
                                           <Select value={rule.fieldId || 'none'} onValueChange={v => {
-                                            const nl = [...step.logic!];
+                                            const nl = [...(step.logic || [])];
                                             nl[rIdx].fieldId = v === 'none' ? '' : v;
                                             nl[rIdx].value = ''; 
                                             updateStep(sIdx, { logic: nl });
@@ -654,7 +654,7 @@ function WorkflowEngineContent() {
                                             <SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue placeholder={isAr ? "اختر الحقل..." : "Select Field..."} /></SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
-                                              {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
+                                              {(step.fields || []).map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
                                             </SelectContent>
                                           </Select>
                                         </div>
@@ -664,7 +664,7 @@ function WorkflowEngineContent() {
                                             <span className="text-[8px] font-bold text-slate-400">{isAr ? "يساوي القيمة:" : "EQUALS VALUE:"}</span>
                                             {isListField ? (
                                               <Select value={rule.value || 'none'} onValueChange={v => {
-                                                const nl = [...step.logic!]; nl[rIdx].value = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
+                                                const nl = [...(step.logic || [])]; nl[rIdx].value = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
                                               }}>
                                                 <SelectTrigger className="h-8 text-[10px] bg-white"><SelectValue placeholder="..." /></SelectTrigger>
                                                 <SelectContent>
@@ -677,7 +677,7 @@ function WorkflowEngineContent() {
                                                 placeholder={isAr ? "القيمة" : "Value"} 
                                                 value={rule.value || ''} 
                                                 onChange={e => {
-                                                  const nl = [...step.logic!]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
+                                                  const nl = [...(step.logic || [])]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
                                                 }} 
                                                 className="h-8 text-[11px] bg-white" 
                                               />
@@ -687,12 +687,12 @@ function WorkflowEngineContent() {
                                           <div className="flex flex-col gap-1">
                                             <span className="text-[8px] font-bold text-slate-400">{isAr ? "انتقل إلى:" : "NAVIGATE TO:"}</span>
                                             <Select value={rule.targetStepId || 'none'} onValueChange={v => {
-                                              const nl = [...step.logic!]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
+                                              const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
                                             }}>
                                               <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder="..." /></SelectTrigger>
                                               <SelectContent>
                                                 <SelectItem value="none">{isAr ? "اختر..." : "Select..."}</SelectItem>
-                                                {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                                {(steps || []).filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                               </SelectContent>
                                             </Select>
                                           </div>
@@ -727,7 +727,7 @@ function WorkflowEngineContent() {
                       <LinkIcon size={40} className="text-slate-300" />
                     </div>
                     <h3 className="text-2xl font-black text-primary mb-3">{isAr ? "خدمة الربط الخارجي نشطة" : "Active External Integration"}</h3>
-                    <p className="text-slate-400 font-bold max-w-md mx-auto">{isAr ? "سيتم توجيه المواطنين مباشرة إلى الأنظمة البلدية القائمة (مثل نظام أبشر أو بوابة عمان الرقمية)." : "Citizens will be redirected to existing municipal systems or standard Omani digital portals."}</p>
+                    <p className="text-slate-400 font-bold max-w-md mx-auto">{isAr ? "سيتم توجيه المواطنين مباشرة إلى الأنظمة البلدية القائمة." : "Citizens will be redirected to existing systems."}</p>
                     <Button variant="outline" className="mt-8 rounded-full px-10 font-bold gap-2" asChild>
                       <a href={serviceInfo.linkUrl} target="_blank"><Eye size={16}/> {isAr ? "معاينة الوجهة" : "Preview Target"}</a>
                     </Button>
