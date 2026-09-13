@@ -43,37 +43,95 @@ export default function AdminDashboard() {
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
 
-  // Updated Master List with Official English Titles
+  // Full Master List 100-186
   const MASTER_SERVICES_DATA = [
-    { id: "svc_100", titleAr: "ترخيص إقامة عرض ترويجي للسيارات", titleEn: "Get a Permit for Organizing a Promotional Car Event", icon: "Car", cat: "invest", reqAr: ["رسالة الشركة وتحديد الموقع", "السجل التجاري"] },
-    { id: "svc_101", titleAr: "تصديق مسارات تمديدات الكهرباء", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)", icon: "Zap", cat: "elec", reqAr: ["الرسم المساحي والملكية", "اعتماد شركة الكهرباء"] },
-    { id: "svc_102", titleAr: "تصاريح ناقلات مياه الصرف الصحي", titleEn: "Get a Permit for a Sewage Tanker", icon: "Truck", cat: "health", reqAr: ["البطاقة الشخصية", "السجل التجاري", "ملكية الشاحنة"] },
-    { id: "svc_103", titleAr: "اعتماد إعلانات المطبوعات والملصقات", titleEn: "Get Approval of Print Advertisements, Posters, and Publications Service", icon: "FileImage", cat: "invest", reqAr: ["صورة من المطبوعات", "موافقة وزارة الإعلام"] },
-    { id: "svc_104", titleAr: "فعالية أو معرض خلال موسم الخريف", titleEn: "Request to Hold an Activity, Event or Exhibition During the Fall Season", icon: "Tent", cat: "invest", reqAr: ["السجل التجاري", "البطاقة الشخصية", "مخطط توضيحي", "مخطط هندسي"] },
-    { id: "svc_105", titleAr: "تسجيل طلبات المراجعين", titleEn: "Registration of Citizens' Requests at Dhofar Municipality", icon: "UserPlus", cat: "admin", reqAr: ["تفاصيل المراجعة"] },
-    { id: "svc_106", titleAr: "تصديق تمديدات الصرف الصحي", titleEn: "Get Municipal Approval for Sanitary Sewer Service Extensions (Household Connections)", icon: "Droplets", cat: "tech", reqAr: ["خطاب المقاول", "اعتمادات الجهات المختصة"] },
-    { id: "svc_107", titleAr: "تصديق الرصف بالبلاط المتشابك", titleEn: "Application for obtaining the Municipality's approval for paving with interlocking tiles in front of houses.", icon: "Grid3X3", cat: "tech", reqAr: ["البطاقة الشخصية", "ملكية المنزل"] },
-    { id: "svc_108", titleAr: "ترقيم المنازل", titleEn: "Get House Numbering", icon: "Hash", cat: "admin", reqAr: ["ملكية المنزل", "الرسم المساحي"] },
-    { id: "svc_109", titleAr: "ترخيص تسمية المباني", titleEn: "Building Naming License", icon: "Type", cat: "admin", reqAr: ["ملكية المبنى", "البطاقة الشخصية", "عقد استثمار"] },
-    { id: "svc_110", titleAr: "ترخيص اللوحات الإرشادية", titleEn: "Directional Signage Permit", icon: "SignpostBig", cat: "invest", reqAr: ["الترخيص البلدي", "السجل التجاري"] },
-    { id: "svc_111", titleAr: "إدارة استثمار موقع", titleEn: "Manage Site Investment", icon: "Landmark", cat: "invest", reqAr: ["خطاب المنشأة", "مخطط كروكي تفصيلي"] },
-    { id: "svc_112", titleAr: "استلام مركبة محجوزة", titleEn: "Receiving a Reserved Vehicle", icon: "Lock", cat: "admin", reqAr: ["ملكية السيارة", "البطاقة الشخصية"] },
-    { id: "svc_113", titleAr: "تصريح قطع أو ثقب الطريق", titleEn: "Request Road Cutting or Perforation Permit", icon: "Construction", cat: "tech", reqAr: ["ملكية الأرض", "رسالة رسمية", "موافقة دائرة الطرق"] },
-    { id: "svc_114", titleAr: "اعتماد النسخ الإضافية من الخرائط", titleEn: "Get Approval for Additional Copies of Maps", icon: "Map", cat: "tech", reqAr: ["البطاقة الشخصية", "رخصة البناء"] },
-    { id: "svc_115", titleAr: "التصديق على مخططات إنارة الطرق", titleEn: "Request Road and Complex Lighting Plans Approval", icon: "Lightbulb", cat: "tech", reqAr: ["المخطط الهندسي"] },
-    { id: "svc_116", titleAr: "ترخيص مظلات مواقف السيارات", titleEn: "License for the Installation of Car Park Shelters", icon: "Umbrella", cat: "tech", reqAr: ["صور الكروكي", "الملكية", "البطاقة الشخصية"] },
-    { id: "svc_117", titleAr: "تقييم أضرار مادية مرورية", titleEn: "Request for Assessment of Material Damages (Traffic Accidents)", icon: "ShieldAlert", cat: "admin", reqAr: ["تقرير الشرطة"] },
-    { id: "svc_118", titleAr: "ذبح حيوانات بالمسلخ المركزي", titleEn: "Request to Slaughter Animals at the Central Slaughterhouse", icon: "Utensils", cat: "health", reqAr: ["استمارة الاستلام", "إيصال ذبح"] },
-    { id: "svc_119", titleAr: "شهادة إتلاف مواد", titleEn: "Material Destruction Certificate", icon: "Trash2", cat: "health", reqAr: ["رسالة الشركة", "تفاصيل المواد", "رسالة دائرة البيئة"] },
-    { id: "svc_120", titleAr: "إزالة مركبات مهملة", titleEn: "Request the Removal of Abandoned and Long-Term Parked Vehicles in Public Areas", icon: "Truck", cat: "health", reqAr: ["صور الموقع", "البطاقة الشخصية", "طلب ورقي"] },
-    { id: "svc_121", titleAr: "تنظيم الأسواق التخصصية", titleEn: "Get Approval for Organizing Temporary Specialized Markets", icon: "Store", cat: "invest", reqAr: ["تصور الفكرة", "السجل التجاري", "شهادة الدفاع المدني والاسعاف"] },
-    { id: "svc_122", titleAr: "إقامة عروض عالمية", titleEn: "Get Approval to Organize International Shows", icon: "Globe", cat: "invest", reqAr: ["موافقات الجهات المختصة"] },
-    { id: "svc_123", titleAr: "عروض الإضاءة والإبهار", titleEn: "Get Approval for Hosting Lightning and Visual Shows", icon: "Sparkles", cat: "invest", reqAr: ["تفاصيل العرض"] },
-    { id: "svc_124", titleAr: "صرف فواتير المقاولين", titleEn: "Request for Payment of Contractors’ and Consulting Companies’ Invoices", icon: "Receipt", cat: "admin", reqAr: ["الفواتير المعتمدة"] },
-    { id: "svc_125", titleAr: "تجديد تصريح قطع الطريق", titleEn: "Renewal of Cutting or Drilling Permit", icon: "RefreshCw", cat: "tech", reqAr: ["التصريح السابق"] },
-    { id: "svc_126", titleAr: "فحص عينة مخبرية", titleEn: "Submit a Request for Laboratory Sample Testing (Food/ Water)", icon: "FlaskConical", cat: "health", reqAr: ["بيانات العينة"] },
-    { id: "svc_127", titleAr: "تدريب طلاب التعليم العالي", titleEn: "Training Higher Education Institution Students", icon: "GraduationCap", cat: "admin", reqAr: ["رسالة المؤسسة التعليمية"] },
-    { id: "svc_128", titleAr: "طلب توفيق ومصالحة", titleEn: "Reconciliation and Settlement Request", icon: "Handshake", cat: "admin", reqAr: ["البطاقة الشخصية", "بيانات الدعوى"] }
+    { id: "svc_100", titleAr: "طلب رسالة عدم ممانعة لتوصيل تيار كهربائي مؤقت", titleEn: "Request for Approval Letter for Temporary Electrical Connection", icon: "Zap", cat: "elec" },
+    { id: "svc_101", titleAr: "طلب سيارة نقل موتى", titleEn: "Request for Funeral Vehicle", icon: "Truck", cat: "admin" },
+    { id: "svc_102", titleAr: "تقديم طلب شهادة دفن", titleEn: "Submit a Request for a Burial Certificate", icon: "FileText", cat: "admin" },
+    { id: "svc_103", titleAr: "مكافحة الحشرات والقوارض وآفات الصحة العامة", titleEn: "Control of Insects, Rodents, and Public Health Pests", icon: "Bug", cat: "health" },
+    { id: "svc_104", titleAr: "ترخيص صهريج مياه صالحة للشرب", titleEn: "Get a License for a Potable Water Tanker", icon: "Droplets", cat: "health" },
+    { id: "svc_105", titleAr: "ترخيص صهريج مياه غير صالحة للشرب", titleEn: "Get a License for a Non-Potable Water Tanker", icon: "Droplets", cat: "health" },
+    { id: "svc_106", titleAr: "إقامة تنزيلات وعروض ترويجية", titleEn: "Holding Discounts and Promotions", icon: "Tag", cat: "invest" },
+    { id: "svc_107", titleAr: "التصاريح المؤقتة لموسم الخريف", titleEn: "Temporary Permits for Khareef Season", icon: "Tent", cat: "invest" },
+    { id: "svc_108", titleAr: "ترخيص إقامة عرض ترويجي للسيارات", titleEn: "Get a Permit for Organizing a Promotional Car Event", icon: "Car", cat: "invest" },
+    { id: "svc_109", titleAr: "الموافقة النهائية والترخيص بالحفر بمسارات تمديد الخدمات العامة", titleEn: "Get Final Approval and License for Excavation on Public Service Extension Routes", icon: "Pickaxe", cat: "tech" },
+    { id: "svc_110", titleAr: "تصديق تمديدات خدمات الصرف الصحي (التوصيلات المنزلية)", titleEn: "Get Municipal Approval for Sanitary Sewer Service Extensions (Household Connections)", icon: "Waves", cat: "tech" },
+    { id: "svc_111", titleAr: "تصديق مسارات تمديدات خدمات الكهرباء (التوصيلات المنزلية)", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)", icon: "Zap", cat: "elec" },
+    { id: "svc_112", titleAr: "تصديق الرصف بالبلاط المتشابك أمام واجهات المنازل", titleEn: "Application for obtaining the Municipality's approval for paving with interlocking tiles in front of houses.", icon: "Grid3X3", cat: "tech" },
+    { id: "svc_113", titleAr: "تصديق زراعة الأشجار أمام واجهات المنازل", titleEn: "Requesting Municipal Certification for Tree Planting in Front of Residential Facades", icon: "Trees", cat: "tech" },
+    { id: "svc_114", titleAr: "ترقيم المنازل", titleEn: "Get House Numbering", icon: "Hash", cat: "admin" },
+    { id: "svc_115", titleAr: "ترخيص تسمية المباني", titleEn: "Building Naming License", icon: "Type", cat: "admin" },
+    { id: "svc_116", titleAr: "ترخيص اللوحات الإرشادية", titleEn: "Directional Signage Permit", icon: "Signpost", cat: "invest" },
+    { id: "svc_117", titleAr: "تصاريح ناقلات صهاريج مياة الصرف الصحي", titleEn: "Get a Permit for a Sewage Tanker", icon: "Truck", cat: "health" },
+    { id: "svc_118", titleAr: "تركيب عداد مياه للمبنى", titleEn: "Water Meter Installation Service for the Building", icon: "Pipette", cat: "tech" },
+    { id: "svc_119", titleAr: "إباحة بناء كبرى (محطة وقود)", titleEn: "A Major Building Permit (Gas Station)", icon: "Fuel", cat: "building" },
+    { id: "svc_120", titleAr: "إباحة بناء صغرى (برج اتصالات)", titleEn: "Minor Building Permit (Transmission Tower)", icon: "TowerControl", cat: "building" },
+    { id: "svc_121", titleAr: "إباحة بناء صغرى (تسوير)", titleEn: "Minor Building Permit (Fencing)", icon: "Fence", cat: "building" },
+    { id: "svc_122", titleAr: "إباحة بناء صغرى (هدم)", titleEn: "Minor building permit (Demolition)", icon: "Hammer", cat: "building" },
+    { id: "svc_123", titleAr: "إباحة بناء صغرى (محطة توزيع كهرباء)", titleEn: "(Minor Building License (Power Distribution Station", icon: "Zap", cat: "elec" },
+    { id: "svc_124", titleAr: "تثبيت علائم مساحية لموقع أرض", titleEn: "Get Confirmation of Cadastral Marking for Land Plot Site", icon: "MapPin", cat: "tech" },
+    { id: "svc_125", titleAr: "تقرير فني لمبنى قائم أو أرض فضاء", titleEn: "Get Technical Report of Existing Building or Vacant Land", icon: "FileSearch", cat: "tech" },
+    { id: "svc_126", titleAr: "طلب بدء عمل", titleEn: "Getting Started Service", icon: "Play", cat: "building" },
+    { id: "svc_127", titleAr: "شهادة إتمام بناء", titleEn: "Get a Building Completion Certificate", icon: "CheckCircle", cat: "building" },
+    { id: "svc_128", titleAr: "إدارة استثمار موقع", titleEn: "Manage Site Investment", icon: "Landmark", cat: "invest" },
+    { id: "svc_129", titleAr: "توثيق عقد إيجار (سكني، تجاري، صناعي أو مهني)", titleEn: "Document a Lease Contract (Residential, Commercial, Industrial or Professional)", icon: "FileSignature", cat: "invest" },
+    { id: "svc_130", titleAr: "طلب الموافقة على عبور أو قطع أو ثقب قائم للطريق لتوصيل الخدمات", titleEn: "Request Approval for Existing Crossing, Cutting, or Perforation of the Road for Service Connections", icon: "Road", cat: "tech" },
+    { id: "svc_131", titleAr: "تجديد ترخيص مركبة نقل مياه صالحة للشرب", titleEn: "Renewal of Potable Water Transport Vehicle License", icon: "RefreshCcw", cat: "health" },
+    { id: "svc_132", titleAr: "تجديد ترخيص مركبة نقل مياه غير صالحة للشرب", titleEn: "Renewal of License for Non-Potable Water Transport Vehicle", icon: "RefreshCcw", cat: "health" },
+    { id: "svc_133", titleAr: "الموافقة على عقد إيجار (نشاط تجاري)", titleEn: "Get Approval for Lease Contract (Commercial Activity)", icon: "CheckCircle", cat: "invest" },
+    { id: "svc_134", titleAr: "استلام مركبة محجوزة", titleEn: "Receiving a Reserved Vehicle", icon: "Lock", cat: "admin" },
+    { id: "svc_135", titleAr: "إزالة الحشائش والأجسام المشوهة للمنظر العام", titleEn: "Request for the Removal of Weeds and Unsightly Objects in Public Areas", icon: "Trash2", cat: "health" },
+    { id: "svc_136", titleAr: "إباحة بناء كبرى", titleEn: "Get a Major Building Permit", icon: "Home", cat: "building" },
+    { id: "svc_137", titleAr: "طلب كاسر سرعة", titleEn: "Request Speed Breaker", icon: "AlertTriangle", cat: "tech" },
+    { id: "svc_138", titleAr: "إباحة بناء كبرى (تسوير)", titleEn: "Major Building Permit (Fencing)", icon: "Fence", cat: "building" },
+    { id: "svc_139", titleAr: "اعتماد إعلانات المطبوعات والملصقات والمنشورات", titleEn: "Get Approval of Print Advertisements, Posters, and Publications Service", icon: "Image", cat: "invest" },
+    { id: "svc_140", titleAr: "تصريح قطع أو ثقب الطريق", titleEn: "Request Road Cutting or Perforation Permit", icon: "Construction", cat: "tech" },
+    { id: "svc_141", titleAr: "فعالية أو معرض خلال موسم الخريف", titleEn: "Request to Hold an Activity, Event or Exhibition During the Fall Season", icon: "Calendar", cat: "invest" },
+    { id: "svc_142", titleAr: "اعتمادات الطرق الإسفلتية", titleEn: "Request Approvals Related to Asphalt Roads", icon: "CheckCircle", cat: "tech" },
+    { id: "svc_143", titleAr: "خفض مستوى حجر الرصيف", titleEn: "Request for Lowering Curb Level", icon: "MoveDown", cat: "tech" },
+    { id: "svc_144", titleAr: "تجديد إباحة بناء", titleEn: "Request for Renewal of Building Permit", icon: "RefreshCw", cat: "building" },
+    { id: "svc_145", titleAr: "رصف طريق ترابي", titleEn: "Request to Pave a Dirt Road", icon: "Route", cat: "tech" },
+    { id: "svc_146", titleAr: "اعتماد النسخ الإضافية من الخرائط", titleEn: "Get Approval for Additional Copies of Maps", icon: "Map", cat: "tech" },
+    { id: "svc_147", titleAr: "رصف طريق إسفلتي", titleEn: "Request an Asphalt Road Paving", icon: "Road", cat: "tech" },
+    { id: "svc_148", titleAr: "التصديق على مخططات إنارة الطرق والمجمعات", titleEn: "Request Road and Complex Lighting Plans Approval", icon: "Lightbulb", cat: "tech" },
+    { id: "svc_149", titleAr: "ترخيص مظلات مواقف السيارات", titleEn: "License for the Installation of Car Park Shelters", icon: "Umbrella", cat: "tech" },
+    { id: "svc_150", titleAr: "استئجار محلات بمواقع خاصة بالبلدية (الأسواق العامة)", titleEn: "Rent Shops in Special Locations in the Municipality (Public Markets)", icon: "Store", cat: "invest" },
+    { id: "svc_151", titleAr: "تغيير مقاول المشروع", titleEn: "Request to Change the Project Contractor", icon: "UserRoundPen", cat: "building" },
+    { id: "svc_152", titleAr: "توصيل التيار الكهربائي", titleEn: "Connect the power supply", icon: "Zap", cat: "elec" },
+    { id: "svc_153", titleAr: "تغيير استشاري المشرف على المشروع", titleEn: "Request for Change of Project Supervisor Consultant", icon: "UserRoundPen", cat: "building" },
+    { id: "svc_154", titleAr: "إنارة الطرق", titleEn: "Request Street Lighting", icon: "Lightbulb", cat: "tech" },
+    { id: "svc_155", titleAr: "إنارة التجمعات السكنية (كشافات)", titleEn: "Request for Residential Community Lighting (Light fixture)", icon: "Lightbulb", cat: "tech" },
+    { id: "svc_156", titleAr: "نقل عمود إنارة", titleEn: "Request for the Relocation of a Streetlight Pole", icon: "ArrowRightLeft", cat: "tech" },
+    { id: "svc_157", titleAr: "نقل وحدة إنارة كهربائية", titleEn: "Relocate Electrical Lighting Unit", icon: "ArrowRightLeft", cat: "tech" },
+    { id: "svc_158", titleAr: "تقييم أضرار مادية مرورية", titleEn: "Request for Assessment of Material Damages (Traffic Accidents)", icon: "ShieldAlert", cat: "admin" },
+    { id: "svc_159", titleAr: "اعتمادات الإنارة", titleEn: "Request for Lighting Approvals", icon: "CheckCircle", cat: "tech" },
+    { id: "svc_160", titleAr: "ذبح حيوانات بالمسلخ المركزي", titleEn: "Request to Slaughter Animals at the Central Slaughterhouse", icon: "Beef", cat: "health" },
+    { id: "svc_161", titleAr: "تجديد ترخيص صهريج مياه الصرف الصحي", titleEn: "Renew the Wastewater Tanker License", icon: "RefreshCw", cat: "health" },
+    { id: "svc_162", titleAr: "الموافقة المبدئية على مسارات تمديد الخدمات العامة", titleEn: "Get Initial Approval on Extension Routes for Public Services", icon: "CheckCircle", cat: "tech" },
+    { id: "svc_163", titleAr: "تراخيص مركبات نقل المواد الغذائية", titleEn: "Get Licenses for Food Transport Vehicles", icon: "Truck", cat: "health" },
+    { id: "svc_164", titleAr: "تجديد ترخيص مركبات نقل المواد الغذائية", titleEn: "Renew Food Transport Vehicles License", icon: "RefreshCw", cat: "health" },
+    { id: "svc_165", titleAr: "شهادة إتلاف مواد", titleEn: "Material Destruction Certificate", icon: "Trash2", cat: "health" },
+    { id: "svc_166", titleAr: "تجديد ترخيص الحفر بمسارات تمديد الخدمات العامة", titleEn: "Renew the License for Excavation on Public Service Extension Routes", icon: "RefreshCw", cat: "tech" },
+    { id: "svc_167", titleAr: "تغيير اسم المالك في إباحة البناء", titleEn: "Request to Change the Owner’s Name on the Building Permit", icon: "UserRoundPen", cat: "building" },
+    { id: "svc_168", titleAr: "بدل فاقد إباحة بناء", titleEn: "Get a Replacement for a Lost Building Permit", icon: "FileQuestion", cat: "building" },
+    { id: "svc_169", titleAr: "إزالة مركبات مهملة مركونة لفترات طويلة", titleEn: "Request the Removal of Abandoned and Long-Term Parked Vehicles in Public Areas", icon: "Truck", cat: "health" },
+    { id: "svc_170", titleAr: "تنظيم الأسواق التخصصية المؤقتة", titleEn: "Get Approval for Organizing Temporary Specialized Markets", icon: "Store", cat: "invest" },
+    { id: "svc_171", titleAr: "تسجيل طلبات المراجعين في بلدية ظفار", titleEn: "Registration of Citizens' Requests at Dhofar Municipality", icon: "UserPlus", cat: "admin" },
+    { id: "svc_172", titleAr: "إقامة عروض عالمية", titleEn: "Get Approval to Organize International Shows", icon: "Globe", cat: "invest" },
+    { id: "svc_173", titleAr: "عروض الإضاءة والإبهار", titleEn: "Get Approval for Hosting Lightning and Visual Shows", icon: "Sparkles", cat: "invest" },
+    { id: "svc_174", titleAr: "تقرير براءة ذمة للمقاولين", titleEn: "Report to Release Contractors", icon: "UserCheck", cat: "building" },
+    { id: "svc_175", titleAr: "صرف فواتير المقاولين والشركات الاستشارية", titleEn: "Request for Payment of Contractors’ and Consulting Companies’ Invoices", icon: "Receipt", cat: "admin" },
+    { id: "svc_176", titleAr: "تجديد تصريح قطع أو ثقب الطريق", titleEn: "Renewal of Cutting or Drilling Permit", icon: "RefreshCw", cat: "tech" },
+    { id: "svc_177", titleAr: "إباحة بناء صغرى", titleEn: "Get Minor Building Permit", icon: "FilePlus", cat: "building" },
+    { id: "svc_178", titleAr: "تحويل طريق إسفلتي", titleEn: "Relocating an Asphalt Road", icon: "MoveRight", cat: "tech" },
+    { id: "svc_179", titleAr: "تصديق تذاكر أماكن اللهو والسينما والفعاليات", titleEn: "Authenticate and Stamp Tickets for Amusement Venues, Cinemas, and Events", icon: "Ticket", cat: "invest" },
+    { id: "svc_180", titleAr: "فحص عينة مخبرية (أغذية / مياه)", titleEn: "Submit a Request for Laboratory Sample Testing (Food/ Water)", icon: "FlaskConical", cat: "health" },
+    { id: "svc_181", titleAr: "تدريب طلاب مؤسسات التعليم العالي", titleEn: "Training Higher Education Institution Students", icon: "GraduationCap", cat: "admin" },
+    { id: "svc_182", titleAr: "إباحة بناء صغرى (ترميم)", titleEn: "Minor building permit (restoration)", icon: "Hammer", cat: "building" },
+    { id: "svc_183", titleAr: "طلب توفيق ومصالحة", titleEn: "Reconciliation and Settlement Request", icon: "Handshake", cat: "admin" },
+    { id: "svc_184", titleAr: "أمر تشغيل مشروع", titleEn: "Get Work Order for Project", icon: "FileText", cat: "tech" },
+    { id: "svc_185", titleAr: "دفع غرامة مخالفة صحية", titleEn: "Pay the Fine for a Health Violation", icon: "ShieldAlert", cat: "health" },
+    { id: "svc_186", titleAr: "دفع أو استرداد مبلغ تأمين", titleEn: "Pay or Refund the Insurance Fee", icon: "ShieldCheck", cat: "admin" }
   ];
 
   useEffect(() => {
@@ -84,7 +142,6 @@ export default function AdminDashboard() {
           const fetchedServices = (data.services || []).filter(Boolean);
           const fetchedFlows = (data.serviceFlows || []).filter(Boolean);
           
-          // Data Reconciliation: Merge explicit services and implicit ones from flows
           const allServiceIds = Array.from(new Set([
             ...fetchedServices.map((s: any) => s.id),
             ...fetchedFlows.map((f: any) => f.serviceId || f.id)
@@ -92,23 +149,21 @@ export default function AdminDashboard() {
 
           const reconciledServices = allServiceIds.map(id => {
             const existing = fetchedServices.find((s: any) => s.id === id);
-            if (existing) return existing;
-            
             const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
             const master = MASTER_SERVICES_DATA.find(m => m.id === id);
             
             return {
               id,
-              title: flow?.titleAr || master?.titleAr || 'خدمة جديدة',
-              titleEn: flow?.titleEn || master?.titleEn || '',
-              description: isAr ? 'خدمة بلدية رقمية معتمدة.' : 'Approved digital municipal service.',
-              category: master?.cat || 'elec',
-              iconName: master?.icon || 'FileText',
+              title: flow?.titleAr || existing?.title || master?.titleAr || 'خدمة جديدة',
+              titleEn: flow?.titleEn || existing?.titleEn || master?.titleEn || '',
+              description: existing?.description || (isAr ? 'خدمة بلدية رقمية معتمدة.' : 'Approved digital municipal service.'),
+              category: existing?.category || master?.cat || 'elec',
+              iconName: existing?.iconName || master?.icon || 'FileText',
               isActive: true,
-              reqsAr: master?.reqAr || [],
-              reqsEn: master?.reqAr?.map((r: string) => `Document: ${r}`) || [],
-              fees: '10 OMR',
-              type: 'workflow'
+              reqsAr: existing?.reqsAr || [],
+              reqsEn: existing?.reqsEn || [],
+              fees: existing?.fees || '10 OMR',
+              type: existing?.type || 'workflow'
             } as Service;
           });
 
@@ -160,7 +215,6 @@ export default function AdminDashboard() {
       const currentFlows = [...(db.serviceFlows || [])].filter(Boolean);
 
       MASTER_SERVICES_DATA.forEach(master => {
-        // 1. Reconcile Service Definition
         const existingSvcIdx = currentServices.findIndex(s => s.id === master.id);
         const svcData: Service = {
           id: master.id,
@@ -170,8 +224,8 @@ export default function AdminDashboard() {
           iconName: master.icon,
           category: master.cat,
           isActive: true,
-          reqsAr: master.reqAr,
-          reqsEn: master.reqAr.map(r => `Required: ${r}`),
+          reqsAr: [],
+          reqsEn: [],
           fees: "10 OMR",
           type: "workflow"
         };
@@ -182,7 +236,6 @@ export default function AdminDashboard() {
           currentServices.push(svcData);
         }
 
-        // 2. Reconcile Workflow Flow
         const existingFlowIdx = currentFlows.findIndex(f => (f.serviceId || f.id) === master.id);
         if (existingFlowIdx === -1) {
           currentFlows.push({
@@ -196,20 +249,13 @@ export default function AdminDashboard() {
                 id: `step_${master.id}_main`,
                 titleAr: "المستندات المطلوبة",
                 titleEn: "Required Documents",
-                fields: master.reqAr.map((r, i) => ({
-                  id: `f_${master.id}_${i}`,
-                  type: "upload",
-                  labelAr: r,
-                  labelEn: `Upload ${r}`,
-                  required: true
-                })),
+                fields: [
+                  { id: `f_${master.id}_0`, type: "upload", labelAr: "البطاقة الشخصية", labelEn: "National ID", required: true }
+                ],
                 actionType: "submit"
               }
             ]
           });
-        } else {
-           currentFlows[existingFlowIdx].titleAr = master.titleAr;
-           currentFlows[existingFlowIdx].titleEn = master.titleEn;
         }
       });
 
@@ -299,11 +345,11 @@ export default function AdminDashboard() {
                  <div className="flex items-start gap-6 p-6 bg-amber-50 rounded-2xl border border-amber-100">
                     <ShieldAlert className="text-amber-500 shrink-0" size={32} />
                     <div className="space-y-2">
-                       <h4 className="font-black text-primary">{isAr ? "مزامنة خدمات MASTER مع المسميات الرسمية" : "Sync Master Services with Official Titles"}</h4>
-                       <p className="text-sm text-slate-500 font-medium">{isAr ? "سيقوم هذا الإجراء بتحديث كافة الخدمات الـ 29 بمسمياتها الإنجليزية الرسمية وأيقوناتها المعتمدة." : "This will sync all 29 master services with their official English titles and icons."}</p>
+                       <h4 className="font-black text-primary">{isAr ? "مزامنة خدمات MASTER الشاملة (80+ خدمة)" : "Sync Complete Master Services (80+ Services)"}</h4>
+                       <p className="text-sm text-slate-500 font-medium">{isAr ? "سيقوم هذا الإجراء بتحديث كافة خدمات بلدية ظفار المعتمدة بمسمياتها الإنجليزية الرسمية وأيقوناتها." : "This will sync all Dhofar Municipality accredited services with their official English titles and icons."}</p>
                        <Button onClick={handleSeedMasterData} disabled={saving} className="bg-amber-600 hover:bg-amber-700 text-white font-black mt-4">
                          {saving ? <Loader2 className="animate-spin ml-2" /> : <Database className="ml-2" />}
-                         {isAr ? "بدء عملية المزامنة" : "Start Sync Process"}
+                         {isAr ? "بدء عملية المزامنة الكاملة" : "Start Full Sync Process"}
                        </Button>
                     </div>
                  </div>

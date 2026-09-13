@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,39 +45,95 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Comprehensive Master Data Map with requested English titles
+// Comprehensive Master Data Map with 80+ Services
 const MASTER_DATA_MAP: Record<string, any> = {
-  "svc_100": { icon: "Car", cat: "invest", titleEn: "Get a Permit for Organizing a Promotional Car Event" },
-  "svc_101": { icon: "Zap", cat: "elec", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)" },
-  "svc_102": { icon: "Truck", cat: "health", titleEn: "Get a Permit for a Sewage Tanker" },
-  "svc_103": { icon: "FileImage", cat: "invest", titleEn: "Get Approval of Print Advertisements, Posters, and Publications Service" },
-  "svc_104": { icon: "Tent", cat: "invest", titleEn: "Request to Hold an Activity, Event or Exhibition During the Fall Season" },
-  "svc_105": { icon: "UserPlus", cat: "admin", titleEn: "Registration of Citizens' Requests at Dhofar Municipality" },
-  "svc_106": { icon: "Droplets", cat: "tech", titleEn: "Get Municipal Approval for Sanitary Sewer Service Extensions (Household Connections)" },
-  "svc_107": { icon: "Grid3X3", cat: "tech", titleEn: "Application for obtaining the Municipality's approval for paving with interlocking tiles in front of houses." },
-  "svc_108": { icon: "Hash", cat: "admin", titleEn: "Get House Numbering" },
-  "svc_109": { icon: "Type", cat: "admin", titleEn: "Building Naming License" },
-  "svc_110": { icon: "SignpostBig", cat: "invest", titleEn: "Directional Signage Permit" },
-  "svc_111": { icon: "Landmark", cat: "invest", titleEn: "Manage Site Investment" },
-  "svc_112": { icon: "Lock", cat: "admin", titleEn: "Receiving a Reserved Vehicle" },
-  "svc_113": { icon: "Construction", cat: "tech", titleEn: "Request Road Cutting or Perforation Permit" },
-  "svc_114": { icon: "Map", cat: "tech", titleEn: "Get Approval for Additional Copies of Maps" },
-  "svc_115": { icon: "Lightbulb", cat: "tech", titleEn: "Request Road and Complex Lighting Plans Approval" },
-  "svc_116": { icon: "Umbrella", cat: "tech", titleEn: "License for the Installation of Car Park Shelters" },
-  "svc_117": { icon: "ShieldAlert", cat: "admin", titleEn: "Request for Assessment of Material Damages (Traffic Accidents)" },
-  "svc_118": { icon: "Utensils", cat: "health", titleEn: "Request to Slaughter Animals at the Central Slaughterhouse" },
-  "svc_119": { icon: "Trash2", cat: "health", titleEn: "Material Destruction Certificate" },
-  "svc_120": { icon: "Truck", cat: "health", titleEn: "Request the Removal of Abandoned and Long-Term Parked Vehicles in Public Areas" },
-  "svc_121": { icon: "Store", cat: "invest", titleEn: "Get Approval for Organizing Temporary Specialized Markets" },
-  "svc_122": { icon: "Globe", cat: "invest", titleEn: "Get Approval to Organize International Shows" },
-  "svc_123": { icon: "Sparkles", cat: "invest", titleEn: "Get Approval for Hosting Lightning and Visual Shows" },
-  "svc_124": { icon: "Receipt", cat: "admin", titleEn: "Request for Payment of Contractors’ and Consulting Companies’ Invoices" },
-  "svc_125": { icon: "RefreshCw", cat: "tech", titleEn: "Renewal of Cutting or Drilling Permit" },
-  "svc_126": { icon: "FlaskConical", cat: "health", titleEn: "Submit a Request for Laboratory Sample Testing (Food/ Water)" },
-  "svc_127": { icon: "GraduationCap", cat: "admin", titleEn: "Training Higher Education Institution Students" },
-  "svc_128": { icon: "Handshake", cat: "admin", titleEn: "Reconciliation and Settlement Request" },
-  "svc_129": { icon: "Stethoscope", cat: "health", titleEn: "Pay the Fine for a Health Violation" },
-  "svc_130": { icon: "ShieldCheck", cat: "admin", titleEn: "Pay or Refund the Insurance Fee" }
+  "svc_100": { icon: "Zap", cat: "elec", titleEn: "Request for Approval Letter for Temporary Electrical Connection" },
+  "svc_101": { icon: "Truck", cat: "admin", titleEn: "Request for Funeral Vehicle" },
+  "svc_102": { icon: "FileText", cat: "admin", titleEn: "Submit a Request for a Burial Certificate" },
+  "svc_103": { icon: "Bug", cat: "health", titleEn: "Control of Insects, Rodents, and Public Health Pests" },
+  "svc_104": { icon: "Droplets", cat: "health", titleEn: "Get a License for a Potable Water Tanker" },
+  "svc_105": { icon: "Droplets", cat: "health", titleEn: "Get a License for a Non-Potable Water Tanker" },
+  "svc_106": { icon: "Tag", cat: "invest", titleEn: "Holding Discounts and Promotions" },
+  "svc_107": { icon: "Tent", cat: "invest", titleEn: "Temporary Permits for Khareef Season" },
+  "svc_108": { icon: "Car", cat: "invest", titleEn: "Get a Permit for Organizing a Promotional Car Event" },
+  "svc_109": { icon: "Pickaxe", cat: "tech", titleEn: "Get Final Approval and License for Excavation on Public Service Extension Routes" },
+  "svc_110": { icon: "Waves", cat: "tech", titleEn: "Get Municipal Approval for Sanitary Sewer Service Extensions (Household Connections)" },
+  "svc_111": { icon: "Zap", cat: "elec", titleEn: "Get the Municipality's Approval for the Paths of Electrical Service Installations (Household Connections)" },
+  "svc_112": { icon: "Grid3X3", cat: "tech", titleEn: "Application for obtaining the Municipality's approval for paving with interlocking tiles in front of houses." },
+  "svc_113": { icon: "Trees", cat: "tech", titleEn: "Requesting Municipal Certification for Tree Planting in Front of Residential Facades" },
+  "svc_114": { icon: "Hash", cat: "admin", titleEn: "Get House Numbering" },
+  "svc_115": { icon: "Type", cat: "admin", titleEn: "Building Naming License" },
+  "svc_116": { icon: "Signpost", cat: "invest", titleEn: "Directional Signage Permit" },
+  "svc_117": { icon: "Truck", cat: "health", titleEn: "Get a Permit for a Sewage Tanker" },
+  "svc_118": { icon: "Pipette", cat: "tech", titleEn: "Water Meter Installation Service for the Building" },
+  "svc_119": { icon: "Fuel", cat: "building", titleEn: "A Major Building Permit (Gas Station)" },
+  "svc_120": { icon: "TowerControl", cat: "building", titleEn: "Minor Building Permit (Transmission Tower)" },
+  "svc_121": { icon: "Fence", cat: "building", titleEn: "Minor Building Permit (Fencing)" },
+  "svc_122": { icon: "Hammer", cat: "building", titleEn: "Minor building permit (Demolition)" },
+  "svc_123": { icon: "Zap", cat: "elec", titleEn: "Minor Building License (Power Distribution Station)" },
+  "svc_124": { icon: "MapPin", cat: "tech", titleEn: "Get Confirmation of Cadastral Marking for Land Plot Site" },
+  "svc_125": { icon: "FileSearch", cat: "tech", titleEn: "Get Technical Report of Existing Building or Vacant Land" },
+  "svc_126": { icon: "Play", cat: "building", titleEn: "Getting Started Service" },
+  "svc_127": { icon: "CheckCircle", cat: "building", titleEn: "Get a Building Completion Certificate" },
+  "svc_128": { icon: "Landmark", cat: "invest", titleEn: "Manage Site Investment" },
+  "svc_129": { icon: "FileSignature", cat: "invest", titleEn: "Document a Lease Contract (Residential, Commercial, Industrial or Professional)" },
+  "svc_130": { icon: "Road", cat: "tech", titleEn: "Request Approval for Existing Crossing, Cutting, or Perforation of the Road for Service Connections" },
+  "svc_131": { icon: "RefreshCcw", cat: "health", titleEn: "Renewal of Potable Water Transport Vehicle License" },
+  "svc_132": { icon: "RefreshCcw", cat: "health", titleEn: "Renewal of License for Non-Potable Water Transport Vehicle" },
+  "svc_133": { icon: "CheckCircle", cat: "invest", titleEn: "Get Approval for Lease Contract (Commercial Activity)" },
+  "svc_134": { icon: "Lock", cat: "admin", titleEn: "Receiving a Reserved Vehicle" },
+  "svc_135": { icon: "Trash2", cat: "health", titleEn: "Request for the Removal of Weeds and Unsightly Objects in Public Areas" },
+  "svc_136": { icon: "Home", cat: "building", titleEn: "Get a Major Building Permit" },
+  "svc_137": { icon: "AlertTriangle", cat: "tech", titleEn: "Request Speed Breaker" },
+  "svc_138": { icon: "Fence", cat: "building", titleEn: "Major Building Permit (Fencing)" },
+  "svc_139": { icon: "Image", cat: "invest", titleEn: "Get Approval of Print Advertisements, Posters, and Publications Service" },
+  "svc_140": { icon: "Construction", cat: "tech", titleEn: "Request Road Cutting or Perforation Permit" },
+  "svc_141": { icon: "Calendar", cat: "invest", titleEn: "Request to Hold an Activity, Event or Exhibition During the Fall Season" },
+  "svc_142": { icon: "CheckCircle", cat: "tech", titleEn: "Request Approvals Related to Asphalt Roads" },
+  "svc_143": { icon: "MoveDown", cat: "tech", titleEn: "Request for Lowering Curb Level" },
+  "svc_144": { icon: "RefreshCw", cat: "building", titleEn: "Request for Renewal of Building Permit" },
+  "svc_145": { icon: "Route", cat: "tech", titleEn: "Request to Pave a Dirt Road" },
+  "svc_146": { icon: "Map", cat: "tech", titleEn: "Get Approval for Additional Copies of Maps" },
+  "svc_147": { icon: "Road", cat: "tech", titleEn: "Request an Asphalt Road Paving" },
+  "svc_148": { icon: "Lightbulb", cat: "tech", titleEn: "Request Road and Complex Lighting Plans Approval" },
+  "svc_149": { icon: "Umbrella", cat: "tech", titleEn: "License for the Installation of Car Park Shelters" },
+  "svc_150": { icon: "Store", cat: "invest", titleEn: "Rent Shops in Special Locations in the Municipality (Public Markets)" },
+  "svc_151": { icon: "UserRoundPen", cat: "building", titleEn: "Request to Change the Project Contractor" },
+  "svc_152": { icon: "Zap", cat: "elec", titleEn: "Connect the power supply" },
+  "svc_153": { icon: "UserRoundPen", cat: "building", titleEn: "Request for Change of Project Supervisor Consultant" },
+  "svc_154": { icon: "Lightbulb", cat: "tech", titleEn: "Request Street Lighting" },
+  "svc_155": { icon: "Lightbulb", cat: "tech", titleEn: "Request for Residential Community Lighting (Light fixture)" },
+  "svc_156": { icon: "ArrowRightLeft", cat: "tech", titleEn: "Request for the Relocation of a Streetlight Pole" },
+  "svc_157": { icon: "ArrowRightLeft", cat: "tech", titleEn: "Relocate Electrical Lighting Unit" },
+  "svc_158": { icon: "ShieldAlert", cat: "admin", titleEn: "Request for Assessment of Material Damages (Traffic Accidents)" },
+  "svc_159": { icon: "CheckCircle", cat: "tech", titleEn: "Request for Lighting Approvals" },
+  "svc_160": { icon: "Beef", cat: "health", titleEn: "Request to Slaughter Animals at the Central Slaughterhouse" },
+  "svc_161": { icon: "RefreshCw", cat: "health", titleEn: "Renew the Wastewater Tanker License" },
+  "svc_162": { icon: "CheckCircle", cat: "tech", titleEn: "Get Initial Approval on Extension Routes for Public Services" },
+  "svc_163": { icon: "Truck", cat: "health", titleEn: "Get Licenses for Food Transport Vehicles" },
+  "svc_164": { icon: "RefreshCw", cat: "health", titleEn: "Renew Food Transport Vehicles License" },
+  "svc_165": { icon: "Trash2", cat: "health", titleEn: "Material Destruction Certificate" },
+  "svc_166": { icon: "RefreshCw", cat: "tech", titleEn: "Renew the License for Excavation on Public Service Extension Routes" },
+  "svc_167": { icon: "UserRoundPen", cat: "building", titleEn: "Request to Change the Owner’s Name on the Building Permit" },
+  "svc_168": { icon: "FileQuestion", cat: "building", titleEn: "Get a Replacement for a Lost Building Permit" },
+  "svc_169": { icon: "Truck", cat: "health", titleEn: "Request the Removal of Abandoned and Long-Term Parked Vehicles in Public Areas" },
+  "svc_170": { icon: "Store", cat: "invest", titleEn: "Get Approval for Organizing Temporary Specialized Markets" },
+  "svc_171": { icon: "UserPlus", cat: "admin", titleEn: "Registration of Citizens' Requests at Dhofar Municipality" },
+  "svc_172": { icon: "Globe", cat: "invest", titleEn: "Get Approval to Organize International Shows" },
+  "svc_173": { icon: "Sparkles", cat: "invest", titleEn: "Get Approval for Hosting Lightning and Visual Shows" },
+  "svc_174": { icon: "UserCheck", cat: "building", titleEn: "Report to Release Contractors" },
+  "svc_175": { icon: "Receipt", cat: "admin", titleEn: "Request for Payment of Contractors’ and Consulting Companies’ Invoices" },
+  "svc_176": { icon: "RefreshCw", cat: "tech", titleEn: "Renewal of Cutting or Drilling Permit" },
+  "svc_177": { icon: "FilePlus", cat: "building", titleEn: "Get Minor Building Permit" },
+  "svc_178": { icon: "MoveRight", cat: "tech", titleEn: "Relocating an Asphalt Road" },
+  "svc_179": { icon: "Ticket", cat: "invest", titleEn: "Authenticate and Stamp Tickets for Amusement Venues, Cinemas, and Events" },
+  "svc_180": { icon: "FlaskConical", cat: "health", titleEn: "Submit a Request for Laboratory Sample Testing (Food/ Water)" },
+  "svc_181": { icon: "GraduationCap", cat: "admin", titleEn: "Training Higher Education Institution Students" },
+  "svc_182": { icon: "Hammer", cat: "building", titleEn: "Minor building permit (restoration)" },
+  "svc_183": { icon: "Handshake", cat: "admin", titleEn: "Reconciliation and Settlement Request" },
+  "svc_184": { icon: "FileText", cat: "tech", titleEn: "Get Work Order for Project" },
+  "svc_185": { icon: "ShieldAlert", cat: "health", titleEn: "Pay the Fine for a Health Violation" },
+  "svc_186": { icon: "ShieldCheck", cat: "admin", titleEn: "Pay or Refund the Insurance Fee" }
 };
 
 const ALL_ICON_KEYS = Object.keys(Icons).filter(key => 
@@ -139,6 +195,34 @@ function WorkflowEngineContent() {
   const [saving, setSaving] = useState(false);
   const [iconSearch, setIconSearch] = useState('');
 
+  // Automatic Requirements Sync Effect
+  useEffect(() => {
+    if (steps.length > 0) {
+      const derivedDocs: string[] = [];
+      steps.filter(Boolean).forEach(step => {
+        const stepTitle = (isAr ? step.titleAr : step.titleEn) || '';
+        const isDocStep = stepTitle.includes('المستندات') || stepTitle.toLowerCase().includes('document');
+
+        (step.fields || []).filter(Boolean).forEach(field => {
+          if (field.type === 'upload') {
+            derivedDocs.push(isAr ? field.labelAr : field.labelEn);
+          } else if (isDocStep) {
+            derivedDocs.push(isAr ? field.labelAr : field.labelEn);
+          }
+        });
+      });
+      
+      const uniqueDocs = Array.from(new Set(derivedDocs.filter(Boolean)));
+      setServiceInfo(prev => {
+        const currentDocs = prev.reqsAr || [];
+        if (JSON.stringify(currentDocs.sort()) !== JSON.stringify(uniqueDocs.sort())) {
+          return { ...prev, reqsAr: uniqueDocs };
+        }
+        return prev;
+      });
+    }
+  }, [steps, isAr]);
+
   useEffect(() => {
     if (editId) {
       setLoading(true);
@@ -146,6 +230,7 @@ function WorkflowEngineContent() {
         if (data) {
           const flow = (data.serviceFlows || []).find((f: any) => f.id === editId || f.serviceId === editId);
           const svc = (data.services || []).find((s: any) => s.id === editId);
+          const master = MASTER_DATA_MAP[editId] || {};
           
           if (flow) {
             const sanitizedSteps = (flow.steps || []).filter(Boolean).map((s: any) => ({
@@ -160,7 +245,6 @@ function WorkflowEngineContent() {
             setSteps(sanitizedSteps);
           }
           
-          const master = MASTER_DATA_MAP[editId] || {};
           if (svc) {
             setServiceInfo({
               ...svc,
@@ -257,33 +341,6 @@ function WorkflowEngineContent() {
       ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
       setSteps(ns);
     }
-  };
-
-  const syncReqsFromSteps = () => {
-    const derivedDocs: string[] = [];
-    
-    (steps || []).filter(Boolean).forEach(step => {
-      const stepTitle = (isAr ? step.titleAr : step.titleEn) || '';
-      const isDocStep = stepTitle.includes('المستندات') || stepTitle.toLowerCase().includes('document');
-
-      (step.fields || []).filter(Boolean).forEach(field => {
-        // Rule 1: Always include upload fields
-        if (field.type === 'upload') {
-          derivedDocs.push(isAr ? field.labelAr : field.labelEn);
-        } 
-        // Rule 2: If the entire step is for "Documents", include all field labels
-        else if (isDocStep) {
-          derivedDocs.push(isAr ? field.labelAr : field.labelEn);
-        }
-      });
-    });
-    
-    const uniqueDocs = Array.from(new Set(derivedDocs.filter(Boolean)));
-    setServiceInfo(prev => ({ ...prev, reqsAr: uniqueDocs }));
-    toast({ 
-      title: isAr ? "تم تحديث المستندات" : "Docs Synced", 
-      description: isAr ? `تم جلب ${uniqueDocs.length} مستند من مراحل العمل.` : `Found ${uniqueDocs.length} required documents.` 
-    });
   };
 
   const handleSave = async () => {
@@ -582,17 +639,15 @@ function WorkflowEngineContent() {
 
                  <div className="space-y-3 pt-4 border-t">
                     <div className="flex items-center justify-between">
-                      <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "المستندات المطلوبة" : "Required Docs"}</label>
-                      <Button variant="ghost" size="xs" onClick={syncReqsFromSteps} className="h-6 px-2 text-[8px] font-black text-accent gap-1 hover:bg-accent/5">
-                        <RefreshCw size={8} /> {isAr ? "جلب من المراحل" : "Sync Flow"}
-                      </Button>
+                      <label className="text-[9px] font-black uppercase text-slate-400">{isAr ? "المستندات المطلوبة (جلب مباشر)" : "Required Docs (Auto-Sync)"}</label>
+                      <Badge variant="outline" className="text-[8px] bg-primary/5 text-primary border-primary/20 px-2 py-0.5">
+                        <RefreshCw size={8} className="animate-spin-slow ml-1" /> {isAr ? "تلقائي" : "Auto"}
+                      </Badge>
                     </div>
                     <div className="space-y-1">
                        {(serviceInfo.reqsAr || []).filter(Boolean).map((req, idx) => (
-                         <div key={idx} className="flex gap-1">
-                            <Input value={req} onChange={e => {
-                              const nr = [...(serviceInfo.reqsAr || [])]; nr[idx] = e.target.value; setServiceInfo({...serviceInfo, reqsAr: nr});
-                            }} className="h-7 text-[9px]" />
+                         <div key={idx} className="flex gap-1 animate-in fade-in slide-in-from-right-2">
+                            <Input value={req} readOnly className="h-7 text-[9px] bg-slate-50 border-dashed" />
                             <Button variant="ghost" size="icon" onClick={() => {
                               const nr = (serviceInfo.reqsAr || []).filter((_, i) => i !== idx); setServiceInfo({...serviceInfo, reqsAr: nr});
                             }} className="h-7 w-7 text-red-400"><Trash2 size={10}/></Button>

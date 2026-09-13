@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
-import { Service, SiteConfig, CarouselItem, Course, Survey, PopupMessage } from '@/lib/types';
+import { Service, SiteConfig, CarouselItem, Course, Survey, PopupMessage, ServiceFlow } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ServiceCardEnhanced } from '@/components/service-card-enhanced';
 import { IdentityShowcase } from '@/components/identity-showcase';
@@ -81,9 +81,10 @@ export default function DhofarPortal() {
       try {
         const data = await fetchBin();
         if (data) {
-          // Data Reconciliation: Gather all service IDs from both arrays
-          const fetchedServices = data.services || [];
-          const fetchedFlows = data.serviceFlows || [];
+          const fetchedServices = (data.services || []).filter(Boolean);
+          const fetchedFlows = (data.serviceFlows || []).filter(Boolean);
+          
+          // Data Reconciliation: Merge explicit services and flows
           const allServiceIds = Array.from(new Set([
             ...fetchedServices.map((s: any) => s.id),
             ...fetchedFlows.map((f: any) => f.serviceId || f.id)
@@ -91,20 +92,36 @@ export default function DhofarPortal() {
 
           const reconciled = allServiceIds.map(id => {
             const existing = fetchedServices.find((s: any) => s.id === id);
-            if (existing) return existing;
-            
             const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
-            // Default fallbacks for common svc_ codes
+            
+            // Extract requirements dynamically from steps if missing
+            let dynamicReqsAr: string[] = existing?.reqsAr || [];
+            if (dynamicReqsAr.length === 0 && flow) {
+              const docs: string[] = [];
+              flow.steps?.forEach((step: any) => {
+                const title = (step.titleAr || '').toLowerCase();
+                const isDocStep = title.includes('مستند') || title.includes('وثائق');
+                step.fields?.forEach((f: any) => {
+                  if (f.type === 'upload' || isDocStep) {
+                    docs.push(f.labelAr);
+                  }
+                });
+              });
+              dynamicReqsAr = Array.from(new Set(docs)).filter(Boolean);
+            }
+
+            if (existing) return { ...existing, reqsAr: dynamicReqsAr };
+            
             return {
               id,
               title: flow?.titleAr || (isAr ? 'خدمة بلدية' : 'Municipal Service'),
               titleEn: flow?.titleEn || 'Municipal Service',
               description: isAr ? 'هذه الخدمة متاحة للتقديم الرقمي عبر بوابة بلدية ظفار.' : 'This service is available for digital submission.',
-              category: id.startsWith('svc_12') ? 'admin' : id.startsWith('svc_11') ? 'tech' : 'elec',
+              category: id.startsWith('svc_12') || id.startsWith('svc_18') ? 'admin' : id.startsWith('svc_11') ? 'tech' : 'elec',
               iconName: 'FileText',
               isActive: true,
-              reqsAr: [],
-              reqsEn: [],
+              reqsAr: dynamicReqsAr,
+              reqsEn: dynamicReqsAr.map(r => `Required: ${r}`),
               fees: '10 OMR'
             } as Service;
           });
