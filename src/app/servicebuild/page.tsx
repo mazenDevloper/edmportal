@@ -75,6 +75,15 @@ function WorkflowEngineContent() {
     }
   }, [editId]);
 
+  // Fix for Zero Dimensions in hidden tabs
+  useEffect(() => {
+    if (activeTab === 'canvas') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
+    }
+  }, [activeTab]);
+
   const addStep = useCallback(() => {
     const newStep: ServiceStep = {
       id: `step_${Date.now()}`,
@@ -150,6 +159,17 @@ function WorkflowEngineContent() {
     }
   };
 
+  const onEdgeClick = useCallback((_: any, edge: any) => {
+    setEdgeOverrides((prev) => ({
+      ...prev,
+      [edge.id]: (prev[edge.id] || edge.type) === 'smoothstep' ? 'straight' : 'smoothstep',
+    }));
+    toast({
+      title: isAr ? "تغيير نمط المسار" : "Edge type toggled",
+      description: isAr ? "تم التبديل بين الخط المستقيم والمنكسر لهذه الوصلة" : "Switched style for this individual edge"
+    });
+  }, [isAr, toast]);
+
   // Flowchart Mapping
   const nodes: Node[] = useMemo(() => {
     return steps.map((step, idx) => ({
@@ -194,7 +214,8 @@ function WorkflowEngineContent() {
           id: edgeId,
           source: step.id,
           target: step.defaultNextStepId,
-          type: edgeOverrides[edgeId] || edgeType,
+          // المسار الافتراضي يكون مستقيماً
+          type: edgeOverrides[edgeId] || 'straight',
           label: isAr ? 'افتراضي' : 'Default',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
           style: { stroke: '#007375', strokeWidth: 2 }
@@ -203,38 +224,32 @@ function WorkflowEngineContent() {
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
           const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
+          const targetField = step.fields.find(f => f.id === rule.fieldId);
+          const fieldLabel = isAr ? targetField?.labelAr : targetField?.labelEn;
+          const conditionLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`;
+
           e.push({
             id: edgeId,
             source: step.id,
             target: rule.targetStepId,
-            type: edgeOverrides[edgeId] || edgeType,
-            label: `${rule.value}`,
+            // المسارات الشرطية تكون منكسرة افتراضياً
+            type: edgeOverrides[edgeId] || 'smoothstep',
+            label: conditionLabel,
             animated: true,
-            style: { stroke: '#03CFCB', strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
+            style: { stroke: '#be123c', strokeWidth: 2 }, // لون أحمر/عنابي للشرط
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#be123c' },
           });
         }
       });
     });
     return e;
-  }, [steps, isAr, edgeType, edgeOverrides]);
-
-  const onEdgeClick = useCallback((_: any, edge: any) => {
-    setEdgeOverrides((prev) => ({
-      ...prev,
-      [edge.id]: (prev[edge.id] || edgeType) === 'smoothstep' ? 'straight' : 'smoothstep',
-    }));
-    toast({
-      title: isAr ? "تم تغيير نوع المسار" : "Path style toggled",
-      description: isAr ? "تم التبديل بين الخط المستقيم والمنكسر لهذه الوصلة" : "Switched between straight and broken style for this edge"
-    });
-  }, [edgeType, isAr, toast]);
+  }, [steps, isAr, edgeOverrides]);
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
     
     const autoLayout = () => {
-      setSteps(prev => [...prev]); // Trigger re-render to use fixed positioning or dynamic if implemented
+      setSteps(prev => [...prev]); 
       fitView();
       toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
     };
