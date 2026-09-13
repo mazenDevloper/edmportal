@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -23,11 +22,10 @@ import { Service, SiteConfig, MenuItem, CarouselItem, ServiceApplication, Survey
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
-  Settings, Plus, Save, Trash2, Search, Loader2, 
+  Settings, Plus, Save, Trash2, Loader2, 
   CloudUpload, Star, Layout, Menu, Image as ImageIcon,
-  BookOpen, FileCheck, Info, Sparkles, ClipboardList, PenTool, ArrowUpRight,
-  TrendingUp, Accessibility, Languages, Video, LayoutDashboard, Database,
-  Edit2, FileText, Eye, X, Link as LinkIcon, Bell, ShieldCheck, CreditCard, Share2
+  PenTool, ArrowUpRight,
+  ClipboardList, Edit2, FileText, Eye, X, Link as LinkIcon, Bell, ShieldCheck, Share2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -70,11 +68,10 @@ export default function AdminDashboard() {
       try {
         const data = await fetchBin();
         if (data) {
-          // Robust Service Reconciliation
           const fetchedServices = data.services || [];
           const fetchedFlows = data.serviceFlows || [];
           
-          // Create a Map of all unique service IDs from both sources
+          // Reconcile services: ensure every flow has a corresponding service entry
           const allServiceIds = new Set([
             ...fetchedServices.map((s: any) => s.id),
             ...fetchedFlows.map((f: any) => f.serviceId || f.id)
@@ -89,7 +86,6 @@ export default function AdminDashboard() {
               reqsEn: existingSvc.reqsEn || []
             };
             
-            // If service metadata is missing but flow exists, synthesize it
             const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
             return {
               id,
@@ -249,13 +245,6 @@ export default function AdminDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {services.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-10 text-slate-400 font-bold">
-                          {isAr ? "لا توجد خدمات متاحة حالياً" : "No services found"}
-                        </TableCell>
-                      </TableRow>
-                    )}
                   </TableBody>
                 </Table>
              </div>

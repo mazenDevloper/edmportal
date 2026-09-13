@@ -54,7 +54,26 @@ export default function ServiceApplicationPage() {
         if (data) {
           const foundSvc = data.services?.find((s: Service) => s.id === id);
           const foundFlow = data.serviceFlows?.find((f: ServiceFlow) => f.serviceId === id || f.id === id);
-          setService(foundSvc || null);
+          
+          if (foundFlow && !foundSvc) {
+            // Synthesize service metadata if missing but flow exists
+            const synthesizedSvc: Service = {
+              id: id as string,
+              title: foundFlow.titleAr || 'خدمة غير معرفة',
+              titleEn: foundFlow.titleEn || 'Untitled Service',
+              description: isAr ? 'هذه الخدمة متاحة للتقديم الرقمي.' : 'This service is available for digital application.',
+              category: 'elec',
+              iconName: 'FileText',
+              isActive: true,
+              reqsAr: [],
+              reqsEn: [],
+              fees: '0 OMR'
+            };
+            setService(synthesizedSvc);
+          } else {
+            setService(foundSvc || null);
+          }
+          
           setFlow(foundFlow || null);
         }
       } catch (err) {
@@ -64,16 +83,15 @@ export default function ServiceApplicationPage() {
       }
     };
     load();
-  }, [id]);
+  }, [id, isAr]);
 
   const handleNextStep = () => {
     if (!flow) return;
     const currentStep = flow.steps[currentStepIndex];
     
-    // Logic for branching (Conditional Flowchart)
+    // Logic for branching
     let nextStepId = currentStep.defaultNextStepId;
     
-    // Check conditional logic first as it takes precedence
     if (currentStep.logic && currentStep.logic.length > 0) {
       for (const rule of currentStep.logic) {
         const fieldValue = formData[rule.fieldId];
@@ -96,7 +114,6 @@ export default function ServiceApplicationPage() {
       }
     }
 
-    // Default linear progress if no logic/target found
     if (currentStepIndex < flow.steps.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);
     }
@@ -207,6 +224,9 @@ export default function ServiceApplicationPage() {
                       {req}
                     </li>
                   ))}
+                  {(!service.reqsAr || service.reqsAr.length === 0) && (
+                    <li className="text-[10px] text-slate-400 italic">{isAr ? "لا توجد مستندات إضافية" : "No additional documents"}</li>
+                  )}
                 </ul>
               </div>
 
@@ -311,7 +331,7 @@ export default function ServiceApplicationPage() {
                       </div>
                     ))}
 
-                    {(!currentStep?.fields || currentStep?.fields.length === 0) && currentStepIndex > 0 && (
+                    {(!currentStep?.fields || currentStep?.fields.length === 0) && currentStepIndex >= 0 && (
                       <div className="text-center py-12">
                         <CheckCircle2 className="mx-auto text-emerald-500 mb-4" size={48} />
                         <p className="font-bold text-slate-500">{isAr ? "اضغط على زر الإرسال لإتمام العملية" : "Click submit to complete the process"}</p>
