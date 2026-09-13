@@ -37,7 +37,8 @@ import {
   Panel,
   useReactFlow,
   ReactFlowProvider,
-  applyNodeChanges
+  applyNodeChanges,
+  NodeChange
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -60,6 +61,15 @@ function WorkflowEngineContent() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // FIX: Force resize event when switching to canvas tab to solve zero-dimension issue
+  useEffect(() => {
+    if (activeTab === 'canvas') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     if (editId) {
       setLoading(true);
@@ -68,7 +78,17 @@ function WorkflowEngineContent() {
           const flow = data.serviceFlows?.find((f: ServiceFlow) => f.id === editId || f.serviceId === editId);
           const svc = data.services?.find((s: Service) => s.id === editId);
           if (flow) setSteps(flow.steps || []);
-          if (svc) setServiceInfo(svc);
+          if (svc) setServiceInfo({
+            ...svc,
+            title: svc.title || '',
+            titleEn: svc.titleEn || '',
+            category: svc.category || 'elec',
+            iconName: svc.iconName || 'FileText',
+            description: svc.description || '',
+            descriptionEn: svc.descriptionEn || '',
+            linkUrl: svc.linkUrl || '',
+            type: svc.type || 'workflow'
+          });
         }
       }).finally(() => setLoading(false));
     }
@@ -96,23 +116,30 @@ function WorkflowEngineContent() {
 
   const addFieldToStep = (stepId: string, type: FormField['type']) => {
     setSteps(steps.map(s => s.id === stepId ? { ...s, fields: [...s.fields, {
-      id: `field_${Date.now()}`, type, labelAr: '', labelEn: '', required: true
+      id: `field_${Date.now()}`, type, labelAr: '', labelEn: '', required: true, options: []
     }] } : s));
   };
 
   const addLogic = (stepIdx: number) => {
     const ns = [...steps];
     const logic: StepLogic[] = ns[stepIdx].logic || [];
-    ns[stepIdx].logic = [...logic, { fieldId: '', value: '', targetStepId: '' }];
+    ns[stepIdx].logic = [...logic, { fieldId: 'none', value: '', targetStepId: 'none' }];
     setSteps(ns);
   };
 
-  const onNodesChange = useCallback((changes: any) => {
-    setSteps(nds => {
-      const updatedNodes = applyNodeChanges(changes, nds as any) as any[];
-      return nds.map(s => {
-        const updated = updatedNodes.find(n => n.id === s.id);
-        return updated ? { ...s, position: updated.position } : s;
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setSteps((nds) => {
+      // Use applyNodeChanges but map it back to our steps structure
+      const currentNodes = nds.map(s => ({
+        id: s.id,
+        position: s.position || { x: 0, y: 0 },
+        data: {}
+      }));
+      const updatedNodes = applyNodeChanges(changes, currentNodes as any);
+      
+      return nds.map(step => {
+        const updated = (updatedNodes as any[]).find(un => un.id === step.id);
+        return updated ? { ...step, position: updated.position } : step;
       });
     });
   }, []);
@@ -162,7 +189,7 @@ function WorkflowEngineContent() {
       data: { 
         label: (
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-black">{isAr ? (step.titleAr || 'مرحلة') : (step.titleEn || 'Step')}</span>
+            <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
             <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
                 <Edit2 size={10} />
@@ -205,14 +232,15 @@ function WorkflowEngineContent() {
       }
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId && rule.targetStepId !== 'none') {
-          const fieldLabel = step.fields.find(f => f.id === rule.fieldId)?.labelAr || rule.fieldId || (isAr ? 'حقل' : 'Field');
+          const field = step.fields.find(f => f.id === rule.fieldId);
+          const fieldLabel = isAr ? field?.labelAr : field?.labelEn;
           e.push({
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
-            label: rule.fieldId ? `${fieldLabel} = ${rule.value || '?'}` : `${rule.value || '?'}`,
-            type: 'smoothstep',
+            label: fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`,
             animated: true,
+            type: 'smoothstep',
             style: { stroke: '#03CFCB', strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
           });
@@ -368,20 +396,43 @@ function WorkflowEngineContent() {
                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest">{isAr ? "مدخلات النموذج" : "Form Inputs"}</h4>
                            <div className="flex flex-wrap gap-2 mb-4">
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'text')} className="h-8 text-[9px] px-3 rounded-lg"><Type size={12} className="ml-1"/> {isAr ? "نص" : "Text"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'number')} className="h-8 text-[9px] px-3 rounded-lg"><Layers size={12} className="ml-1"/> {isAr ? "رقم" : "Number"}</Button>
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'upload')} className="h-8 text-[9px] px-3 rounded-lg"><Upload size={12} className="ml-1"/> {isAr ? "مرفق" : "Upload"}</Button>
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'date')} className="h-8 text-[9px] px-3 rounded-lg"><Calendar size={12} className="ml-1"/> {isAr ? "تاريخ" : "Date"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'select')} className="h-8 text-[9px] px-3 rounded-lg"><Search size={12} className="ml-1"/> {isAr ? "قائمة" : "List"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MoveUp size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
                            </div>
-                           <div className="space-y-3">
+                           <div className="space-y-4">
                             {step.fields.map((f, fIdx) => (
-                              <div key={f.id} className="flex gap-2 items-center bg-slate-50 p-2 rounded-xl border">
-                                 <Input placeholder={isAr ? "تسمية الحقل" : "Field Label"} value={(isAr ? f.labelAr : f.labelEn) || ''} onChange={e => {
-                                   const nf = [...step.fields]; 
-                                   if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
-                                   updateStep(sIdx, { fields: nf });
-                                 }} className="h-8 text-xs font-bold bg-white" />
-                                 <Button variant="ghost" size="icon" onClick={() => {
-                                   const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, { fields: nf });
-                                 }} className="text-red-400 h-8 w-8"><X size={14}/></Button>
+                              <div key={f.id} className="bg-slate-50 p-3 rounded-xl border space-y-3">
+                                 <div className="flex gap-2 items-center">
+                                   <div className="text-[8px] font-black bg-white border px-1.5 py-0.5 rounded uppercase">{f.type}</div>
+                                   <Input placeholder={isAr ? "تسمية الحقل" : "Field Label"} value={(isAr ? f.labelAr : f.labelEn) || ''} onChange={e => {
+                                     const nf = [...step.fields]; 
+                                     if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
+                                     updateStep(sIdx, { fields: nf });
+                                   }} className="h-8 text-xs font-bold bg-white" />
+                                   <Button variant="ghost" size="icon" onClick={() => {
+                                     const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, { fields: nf });
+                                   }} className="text-red-400 h-8 w-8"><X size={14}/></Button>
+                                 </div>
+                                 {(f.type === 'select' || f.type === 'multichoice') && (
+                                   <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                                      {f.options?.map((opt, oIdx) => (
+                                        <div key={oIdx} className="flex gap-1 items-center">
+                                          <Input className="h-6 text-[10px] bg-white" value={opt} onChange={e => {
+                                            const nf = [...step.fields]; const opts = [...(nf[fIdx].options || [])]; opts[oIdx] = e.target.value; nf[fIdx].options = opts; updateStep(sIdx, { fields: nf });
+                                          }} />
+                                          <Button size="icon" variant="ghost" className="h-6 w-6 text-red-300" onClick={() => {
+                                            const nf = [...step.fields]; const opts = (nf[fIdx].options || []).filter((_, i) => i !== oIdx); nf[fIdx].options = opts; updateStep(sIdx, { fields: nf });
+                                          }}><X size={10}/></Button>
+                                        </div>
+                                      ))}
+                                      <Button size="xs" variant="ghost" className="text-[9px] h-6 text-primary" onClick={() => {
+                                        const nf = [...step.fields]; const opts = [...(nf[fIdx].options || []), '']; nf[fIdx].options = opts; updateStep(sIdx, { fields: nf });
+                                      }}>+ {isAr ? "إضافة خيار" : "Add Option"}</Button>
+                                   </div>
+                                 )}
                               </div>
                             ))}
                            </div>
@@ -403,24 +454,56 @@ function WorkflowEngineContent() {
                                {(step.logic || []).map((rule, rIdx) => (
                                  <div key={rIdx} className="bg-primary/5 p-4 rounded-2xl space-y-3 border border-primary/10 relative group">
                                     <div className="flex items-center justify-between text-[9px] font-black text-primary">
-                                      <span>{isAr ? "في حال كانت قيمة الحقل تساوي:" : "IF VALUE EQUALS:"}</span>
+                                      <span>{isAr ? "قاعدة شرطية:" : "CONDITIONAL RULE:"}</span>
                                       <Button variant="ghost" size="icon" onClick={() => {
                                         const nl = [...step.logic!]; nl.splice(rIdx, 1); updateStep(sIdx, { logic: nl });
                                       }} className="h-5 w-5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></Button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <Input placeholder={isAr ? "القيمة" : "Value"} value={rule.value || ''} onChange={e => {
-                                        const nl = [...step.logic!]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
-                                      }} className="h-8 text-[11px] bg-white" />
-                                      <Select value={rule.targetStepId || 'none'} onValueChange={v => {
-                                        const nl = [...step.logic!]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
-                                      }}>
-                                        <SelectTrigger className="h-8 text-[11px] bg-white"><SelectValue placeholder={isAr ? "انتقل إلى..." : "Navigate to..."} /></SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="none">{isAr ? "لا يوجد" : "None"}</SelectItem>
-                                          {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
-                                        </SelectContent>
-                                      </Select>
+                                    <div className="space-y-3">
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[8px] font-black uppercase text-slate-400">{isAr ? "الحقل المرجعي" : "FIELD"}</label>
+                                          <Select value={rule.fieldId || 'none'} onValueChange={v => {
+                                            const nl = [...step.logic!]; nl[rIdx].fieldId = v; updateStep(sIdx, { logic: nl });
+                                          }}>
+                                            <SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="none">---</SelectItem>
+                                              {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[8px] font-black uppercase text-slate-400">{isAr ? "قيمة المطابقة" : "VALUE"}</label>
+                                          {step.fields.find(f => f.id === rule.fieldId)?.options ? (
+                                            <Select value={rule.value || 'none'} onValueChange={v => {
+                                              const nl = [...step.logic!]; nl[rIdx].value = v; updateStep(sIdx, { logic: nl });
+                                            }}>
+                                              <SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="none">---</SelectItem>
+                                                {step.fields.find(f => f.id === rule.fieldId)?.options?.map((opt, i) => <SelectItem key={i} value={opt}>{opt}</SelectItem>)}
+                                              </SelectContent>
+                                            </Select>
+                                          ) : (
+                                            <Input placeholder="..." value={rule.value || ''} onChange={e => {
+                                              const nl = [...step.logic!]; nl[rIdx].value = e.target.value; updateStep(sIdx, { logic: nl });
+                                            }} className="h-8 text-[11px] bg-white" />
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-slate-400">{isAr ? "الوجهة" : "TARGET"}</label>
+                                        <Select value={rule.targetStepId || 'none'} onValueChange={v => {
+                                          const nl = [...step.logic!]; nl[rIdx].targetStepId = v === 'none' ? '' : v; updateStep(sIdx, { logic: nl });
+                                        }}>
+                                          <SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder={isAr ? "انتقل إلى..." : "Navigate to..."} /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">{isAr ? "لا يوجد" : "None"}</SelectItem>
+                                            {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
                                     </div>
                                  </div>
                                ))}
