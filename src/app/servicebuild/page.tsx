@@ -36,11 +36,37 @@ import {
   MarkerType,
   Panel,
   useReactFlow,
-  ReactFlowProvider
+  ReactFlowProvider,
+  Handle,
+  Position
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const ICON_LIST = ['FileText', 'ShieldCheck', 'Users', 'TrendingUp', 'Landmark', 'MapPin', 'CreditCard', 'Building2', 'Truck', 'Trash2', 'Wrench', 'Lightbulb'];
+
+// Custom Node with 4 Connection Points
+const ServiceStepNode = ({ data }: any) => {
+  return (
+    <div className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-3 font-bold w-[180px] text-center shadow-md">
+      <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
+      <Handle type="target" position={Position.Left} className="!bg-[#007375]" />
+      
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-black">{data.label}</span>
+        <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {data.actions}
+        </div>
+      </div>
+
+      <Handle type="source" position={Position.Bottom} className="!bg-[#007375]" />
+      <Handle type="source" position={Position.Right} className="!bg-[#007375]" />
+    </div>
+  );
+};
+
+const nodeTypes = {
+  serviceStep: ServiceStepNode,
+};
 
 function WorkflowEngineContent() {
   const router = useRouter();
@@ -58,7 +84,6 @@ function WorkflowEngineContent() {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [edgeType, setEdgeType] = useState<string>('straight');
   const [edgeOverrides, setEdgeOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -75,7 +100,7 @@ function WorkflowEngineContent() {
     }
   }, [editId]);
 
-  // Fix for Zero Dimensions in hidden tabs
+  // Fix for Canvas Dimensions in hidden tabs
   useEffect(() => {
     if (activeTab === 'canvas') {
       setTimeout(() => {
@@ -162,11 +187,11 @@ function WorkflowEngineContent() {
   const onEdgeClick = useCallback((_: any, edge: any) => {
     setEdgeOverrides((prev) => ({
       ...prev,
-      [edge.id]: (prev[edge.id] || edge.type) === 'smoothstep' ? 'straight' : 'smoothstep',
+      [edge.id]: (prev[edge.id] || 'smoothstep') === 'smoothstep' ? 'straight' : 'smoothstep',
     }));
   }, []);
 
-  // Flowchart Mapping
+  // Flowchart Mapping - Grid 3x
   const nodes: Node[] = useMemo(() => {
     return steps.map((step, idx) => {
       const col = idx % 3;
@@ -174,39 +199,26 @@ function WorkflowEngineContent() {
       
       return {
         id: step.id,
+        type: 'serviceStep',
         data: { 
-          label: (
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
-              <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
-                  <Edit2 size={10} />
-                </Button>
-                <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}>
-                  <Trash2 size={10} />
-                </Button>
-              </div>
-            </div>
+          label: isAr ? step.titleAr : step.titleEn,
+          actions: (
+            <>
+              <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+                <Edit2 size={10} />
+              </Button>
+              <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={() => removeStep(step.id)}>
+                <Trash2 size={10} />
+              </Button>
+            </>
           )
         },
-        // Grid 3-column layout
         position: { x: col * 250, y: row * 220 },
-        className: 'group',
-        style: { 
-          background: '#fff', 
-          color: '#007375', 
-          border: '2px solid #007375', 
-          borderRadius: '16px', 
-          padding: '12px', 
-          fontWeight: 'bold',
-          width: 180,
-          textAlign: 'center',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
-        }
       };
     });
   }, [steps, isAr]);
 
+  // Edges - All Smoothstep by default
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     steps.forEach(step => {
@@ -216,8 +228,8 @@ function WorkflowEngineContent() {
           id: edgeId,
           source: step.id,
           target: step.defaultNextStepId,
-          type: edgeOverrides[edgeId] || 'straight',
-          label: isAr ? 'افتراضي' : 'Default',
+          type: edgeOverrides[edgeId] || 'smoothstep',
+          label: isAr ? 'مسار افتراضي' : 'Default Path',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
           style: { stroke: '#007375', strokeWidth: 2 }
         });
@@ -236,7 +248,7 @@ function WorkflowEngineContent() {
             type: edgeOverrides[edgeId] || 'smoothstep',
             label: conditionLabel,
             animated: true,
-            style: { stroke: '#be123c', strokeWidth: 4 }, // Increased edge width for logic
+            style: { stroke: '#be123c', strokeWidth: 4 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#be123c' },
           });
         }
@@ -248,31 +260,10 @@ function WorkflowEngineContent() {
   const FlowControls = () => {
     const { fitView } = useReactFlow();
     
-    const autoLayout = () => {
-      setSteps(prev => [...prev]); 
-      fitView();
-      toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
-    };
-
     return (
       <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
-        <div className="flex items-center gap-2 border-r pr-2 mr-1">
-          <span className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "نوع الخط:" : "Line Type:"}</span>
-          <Select value={edgeType} onValueChange={setEdgeType}>
-            <SelectTrigger className="h-8 w-28 text-[10px] font-black rounded-lg bg-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="straight">{isAr ? "خط مستقيم" : "Straight"}</SelectItem>
-              <SelectItem value="smoothstep">{isAr ? "خط منكسر" : "Broken"}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
         <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
-        </Button>
-        <Button size="sm" variant="outline" onClick={autoLayout} className="rounded-xl font-black gap-2 h-9 px-4">
-          <LayoutGrid size={14}/> {isAr ? "ترتيب تلقائي" : "Auto Layout"}
         </Button>
         <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-9 px-4">
           <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
@@ -591,6 +582,7 @@ function WorkflowEngineContent() {
                       <ReactFlow 
                         nodes={nodes} 
                         edges={edges}
+                        nodeTypes={nodeTypes}
                         onEdgeClick={onEdgeClick}
                         fitView
                         className="bg-slate-50"
