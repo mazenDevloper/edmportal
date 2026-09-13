@@ -16,6 +16,7 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
 
 interface PortalHeaderProps {
@@ -140,6 +141,9 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
               </SheetTrigger>
               <SheetContent side={isAr ? "right" : "left"}>
                 <SheetTitle className="text-primary font-black">{isAr ? "القائمة الرئيسية" : "Main Menu"}</SheetTitle>
+                <SheetDescription className="sr-only">
+                  {isAr ? "قائمة التنقل السريع لمستخدمي الهواتف" : "Mobile navigation menu for Dhofar Municipality portal"}
+                </SheetDescription>
                 <nav className="flex flex-col gap-4 mt-8">
                   <Link href="/" className="text-lg font-bold">{isAr ? 'الرئيسية' : 'Home'}</Link>
                   {menuItems.map(item => (

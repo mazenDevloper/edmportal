@@ -2,9 +2,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, Bell } from 'lucide-react';
 import Image from 'next/image';
 import { PopupMessage } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -39,6 +39,9 @@ export function PopupManager({ popups }: PopupManagerProps) {
       )}>
         <DialogHeader className="sr-only">
           <DialogTitle>{isAr ? activePopup.titleAr : activePopup.titleEn}</DialogTitle>
+          <DialogDescription>
+            {isAr ? "نافذة تنبيه منبثقة لمستخدمي البوابة" : "Portal announcement popup for users"}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="relative">
@@ -96,5 +99,3 @@ export function PopupManager({ popups }: PopupManagerProps) {
     </Dialog>
   );
 }
-
-import { Bell } from 'lucide-react';
