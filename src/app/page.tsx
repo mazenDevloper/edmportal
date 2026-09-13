@@ -81,7 +81,34 @@ export default function DhofarPortal() {
     const load = async () => {
       const data = await fetchBin();
       if (data) {
-        setServices(data.services || []);
+        // Reconciliation logic for Service Catalog
+        const fetchedServices = data.services || [];
+        const fetchedFlows = data.serviceFlows || [];
+        const allServiceIds = Array.from(new Set([
+          ...fetchedServices.map((s: any) => s.id),
+          ...fetchedFlows.map((f: any) => f.serviceId || f.id)
+        ]));
+
+        const reconciled = allServiceIds.map(id => {
+          const existing = fetchedServices.find((s: any) => s.id === id);
+          if (existing) return existing;
+          
+          const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
+          return {
+            id,
+            title: flow?.titleAr || 'خدمة بلدية',
+            titleEn: flow?.titleEn || '',
+            description: isAr ? 'خدمة بلدية رقمية معتمدة عبر البوابة.' : 'Approved municipal digital service.',
+            category: 'elec',
+            iconName: 'FileText',
+            isActive: true,
+            reqsAr: [],
+            reqsEn: [],
+            fees: '10 OMR'
+          } as Service;
+        });
+
+        setServices(reconciled);
         setCourses(data.courses || []);
         setSiteConfig(data.siteConfig || null);
         setMenuItems(data.menuItems || []);
@@ -92,7 +119,7 @@ export default function DhofarPortal() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [isAr]);
 
   const filteredServices = useMemo(() => {
     if (!searchQuery) return [];
@@ -455,7 +482,7 @@ export default function DhofarPortal() {
                     </div>
                     <div className="space-y-2">
                        <FileText className="mx-auto text-accent mb-4" size={40} aria-hidden="true" />
-                       <h3 className="text-5xl font-black">{siteConfig?.stats?.contracts || '0'}+</h3>
+                       <h3 className="text-5xl font-black">{siteConfig?.stats?.permits || '0'}+</h3>
                        <p className="text-sm font-bold opacity-90 tracking-widest uppercase">{isAr ? 'عقد إيجار' : 'Leases'}</p>
                     </div>
                     <div className="space-y-2">

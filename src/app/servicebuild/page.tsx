@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -45,6 +46,15 @@ import {
   Position
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+
+// Master data for fallback titles/icons
+const MASTER_DATA_MAP: Record<string, any> = {
+  "svc_100": { icon: "Car", cat: "invest" },
+  "svc_101": { icon: "Zap", cat: "elec" },
+  "svc_102": { icon: "Truck", cat: "health" },
+  "svc_127": { icon: "GraduationCap", cat: "admin" },
+  "svc_128": { icon: "Handshake", cat: "admin" }
+};
 
 // Extract valid icons safely
 const ALL_ICON_KEYS = Object.keys(Icons).filter(key => 
@@ -99,7 +109,7 @@ function WorkflowEngineContent() {
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
-    fees: '0 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
+    fees: '10 OMR', description: '', descriptionEn: '', type: 'workflow', linkUrl: '',
     reqsAr: []
   });
   const [loading, setLoading] = useState(false);
@@ -115,7 +125,6 @@ function WorkflowEngineContent() {
           const svc = (data.services || []).find((s: any) => s.id === editId);
           
           if (flow) {
-            // Robust Sanitization to prevent TypeError
             const sanitizedSteps = (flow.steps || []).filter(Boolean).map((s: any) => ({
               ...s,
               id: s.id || `step_${Math.random()}`,
@@ -126,11 +135,31 @@ function WorkflowEngineContent() {
               actionType: s.actionType || 'submit'
             }));
             setSteps(sanitizedSteps);
+
+            // Reconcile serviceInfo from flow if svc metadata is missing
+            if (!svc) {
+              const master = MASTER_DATA_MAP[editId] || {};
+              setServiceInfo({
+                id: editId,
+                title: flow.titleAr || '',
+                titleEn: flow.titleEn || '',
+                description: 'خدمة رقمية معتمدة عبر البوابة.',
+                category: master.cat || 'elec',
+                iconName: master.icon || 'FileText',
+                fees: '10 OMR',
+                type: 'workflow',
+                isActive: true,
+                reqsAr: [],
+                reqsEn: []
+              });
+            }
           }
           
           if (svc) {
             setServiceInfo({
               ...svc,
+              title: svc.title || flow?.titleAr || '',
+              titleEn: svc.titleEn || flow?.titleEn || '',
               type: svc.type || 'workflow',
               reqsAr: svc.reqsAr || [],
               reqsEn: svc.reqsEn || svc.reqsAr || []
