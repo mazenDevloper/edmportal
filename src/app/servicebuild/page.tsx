@@ -13,7 +13,7 @@ import {
   Upload, Type, Calendar, Layers, X, 
   CreditCard, Settings, Loader2, GitBranch, ArrowRight,
   MoveUp, MoveDown, Search, Link as LinkIcon, Eye, Network,
-  Maximize, LayoutGrid, Edit2
+  Maximize, LayoutGrid, Edit2, MapPin, List
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -38,11 +38,48 @@ import {
   useReactFlow,
   ReactFlowProvider,
   applyNodeChanges,
-  NodeChange
+  NodeChange,
+  Handle,
+  Position
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const ICON_LIST = ['FileText', 'ShieldCheck', 'Users', 'TrendingUp', 'Landmark', 'MapPin', 'CreditCard', 'Building2', 'Truck', 'Trash2', 'Wrench', 'Lightbulb'];
+
+/**
+ * Custom Node Component for Service Steps
+ * Lightweight and optimized with Tailwind CSS
+ */
+const ServiceStepNode = ({ data, selected }: any) => {
+  const isAr = data.language === 'ar';
+  return (
+    <div className={cn(
+      "px-4 py-3 rounded-2xl border-2 bg-white shadow-xl transition-all w-[200px]",
+      selected ? "border-accent ring-4 ring-accent/20" : "border-primary"
+    )}>
+      <Handle type="target" position={Position.Top} className="w-3 h-3 bg-primary border-2 border-white" />
+      
+      <div className="flex flex-col gap-1 items-center text-center">
+        <div className="p-2 rounded-xl bg-primary/5 text-primary mb-1">
+          <GitBranch size={16} />
+        </div>
+        <span className="text-[10px] font-black text-primary leading-tight line-clamp-2">
+          {isAr ? data.titleAr : data.titleEn}
+        </span>
+        <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="size-1.5 rounded-full bg-accent" />
+          <div className="size-1.5 rounded-full bg-accent opacity-50" />
+        </div>
+      </div>
+
+      <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-accent border-2 border-white" />
+    </div>
+  );
+};
+
+const nodeTypes = {
+  stepNode: ServiceStepNode
+};
 
 function WorkflowEngineContent() {
   const router = useRouter();
@@ -64,9 +101,10 @@ function WorkflowEngineContent() {
   // FIX: Force resize event when switching to canvas tab to solve zero-dimension issue
   useEffect(() => {
     if (activeTab === 'canvas') {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
       }, 100);
+      return () => clearTimeout(timer);
     }
   }, [activeTab]);
 
@@ -101,7 +139,7 @@ function WorkflowEngineContent() {
       titleEn: 'New Step',
       fields: [],
       actionType: 'submit',
-      position: { x: 250, y: steps.length * 180 }
+      position: { x: 250, y: steps.length * 200 }
     };
     setSteps(prev => [...prev, newStep]);
   }, [isAr, steps.length]);
@@ -128,16 +166,15 @@ function WorkflowEngineContent() {
   };
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setSteps((nds) => {
-      // Use applyNodeChanges but map it back to our steps structure
-      const currentNodes = nds.map(s => ({
+    setSteps((prevSteps) => {
+      const currentNodes = prevSteps.map(s => ({
         id: s.id,
         position: s.position || { x: 0, y: 0 },
         data: {}
       }));
       const updatedNodes = applyNodeChanges(changes, currentNodes as any);
       
-      return nds.map(step => {
+      return prevSteps.map(step => {
         const updated = (updatedNodes as any[]).find(un => un.id === step.id);
         return updated ? { ...step, position: updated.position } : step;
       });
@@ -186,34 +223,13 @@ function WorkflowEngineContent() {
   const nodes: Node[] = useMemo(() => {
     return steps.map((step, idx) => ({
       id: step.id,
+      type: 'stepNode',
       data: { 
-        label: (
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-black">{isAr ? step.titleAr : step.titleEn}</span>
-            <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
-                <Edit2 size={10} />
-              </Button>
-              <Button size="xs" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}>
-                <Trash2 size={10} />
-              </Button>
-            </div>
-          </div>
-        )
+        titleAr: step.titleAr,
+        titleEn: step.titleEn,
+        language: isAr ? 'ar' : 'en'
       },
-      position: step.position || { x: 250, y: idx * 180 },
-      className: 'group',
-      style: { 
-        background: '#fff', 
-        color: '#007375', 
-        border: '2px solid #007375', 
-        borderRadius: '16px', 
-        padding: '12px', 
-        fontWeight: 'bold',
-        width: 180,
-        textAlign: 'center',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
-      }
+      position: step.position || { x: 250, y: idx * 200 },
     }));
   }, [steps, isAr]);
 
@@ -225,9 +241,10 @@ function WorkflowEngineContent() {
           id: `e-${step.id}-${step.defaultNextStepId}`,
           source: step.id,
           target: step.defaultNextStepId,
-          label: isAr ? 'افتراضي' : 'Default',
+          label: isAr ? 'المسار الافتراضي' : 'Default Path',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375', strokeWidth: 2 }
+          style: { stroke: '#007375', strokeWidth: 2 },
+          type: 'smoothstep'
         });
       }
       step.logic?.forEach((rule, idx) => {
@@ -241,7 +258,7 @@ function WorkflowEngineContent() {
             label: fieldLabel ? `${fieldLabel} = ${rule.value}` : `${rule.value}`,
             animated: true,
             type: 'smoothstep',
-            style: { stroke: '#03CFCB', strokeWidth: 2 },
+            style: { stroke: '#03CFCB', strokeWidth: 3 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
           });
         }
@@ -254,8 +271,8 @@ function WorkflowEngineContent() {
     const { fitView } = useReactFlow();
     
     const autoLayout = () => {
-      setSteps(prev => prev.map((s, i) => ({ ...s, position: { x: 250, y: i * 180 } })));
-      setTimeout(() => fitView(), 50);
+      setSteps(prev => prev.map((s, i) => ({ ...s, position: { x: 250, y: i * 200 } })));
+      setTimeout(() => fitView({ duration: 800 }), 50);
       toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
     };
 
@@ -399,8 +416,8 @@ function WorkflowEngineContent() {
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'number')} className="h-8 text-[9px] px-3 rounded-lg"><Layers size={12} className="ml-1"/> {isAr ? "رقم" : "Number"}</Button>
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'upload')} className="h-8 text-[9px] px-3 rounded-lg"><Upload size={12} className="ml-1"/> {isAr ? "مرفق" : "Upload"}</Button>
                              <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'date')} className="h-8 text-[9px] px-3 rounded-lg"><Calendar size={12} className="ml-1"/> {isAr ? "تاريخ" : "Date"}</Button>
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'select')} className="h-8 text-[9px] px-3 rounded-lg"><Search size={12} className="ml-1"/> {isAr ? "قائمة" : "List"}</Button>
-                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MoveUp size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'select')} className="h-8 text-[9px] px-3 rounded-lg"><List size={12} className="ml-1"/> {isAr ? "قائمة" : "List"}</Button>
+                             <Button size="xs" variant="outline" onClick={() => addFieldToStep(step.id, 'map')} className="h-8 text-[9px] px-3 rounded-lg"><MapPin size={12} className="ml-1"/> {isAr ? "خريطة" : "Map"}</Button>
                            </div>
                            <div className="space-y-4">
                             {step.fields.map((f, fIdx) => (
@@ -547,6 +564,7 @@ function WorkflowEngineContent() {
                       <ReactFlow 
                         nodes={nodes} 
                         edges={edges}
+                        nodeTypes={nodeTypes}
                         onNodesChange={onNodesChange}
                         fitView
                         className="bg-slate-50"
