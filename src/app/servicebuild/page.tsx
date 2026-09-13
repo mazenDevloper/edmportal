@@ -58,6 +58,7 @@ function WorkflowEngineContent() {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [edgeType, setEdgeType] = useState<string>('straight');
 
   // Fix for React Flow hidden dimensions (Zeroing)
   useEffect(() => {
@@ -198,24 +199,20 @@ function WorkflowEngineContent() {
           id: `e-${step.id}-${step.defaultNextStepId}`,
           source: step.id,
           target: step.defaultNextStepId,
+          type: edgeType,
           label: isAr ? 'افتراضي' : 'Default',
-          type: 'straight', // Standard flow is straight
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
           style: { stroke: '#007375', strokeWidth: 2 }
         });
       }
       step.logic?.forEach((rule, idx) => {
         if (rule.targetStepId) {
-          const field = step.fields.find(f => f.id === rule.fieldId);
-          const fieldLabel = isAr ? field?.labelAr : field?.labelEn;
-          const edgeLabel = fieldLabel ? `${fieldLabel} = ${rule.value}` : rule.value;
-
           e.push({
             id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
             source: step.id,
             target: rule.targetStepId,
-            label: edgeLabel,
-            type: 'smoothstep', // Prevents overlapping with nodes by curving out
+            type: edgeType,
+            label: `${rule.value}`,
             animated: true,
             style: { stroke: '#03CFCB', strokeWidth: 2 },
             markerEnd: { type: MarkerType.ArrowClosed, color: '#03CFCB' },
@@ -224,19 +221,31 @@ function WorkflowEngineContent() {
       });
     });
     return e;
-  }, [steps, isAr]);
+  }, [steps, isAr, edgeType]);
 
   const FlowControls = () => {
     const { fitView } = useReactFlow();
     
     const autoLayout = () => {
-      setSteps(prev => [...prev]);
+      setSteps(prev => [...prev]); // Trigger re-render to use fixed positioning or dynamic if implemented
       fitView();
       toast({ title: isAr ? "تمت إعادة الترتيب" : "Layout Optimized" });
     };
 
     return (
       <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
+        <div className="flex items-center gap-2 border-r pr-2 mr-1">
+          <span className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "نوع الخط:" : "Line Type:"}</span>
+          <Select value={edgeType} onValueChange={setEdgeType}>
+            <SelectTrigger className="h-8 w-28 text-[10px] font-black rounded-lg bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="straight">{isAr ? "خط مستقيم" : "Straight"}</SelectItem>
+              <SelectItem value="smoothstep">{isAr ? "خط منكسر" : "Broken"}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary hover:bg-primary/5">
           <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
         </Button>
