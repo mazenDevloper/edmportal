@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { 
   Table, 
   TableBody, 
@@ -15,7 +16,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Service, SiteConfig, MenuItem, CarouselItem, ServiceApplication, Survey, CustomPage, PopupMessage, ServiceFlow } from '@/lib/types';
+import { Service, SiteConfig, MenuItem, CarouselItem, Survey, CustomPage, PopupMessage } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
@@ -43,7 +44,7 @@ export default function AdminDashboard() {
   const [customPages, setCustomPages] = useState<CustomPage[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
 
-  // Full Master List 100-186
+  // Master Data Definitions for 80+ Services
   const MASTER_SERVICES_DATA = [
     { id: "svc_100", titleAr: "طلب رسالة عدم ممانعة لتوصيل تيار كهربائي مؤقت", titleEn: "Request for Approval Letter for Temporary Electrical Connection", icon: "Zap", cat: "elec" },
     { id: "svc_101", titleAr: "طلب سيارة نقل موتى", titleEn: "Request for Funeral Vehicle", icon: "Truck", cat: "admin" },
@@ -160,6 +161,7 @@ export default function AdminDashboard() {
               category: existing?.category || master?.cat || 'elec',
               iconName: existing?.iconName || master?.icon || 'FileText',
               isActive: true,
+              isFeatured: existing?.isFeatured || false,
               reqsAr: existing?.reqsAr || [],
               reqsEn: existing?.reqsEn || [],
               fees: existing?.fees || '10 OMR',
@@ -207,6 +209,10 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleToggleFeatured = (id: string, val: boolean) => {
+    setServices(prev => prev.map(s => s.id === id ? { ...s, isFeatured: val } : s));
+  };
+
   const handleSeedMasterData = async () => {
     setSaving(true);
     try {
@@ -224,6 +230,7 @@ export default function AdminDashboard() {
           iconName: master.icon,
           category: master.cat,
           isActive: true,
+          isFeatured: currentServices[existingSvcIdx]?.isFeatured || false,
           reqsAr: [],
           reqsEn: [],
           fees: "10 OMR",
@@ -317,6 +324,7 @@ export default function AdminDashboard() {
                       <TableHead>{isAr ? "المعرف" : "ID"}</TableHead>
                       <TableHead>{isAr ? "الخدمة" : "Service"}</TableHead>
                       <TableHead>{isAr ? "الفئة" : "Category"}</TableHead>
+                      <TableHead className="text-center">{isAr ? "مميزة" : "Featured"}</TableHead>
                       <TableHead>{isAr ? "إجراء" : "Action"}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -326,6 +334,13 @@ export default function AdminDashboard() {
                         <TableCell className="font-mono text-[10px] text-slate-400">{s.id}</TableCell>
                         <TableCell className="font-bold">{isAr ? s.title : (s.titleEn || s.title)}</TableCell>
                         <TableCell><Badge variant="outline">{s.category}</Badge></TableCell>
+                        <TableCell className="text-center">
+                           <Switch 
+                             checked={s.isFeatured || false} 
+                             onCheckedChange={(val) => handleToggleFeatured(s.id, val)}
+                             className="data-[state=checked]:bg-accent"
+                           />
+                        </TableCell>
                         <TableCell className="flex gap-2">
                            <Button variant="ghost" size="icon" asChild className="text-primary" title={isAr ? "تعديل التدفق" : "Edit Workflow"}><Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link></Button>
                            <Button variant="ghost" size="icon" asChild className="text-accent" title={isAr ? "معاينة" : "Preview"}><Link href={`/services/${s.id}`}><Eye size={16}/></Link></Button>
