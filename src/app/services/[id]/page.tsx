@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
@@ -34,7 +34,9 @@ import QRCode from 'react-qr-code';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 
 export default function ServiceApplicationPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
+  const router = useRouter();
   const { toast } = useToast();
   const { language } = useSettingsStore();
   const { user } = useUser();
@@ -83,15 +85,13 @@ export default function ServiceApplicationPage() {
   // FULL AI TRANSLATION ENGINE
   useEffect(() => {
     const performAiTranslation = async () => {
-      // If language is English and content is missing or forced AI translation is needed
-      if (!isAr && service && flow && !translating) {
+      if (!isAr && service && !translating) {
         if (!service.titleEn || !service.descriptionEn || service.descriptionEn === service.description) {
           setTranslating(true);
           try {
             const rawText = `Title: ${service.title} | Description: ${service.description}`;
             const { translatedText } = await translateToEnglish({ text: rawText });
             
-            // Basic heuristic to split translated text if AI combines them
             const parts = translatedText.split('|');
             setAiContent({
               title: parts[0]?.replace('Title:', '').trim() || service.title,
@@ -109,7 +109,7 @@ export default function ServiceApplicationPage() {
     };
 
     performAiTranslation();
-  }, [isAr, service, flow]);
+  }, [isAr, service]);
 
   const similarServices = useMemo(() => {
     if (!service || !allServices.length) return [];
@@ -193,8 +193,8 @@ export default function ServiceApplicationPage() {
                     <p className="text-2xl font-black text-primary font-mono">{appId}</p>
                  </div>
               </div>
-              <Button asChild className="w-full h-16 rounded-2xl dm-gradient-primary font-black text-lg">
-                 <Link href="/">{isAr ? "العودة للرئيسية" : "Back to Portal"}</Link>
+              <Button onClick={() => router.push('/')} className="w-full h-16 rounded-2xl dm-gradient-primary font-black text-lg">
+                 {isAr ? "العودة للرئيسية" : "Back to Portal"}
               </Button>
            </div>
         </Card>
@@ -222,8 +222,8 @@ export default function ServiceApplicationPage() {
                   {translating ? "Neural Translating..." : "AI Translated"}
                 </Badge>
               )}
-              <Button variant="ghost" asChild className="font-bold rounded-full">
-                <Link href="/"><ArrowLeft className={cn("size-4 ml-2", isAr && "rotate-180")} /> {isAr ? "إلغاء" : "Cancel"}</Link>
+              <Button variant="ghost" onClick={() => router.push('/')} className="font-bold rounded-full">
+                <ArrowLeft className={cn("size-4 ml-2", isAr && "rotate-180")} /> {isAr ? "إلغاء" : "Cancel"}
               </Button>
            </div>
         </div>
@@ -232,7 +232,6 @@ export default function ServiceApplicationPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-8">
           
-          {/* Sidebar */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-[2rem] shadow-xl border-none overflow-hidden bg-white border-t-[8px] border-primary">
               <CardContent className="p-8 space-y-6">
@@ -250,7 +249,6 @@ export default function ServiceApplicationPage() {
               </CardContent>
             </Card>
 
-            {/* Requirements Widget */}
             <Card className="rounded-[2rem] shadow-sm border-none bg-white p-8">
               <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-6">
                 <ListChecks size={16} className="text-accent" /> {isAr ? "المستندات المطلوبة" : "Required Documents"}
@@ -269,7 +267,6 @@ export default function ServiceApplicationPage() {
               </ul>
             </Card>
 
-            {/* RELATED SERVICES WIDGET */}
             {similarServices.length > 0 && (
               <Card className="rounded-[2rem] shadow-lg border-none bg-slate-900 text-white overflow-hidden">
                 <CardHeader className="p-8 pb-0">
@@ -294,7 +291,6 @@ export default function ServiceApplicationPage() {
             )}
           </div>
 
-          {/* Form Content */}
           <div className="lg:col-span-8">
             <Card className="rounded-[3rem] shadow-2xl overflow-hidden border-none bg-white min-h-[600px] flex flex-col">
               <CardHeader className="bg-slate-950 text-white p-10 relative overflow-hidden">

@@ -1,4 +1,6 @@
 
+'use client';
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -10,10 +12,14 @@ interface SettingsState {
   fontSize: FontSize;
   highContrast: boolean;
   spacing: 'normal' | 'wide';
+  reducedMotion: boolean;
+  dyslexiaFont: boolean;
   setLanguage: (lang: Language) => void;
   setFontSize: (size: FontSize) => void;
   setSpacing: (spacing: 'normal' | 'wide') => void;
   toggleHighContrast: () => void;
+  toggleReducedMotion: () => void;
+  toggleDyslexiaFont: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -23,13 +29,17 @@ export const useSettingsStore = create<SettingsState>()(
       fontSize: 'base',
       highContrast: false,
       spacing: 'normal',
+      reducedMotion: false,
+      dyslexiaFont: false,
       setLanguage: (language) => set({ language }),
       setFontSize: (fontSize) => set({ fontSize }),
       setSpacing: (spacing) => set({ spacing }),
       toggleHighContrast: () => set((state) => ({ highContrast: !state.highContrast })),
+      toggleReducedMotion: () => set((state) => ({ reducedMotion: !state.reducedMotion })),
+      toggleDyslexiaFont: () => set((state) => ({ dyslexiaFont: !state.dyslexiaFont })),
     }),
     {
-      name: 'dm-portal-settings-v2',
+      name: 'dm-portal-settings-v3',
     }
   )
 );
