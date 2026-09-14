@@ -136,16 +136,25 @@ function WorkflowEngineContent() {
   // AUTO-SYNC REQUIRED DOCS
   useEffect(() => {
     const autoReqsAr: string[] = [];
+    const autoReqsEn: string[] = [];
+    
     steps.forEach(step => {
-      const titleLower = (step.titleAr || '').toLowerCase();
-      const isDocStep = titleLower.includes('مستند') || titleLower.includes('وثائق') || titleLower.includes('طلبات');
+      const titleLowerAr = (step.titleAr || '').toLowerCase();
+      const isDocStepAr = titleLowerAr.includes('مستند') || titleLowerAr.includes('وثائق') || titleLowerAr.includes('طلبات');
+      
       (step.fields || []).forEach(f => {
-        if (f.type === 'upload' || isDocStep) {
+        if (f.type === 'upload' || isDocStepAr) {
           if (f.labelAr) autoReqsAr.push(f.labelAr);
+          if (f.labelEn || f.labelAr) autoReqsEn.push(f.labelEn || f.labelAr);
         }
       });
     });
-    setServiceInfo(prev => ({ ...prev, reqsAr: Array.from(new Set(autoReqsAr)) }));
+    
+    setServiceInfo(prev => ({ 
+      ...prev, 
+      reqsAr: Array.from(new Set(autoReqsAr)).filter(Boolean),
+      reqsEn: Array.from(new Set(autoReqsEn)).filter(Boolean)
+    }));
   }, [steps]);
 
   const handleAiTranslate = async (text: string, fieldKey: string) => {
@@ -281,7 +290,7 @@ function WorkflowEngineContent() {
         data: { 
           stepIndex: idx,
           isFocused,
-          label: isAr ? step.titleAr : step.titleEn,
+          label: isAr ? step.titleAr : (step.titleEn || step.titleAr),
           onEdit: () => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); },
           onRemove: () => setSteps(prev => prev.filter(s => s.id !== step.id))
         },
@@ -380,12 +389,12 @@ function WorkflowEngineContent() {
                     <div className="space-y-3 pt-4 border-t">
                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المستندات المطلوبة (تلقائي)" : "Required Docs (Auto)"}</Label>
                        <div className="space-y-2">
-                          {(serviceInfo.reqsAr || []).map((req, i) => (
+                          {(isAr ? serviceInfo.reqsAr : serviceInfo.reqsEn)?.map((req, i) => (
                             <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border text-[10px] font-black text-primary">
                                <div className="size-2 bg-accent rounded-full" /> {req}
                             </div>
                           ))}
-                          {serviceInfo.reqsAr?.length === 0 && <p className="text-[10px] italic text-slate-300">{isAr ? "سيتم جلب المستندات تلقائياً عند إضافة حقول الرفع" : "Docs will sync when you add upload fields"}</p>}
+                          {(isAr ? serviceInfo.reqsAr : serviceInfo.reqsEn)?.length === 0 && <p className="text-[10px] italic text-slate-300">{isAr ? "سيتم جلب المستندات تلقائياً عند إضافة حقول الرفع" : "Docs will sync when you add upload fields"}</p>}
                        </div>
                     </div>
 
@@ -407,7 +416,7 @@ function WorkflowEngineContent() {
                          <CardHeader className="bg-slate-900 text-white p-6 flex flex-row items-center justify-between">
                             <div className="flex items-center gap-4">
                                <Badge className="bg-accent text-slate-900 font-black h-10 w-10 rounded-2xl flex items-center justify-center text-lg">{sIdx+1}</Badge>
-                               <Input value={isAr ? step.titleAr : step.titleEn} onChange={e => updateStep(sIdx, isAr ? {titleAr: e.target.value} : {titleEn: e.target.value})} className="bg-white/10 border-none text-white font-black w-80 h-11 text-lg" />
+                               <Input value={isAr ? step.titleAr : (step.titleEn || step.titleAr)} onChange={e => isAr ? updateStep(sIdx, {titleAr: e.target.value}) : updateStep(sIdx, {titleEn: e.target.value})} className="bg-white/10 border-none text-white font-black w-80 h-11 text-lg" />
                             </div>
                             <div className="flex gap-2">
                                <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'up')} className="text-white/40 hover:text-accent h-10 w-10"><ChevronUp/></Button>
@@ -491,7 +500,7 @@ function WorkflowEngineContent() {
                                         <SelectTrigger className="w-48 h-10 font-bold bg-white rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
                                         <SelectContent className="rounded-2xl border-none shadow-2xl">
                                            <SelectItem value="none">Terminal Point</SelectItem>
-                                           {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                           {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : (s.titleEn || s.titleAr)}</SelectItem>)}
                                         </SelectContent>
                                      </Select>
                                   </div>
@@ -512,7 +521,7 @@ function WorkflowEngineContent() {
                                              }}>
                                                 <SelectTrigger className="h-10 bg-white font-bold rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
                                                 <SelectContent className="rounded-2xl">
-                                                   {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
+                                                   {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : (f.labelEn || f.labelAr)}</SelectItem>)}
                                                 </SelectContent>
                                              </Select>
                                           </div>
@@ -530,7 +539,7 @@ function WorkflowEngineContent() {
                                                 }}>
                                                    <SelectTrigger className="h-10 bg-white font-bold rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
                                                    <SelectContent className="rounded-2xl">
-                                                      {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                                      {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : (s.titleEn || s.titleAr)}</SelectItem>)}
                                                    </SelectContent>
                                                 </Select>
                                              </div>

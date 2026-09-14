@@ -81,6 +81,7 @@ export default function DhofarPortal() {
             const existing = fetchedServices.find((s: any) => s.id === id);
             const flow = fetchedFlows.find((f: any) => (f.serviceId || f.id) === id);
             
+            // DYNAMIC REQUIREMENT EXTRACTION
             const docs: string[] = [];
             if (flow) {
               flow.steps?.forEach((step: any) => {
@@ -88,14 +89,22 @@ export default function DhofarPortal() {
                 const isDocStep = title.includes('مستند') || title.includes('وثائق');
                 step.fields?.forEach((f: any) => {
                   if (f.type === 'upload' || isDocStep) {
-                    docs.push(isAr ? (f.labelAr || f.labelEn) : (f.labelEn || f.labelAr));
+                    const label = isAr ? (f.labelAr || f.labelEn) : (f.labelEn || f.labelAr);
+                    if (label) docs.push(label);
                   }
                 });
               });
             }
-            const dynamicReqs = Array.from(new Set([...(isAr ? (existing?.reqsAr || []) : (existing?.reqsEn || [])), ...docs])).filter(Boolean);
+            
+            const staticReqs = isAr ? (existing?.reqsAr || []) : (existing?.reqsEn || []);
+            const dynamicReqs = Array.from(new Set([...staticReqs, ...docs])).filter(Boolean);
 
-            if (existing) return { ...existing, [isAr ? 'reqsAr' : 'reqsEn']: dynamicReqs };
+            if (existing) {
+              return { 
+                ...existing, 
+                [isAr ? 'reqsAr' : 'reqsEn']: dynamicReqs 
+              };
+            }
             
             return {
               id,

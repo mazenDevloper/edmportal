@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -68,6 +68,31 @@ export default function ServiceApplicationPage() {
     };
     load();
   }, [id]);
+
+  const dynamicRequirements = useMemo(() => {
+    const reqs: string[] = [];
+    
+    // 1. From static service field
+    const staticReqs = isAr ? service?.reqsAr : service?.reqsEn;
+    if (staticReqs && Array.isArray(staticReqs)) {
+      reqs.push(...staticReqs.filter(Boolean));
+    }
+
+    // 2. From flow steps (Auto-extraction)
+    flow?.steps.forEach(step => {
+      const titleLower = (step.titleAr || '').toLowerCase();
+      const isDocStep = titleLower.includes('مستند') || titleLower.includes('وثائق') || titleLower.includes('طلبات');
+      
+      step.fields.forEach(f => {
+        if (f.type === 'upload' || isDocStep) {
+          const label = isAr ? f.labelAr : (f.labelEn || f.labelAr);
+          if (label) reqs.push(label);
+        }
+      });
+    });
+
+    return Array.from(new Set(reqs)).filter(Boolean);
+  }, [service, flow, isAr]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,14 +208,22 @@ export default function ServiceApplicationPage() {
 
             <div className="bg-white p-6 rounded-[1.5rem] shadow-sm space-y-6">
               <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><ListChecks size={14}/> {isAr ? "المستندات المطلوبة" : "Required Docs"}</h4>
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                  <ListChecks size={14}/> {isAr ? "المستندات المطلوبة" : "Required Docs"}
+                </h4>
                 <ul className="space-y-2">
-                  {((isAr ? service?.reqsAr : service?.reqsEn) || [])?.map((req, idx) => (
-                    <li key={idx} className="text-xs font-bold text-slate-600 flex items-start gap-2">
-                      <div className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                      {req}
-                    </li>
-                  ))}
+                  {dynamicRequirements.length > 0 ? (
+                    dynamicRequirements.map((req, idx) => (
+                      <li key={idx} className="text-xs font-bold text-slate-600 flex items-start gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                        <div className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                        {req}
+                      </li>
+                    ))
+                  ) : (
+                    <p className="text-[10px] text-slate-400 italic">
+                      {isAr ? "لا توجد مستندات مطلوبة لهذه الخدمة." : "No documents required for this service."}
+                    </p>
+                  )}
                 </ul>
               </div>
             </div>
@@ -200,14 +233,14 @@ export default function ServiceApplicationPage() {
             <Card className="rounded-brand shadow-xl overflow-hidden border-none">
               <CardHeader className="bg-slate-900 text-white p-8">
                 <CardTitle className="text-2xl font-black flex items-center gap-3">
-                  <FileText className="text-accent" /> {isAr ? currentStep?.titleAr : currentStep?.titleEn}
+                  <FileText className="text-accent" /> {isAr ? currentStep?.titleAr : (currentStep?.titleEn || currentStep?.titleAr)}
                 </CardTitle>
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="p-8 space-y-6 min-h-[300px]">
                    {currentStep?.fields.map((field) => (
                       <div key={field.id} className="space-y-2">
-                        <Label className="font-bold text-slate-700">{isAr ? field.labelAr : field.labelEn}</Label>
+                        <Label className="font-bold text-slate-700">{isAr ? field.labelAr : (field.labelEn || field.labelAr)}</Label>
                         {field.type === 'upload' ? (
                           <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50 cursor-pointer hover:border-accent transition-colors group relative">
                             <Upload size={24} className="mx-auto text-slate-300 mb-2 group-hover:text-accent" />
