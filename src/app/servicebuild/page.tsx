@@ -14,7 +14,8 @@ import {
   Upload, Type, Calendar, Layers, X, 
   Settings, Loader2, GitBranch, ArrowRight,
   Maximize, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon,
-  ChevronUp, ChevronDown, Sparkles, Network
+  ChevronUp, ChevronDown, Sparkles, Network, MousePointer2,
+  Building2, User2, Landmark, HelpCircle
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -48,23 +49,6 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-// Master data mapping for automatic English titles recovery
-const MASTER_TITLES_MAP: Record<string, string> = {
-  "svc_100": "Get a Permit for Organizing a Promotional Car Event",
-  "svc_101": "Municipality Approval for Electrical Service Installations Paths",
-  "svc_102": "Get a Permit for a Sewage Tanker",
-  "svc_103": "Approval of Print Advertisements, Posters, and Publications",
-  "svc_104": "Request to Hold an Activity or Exhibition During Khareef",
-  "svc_105": "Registration of Citizens' Requests",
-  "svc_106": "Municipal Approval for Sanitary Sewer Service Extensions",
-  "svc_107": "Approval for Paving with Interlocking Tiles",
-  "svc_108": "Get House Numbering",
-  "svc_109": "Building Naming License",
-  "svc_127": "Training Higher Education Institution Students",
-  "svc_128": "Reconciliation and Settlement Request",
-  "svc_119": "Material Destruction Certificate"
-};
-
 const ALL_ICON_KEYS = Object.keys(Icons).filter(key => typeof (Icons as any)[key] !== 'undefined');
 
 const EDGE_COLORS = ['#03CFCB', '#470D67', '#007375', '#f59e0b', '#ef4444', '#3b82f6'];
@@ -73,8 +57,8 @@ const ServiceStepNode = ({ data }: any) => {
   return (
     <div 
       className={cn(
-        "group relative bg-white border-2 rounded-2xl p-4 font-bold w-[220px] text-center shadow-xl transition-all duration-500",
-        data.isFocused ? "border-accent scale-105 z-50 ring-8 ring-accent/10" : "border-slate-200 opacity-40 grayscale"
+        "group relative bg-white border-2 rounded-[1.5rem] p-5 font-bold w-[240px] text-center shadow-xl transition-all duration-500",
+        data.isFocused ? "border-accent scale-105 z-50 ring-8 ring-accent/10" : "border-slate-200 opacity-20 grayscale"
       )}
     >
       <Handle type="target" position={Position.Top} className="!bg-primary !w-3 !h-3" />
@@ -82,7 +66,7 @@ const ServiceStepNode = ({ data }: any) => {
       <Handle type="source" position={Position.Bottom} className="!bg-primary !w-3 !h-3" />
       <Handle type="source" position={Position.Right} className="!bg-primary !w-3 !h-3" />
       
-      <div className="absolute -top-4 -left-4 bg-primary text-white size-10 rounded-full flex items-center justify-center text-sm font-black shadow-lg border-4 border-white">
+      <div className="absolute -top-4 -left-4 bg-primary text-white size-10 rounded-2xl flex items-center justify-center text-sm font-black shadow-lg border-4 border-white">
         {data.stepIndex + 1}
       </div>
 
@@ -116,7 +100,6 @@ function WorkflowEngineContent() {
   const [activeTab, setActiveTab] = useState('logic');
   const [steps, setSteps] = useState<ServiceStep[]>([]);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
     title: '', titleEn: '', category: 'elec', iconName: 'FileText',
     fees: '10 OMR', description: '', descriptionEn: '', type: 'workflow',
@@ -143,7 +126,7 @@ function WorkflowEngineContent() {
               actionType: s.actionType || 'submit'
             })));
           }
-          if (svc) setServiceInfo({ ...svc, titleEn: svc.titleEn || (editId ? MASTER_TITLES_MAP[editId] : '') || '' });
+          if (svc) setServiceInfo({ ...svc });
         }
       }).finally(() => setLoading(false));
     }
@@ -153,7 +136,8 @@ function WorkflowEngineContent() {
   useEffect(() => {
     const autoReqsAr: string[] = [];
     steps.forEach(step => {
-      const isDocStep = (step.titleAr || '').includes('مستند') || (step.titleAr || '').includes('طلبات');
+      const titleLower = (step.titleAr || '').toLowerCase();
+      const isDocStep = titleLower.includes('مستند') || titleLower.includes('وثائق') || titleLower.includes('طلبات');
       (step.fields || []).forEach(f => {
         if (f.type === 'upload' || isDocStep) {
           if (f.labelAr) autoReqsAr.push(f.labelAr);
@@ -162,6 +146,20 @@ function WorkflowEngineContent() {
     });
     setServiceInfo(prev => ({ ...prev, reqsAr: Array.from(new Set(autoReqsAr)) }));
   }, [steps]);
+
+  const handleAiTranslate = async (text: string, fieldKey: string) => {
+    if (!text) return;
+    setAiLoading(fieldKey);
+    try {
+      const { translatedText } = await translateToEnglish({ text });
+      setServiceInfo(prev => ({ ...prev, [fieldKey === 'title' ? 'titleEn' : 'descriptionEn']: translatedText }));
+      toast({ title: isAr ? "تمت الترجمة بنجاح" : "Translation complete" });
+    } catch (e) {
+      toast({ title: "AI Error", variant: "destructive" });
+    } finally {
+      setAiLoading(null);
+    }
+  };
 
   const addStep = useCallback(() => {
     const newStep: ServiceStep = {
@@ -194,12 +192,10 @@ function WorkflowEngineContent() {
     }
   };
 
-  // PATH TRACKING LOGIC
   const getDescendantEdges = useCallback((startEdgeId: string, currentEdges: Edge[]) => {
     const descendants = new Set<string>([startEdgeId]);
     const edge = currentEdges.find(e => e.id === startEdgeId);
     if (!edge) return descendants;
-
     const traverse = (targetId: string) => {
       currentEdges.filter(e => e.source === targetId).forEach(e => {
         if (!descendants.has(e.id)) {
@@ -251,11 +247,10 @@ function WorkflowEngineContent() {
       const highlighted = getDescendantEdges(hoveredEdgeId, e);
       return e.map(edge => ({
         ...edge,
-        style: { ...edge.style, strokeWidth: highlighted.has(edge.id) ? 10 : 2, opacity: highlighted.has(edge.id) ? 1 : 0.1 },
+        style: { ...edge.style, strokeWidth: highlighted.has(edge.id) ? 10 : 2, opacity: highlighted.has(edge.id) ? 1 : 0.05 },
         label: highlighted.has(edge.id) ? edge.label : ''
       }));
     }
-
     return e;
   }, [steps, isAr, hoveredEdgeId, getDescendantEdges]);
 
@@ -270,7 +265,9 @@ function WorkflowEngineContent() {
     }
 
     const total = steps.length;
-    const cols = total <= 3 ? 1 : (total <= 8 ? 2 : 3);
+    let cols = 3;
+    if (total <= 3) cols = 1;
+    else if (total <= 6) cols = 2;
 
     return steps.map((step, idx) => {
       const col = idx % cols;
@@ -287,7 +284,7 @@ function WorkflowEngineContent() {
           onEdit: () => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); },
           onRemove: () => setSteps(prev => prev.filter(s => s.id !== step.id))
         },
-        position: { x: col * 380, y: row * 320 },
+        position: { x: col * 350, y: row * 300 },
       };
     });
   }, [steps, isAr, hoveredEdgeId, edges, getDescendantEdges]);
@@ -320,130 +317,230 @@ function WorkflowEngineContent() {
       <PortalHeader menuItems={[]} />
       <main className="max-w-7xl mx-auto px-6 py-12">
         <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-           <h1 className="text-3xl font-black text-primary flex items-center gap-3"><GitBranch className="text-accent" /> {isAr ? "محرك التدفقات والعمليات" : "Neural Logic Engine"}</h1>
+           <h1 className="text-3xl font-black text-primary flex items-center gap-3"><GitBranch className="text-accent" /> {isAr ? "محرك التدفقات والعمليات" : "Process Logic Factory"}</h1>
            <div className="flex gap-4">
-              <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">Back</Button>
-              <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-10 font-black shadow-xl">
+              <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold h-12 px-8">Back</Button>
+              <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-12 font-black shadow-xl h-12">
                  {saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}
-                 {isAr ? "حفظ التغييرات" : "Save Logic"}
+                 {isAr ? "حفظ ومزامنة" : "Save & Sync"}
               </Button>
            </div>
         </header>
 
         <div className="grid lg:grid-cols-4 gap-8">
            <div className="lg:col-span-1 space-y-6">
-              <Card className="rounded-[2rem] shadow-xl border-none overflow-hidden sticky top-24">
-                 <CardHeader className="bg-primary text-white"><CardTitle className="text-xs font-black uppercase flex items-center gap-2"><Settings size={14}/> {isAr ? "إعدادات الخدمة" : "Service Config"}</CardTitle></CardHeader>
-                 <CardContent className="p-6 space-y-6">
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-black text-slate-400 uppercase">Title AR</Label>
-                       <Input value={serviceInfo.title || ''} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="font-bold h-10" />
+              <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden sticky top-24">
+                 <CardHeader className="bg-slate-900 text-white p-6">
+                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 tracking-widest text-accent"><Settings size={14}/> {isAr ? "إعدادات الخدمة الشاملة" : "Global Service Config"}</CardTitle>
+                 </CardHeader>
+                 <CardContent className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    <div className="space-y-4">
+                       <div className="relative">
+                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "العنوان بالعربية" : "Title (AR)"}</Label>
+                          <Input value={serviceInfo.title || ''} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="font-bold h-11 pr-10 border-slate-200" />
+                          <Button size="icon" variant="ghost" className="absolute bottom-1 right-1 text-accent" onClick={() => handleAiTranslate(serviceInfo.title || '', 'title')} disabled={aiLoading === 'title'}>
+                             {aiLoading === 'title' ? <Loader2 className="animate-spin size-4"/> : <Sparkles size={16}/>}
+                          </Button>
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Title (EN)</Label>
+                          <Input value={serviceInfo.titleEn || ''} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} className="h-11 border-slate-200" />
+                       </div>
                     </div>
-                    <div className="space-y-2">
-                       <Label className="text-[10px] font-black text-slate-400 uppercase">Title EN</Label>
-                       <Input value={serviceInfo.titleEn || ''} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} className="h-10" />
+
+                    <div className="space-y-4 border-t pt-4">
+                       <div className="relative">
+                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الوصف المختصر (AR)" : "Description (AR)"}</Label>
+                          <Textarea value={serviceInfo.description || ''} onChange={e => setServiceInfo({...serviceInfo, description: e.target.value})} className="font-bold text-xs border-slate-200 min-h-[80px]" />
+                          <Button size="icon" variant="ghost" className="absolute bottom-1 right-1 text-accent" onClick={() => handleAiTranslate(serviceInfo.description || '', 'desc')} disabled={aiLoading === 'description'}>
+                             <Sparkles size={16}/>
+                          </Button>
+                       </div>
                     </div>
-                    <div className="space-y-2 pt-4 border-t">
-                       <Label className="text-[10px] font-black text-slate-400 uppercase">{isAr ? "المستندات المطلوبة (تلقائي)" : "Required Docs (Auto)"}</Label>
+
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الفئة" : "Category"}</Label>
+                          <Select value={serviceInfo.category} onValueChange={v => setServiceInfo({...serviceInfo, category: v})}>
+                             <SelectTrigger className="h-10 font-bold border-slate-200"><SelectValue /></SelectTrigger>
+                             <SelectContent>
+                                {Object.entries(CAT_CONFIG).map(([id, conf]) => (
+                                  <SelectItem key={id} value={id}>{isAr ? conf.labelAr : conf.labelEn}</SelectItem>
+                                ))}
+                             </SelectContent>
+                          </Select>
+                       </div>
+                       <div className="space-y-2">
+                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الرسوم" : "Fees"}</Label>
+                          <Input value={serviceInfo.fees || ''} onChange={e => setServiceInfo({...serviceInfo, fees: e.target.value})} className="h-10 font-black text-emerald-600 border-slate-200" />
+                       </div>
+                    </div>
+
+                    <div className="space-y-3 pt-4 border-t">
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المستندات المطلوبة (تلقائي)" : "Required Docs (Auto)"}</Label>
                        <div className="space-y-2">
                           {(serviceInfo.reqsAr || []).map((req, i) => (
-                            <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border text-[10px] font-bold text-slate-600">
+                            <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border text-[10px] font-black text-primary">
                                <div className="size-2 bg-accent rounded-full" /> {req}
                             </div>
                           ))}
+                          {serviceInfo.reqsAr?.length === 0 && <p className="text-[10px] italic text-slate-300">{isAr ? "سيتم جلب المستندات تلقائياً عند إضافة حقول الرفع" : "Docs will sync when you add upload fields"}</p>}
                        </div>
                     </div>
-                    <Button onClick={addStep} className="w-full h-14 rounded-2xl dm-gradient-primary font-black shadow-lg mt-4">+ Add Step</Button>
+
+                    <Button onClick={addStep} className="w-full h-14 rounded-2xl dm-gradient-primary font-black shadow-lg mt-4">+ Add Phase</Button>
                  </CardContent>
               </Card>
            </div>
 
            <div className="lg:col-span-3 space-y-8">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                 <TabsList className="bg-white border rounded-full p-1 mb-8">
-                    <TabsTrigger value="logic" className="rounded-full font-black px-10"><GitBranch size={16} className="ml-2"/> {isAr ? "بناء المنطق" : "Editor"}</TabsTrigger>
-                    <TabsTrigger value="canvas" className="rounded-full font-black px-10"><Network size={16} className="ml-2"/> {isAr ? "المخطط التفاعلي" : "Visual Map"}</TabsTrigger>
+                 <TabsList className="bg-white border rounded-[1.5rem] p-1 mb-8 shadow-sm">
+                    <TabsTrigger value="logic" className="rounded-xl font-black px-12 h-11"><GitBranch size={16} className="ml-2"/> {isAr ? "بناء المنطق التقني" : "Neural Logic Editor"}</TabsTrigger>
+                    <TabsTrigger value="canvas" className="rounded-xl font-black px-12 h-11"><Network size={16} className="ml-2"/> {isAr ? "المخطط التفاعلي" : "Visual Orchestrator"}</TabsTrigger>
                  </TabsList>
 
                  <TabsContent value="logic" className="space-y-6">
                     {steps.map((step, sIdx) => (
-                      <Card key={step.id} id={step.id} className="rounded-[2.5rem] shadow-sm border-none overflow-hidden animate-in slide-in-from-bottom-4">
+                      <Card key={step.id} id={step.id} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden animate-in slide-in-from-bottom-4">
                          <CardHeader className="bg-slate-900 text-white p-6 flex flex-row items-center justify-between">
                             <div className="flex items-center gap-4">
-                               <Badge className="bg-accent text-slate-900 font-black h-8 w-8 rounded-xl flex items-center justify-center">{sIdx+1}</Badge>
-                               <Input value={step.titleAr} onChange={e => updateStep(sIdx, {titleAr: e.target.value})} className="bg-white/10 border-none text-white font-black w-64" />
+                               <Badge className="bg-accent text-slate-900 font-black h-10 w-10 rounded-2xl flex items-center justify-center text-lg">{sIdx+1}</Badge>
+                               <Input value={isAr ? step.titleAr : step.titleEn} onChange={e => updateStep(sIdx, isAr ? {titleAr: e.target.value} : {titleEn: e.target.value})} className="bg-white/10 border-none text-white font-black w-80 h-11 text-lg" />
                             </div>
                             <div className="flex gap-2">
-                               <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'up')} className="text-white/40 hover:text-accent"><ChevronUp/></Button>
-                               <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'down')} className="text-white/40 hover:text-accent"><ChevronDown/></Button>
-                               <Button variant="ghost" size="icon" onClick={() => setSteps(steps.filter(s => s.id !== step.id))} className="text-red-400 hover:bg-red-500/20"><Trash2/></Button>
+                               <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'up')} className="text-white/40 hover:text-accent h-10 w-10"><ChevronUp/></Button>
+                               <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'down')} className="text-white/40 hover:text-accent h-10 w-10"><ChevronDown/></Button>
+                               <Button variant="ghost" size="icon" onClick={() => setSteps(steps.filter(s => s.id !== step.id))} className="text-red-400 hover:bg-red-500/20 h-10 w-10"><Trash2/></Button>
                             </div>
                          </CardHeader>
-                         <CardContent className="p-8 grid md:grid-cols-2 gap-10">
-                            <div className="space-y-6 border-r pr-10">
-                               <h4 className="text-xs font-black uppercase text-primary tracking-widest">Form Fields</h4>
+                         <CardContent className="p-10 grid md:grid-cols-2 gap-12">
+                            <div className="space-y-8 border-r pr-10">
+                               <h4 className="text-xs font-black uppercase text-primary tracking-[0.2em] flex items-center gap-2"><LayoutGrid size={14}/> {isAr ? "حقول مدخلات المرحلة" : "Form Field Factory"}</h4>
                                <div className="flex flex-wrap gap-2">
-                                  {['text', 'number', 'upload', 'date', 'select', 'map'].map(type => (
-                                    <Button key={type} size="sm" variant="outline" className="rounded-xl font-bold text-[10px]" onClick={() => {
-                                      const nf = [...(step.fields || []), { id: `f_${Date.now()}`, type, labelAr: '', labelEn: '', required: true }];
-                                      updateStep(sIdx, { fields: nf as any });
-                                    }}>{type.toUpperCase()}</Button>
+                                  {[
+                                    {id: 'text', icon: <Type size={12}/>}, 
+                                    {id: 'number', icon: <Hash size={12}/>}, 
+                                    {id: 'upload', icon: <Upload size={12}/>}, 
+                                    {id: 'date', icon: <Calendar size={12}/>}, 
+                                    {id: 'select', icon: <List size={12}/>}, 
+                                    {id: 'visual_choice', icon: <MousePointer2 size={12}/>, labelAr: 'خيار بصري'},
+                                    {id: 'map', icon: <MapPin size={12}/>}
+                                  ].map(fType => (
+                                    <Button key={fType.id} size="sm" variant="outline" className="rounded-xl font-black text-[9px] h-9 gap-2 border-slate-200" onClick={() => {
+                                      const nf = [...(step.fields || []), { id: `f_${Date.now()}`, type: fType.id as any, labelAr: '', labelEn: '', required: true, options: [] }];
+                                      updateStep(sIdx, { fields: nf });
+                                    }}>
+                                      {fType.icon} {fType.labelAr || fType.id.toUpperCase()}
+                                    </Button>
                                   ))}
                                </div>
-                               <div className="space-y-3">
+                               <div className="space-y-4">
                                   {(step.fields || []).map((f, fIdx) => (
-                                    <div key={f.id} className="flex gap-2 items-center bg-slate-50 p-3 rounded-xl border">
-                                       <Badge variant="secondary" className="text-[8px] uppercase">{f.type}</Badge>
-                                       <Input value={f.labelAr} onChange={e => {
-                                         const nf = [...step.fields]; nf[fIdx].labelAr = e.target.value; updateStep(sIdx, {fields: nf});
-                                       }} className="h-8 text-xs font-bold" placeholder="Label AR" />
-                                       <Button variant="ghost" size="icon" onClick={() => {
-                                         const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf});
-                                       }} className="text-red-400 h-8 w-8"><X size={14}/></Button>
+                                    <div key={f.id} className="p-5 bg-slate-50/50 rounded-2xl border-2 border-slate-100 space-y-4 group hover:border-accent/30 transition-all">
+                                       <div className="flex gap-3 items-center">
+                                          <Badge className="bg-primary/10 text-primary text-[8px] font-black uppercase px-2 py-1">{f.type}</Badge>
+                                          <Input 
+                                            value={isAr ? f.labelAr : f.labelEn} 
+                                            onChange={e => {
+                                              const nf = [...step.fields]; if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
+                                              updateStep(sIdx, {fields: nf});
+                                            }} 
+                                            className="h-9 text-xs font-black bg-white" 
+                                            placeholder={isAr ? "تسمية الحقل (مثال: نوع الهوية)" : "Field Label"} 
+                                          />
+                                          <Button variant="ghost" size="icon" onClick={() => {
+                                            const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf});
+                                          }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100"><X size={16}/></Button>
+                                       </div>
+
+                                       {(f.type === 'select' || f.type === 'visual_choice') && (
+                                         <div className="space-y-3 pl-6 border-l-4 border-accent/20">
+                                            <div className="flex flex-wrap gap-2">
+                                               {(f.options || []).map((opt, oIdx) => (
+                                                 <Badge key={oIdx} className="bg-white border-2 border-slate-200 text-slate-700 font-bold gap-2 py-1.5 px-3 rounded-xl shadow-sm">
+                                                    {opt}
+                                                    <X size={12} className="cursor-pointer text-red-400" onClick={() => {
+                                                       const nf = [...step.fields]; nf[fIdx].options = nf[fIdx].options?.filter((_, i) => i !== oIdx);
+                                                       updateStep(sIdx, {fields: nf});
+                                                    }}/>
+                                                 </Badge>
+                                               ))}
+                                               <Button size="xs" variant="ghost" className="h-8 border-dashed border-2 rounded-xl text-[9px] font-black text-accent" onClick={() => {
+                                                  const val = prompt(isAr ? "اسم الخيار الجديد:" : "New option:");
+                                                  if (val) {
+                                                    const nf = [...step.fields]; nf[fIdx].options = [...(nf[fIdx].options || []), val];
+                                                    updateStep(sIdx, {fields: nf});
+                                                  }
+                                               }}>+ {isAr ? "إضافة خيار" : "Add Option"}</Button>
+                                            </div>
+                                         </div>
+                                       )}
                                     </div>
                                   ))}
                                </div>
                             </div>
-                            <div className="space-y-6">
-                               <h4 className="text-xs font-black uppercase text-accent tracking-widest">Routing Logic</h4>
-                               <div className="space-y-4">
-                                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
-                                     <span className="text-[10px] font-black text-slate-400">DEFAULT NEXT</span>
+
+                            <div className="space-y-8">
+                               <h4 className="text-xs font-black uppercase text-accent tracking-[0.2em] flex items-center gap-2"><GitBranch size={14}/> {isAr ? "منطق الانتقال والموصلات" : "Route Orchestration"}</h4>
+                               <div className="space-y-5">
+                                  <div className="flex items-center justify-between p-5 bg-slate-50 rounded-[1.5rem] border-2 border-slate-100">
+                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المسار الافتراضي" : "DEFAULT PATH"}</span>
                                      <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, {defaultNextStepId: v === 'none' ? undefined : v})}>
-                                        <SelectTrigger className="w-40 h-10 font-bold bg-white"><SelectValue placeholder="..." /></SelectTrigger>
-                                        <SelectContent>
-                                           <SelectItem value="none">None</SelectItem>
-                                           {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{s.titleAr}</SelectItem>)}
+                                        <SelectTrigger className="w-48 h-10 font-bold bg-white rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
+                                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                           <SelectItem value="none">Terminal Point</SelectItem>
+                                           {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
                                         </SelectContent>
                                      </Select>
                                   </div>
+                                  
                                   {(step.logic || []).map((rule, rIdx) => (
-                                    <div key={rIdx} className="p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-4 relative group">
-                                       <div className="flex justify-between items-center text-[10px] font-black text-primary">
-                                          <span>IF FIELD EQUALS</span>
+                                    <div key={rIdx} className="p-6 bg-primary/5 rounded-[2rem] border-2 border-primary/10 space-y-5 relative group transition-all hover:bg-primary/10">
+                                       <div className="flex justify-between items-center text-[9px] font-black text-primary uppercase tracking-widest">
+                                          <span>{isAr ? "قاعدة شرطية ذكية" : "NEURAL BRANCH RULE"}</span>
                                           <Button variant="ghost" size="icon" onClick={() => {
                                             const nl = [...(step.logic || [])]; nl.splice(rIdx, 1); updateStep(sIdx, {logic: nl});
-                                          }} className="h-6 w-6 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></Button>
+                                          }} className="h-7 w-7 text-red-400 opacity-0 group-hover:opacity-100"><X size={16}/></Button>
                                        </div>
-                                       <div className="grid grid-cols-2 gap-3">
-                                          <Input value={rule.value} onChange={e => {
-                                            const nl = [...(step.logic || [])]; nl[rIdx].value = e.target.value; updateStep(sIdx, {logic: nl});
-                                          }} className="h-10 text-xs font-bold" placeholder="Value" />
-                                          <Select value={rule.targetStepId} onValueChange={v => {
-                                            const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v; updateStep(sIdx, {logic: nl});
-                                          }}>
-                                             <SelectTrigger className="h-10 text-xs font-bold"><SelectValue placeholder="Go to..." /></SelectTrigger>
-                                             <SelectContent>
-                                                {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{s.titleAr}</SelectItem>)}
-                                             </SelectContent>
-                                          </Select>
+                                       <div className="space-y-4">
+                                          <div className="space-y-2">
+                                             <Label className="text-[9px] font-black text-slate-400 uppercase">{isAr ? "إذا كان الحقل" : "IF FIELD"}</Label>
+                                             <Select value={rule.fieldId} onValueChange={v => {
+                                               const nl = [...(step.logic || [])]; nl[rIdx].fieldId = v; updateStep(sIdx, {logic: nl});
+                                             }}>
+                                                <SelectTrigger className="h-10 bg-white font-bold rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
+                                                <SelectContent className="rounded-2xl">
+                                                   {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}
+                                                </SelectContent>
+                                             </Select>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-4">
+                                             <div className="space-y-2">
+                                                <Label className="text-[9px] font-black text-slate-400 uppercase">{isAr ? "يساوي" : "EQUALS"}</Label>
+                                                <Input value={rule.value} onChange={e => {
+                                                   const nl = [...(step.logic || [])]; nl[rIdx].value = e.target.value; updateStep(sIdx, {logic: nl});
+                                                }} className="h-10 font-bold bg-white rounded-xl" placeholder="Value..." />
+                                             </div>
+                                             <div className="space-y-2">
+                                                <Label className="text-[9px] font-black text-slate-400 uppercase">{isAr ? "اذهب إلى" : "GO TO"}</Label>
+                                                <Select value={rule.targetStepId} onValueChange={v => {
+                                                  const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v; updateStep(sIdx, {logic: nl});
+                                                }}>
+                                                   <SelectTrigger className="h-10 bg-white font-bold rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
+                                                   <SelectContent className="rounded-2xl">
+                                                      {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                                   </SelectContent>
+                                                </Select>
+                                             </div>
+                                          </div>
                                        </div>
                                     </div>
                                   ))}
                                   <Button variant="ghost" onClick={() => {
                                     const nl = [...(step.logic || []), { fieldId: '', value: '', targetStepId: '' }];
                                     updateStep(sIdx, { logic: nl });
-                                  }} className="w-full border-dashed border-2 text-[10px] font-black text-accent">+ Add Branch</Button>
+                                  }} className="w-full border-dashed border-2 rounded-[1.5rem] h-14 font-black text-accent border-accent/20 hover:bg-accent/5 hover:border-accent transition-all">+ Add Logic Node</Button>
                                </div>
                             </div>
                          </CardContent>
@@ -452,7 +549,7 @@ function WorkflowEngineContent() {
                  </TabsContent>
 
                  <TabsContent value="canvas">
-                    <Card className="rounded-[3rem] overflow-hidden h-[750px] border shadow-2xl relative bg-slate-100">
+                    <Card className="rounded-[3.5rem] overflow-hidden h-[800px] border-4 border-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative bg-slate-100">
                        <ReactFlowProvider>
                           <ReactFlow 
                             nodes={nodes} 
@@ -462,16 +559,19 @@ function WorkflowEngineContent() {
                             onEdgeMouseLeave={() => setHoveredEdgeId(null)}
                             fitView
                           >
-                             <Background />
+                             <Background color="#cbd5e1" gap={30} size={1} />
                              <Controls />
-                             <MiniMap nodeStrokeWidth={3} zoomable pannable />
+                             <MiniMap nodeStrokeWidth={3} zoomable pannable nodeColor="#007375" maskColor="rgba(255, 255, 255, 0.8)" />
                              <FlowControls />
                           </ReactFlow>
                        </ReactFlowProvider>
-                       <div className="absolute bottom-6 left-6 z-10 pointer-events-none max-w-xs">
-                          <div className="bg-white/90 backdrop-blur-md p-5 rounded-[2rem] border-2 border-accent/20 shadow-2xl">
-                             <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">Path Insight Engine</p>
-                             <p className="text-[10px] text-slate-400 font-bold leading-relaxed">Hover over any path to visualize the full citizen journey and conditional branches.</p>
+                       <div className="absolute bottom-10 left-10 z-10 pointer-events-none max-w-sm">
+                          <div className="bg-white/95 backdrop-blur-xl p-8 rounded-[2.5rem] border-2 border-accent/30 shadow-2xl">
+                             <div className="flex items-center gap-3 mb-3">
+                                <div className="size-2 bg-emerald-500 rounded-full animate-ping" />
+                                <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">Flow Path Intelligence</p>
+                             </div>
+                             <p className="text-[11px] text-slate-500 font-bold leading-loose">قم بتمرير الماوس فوق أي مسار لتسليط الضوء على رحلة المواطن الكاملة وفهم الفروع الشرطية والتبعيات التقنية.</p>
                           </div>
                        </div>
                     </Card>
@@ -488,15 +588,15 @@ function WorkflowEngineContent() {
 const FlowControls = () => {
   const { fitView } = useReactFlow();
   return (
-    <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-3 rounded-2xl border shadow-xl">
-       <Button variant="outline" size="sm" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-10 px-6"><Maximize size={16}/> Fit View</Button>
+    <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-4 rounded-3xl border shadow-2xl">
+       <Button variant="outline" size="sm" onClick={() => fitView()} className="rounded-2xl font-black gap-2 h-11 px-8 border-slate-200"><Maximize size={18}/> Fit View</Button>
     </Panel>
   );
 };
 
 export default function WorkflowEngine() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={48} /></div>}>
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin text-accent" size={48} /></div>}>
       <WorkflowEngineContent />
     </Suspense>
   );
