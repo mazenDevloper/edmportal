@@ -15,7 +15,8 @@ import {
   Settings, Loader2, GitBranch, ArrowRight,
   Maximize, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon,
   ChevronUp, ChevronDown, Sparkles, Network, MousePointer2,
-  Building2, User2, Landmark, HelpCircle
+  Building2, User2, Landmark, HelpCircle, LayoutGrid,
+  RefreshCw, Database, ShieldCheck, Search
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -451,7 +452,7 @@ function WorkflowEngineContent() {
                                           />
                                           <Button variant="ghost" size="icon" onClick={() => {
                                             const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf});
-                                          }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100"><X size={16}/></Button>
+                                          }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16}/></Button>
                                        </div>
 
                                        {(f.type === 'select' || f.type === 'visual_choice') && (
