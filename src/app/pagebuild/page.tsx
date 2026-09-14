@@ -7,12 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 import { 
   Plus, Trash2, Layout, Save, ArrowLeft, Image as ImageIcon, 
   Type, TrendingUp, Info, Loader2, Sparkles, Eye, 
   Heading1, Video, FileText, List, Minus, Table as TableIcon,
   Code, Database, User, Award, Layers, MousePointer2,
-  ChevronRight, ChevronLeft, GripVertical, Settings2
+  ChevronRight, ChevronLeft, GripVertical, Settings2,
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -72,7 +81,6 @@ function PageBuilderContent() {
         setPageMeta({ ...pageMeta, titleEn: translatedText });
       } else {
         const nc = [...components];
-        // Special case for components with text properties
         if (nc[targetKey].content.bodyAr) nc[targetKey].content.bodyEn = translatedText;
         if (nc[targetKey].content.textAr) nc[targetKey].content.textEn = translatedText;
         setComponents(nc);
@@ -97,10 +105,8 @@ function PageBuilderContent() {
       video: { url: '#' },
       avatar: { nameAr: 'ظفار', nameEn: 'Dhofar', src: '' },
       badge: { textAr: 'معتمد', textEn: 'Approved', variant: 'default' },
-      stepper: { current: 1, steps: ['تقديم', 'مراجعة', 'إنجاز'] },
       tabs: { items: [{ titleAr: 'تبويب 1', titleEn: 'Tab 1', contentAr: 'محتوى 1', contentEn: 'Content 1' }] },
-      cards_scroller: { items: [{ titleAr: 'بطاقة 1', titleEn: 'Card 1', descAr: 'وصف', descEn: 'Desc' }] },
-      html: { code: '<div class="p-4 bg-slate-100 rounded-lg">Custom HTML</div>' }
+      html: { code: '<div class="p-8 bg-slate-50 border-2 border-dashed rounded-3xl text-center">Custom HTML Block</div>' }
     };
 
     const newComp: BuilderComponent = {
@@ -144,6 +150,12 @@ function PageBuilderContent() {
     }
   };
 
+  const updateComp = (idx: number, updates: any) => {
+    const nc = [...components];
+    nc[idx].content = { ...nc[idx].content, ...updates };
+    setComponents(nc);
+  };
+
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   return (
@@ -157,7 +169,7 @@ function PageBuilderContent() {
               <Layout className="text-accent size-10" /> 
               {isAr ? "باني الصفحات التفاعلي (Universal Builder)" : "Universal Page Orchestrator"}
             </h1>
-            <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest text-xs">Omni-Channel Content Factory v4.0</p>
+            <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest text-xs">Omni-Channel Content Factory v4.2</p>
           </div>
           <div className="flex gap-4">
             <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold h-12 px-8 border-slate-200 shadow-sm">
@@ -172,7 +184,6 @@ function PageBuilderContent() {
 
         <div className="grid lg:grid-cols-12 gap-10 items-start">
           
-          {/* Widget Toolbox Sidebar */}
           <aside className="lg:col-span-3 space-y-6 sticky top-28 h-[calc(100vh-160px)] overflow-hidden flex flex-col">
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-slate-900 text-white flex-1 flex flex-col">
               <CardHeader className="bg-slate-950 p-6 border-b border-white/5">
@@ -224,7 +235,6 @@ function PageBuilderContent() {
             </Card>
           </aside>
 
-          {/* Canvas & Editor Area */}
           <div className="lg:col-span-9 space-y-8">
             <Card className="p-8 rounded-[2.5rem] shadow-sm border bg-white border-primary/10 relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-64 h-full dm-wave-5 opacity-5 pointer-events-none" />
@@ -240,8 +250,8 @@ function PageBuilderContent() {
                     <div>
                       <label className="text-[10px] font-black uppercase text-slate-400 block mb-2">PAGE SLUG / ROUTE</label>
                       <div className="relative">
-                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">/p/</span>
-                         <Input value={pageMeta.slug} onChange={(e) => setPageMeta({...pageMeta, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} className="h-14 font-mono pl-12 border-slate-200 rounded-2xl" placeholder="my-page-url" />
+                         <span className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs", isAr ? "right-4" : "left-4")}>/p/</span>
+                         <Input value={pageMeta.slug} onChange={(e) => setPageMeta({...pageMeta, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})} className={cn("h-14 font-mono border-slate-200 rounded-2xl", isAr ? "pr-12" : "pl-12")} placeholder="my-page-url" />
                       </div>
                     </div>
                  </div>
@@ -255,7 +265,7 @@ function PageBuilderContent() {
                </div>
             </Card>
 
-            <div className="space-y-6">
+            <div className="space-y-6 pb-20">
               {components.map((c, i) => (
                 <Card key={c.id} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden bg-white animate-in slide-in-from-bottom-4 group/card hover:ring-2 hover:ring-primary/20 transition-all">
                   <div className="flex justify-between items-center px-8 py-5 bg-slate-900 text-white">
@@ -265,8 +275,8 @@ function PageBuilderContent() {
                        <span className="text-white/40 text-[10px] font-bold">NODE ID: {c.id}</span>
                     </div>
                     <div className="flex gap-2">
-                       <Button variant="ghost" size="icon" onClick={() => moveComponent(i, 'up')} disabled={i === 0} className="text-white/40 hover:text-accent h-10 w-10"><ChevronUp/></Button>
-                       <Button variant="ghost" size="icon" onClick={() => moveComponent(i, 'down')} disabled={i === components.length - 1} className="text-white/40 hover:text-accent h-10 w-10"><ChevronDown/></Button>
+                       <Button variant="ghost" size="icon" onClick={() => moveComponent(i, 'up')} disabled={i === 0} className="text-white/40 hover:text-accent h-10 w-10"><ChevronUp size={20}/></Button>
+                       <Button variant="ghost" size="icon" onClick={() => moveComponent(i, 'down')} disabled={i === components.length - 1} className="text-white/40 hover:text-accent h-10 w-10"><ChevronDown size={20}/></Button>
                        <Button variant="ghost" size="icon" onClick={() => setComponents(components.filter(cp => cp.id !== c.id))} className="text-red-400 hover:bg-red-500/20 h-10 w-10"><Trash2 size={18}/></Button>
                     </div>
                   </div>
@@ -279,14 +289,14 @@ function PageBuilderContent() {
                           {(c.type === 'text' || c.type === 'info') && (
                             <div className="grid md:grid-cols-2 gap-8">
                                <div className="relative">
-                                 <Label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">{isAr ? 'المحتوى (AR)' : 'Body (AR)'}</Label>
+                                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">{isAr ? 'المحتوى (AR)' : 'Body (AR)'}</label>
                                  <Textarea value={c.content.bodyAr} onChange={e => updateComp(i, { bodyAr: e.target.value })} className="min-h-[200px] font-bold text-lg rounded-[1.5rem] border-slate-200 pr-12" />
                                  <Button size="icon" variant="ghost" className="absolute bottom-2 right-2 text-accent" onClick={() => handleAiTranslate(c.content.bodyAr, i)}>
                                    <Sparkles size={18} />
                                  </Button>
                                </div>
                                <div>
-                                 <Label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">BODY (EN - AI)</Label>
+                                 <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">BODY (EN - AI)</label>
                                  <Textarea value={c.content.bodyEn} onChange={e => updateComp(i, { bodyEn: e.target.value })} className="min-h-[200px] font-medium text-lg rounded-[1.5rem] border-slate-200" />
                                </div>
                             </div>
@@ -314,10 +324,10 @@ function PageBuilderContent() {
 
                           {c.type === 'stats' && (
                              <div className="grid grid-cols-4 gap-4">
-                                <div className="space-y-2"><Label className="text-[9px]">VALUE 1</Label><Input value={c.content.v1} onChange={e => updateComp(i, { v1: e.target.value })} /></div>
-                                <div className="space-y-2"><Label className="text-[9px]">LABEL 1 (AR)</Label><Input value={c.content.t1} onChange={e => updateComp(i, { t1: e.target.value })} /></div>
-                                <div className="space-y-2"><Label className="text-[9px]">VALUE 2</Label><Input value={c.content.v2} onChange={e => updateComp(i, { v2: e.target.value })} /></div>
-                                <div className="space-y-2"><Label className="text-[9px]">LABEL 2 (AR)</Label><Input value={c.content.t2} onChange={e => updateComp(i, { t2: e.target.value })} /></div>
+                                <div className="space-y-2"><label className="text-[9px]">VALUE 1</label><Input value={c.content.v1} onChange={e => updateComp(i, { v1: e.target.value })} /></div>
+                                <div className="space-y-2"><label className="text-[9px]">LABEL 1 (AR)</label><Input value={c.content.t1} onChange={e => updateComp(i, { t1: e.target.value })} /></div>
+                                <div className="space-y-2"><label className="text-[9px]">VALUE 2</label><Input value={c.content.v2} onChange={e => updateComp(i, { v2: e.target.value })} /></div>
+                                <div className="space-y-2"><label className="text-[9px]">LABEL 2 (AR)</label><Input value={c.content.t2} onChange={e => updateComp(i, { t2: e.target.value })} /></div>
                              </div>
                           )}
 
@@ -332,11 +342,11 @@ function PageBuilderContent() {
                        <div className="lg:col-span-4 bg-slate-50 p-8 rounded-[2rem] border-2 border-dashed border-slate-200">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2"><Eye size={14}/> Blueprint Preview</p>
                           <div className="w-full flex flex-col items-center justify-center opacity-60 pointer-events-none scale-90">
-                             {/* Mini-mockup of the widget */}
                              <div className="w-full p-4 bg-white rounded-2xl shadow-sm border border-slate-100">
                                 {c.type === 'heading' && <div className="h-6 w-3/4 bg-primary/20 rounded" />}
                                 {c.type === 'text' && <div className="space-y-2"><div className="h-2 w-full bg-slate-200 rounded" /><div className="h-2 w-full bg-slate-200 rounded" /><div className="h-2 w-1/2 bg-slate-200 rounded" /></div>}
                                 {c.type === 'stats' && <div className="flex gap-4"><div className="h-12 w-12 bg-accent/20 rounded-xl" /><div className="h-12 w-12 bg-accent/20 rounded-xl" /></div>}
+                                {c.type === 'avatar' && <div className="size-16 rounded-full bg-slate-200 mx-auto" />}
                              </div>
                           </div>
                        </div>
@@ -359,12 +369,6 @@ function PageBuilderContent() {
       <PortalFooter siteConfig={null} />
     </div>
   );
-
-  function updateComp(idx: number, updates: any) {
-    const nc = [...components];
-    nc[idx].content = { ...nc[idx].content, ...updates };
-    setComponents(nc);
-  }
 }
 
 function WidgetBtn({ icon, label, onClick }: { icon: React.ReactNode, label: string, onClick: () => void }) {
@@ -388,8 +392,4 @@ export default function PageBuilder() {
       <PageBuilderContent />
     </Suspense>
   );
-}
-
-function Label({ children, className }: { children: React.ReactNode, className?: string }) {
-  return <label className={cn("text-sm font-black text-slate-700", className)}>{children}</label>;
 }

@@ -177,12 +177,20 @@ export default function DynamicCustomPage() {
                 <div className="flex flex-col items-center gap-6 max-w-xs mx-auto">
                    <Avatar className="size-40 border-8 border-white shadow-2xl">
                      <AvatarImage src={comp.content.src} />
-                     <AvatarFallback className="bg-primary text-white text-5xl font-black">{isAr ? comp.content.nameAr[0] : comp.content.nameEn[0]}</AvatarFallback>
+                     <AvatarFallback className="bg-primary text-white text-5xl font-black">{isAr ? comp.content.nameAr?.[0] : comp.content.nameEn?.[0]}</AvatarFallback>
                    </Avatar>
                    <div className="text-center">
                       <h4 className="text-2xl font-black text-primary">{isAr ? comp.content.nameAr : comp.content.nameEn}</h4>
                       <Badge variant="outline" className="mt-2 rounded-full border-accent text-accent font-black">Authorized Member</Badge>
                    </div>
+                </div>
+              )}
+
+              {comp.type === 'badge' && (
+                <div className="flex justify-center">
+                  <Badge className="bg-accent text-slate-900 font-black px-6 py-2 rounded-xl text-lg">
+                    {isAr ? comp.content.textAr : comp.content.textEn}
+                  </Badge>
                 </div>
               )}
 
