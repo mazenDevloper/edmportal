@@ -49,6 +49,26 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+// Master data mapping for automatic English titles recovery
+const MASTER_TITLES_MAP: Record<string, string> = {
+  "svc_100": "Get a Permit for Organizing a Promotional Car Event",
+  "svc_101": "Municipality Approval for Electrical Service Installations Paths",
+  "svc_102": "Get a Permit for a Sewage Tanker",
+  "svc_103": "Approval of Print Advertisements, Posters, and Publications",
+  "svc_104": "Request to Hold an Activity or Exhibition During Khareef",
+  "svc_105": "Registration of Citizens' Requests",
+  "svc_106": "Municipal Approval for Sanitary Sewer Service Extensions",
+  "svc_107": "Approval for Paving with Interlocking Tiles",
+  "svc_108": "Get House Numbering",
+  "svc_109": "Building Naming License",
+  "svc_127": "Training Higher Education Institution Students",
+  "svc_128": "Reconciliation and Settlement Request",
+  "svc_119": "Material Destruction Certificate",
+  "svc_113": "Request Road Cutting or Perforation Permit",
+  "svc_115": "Request Road and Complex Lighting Plans Approval",
+  "svc_116": "License for the Installation of Car Park Shelters"
+};
+
 // Extract valid icons safely
 const ALL_ICON_KEYS = Object.keys(Icons).filter(key => 
   key !== 'createLucideIcon' && 
@@ -63,20 +83,20 @@ const EDGE_COLORS = [
 const ServiceStepNode = ({ data }: any) => {
   return (
     <div 
-      className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[200px] text-center shadow-lg transition-all duration-300"
-      style={{ opacity: data.isFocused === false ? 0.05 : 1 }}
+      className="group relative bg-white text-[#007375] border-2 border-[#007375] rounded-2xl p-4 font-bold w-[220px] text-center shadow-xl transition-all duration-300"
+      style={{ opacity: data.isFocused === false ? 0.1 : 1 }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-[#007375]" />
-      <Handle type="target" position={Position.Left} className="!bg-[#007375]" />
-      <Handle type="source" position={Position.Bottom} className="!bg-[#007375]" />
-      <Handle type="source" position={Position.Right} className="!bg-[#007375]" />
+      <Handle type="target" position={Position.Top} className="!bg-[#007375] !w-3 !h-3" />
+      <Handle type="target" position={Position.Left} className="!bg-[#007375] !w-3 !h-3" />
+      <Handle type="source" position={Position.Bottom} className="!bg-[#007375] !w-3 !h-3" />
+      <Handle type="source" position={Position.Right} className="!bg-[#007375] !w-3 !h-3" />
       
-      <div className="absolute -top-3 -left-3 bg-[#470D67] text-white size-8 rounded-full flex items-center justify-center text-xs font-black shadow-md border-2 border-white">
+      <div className="absolute -top-4 -left-4 bg-[#470D67] text-white size-10 rounded-full flex items-center justify-center text-sm font-black shadow-lg border-4 border-white">
         {data.stepIndex + 1}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <span className="text-xs font-black line-clamp-2">{data.label}</span>
+      <div className="flex flex-col gap-3 py-2">
+        <span className="text-xs font-black line-clamp-2 leading-relaxed">{data.label}</span>
         <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           {data.actions}
         </div>
@@ -134,6 +154,7 @@ function WorkflowEngineContent() {
           if (svc) {
             setServiceInfo({
               ...svc,
+              titleEn: svc.titleEn || (editId ? MASTER_TITLES_MAP[editId] : '') || '', // Smart Title EN recovery
               type: svc.type || 'workflow',
               reqsAr: svc.reqsAr || [],
               reqsEn: svc.reqsEn || svc.reqsAr || []
@@ -146,7 +167,7 @@ function WorkflowEngineContent() {
     }
   }, [editId]);
 
-  // AUTO-SYNC LOGIC: Sync required docs from steps automatically
+  // AUTO-SYNC LOGIC for Required Docs
   useEffect(() => {
     const autoReqsAr: string[] = [];
     const autoReqsEn: string[] = [];
@@ -158,7 +179,7 @@ function WorkflowEngineContent() {
                         stepTitleAr.includes('طلبات') || stepTitleEn.includes('doc') || 
                         stepTitleEn.includes('requirement');
 
-      step.fields.forEach(field => {
+      (step.fields || []).forEach(field => {
         if (field.type === 'upload' || isDocStep) {
           if (field.labelAr) autoReqsAr.push(field.labelAr);
           if (field.labelEn) autoReqsEn.push(field.labelEn);
@@ -188,8 +209,8 @@ function WorkflowEngineContent() {
     setAiLoading(target);
     try {
       const { translatedText } = await translateToEnglish({ text });
-      if (target === 'title') setServiceInfo({ ...serviceInfo, titleEn: translatedText });
-      else if (target === 'desc') setServiceInfo({ ...serviceInfo, descriptionEn: translatedText });
+      if (target === 'title') setServiceInfo(prev => ({ ...prev, titleEn: translatedText }));
+      else if (target === 'desc') setServiceInfo(prev => ({ ...prev, descriptionEn: translatedText }));
       toast({ title: isAr ? "تمت الترجمة الذكية" : "AI Translation Done" });
     } catch (e) {
       toast({ variant: "destructive", title: "AI Error" });
@@ -321,7 +342,7 @@ function WorkflowEngineContent() {
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
           style: { 
             stroke: '#007375', 
-            strokeWidth: isHovered ? 6 : 3, 
+            strokeWidth: isHovered ? 8 : 4, 
             opacity: otherHovered ? 0.05 : 0.8,
             transition: 'opacity 0.2s, stroke-width 0.2s'
           }
@@ -350,15 +371,15 @@ function WorkflowEngineContent() {
             animated: true,
             style: { 
               stroke: color, 
-              strokeWidth: isHovered ? 8 : 4,
+              strokeWidth: isHovered ? 10 : 5,
               opacity: otherHovered ? 0.05 : 1,
               transition: 'opacity 0.2s, stroke-width 0.2s'
             },
             markerEnd: { type: MarkerType.ArrowClosed, color: color },
-            labelStyle: { fill: color, fontWeight: 900, fontSize: isHovered ? '14px' : '10px' },
-            labelBgPadding: [8, 4],
-            labelBgBorderRadius: 4,
-            labelBgStyle: { fill: '#fff', fillOpacity: 0.9, stroke: color, strokeWidth: 1 }
+            labelStyle: { fill: color, fontWeight: 900, fontSize: isHovered ? '16px' : '11px' },
+            labelBgPadding: [10, 6],
+            labelBgBorderRadius: 6,
+            labelBgStyle: { fill: '#fff', fillOpacity: 0.95, stroke: color, strokeWidth: 2 }
           });
         }
       });
@@ -370,9 +391,16 @@ function WorkflowEngineContent() {
     const hoveredEdge = hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
     const connectedNodeIds = hoveredEdge ? [hoveredEdge.source, hoveredEdge.target] : null;
 
+    const totalNodes = (steps || []).filter(Boolean).length;
+    // SMART DYNAMIC LAYOUT:
+    // 1-3 nodes: Vertical Single Col
+    // 4-8 nodes: 2 Cols Grid
+    // 9+ nodes: 3 Cols Grid
+    const cols = totalNodes <= 3 ? 1 : (totalNodes <= 8 ? 2 : 3);
+
     return (steps || []).filter(Boolean).map((step, idx) => {
-      const col = idx % 3;
-      const row = Math.floor(idx / 3);
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
       const isFocused = connectedNodeIds ? connectedNodeIds.includes(step.id) : !hoveredEdgeId;
 
       return {
@@ -384,16 +412,16 @@ function WorkflowEngineContent() {
           label: isAr ? step.titleAr : step.titleEn,
           actions: (
             <>
-              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 hover:bg-accent hover:text-white" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
-                <Edit2 size={12} />
+              <Button size="xs" variant="ghost" className="h-8 w-8 p-0 bg-slate-50 hover:bg-accent hover:text-white" onClick={() => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+                <Edit2 size={14} />
               </Button>
-              <Button size="xs" variant="ghost" className="h-7 w-7 p-0 bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white" onClick={() => removeStep(step.id)}>
-                <Trash2 size={12} />
+              <Button size="xs" variant="ghost" className="h-8 w-8 p-0 bg-slate-50 text-red-400 hover:bg-red-500 hover:text-white" onClick={() => removeStep(step.id)}>
+                <Trash2 size={14} />
               </Button>
             </>
           )
         },
-        position: { x: col * 280, y: row * 250 },
+        position: { x: col * 380, y: row * 320 }, // Increased spacing for clear edges
       };
     });
   }, [steps, isAr, hoveredEdgeId, edges]);
@@ -401,15 +429,15 @@ function WorkflowEngineContent() {
   const FlowControls = () => {
     const { fitView } = useReactFlow();
     return (
-      <Panel position="top-right" className="flex gap-2 bg-white/80 backdrop-blur-md p-2 rounded-2xl border shadow-xl">
-        <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-9 px-4 border-primary text-primary">
-          <Plus size={14}/> {isAr ? "إضافة مرحلة" : "Add Step"}
+      <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-3 rounded-2xl border shadow-2xl">
+        <Button size="sm" variant="outline" onClick={addStep} className="rounded-xl font-black gap-2 h-10 px-5 border-primary text-primary">
+          <Plus size={16}/> {isAr ? "إضافة مرحلة" : "Add Step"}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-9 px-4">
-          <Maximize size={14}/> {isAr ? "ملائمة" : "Fit View"}
+        <Button size="sm" variant="outline" onClick={() => fitView()} className="rounded-xl font-black gap-2 h-10 px-5">
+          <Maximize size={16}/> {isAr ? "ملائمة" : "Fit View"}
         </Button>
-        <Button size="sm" onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-xl font-black gap-2 h-9 px-6 shadow-md">
-          {saving ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}
+        <Button size="sm" onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-xl font-black gap-2 h-10 px-8 shadow-md">
+          {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
           {isAr ? "حفظ" : "Save"}
         </Button>
       </Panel>
@@ -791,7 +819,7 @@ function WorkflowEngineContent() {
               </TabsContent>
 
               <TabsContent value="canvas" className="outline-none">
-                 <Card className="rounded-brand overflow-hidden h-[700px] border shadow-inner bg-slate-100 relative">
+                 <Card className="rounded-brand overflow-hidden h-[750px] border shadow-inner bg-slate-100 relative">
                     <ReactFlowProvider>
                       <ReactFlow 
                         nodes={nodes} 
@@ -808,10 +836,10 @@ function WorkflowEngineContent() {
                         <FlowControls />
                       </ReactFlow>
                     </ReactFlowProvider>
-                    <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                       <div className="bg-white/80 backdrop-blur-md p-3 rounded-2xl border shadow-sm">
-                          <p className="text-[10px] font-black text-primary uppercase tracking-widest">{isAr ? "مخطط التدفق التفاعلي" : "Interactive Orchestrator"}</p>
-                          <p className="text-[9px] text-slate-400 font-bold">{isAr ? "استخدم الأدوات لتنظيم مسار المواطن" : "Use tools to organize citizen paths"}</p>
+                    <div className="absolute top-6 left-6 z-10 pointer-events-none">
+                       <div className="bg-white/90 backdrop-blur-md p-4 rounded-[1.5rem] border-2 border-[#007375]/20 shadow-xl">
+                          <p className="text-xs font-black text-[#007375] uppercase tracking-widest mb-1">{isAr ? "مخطط التدفق التفاعلي" : "Interactive Orchestrator"}</p>
+                          <p className="text-[10px] text-slate-400 font-bold">{isAr ? "ترتيب ذكي للمراحل لضمان وضوح المسار" : "Smart adaptive layout for process clarity"}</p>
                        </div>
                     </div>
                  </Card>
