@@ -2,15 +2,16 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'react-router-dom';
 import Link from 'next/link';
 import Image from 'next/image';
-import { fetchBin } from '@/lib/jsonbin';
+import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { Service, ServiceApplication, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
@@ -23,7 +24,8 @@ import {
   Upload, 
   ListChecks, 
   Sparkles,
-  Layers
+  Layers,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -78,26 +80,22 @@ export default function ServiceApplicationPage() {
     load();
   }, [id]);
 
-  // AI Translation Logic
+  // FULL AI TRANSLATION ENGINE
   useEffect(() => {
     const performAiTranslation = async () => {
+      // If language is English and content is missing or forced AI translation is needed
       if (!isAr && service && flow && !translating) {
-        // If English fields are missing or user wants full neural translation
-        if (!service.titleEn || !service.descriptionEn) {
+        if (!service.titleEn || !service.descriptionEn || service.descriptionEn === service.description) {
           setTranslating(true);
           try {
-            const textToTranslate = `
-              Service Title: ${service.title}
-              Description: ${service.description}
-              Steps: ${flow.steps.map(s => s.titleAr + " (" + s.fields.map(f => f.labelAr).join(", ") + ")").join(" | ")}
-            `;
-            const { translatedText } = await translateToEnglish({ text: textToTranslate });
+            const rawText = `Title: ${service.title} | Description: ${service.description}`;
+            const { translatedText } = await translateToEnglish({ text: rawText });
             
-            // Note: In a production app, you'd parse this better. 
-            // Here we'll just set a flag that AI translation is active for basic metadata.
+            // Basic heuristic to split translated text if AI combines them
+            const parts = translatedText.split('|');
             setAiContent({
-              title: service.titleEn || "AI Translated Service",
-              description: service.descriptionEn || "Content translated by AI Engine."
+              title: parts[0]?.replace('Title:', '').trim() || service.title,
+              description: parts[1]?.replace('Description:', '').trim() || service.description
             });
           } catch (e) {
             console.error("AI Translation Error:", e);
@@ -122,7 +120,7 @@ export default function ServiceApplicationPage() {
 
   const dynamicRequirements = useMemo(() => {
     const reqs: string[] = [];
-    const staticReqs = isAr ? service?.reqsAr : service?.reqsEn;
+    const staticReqs = isAr ? service?.reqsAr : (service?.reqsEn || service?.reqsAr);
     if (staticReqs) reqs.push(...staticReqs.filter(Boolean));
 
     flow?.steps.forEach(step => {
@@ -152,7 +150,7 @@ export default function ServiceApplicationPage() {
       const newApp: ServiceApplication = {
         id: newId,
         serviceId: service?.id || '',
-        serviceName: isAr ? service?.title || '' : service?.titleEn || service?.title || '',
+        serviceName: isAr ? service?.title || '' : service?.titleEn || aiContent?.title || service?.title || '',
         citizenName: user?.displayName || user?.email || 'PKI User',
         status: 'pending',
         data: formData,
@@ -219,7 +217,7 @@ export default function ServiceApplicationPage() {
            </Link>
            <div className="flex items-center gap-4">
               {!isAr && (translating || aiContent) && (
-                <Badge variant="outline" className="bg-accent/10 border-accent/20 text-accent font-black gap-2 h-8 px-3">
+                <Badge variant="outline" className="bg-accent/10 border-accent/20 text-accent font-black gap-2 h-8 px-3 animate-in fade-in">
                   <Sparkles size={12} className={translating ? "animate-pulse" : ""} />
                   {translating ? "Neural Translating..." : "AI Translated"}
                 </Badge>
@@ -271,22 +269,27 @@ export default function ServiceApplicationPage() {
               </ul>
             </Card>
 
-            {/* Similar Services Widget */}
+            {/* RELATED SERVICES WIDGET */}
             {similarServices.length > 0 && (
-              <Card className="rounded-[2rem] shadow-sm border-none bg-slate-900 text-white p-8">
-                <h4 className="text-xs font-black uppercase text-accent tracking-widest flex items-center gap-2 mb-6">
-                  <Layers size={16} /> {isAr ? "خدمات مشابهة" : "Similar Services"}
-                </h4>
-                <div className="space-y-4">
+              <Card className="rounded-[2rem] shadow-lg border-none bg-slate-900 text-white overflow-hidden">
+                <CardHeader className="p-8 pb-0">
+                  <h4 className="text-xs font-black uppercase text-accent tracking-widest flex items-center gap-2">
+                    <Layers size={16} /> {isAr ? "خدمات مشابهة" : "Related Services"}
+                  </h4>
+                </CardHeader>
+                <CardContent className="p-8 space-y-4">
                   {similarServices.map(s => (
                     <Link key={s.id} href={`/services/${s.id}`} className="block group">
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
-                        <p className="text-sm font-black group-hover:text-accent transition-colors">{isAr ? s.title : (s.titleEn || s.title)}</p>
-                        <p className="text-[10px] text-white/40 mt-1 uppercase font-bold">{isAr ? "وصول مباشر" : "Quick Access"}</p>
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-black group-hover:text-accent transition-colors">{isAr ? s.title : (s.titleEn || s.title)}</p>
+                          <p className="text-[10px] text-white/40 mt-1 uppercase font-bold">{isAr ? "وصول مباشر" : "Quick Access"}</p>
+                        </div>
+                        <ChevronRight size={16} className={cn("text-white/20 group-hover:text-accent transition-all", isAr && "rotate-180")} />
                       </div>
                     </Link>
                   ))}
-                </div>
+                </CardContent>
               </Card>
             )}
           </div>
