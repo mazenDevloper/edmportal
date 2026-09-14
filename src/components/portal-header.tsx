@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, ArrowRight } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, ArrowRight, Languages, Palette } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -117,9 +117,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             <Link href="/admin" className="text-[#04F0EB] hover:underline flex items-center gap-2 font-black">
               <LayoutDashboard size={14} aria-hidden="true" /> {isAr ? 'لوحة التحكم' : 'Command Center'}
             </Link>
-            <button onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="hover:text-[#04F0EB] transition-colors focus:ring-2 focus:ring-[#04F0EB] rounded px-2 bg-white/5 py-1">
-              {isAr ? 'English' : 'العربية'}
-            </button>
           </div>
         </div>
       </nav>
@@ -147,9 +144,29 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                 <div className={cn("absolute -bottom-2 left-0 h-1 bg-accent transition-all duration-300", pathname === item.link ? "w-full" : "w-0 group-hover:w-full")} />
               </Link>
             ))}
-            <Button asChild className="dm-gradient-primary rounded-full px-8 font-black shadow-lg ml-4">
-              <Link href="/services/svc_105">{isAr ? 'تواصل معنا' : 'Contact Support'}</Link>
-            </Button>
+            
+            <div className="flex items-center gap-4 ml-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setLanguage(isAr ? 'en' : 'ar')}
+                className="rounded-full border-primary/20 font-black gap-2 h-10 px-5 hover:bg-primary/5 text-primary"
+              >
+                <Languages size={16} />
+                {isAr ? 'English' : 'العربية'}
+              </Button>
+
+              <Button asChild variant="ghost" className="rounded-full font-black gap-2 h-10 px-5 hover:bg-accent/10 text-accent">
+                <Link href="/identity">
+                  <Palette size={16} />
+                  {isAr ? 'دليل الهوية' : 'Identity'}
+                </Link>
+              </Button>
+
+              <Button asChild className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
+                <Link href="/services/svc_105">{isAr ? 'تواصل معنا' : 'Contact Support'}</Link>
+              </Button>
+            </div>
           </div>
 
           <div className="lg:hidden">
@@ -166,6 +183,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                   <Link href="/" className="text-2xl font-black flex items-center justify-between group">
                     {isAr ? 'الرئيسية' : 'Home'}
                     <ArrowRight className="text-accent group-hover:translate-x-2 transition-transform" />
+                  </Link>
+                  <Link href="/identity" className="text-2xl font-black flex items-center justify-between group">
+                    {isAr ? 'دليل الهوية' : 'Identity Guide'}
+                    <Palette className="text-accent group-hover:translate-x-2 transition-transform" />
                   </Link>
                   {menuItems.map(item => (
                     <Link key={item.id} href={item.link} className="text-2xl font-black flex items-center justify-between group">
@@ -188,4 +209,3 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
     </header>
   );
 }
-
