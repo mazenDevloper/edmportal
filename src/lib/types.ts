@@ -93,7 +93,7 @@ export interface SpatialWindow {
 
 export interface BuilderComponent {
   id: string;
-  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator' | 'table' | 'progress' | 'avatar' | 'badge' | 'html';
+  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator' | 'table' | 'progress' | 'avatar' | 'badge' | 'html' | 'stepper' | 'tabs' | 'cards_scroller';
   content: any;
 }
 
@@ -108,7 +108,7 @@ export interface CustomPage {
 
 export interface FormField {
   id: string;
-  type: 'text' | 'number' | 'email' | 'upload' | 'date' | 'select' | 'multichoice' | 'map';
+  type: 'text' | 'number' | 'email' | 'upload' | 'date' | 'select' | 'multichoice' | 'map' | 'visual_choice';
   labelAr: string;
   labelEn: string;
   required: boolean;
