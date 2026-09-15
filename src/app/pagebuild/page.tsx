@@ -105,6 +105,19 @@ function PageBuilderContent() {
     setComponents(nc);
   };
 
+  const handleAiTranslate = async (text: string, compIdx: number) => {
+    if (!text) return;
+    try {
+      const { translatedText } = await translateToEnglish({ text });
+      const comp = components[compIdx];
+      const fieldKey = comp.content.bodyAr !== undefined ? 'bodyEn' : comp.content.textAr !== undefined ? 'textEn' : 'labelEn';
+      updateComp(compIdx, { [fieldKey]: translatedText });
+      toast({ title: "AI Translation Done" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Translation Failed" });
+    }
+  };
+
   return (
     <div className={cn("min-h-screen bg-slate-100 flex flex-col", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={[]} />
@@ -440,4 +453,3 @@ export default function PageBuilder() {
     </Suspense>
   );
 }
-

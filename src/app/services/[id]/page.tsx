@@ -34,6 +34,7 @@ import Confetti from 'react-confetti';
 import QRCode from 'react-qr-code';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PortalFooter } from '@/components/portal-footer';
 
 export default function ServiceApplicationPage() {
   const params = useParams();
@@ -83,7 +84,6 @@ export default function ServiceApplicationPage() {
     }
   }, [isAr, service, aiContent, translating]);
 
-  // Dynamically gather requirements from steps (upload fields)
   const dynamicRequirements = useMemo(() => {
     const reqs = new Set(service?.reqsAr || []);
     flow?.steps.forEach(step => {
@@ -105,7 +105,7 @@ export default function ServiceApplicationPage() {
 
     const currentStep = flow.steps[currentStepIndex];
     
-    // Check Logic Routing
+    // Neural logic routing - jumping steps based on data
     let nextStepId = currentStep.defaultNextStepId;
     (currentStep.logic || []).forEach(rule => {
       if (formData[rule.fieldId] === rule.value) nextStepId = rule.targetStepId;
@@ -320,4 +320,3 @@ export default function ServiceApplicationPage() {
     </div>
   );
 }
-
