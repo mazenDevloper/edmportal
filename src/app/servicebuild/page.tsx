@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -137,23 +136,18 @@ function WorkflowEngineContent() {
   useEffect(() => {
     const autoReqsAr: string[] = [];
     const autoReqsEn: string[] = [];
-    
     steps.forEach(step => {
-      const titleLowerAr = (step.titleAr || '').toLowerCase();
-      const isDocStepAr = titleLowerAr.includes('مستند') || titleLowerAr.includes('وثائق') || titleLowerAr.includes('طلبات');
-      
       (step.fields || []).forEach(f => {
-        if (f.type === 'upload' || isDocStepAr) {
+        if (f.type === 'upload') {
           if (f.labelAr) autoReqsAr.push(f.labelAr);
           if (f.labelEn || f.labelAr) autoReqsEn.push(f.labelEn || f.labelAr);
         }
       });
     });
-    
     setServiceInfo(prev => ({ 
       ...prev, 
-      reqsAr: Array.from(new Set(autoReqsAr)).filter(Boolean),
-      reqsEn: Array.from(new Set(autoReqsEn)).filter(Boolean)
+      reqsAr: Array.from(new Set([...(prev.reqsAr || []), ...autoReqsAr])).filter(Boolean),
+      reqsEn: Array.from(new Set([...(prev.reqsEn || []), ...autoReqsEn])).filter(Boolean)
     }));
   }, [steps]);
 
@@ -221,7 +215,6 @@ function WorkflowEngineContent() {
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     let logicColorIndex = 0;
-
     steps.forEach((step) => {
       if (step.defaultNextStepId) {
         e.push({
@@ -283,7 +276,6 @@ function WorkflowEngineContent() {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
       const isFocused = hoveredEdgeId ? highlightedNodeIds.has(step.id) : true;
-
       return {
         id: step.id,
         type: 'serviceStep',
@@ -320,6 +312,27 @@ function WorkflowEngineContent() {
     }
   };
 
+  const handleAddOption = (sIdx: number, fIdx: number) => {
+    const val = prompt(isAr ? "أدخل قيمة الخيار:" : "Enter option value:");
+    if (!val) return;
+    
+    const ns = [...steps];
+    const field = ns[sIdx].fields[fIdx];
+    field.options = [...(field.options || []), val];
+    setSteps(ns);
+  };
+
+  const handleAddVisualChoice = (sIdx: number, fIdx: number) => {
+    const icon = prompt(isAr ? "اسم الأيقونة (مثال: User, Building2):" : "Icon name (e.g. User, Building2):", "LayoutGrid");
+    const label = prompt(isAr ? "نص الخيار:" : "Option Label:");
+    if (!label) return;
+    
+    const ns = [...steps];
+    const field = ns[sIdx].fields[fIdx];
+    field.options = [...(field.options || []), `${icon}|${label}`];
+    setSteps(ns);
+  };
+
   if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin text-accent" size={48} /></div>;
 
   return (
@@ -341,7 +354,7 @@ function WorkflowEngineContent() {
            <div className="lg:col-span-1 space-y-6">
               <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden sticky top-24">
                  <CardHeader className="bg-slate-900 text-white p-6">
-                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 tracking-widest text-accent"><Settings size={14}/> {isAr ? "إعدادات الخدمة الشاملة" : "Global Service Config"}</CardTitle>
+                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 tracking-widest text-accent"><Settings size={14}/> {isAr ? "إعدادات الخدمة" : "Service Settings"}</CardTitle>
                  </CardHeader>
                  <CardContent className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     <div className="space-y-4">
@@ -357,8 +370,7 @@ function WorkflowEngineContent() {
                           <Input value={serviceInfo.titleEn || ''} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} className="h-11 border-slate-200" />
                        </div>
                     </div>
-
-                    <div className="space-y-4 border-t pt-4">
+                    <div className="space-y-4 pt-4">
                        <div className="relative">
                           <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الوصف المختصر (AR)" : "Description (AR)"}</Label>
                           <Textarea value={serviceInfo.description || ''} onChange={e => setServiceInfo({...serviceInfo, description: e.target.value})} className="font-bold text-xs border-slate-200 min-h-[80px]" />
@@ -367,7 +379,6 @@ function WorkflowEngineContent() {
                           </Button>
                        </div>
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-2">
                           <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الفئة" : "Category"}</Label>
@@ -385,19 +396,21 @@ function WorkflowEngineContent() {
                           <Input value={serviceInfo.fees || ''} onChange={e => setServiceInfo({...serviceInfo, fees: e.target.value})} className="h-10 font-black text-emerald-600 border-slate-200" />
                        </div>
                     </div>
-
                     <div className="space-y-3 pt-4 border-t">
-                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المستندات المطلوبة (تلقائي)" : "Required Docs (Auto)"}</Label>
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المستندات المطلوبة" : "Required Docs"}</Label>
                        <div className="space-y-2">
                           {(isAr ? serviceInfo.reqsAr : serviceInfo.reqsEn)?.map((req, i) => (
-                            <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border text-[10px] font-black text-primary">
+                            <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border text-[10px] font-black text-primary group">
                                <div className="size-2 bg-accent rounded-full" /> {req}
+                               <Trash2 size={12} className="ml-auto text-red-300 opacity-0 group-hover:opacity-100 cursor-pointer" onClick={() => {
+                                  const nr = (serviceInfo.reqsAr || []).filter((_, idx) => idx !== i);
+                                  setServiceInfo({...serviceInfo, reqsAr: nr, reqsEn: nr});
+                               }} />
                             </div>
                           ))}
-                          {(isAr ? serviceInfo.reqsAr : serviceInfo.reqsEn)?.length === 0 && <p className="text-[10px] italic text-slate-300">{isAr ? "سيتم جلب المستندات تلقائياً عند إضافة حقول الرفع" : "Docs will sync when you add upload fields"}</p>}
+                          <Button variant="outline" size="sm" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), 'New Document']})} className="w-full h-8 text-[9px] border-dashed">+ {isAr ? 'إضافة يدوي' : 'Add Manual'}</Button>
                        </div>
                     </div>
-
                     <Button onClick={addStep} className="w-full h-14 rounded-2xl dm-gradient-primary font-black shadow-lg mt-4">+ Add Phase</Button>
                  </CardContent>
               </Card>
@@ -406,7 +419,7 @@ function WorkflowEngineContent() {
            <div className="lg:col-span-3 space-y-8">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                  <TabsList className="bg-white border rounded-[1.5rem] p-1 mb-8 shadow-sm">
-                    <TabsTrigger value="logic" className="rounded-xl font-black px-12 h-11"><GitBranch size={16} className="ml-2"/> {isAr ? "بناء المنطق التقني" : "Neural Logic Editor"}</TabsTrigger>
+                    <TabsTrigger value="logic" className="rounded-xl font-black px-12 h-11"><GitBranch size={16} className="ml-2"/> {isAr ? "بناء المنطق" : "Logic Editor"}</TabsTrigger>
                     <TabsTrigger value="canvas" className="rounded-xl font-black px-12 h-11"><Network size={16} className="ml-2"/> {isAr ? "المخطط التفاعلي" : "Visual Orchestrator"}</TabsTrigger>
                  </TabsList>
 
@@ -464,7 +477,7 @@ function WorkflowEngineContent() {
                                           }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16}/></Button>
                                        </div>
 
-                                       {(f.type === 'select' || f.type === 'visual_choice') && (
+                                       {f.type === 'select' && (
                                          <div className="space-y-3 pl-6 border-l-4 border-accent/20">
                                             <div className="flex flex-wrap gap-2">
                                                {(f.options || []).map((opt, oIdx) => (
@@ -476,13 +489,31 @@ function WorkflowEngineContent() {
                                                     }}/>
                                                  </Badge>
                                                ))}
-                                               <Button size="xs" variant="ghost" className="h-8 border-dashed border-2 rounded-xl text-[9px] font-black text-accent" onClick={() => {
-                                                  const val = prompt(isAr ? "اسم الخيار الجديد:" : "New option:");
-                                                  if (val) {
-                                                    const nf = [...step.fields]; nf[fIdx].options = [...(nf[fIdx].options || []), val];
-                                                    updateStep(sIdx, {fields: nf});
-                                                  }
-                                               }}>+ {isAr ? "إضافة خيار" : "Add Option"}</Button>
+                                               <Button size="xs" variant="ghost" className="h-8 border-dashed border-2 rounded-xl text-[9px] font-black text-accent" onClick={() => handleAddOption(sIdx, fIdx)}>+ {isAr ? "إضافة خيار" : "Add Option"}</Button>
+                                            </div>
+                                         </div>
+                                       )}
+
+                                       {f.type === 'visual_choice' && (
+                                         <div className="space-y-3 pl-6 border-l-4 border-accent/20">
+                                            <div className="grid grid-cols-2 gap-2">
+                                               {(f.options || []).map((opt, oIdx) => {
+                                                 const [icon, label] = opt.split('|');
+                                                 return (
+                                                  <div key={oIdx} className="bg-white p-3 rounded-xl border flex items-center gap-3 relative group/opt">
+                                                     {React.createElement((Icons as any)[icon] || Icons.LayoutGrid, { size: 14, className: 'text-primary' })}
+                                                     <span className="text-[10px] font-black">{label}</span>
+                                                     <X size={10} className="absolute top-1 right-1 text-red-300 cursor-pointer opacity-0 group-hover/opt:opacity-100" onClick={() => {
+                                                       const nf = [...step.fields]; nf[fIdx].options = nf[fIdx].options?.filter((_, i) => i !== oIdx);
+                                                       updateStep(sIdx, {fields: nf});
+                                                     }} />
+                                                  </div>
+                                                 );
+                                               })}
+                                               <Button size="xs" variant="ghost" className="h-10 border-dashed border-2 rounded-xl text-[9px] font-black text-accent flex flex-col" onClick={() => handleAddVisualChoice(sIdx, fIdx)}>
+                                                  <MousePointer2 size={12} />
+                                                  {isAr ? "إضافة خيار بصري" : "Add Visual"}
+                                               </Button>
                                             </div>
                                          </div>
                                        )}

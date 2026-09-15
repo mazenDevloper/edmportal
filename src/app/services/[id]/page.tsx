@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -25,13 +24,17 @@ import {
   ListChecks, 
   Sparkles,
   Layers,
-  ChevronRight
+  ChevronRight,
+  MapPin,
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
 import Confetti from 'react-confetti';
 import QRCode from 'react-qr-code';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ServiceApplicationPage() {
   const params = useParams();
@@ -57,7 +60,6 @@ export default function ServiceApplicationPage() {
   const [aiContent, setAiContent] = useState<{
     title?: string;
     description?: string;
-    steps?: { title: string; fields: { label: string }[] }[];
   } | null>(null);
 
   useEffect(() => {
@@ -82,7 +84,6 @@ export default function ServiceApplicationPage() {
     load();
   }, [id]);
 
-  // FULL AI TRANSLATION ENGINE
   useEffect(() => {
     const performAiTranslation = async () => {
       if (!isAr && service && !translating) {
@@ -91,7 +92,6 @@ export default function ServiceApplicationPage() {
           try {
             const rawText = `Title: ${service.title} | Description: ${service.description}`;
             const { translatedText } = await translateToEnglish({ text: rawText });
-            
             const parts = translatedText.split('|');
             setAiContent({
               title: parts[0]?.replace('Title:', '').trim() || service.title,
@@ -107,7 +107,6 @@ export default function ServiceApplicationPage() {
         setAiContent(null);
       }
     };
-
     performAiTranslation();
   }, [isAr, service]);
 
@@ -312,7 +311,8 @@ export default function ServiceApplicationPage() {
                    {currentStep?.fields.map((field) => (
                       <div key={field.id} className="space-y-3">
                         <Label className="text-lg font-black text-slate-700">{isAr ? field.labelAr : (field.labelEn || field.labelAr)}</Label>
-                        {field.type === 'upload' ? (
+                        
+                        {field.type === 'upload' && (
                           <div className="border-4 border-dashed border-slate-100 rounded-[2rem] p-12 text-center bg-slate-50/50 cursor-pointer hover:border-accent/40 hover:bg-white transition-all group relative">
                             <div className="size-16 rounded-full bg-white shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                               <Upload size={32} className="text-slate-300 group-hover:text-accent" />
@@ -320,8 +320,59 @@ export default function ServiceApplicationPage() {
                             <p className="text-md text-slate-400 font-bold">{isAr ? "اسحب الملفات هنا أو اضغط للرفع" : "Drag & drop files or click to upload"}</p>
                             <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'attached'})} />
                           </div>
-                        ) : (
-                          <Input required={field.required} placeholder="..." className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold px-6 focus:ring-4 focus:ring-primary/5 transition-all" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
+                        )}
+
+                        {(field.type === 'select') && (
+                          <Select onValueChange={(val) => setFormData({...formData, [field.id]: val})}>
+                            <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold px-6">
+                              <SelectValue placeholder={isAr ? "اختر..." : "Select..."} />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-none shadow-2xl">
+                              {field.options?.map(opt => (
+                                <SelectItem key={opt} value={opt} className="font-bold py-3">{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+
+                        {field.type === 'visual_choice' && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {field.options?.map(opt => {
+                              const [icon, label] = opt.includes('|') ? opt.split('|') : ['LayoutGrid', opt];
+                              const IconComp = (Icons as any)[icon] || Icons.LayoutGrid;
+                              const isSelected = formData[field.id] === opt;
+                              return (
+                                <div 
+                                  key={opt}
+                                  onClick={() => setFormData({...formData, [field.id]: opt})}
+                                  className={cn(
+                                    "p-6 rounded-[1.5rem] border-2 cursor-pointer transition-all flex flex-col items-center gap-3 text-center",
+                                    isSelected ? "bg-primary text-white border-primary shadow-xl" : "bg-white text-slate-600 border-slate-100 hover:border-accent"
+                                  )}
+                                >
+                                  <IconComp size={32} className={isSelected ? "text-accent" : "text-primary"} />
+                                  <span className="font-black text-sm">{label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {field.type === 'map' && (
+                           <div className="h-64 bg-slate-100 rounded-[2rem] flex flex-col items-center justify-center text-slate-400 border-2 border-dashed">
+                              <MapPin size={48} className="mb-2" />
+                              <p className="font-bold">{isAr ? 'اضغط لتحديد الموقع الجغرافي' : 'Click to pinpoint location'}</p>
+                           </div>
+                        )}
+
+                        {field.type !== 'upload' && field.type !== 'select' && field.type !== 'visual_choice' && field.type !== 'map' && (
+                          <Input 
+                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
+                            required={field.required} 
+                            placeholder="..." 
+                            className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold px-6 focus:ring-4 focus:ring-primary/5 transition-all" 
+                            onChange={e => setFormData({...formData, [field.id]: e.target.value})} 
+                          />
                         )}
                       </div>
                    ))}
