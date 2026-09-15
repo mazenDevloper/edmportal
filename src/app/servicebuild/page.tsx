@@ -197,57 +197,93 @@ function WorkflowEngineContent() {
     }
   };
 
+  const handleAddOption = (sIdx: number, fIdx: number) => {
+    const val = prompt(isAr ? "أدخل قيمة الخيار:" : "Enter option value:");
+    if (!val) return;
+    
+    const ns = [...steps];
+    const field = ns[sIdx].fields[fIdx];
+    if (!field.options) field.options = [];
+    field.options.push(val);
+    setSteps(ns);
+  };
+
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     let logicColorIndex = 0;
+    
+    // Check which nodes are reachable when hovering an edge
+    const hoveredEdge = hoveredEdgeId ? e.find(ed => ed.id === hoveredEdgeId) : null;
+    
     steps.forEach((step) => {
       if (step.defaultNextStepId) {
+        const edgeId = `e-${step.id}-${step.defaultNextStepId}`;
+        const isHovered = hoveredEdgeId === edgeId;
         e.push({
-          id: `e-${step.id}-${step.defaultNextStepId}`,
+          id: edgeId,
           source: step.id,
           target: step.defaultNextStepId,
           type: 'smoothstep',
           label: isAr ? 'افتراضي' : 'Default',
           markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { stroke: '#007375', strokeWidth: 4, opacity: 0.8 }
+          style: { 
+            stroke: '#007375', 
+            strokeWidth: isHovered ? 6 : 3, 
+            opacity: hoveredEdgeId && !isHovered ? 0.2 : 0.8,
+            transition: 'all 0.3s'
+          },
+          labelStyle: { fill: '#007375', fontWeight: 900 }
         });
       }
       (step.logic || []).forEach((rule, idx) => {
         if (rule.targetStepId) {
+          const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
           const color = EDGE_COLORS[logicColorIndex % EDGE_COLORS.length];
+          const isHovered = hoveredEdgeId === edgeId;
           logicColorIndex++;
           e.push({
-            id: `e-logic-${step.id}-${rule.targetStepId}-${idx}`,
+            id: edgeId,
             source: step.id,
             target: rule.targetStepId,
             type: 'smoothstep',
             label: rule.value || 'Condition',
             animated: true,
-            style: { stroke: color, strokeWidth: 5 },
+            style: { 
+              stroke: color, 
+              strokeWidth: isHovered ? 8 : 4,
+              opacity: hoveredEdgeId && !isHovered ? 0.2 : 1,
+              transition: 'all 0.3s'
+            },
             markerEnd: { type: MarkerType.ArrowClosed, color: color },
-            labelStyle: { fill: color, fontWeight: 900 }
+            labelStyle: { fill: color, fontWeight: 900, fontSize: isHovered ? '14px' : '10px' }
           });
         }
       });
     });
     return e;
-  }, [steps, isAr]);
+  }, [steps, isAr, hoveredEdgeId]);
 
   const nodes: Node[] = useMemo(() => {
+    // Dynamic Column Calculation based on Step Count
     const total = steps.length;
     let cols = 3;
     if (total <= 3) cols = 1;
     else if (total <= 6) cols = 2;
 
+    const hoveredEdge = hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
+    const connectedNodeIds = hoveredEdge ? [hoveredEdge.source, hoveredEdge.target] : null;
+
     return steps.map((step, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
+      const isFocused = connectedNodeIds ? connectedNodeIds.includes(step.id) : !hoveredEdgeId;
+
       return {
         id: step.id,
         type: 'serviceStep',
         data: { 
           stepIndex: idx,
-          isFocused: true,
+          isFocused,
           label: isAr ? step.titleAr : (step.titleEn || step.titleAr),
           onEdit: () => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); },
           onRemove: () => setSteps(prev => prev.filter(s => s.id !== step.id))
@@ -255,7 +291,7 @@ function WorkflowEngineContent() {
         position: { x: col * 350, y: row * 300 },
       };
     });
-  }, [steps, isAr]);
+  }, [steps, isAr, hoveredEdgeId, edges]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -269,23 +305,13 @@ function WorkflowEngineContent() {
         services: [...(db.services || []).filter((s: any) => s.id !== id), newService],
         serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id), newFlow]
       });
-      toast({ title: "Saved Successfully" });
+      toast({ title: isAr ? "تم حفظ الخدمة والتدفق بنجاح" : "Service & Flow Saved Successfully" });
       router.push('/admin');
     } catch (e) {
       toast({ variant: "destructive", title: "Error Saving" });
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleAddOption = (sIdx: number, fIdx: number) => {
-    const val = prompt(isAr ? "أدخل قيمة الخيار:" : "Enter option value:");
-    if (!val) return;
-    
-    const ns = [...steps];
-    const field = ns[sIdx].fields[fIdx];
-    field.options = [...(field.options || []), val];
-    setSteps(ns);
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin text-accent" size={48} /></div>;
@@ -343,7 +369,7 @@ function WorkflowEngineContent() {
                        </div>
                     </div>
                     <div className="space-y-3 pt-4 border-t">
-                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المستندات المطلوبة" : "Required Docs"}</Label>
+                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المستندات المطلوبة (تلقائي)" : "Auto Required Docs"}</Label>
                        <div className="space-y-2">
                           {(isAr ? serviceInfo.reqsAr : serviceInfo.reqsEn)?.map((req, i) => (
                             <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border text-[10px] font-black text-primary group">
@@ -392,12 +418,10 @@ function WorkflowEngineContent() {
                                     {id: 'upload', icon: <Upload size={12}/>}, 
                                     {id: 'date', icon: <Calendar size={12}/>}, 
                                     {id: 'select', icon: <List size={12}/>}, 
+                                    {id: 'visual_choice', icon: <ImageIcon size={12}/>},
                                     {id: 'map', icon: <MapPin size={12}/>}
                                   ].map(fType => (
-                                    <Button key={fType.id} size="sm" variant="outline" className="rounded-xl font-black text-[9px] h-9 gap-2 border-slate-200" onClick={() => {
-                                      const nf = [...(step.fields || []), { id: `f_${Date.now()}`, type: fType.id as any, labelAr: '', labelEn: '', required: true, options: [] }];
-                                      updateStep(sIdx, { fields: nf });
-                                    }}>{fType.icon} {fType.id.toUpperCase()}</Button>
+                                    <Button key={fType.id} size="sm" variant="outline" className="rounded-xl font-black text-[9px] h-9 gap-2 border-slate-200" onClick={() => handleAddFieldToStep(step.id, fType.id as any)}>{fType.icon} {fType.id.toUpperCase()}</Button>
                                   ))}
                                </div>
                                <div className="space-y-4">
@@ -414,7 +438,7 @@ function WorkflowEngineContent() {
                                           }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100"><X size={16}/></Button>
                                        </div>
 
-                                       {f.type === 'select' && (
+                                       {(f.type === 'select' || f.type === 'visual_choice') && (
                                          <div className="space-y-3 pl-6 border-l-4 border-accent/20">
                                             <div className="flex flex-wrap gap-2">
                                                {(f.options || []).map((opt, oIdx) => (
@@ -491,10 +515,7 @@ function WorkflowEngineContent() {
                                        </div>
                                     </div>
                                   ))}
-                                  <Button variant="ghost" onClick={() => {
-                                    const nl = [...(step.logic || []), { fieldId: '', value: '', targetStepId: '' }];
-                                    updateStep(sIdx, { logic: nl });
-                                  }} className="w-full border-dashed border-2 rounded-[1.5rem] h-14 font-black text-accent border-accent/20 hover:bg-accent/5 hover:border-accent transition-all">+ Add Logic Node</Button>
+                                  <Button variant="ghost" onClick={() => addLogic(sIdx)} className="w-full border-dashed border-2 rounded-[1.5rem] h-14 font-black text-accent border-accent/20 hover:bg-accent/5 hover:border-accent transition-all">+ Add Logic Node</Button>
                                </div>
                             </div>
                          </CardContent>
@@ -509,12 +530,14 @@ function WorkflowEngineContent() {
                             nodes={nodes} 
                             edges={edges}
                             nodeTypes={nodeTypes}
+                            onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+                            onEdgeMouseLeave={() => setHoveredEdgeId(null)}
                             fitView
                           >
                              <Background color="#cbd5e1" gap={30} size={1} />
                              <Controls />
                              <MiniMap nodeStrokeWidth={3} zoomable pannable nodeColor="#007375" maskColor="rgba(255, 255, 255, 0.8)" />
-                             <FlowControls />
+                             <FlowControls onAddStep={addStep} onSave={handleSave} saving={saving} isAr={isAr} />
                           </ReactFlow>
                        </ReactFlowProvider>
                     </Card>
@@ -528,11 +551,18 @@ function WorkflowEngineContent() {
   );
 }
 
-const FlowControls = () => {
+const FlowControls = ({ onAddStep, onSave, saving, isAr }: any) => {
   const { fitView } = useReactFlow();
   return (
     <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-4 rounded-3xl border shadow-2xl">
+       <Button size="sm" variant="outline" onClick={onAddStep} className="rounded-2xl font-black gap-2 h-11 px-8 border-primary text-primary">
+          <Plus size={18}/> {isAr ? "إضافة مرحلة" : "Add Step"}
+       </Button>
        <Button variant="outline" size="sm" onClick={() => fitView()} className="rounded-2xl font-black gap-2 h-11 px-8 border-slate-200"><Maximize size={18}/> Fit View</Button>
+       <Button onClick={onSave} disabled={saving} className="dm-gradient-primary rounded-2xl h-11 px-10 font-black shadow-lg">
+          {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+          <span className="ml-2">{isAr ? "حفظ" : "Save"}</span>
+       </Button>
     </Panel>
   );
 };
