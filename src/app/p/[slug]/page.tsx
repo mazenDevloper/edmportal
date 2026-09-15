@@ -73,8 +73,15 @@ export default function DynamicCustomPage() {
               whileInView={{opacity:1, y:0}} 
               viewport={{once: true}}
               transition={{delay: i * 0.1}}
-              className="animate-in fade-in duration-700"
+              className={cn("animate-in fade-in duration-700", `widget-${comp.id}`)}
             >
+              {comp.customCss && (
+                <style dangerouslySetInnerHTML={{ __html: comp.customCss.replace('.custom-widget', `.widget-${comp.id}`) }} />
+              )}
+
+              {comp.type === 'style' && (
+                <style dangerouslySetInnerHTML={{ __html: comp.content.code }} />
+              )}
               
               {comp.type === 'heading' && (
                 <div className="text-center mb-8">
@@ -89,7 +96,7 @@ export default function DynamicCustomPage() {
               )}
 
               {comp.type === 'html' && (
-                <div className="my-8 rounded-[2rem] overflow-hidden border shadow-sm" dangerouslySetInnerHTML={{ __html: comp.content.code }} />
+                <div className="my-8 rounded-[2rem] overflow-hidden" dangerouslySetInnerHTML={{ __html: comp.content.code }} />
               )}
 
               {comp.type === 'info' && (
@@ -119,7 +126,7 @@ export default function DynamicCustomPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {comp.content.rows.map((row: any, idx: number) => (
+                      {comp.content.rows?.map((row: any, idx: number) => (
                         <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
                           <TableCell className="font-bold p-6">{row.c1}</TableCell>
                           <TableCell className="font-black text-emerald-600 p-6 text-center">{row.c2}</TableCell>

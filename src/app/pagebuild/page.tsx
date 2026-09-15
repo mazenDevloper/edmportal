@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -14,7 +15,7 @@ import {
   Heading1, Video, FileText, List, Minus, Table as TableIcon,
   Code, Database, User, Award, Layers, MousePointer2,
   ChevronUp, ChevronDown, GripVertical, Settings2, Globe, Edit3, X,
-  ExternalLink, CheckCircle2, PlayCircle, Users, ShieldCheck, Mail
+  ExternalLink, CheckCircle2, PlayCircle, Users, ShieldCheck, Mail, Brush, Palette
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -30,6 +31,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function PageBuilderContent() {
   const router = useRouter();
@@ -44,7 +46,7 @@ function PageBuilderContent() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewLang, setPreviewLang] = useState<'ar' | 'en'>('ar');
-  const [compModes, setCompModes] = useState<Record<string, 'preview' | 'settings' | 'data'>>({});
+  const [compModes, setCompModes] = useState<Record<string, 'preview' | 'settings' | 'css' | 'data'>>({});
 
   useEffect(() => {
     const loadPage = async () => {
@@ -79,9 +81,10 @@ function PageBuilderContent() {
       table: { headers: ['الخدمة البلديّة', 'الرسوم'], rows: [{ c1: 'تجديد عقود الإيجار', c2: '15 OMR' }, { c1: 'ترخيص البناء', c2: '50 OMR' }] },
       accordion: { items: [{ titleAr: 'كيف يمكنني الدخول للنظام؟', titleEn: 'How to access the system?', contentAr: 'عبر نظام ثقة الموحد للهوية الرقمية.', contentEn: 'Via the Unified Thiqa Digital ID System.' }] },
       tabs: { items: [{ titleAr: 'المتطلبات', titleEn: 'Requirements', contentAr: 'البطاقة الشخصية سارية المفعول.', contentEn: 'Valid Resident ID Card.' }] },
-      html: { code: '<div class="p-12 border-4 border-dashed rounded-[3rem] text-center bg-slate-50 text-slate-400 font-black text-xl uppercase tracking-widest">Neural HTML Container</div>' }
+      html: { code: '<div class="p-12 border-4 border-dashed rounded-[3rem] text-center bg-slate-50 text-slate-400 font-black text-xl uppercase tracking-widest">Neural HTML Container</div>' },
+      style: { code: '/* Custom Global CSS for this page */\nbody {\n  /* background: #f0f0f0; */\n}' }
     };
-    const newComp = { id, type, content: defaultContents[type] || {} };
+    const newComp = { id, type, content: defaultContents[type] || {}, customCss: '' };
     setComponents([...components, newComp]);
     setCompModes(prev => ({ ...prev, [id]: 'preview' }));
   };
@@ -101,7 +104,7 @@ function PageBuilderContent() {
 
   const updateComp = (idx: number, updates: any) => {
     const nc = [...components];
-    nc[idx].content = { ...nc[idx].content, ...updates };
+    nc[idx] = { ...nc[idx], ...updates };
     setComponents(nc);
   };
 
@@ -111,7 +114,8 @@ function PageBuilderContent() {
       const { translatedText } = await translateToEnglish({ text });
       const comp = components[compIdx];
       const fieldKey = comp.content.bodyAr !== undefined ? 'bodyEn' : comp.content.textAr !== undefined ? 'textEn' : 'labelEn';
-      updateComp(compIdx, { [fieldKey]: translatedText });
+      const newContent = { ...comp.content, [fieldKey]: translatedText };
+      updateComp(compIdx, { content: newContent });
       toast({ title: "AI Translation Done" });
     } catch (e) {
       toast({ variant: "destructive", title: "Translation Failed" });
@@ -123,13 +127,13 @@ function PageBuilderContent() {
       <PortalHeader menuItems={[]} />
       <main className="flex-1 flex overflow-hidden">
         {/* Advanced Widget Sidebar */}
-        <aside className="w-85 bg-slate-900 text-white flex flex-col border-r border-white/5 shadow-2xl z-20">
+        <aside className="w-80 bg-slate-900 text-white flex flex-col border-r border-white/5 shadow-2xl z-20">
            <div className="p-8 bg-slate-950 border-b border-white/10 flex items-center justify-between">
               <div>
                 <span className="font-black text-xs uppercase tracking-[0.3em] text-accent block">Components Hub</span>
                 <span className="text-[10px] text-white/30 font-bold">Oman Gov Design System</span>
               </div>
-              <Badge variant="outline" className="text-[9px] border-accent/30 text-accent font-black">V4.2 PRO</Badge>
+              <Badge variant="outline" className="text-[9px] border-accent/30 text-accent font-black">V4.5 PRO</Badge>
            </div>
            
            <ScrollArea className="flex-1 p-8">
@@ -153,12 +157,12 @@ function PageBuilderContent() {
                    </div>
                 </section>
                 <section>
-                   <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Branding & Media</p>
+                   <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-4">Branding & Logic</p>
                    <div className="grid grid-cols-2 gap-3">
                       <WidgetBtn icon={<FileText/>} label="PDF Viewer" onClick={() => addComponent('pdf')} />
                       <WidgetBtn icon={<User/>} label="Avatar" onClick={() => addComponent('avatar')} />
-                      <WidgetBtn icon={<Award/>} label="Status Badge" onClick={() => addComponent('badge')} />
                       <WidgetBtn icon={<Code/>} label="Neural HTML" onClick={() => addComponent('html')} />
+                      <WidgetBtn icon={<Brush/>} label="Global Style" onClick={() => addComponent('style')} />
                    </div>
                 </section>
               </div>
@@ -220,6 +224,7 @@ function PageBuilderContent() {
                               <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl">
                                  <CompModeBtn active={compModes[c.id] === 'preview'} onClick={() => setCompModes({...compModes, [c.id]: 'preview'})} icon={<Eye size={14}/>} label="Preview" />
                                  <CompModeBtn active={compModes[c.id] === 'settings'} onClick={() => setCompModes({...compModes, [c.id]: 'settings'})} icon={<Settings2 size={14}/>} label="Settings" />
+                                 <CompModeBtn active={compModes[c.id] === 'css'} onClick={() => setCompModes({...compModes, [c.id]: 'css'})} icon={<Palette size={14}/>} label="CSS" />
                                  <CompModeBtn active={compModes[c.id] === 'data'} onClick={() => setCompModes({...compModes, [c.id]: 'data'})} icon={<Code size={14}/>} label="Code" />
                               </div>
                            </div>
@@ -227,48 +232,56 @@ function PageBuilderContent() {
                            <CardContent className="p-0">
                               {compModes[c.id] === 'preview' ? (
                                 <div className={cn("p-12", previewLang === 'ar' ? "font-arabic" : "font-sans")} dir={previewLang === 'ar' ? 'rtl' : 'ltr'}>
-                                   <ComponentRenderer type={c.type} content={c.content} lang={previewLang} />
+                                   <ComponentRenderer type={c.type} content={c.content} lang={previewLang} customCss={c.customCss} />
                                 </div>
                               ) : compModes[c.id] === 'settings' ? (
                                 <div className="p-12 bg-slate-50 space-y-8 animate-in fade-in zoom-in-95">
                                    <div className="grid md:grid-cols-2 gap-10">
-                                      {/* Complex Content Control UI */}
-                                      {['accordion', 'tabs'].includes(c.type) ? (
+                                      {c.type === 'style' || c.type === 'html' ? (
+                                        <div className="col-span-2 space-y-4">
+                                          <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Neural Code Editor ({c.type.toUpperCase()})</Label>
+                                          <Textarea 
+                                            value={c.content.code} 
+                                            onChange={e => updateComp(i, { content: { ...c.content, code: e.target.value } })} 
+                                            className="font-mono text-sm h-96 bg-slate-950 text-emerald-400 rounded-3xl border-none shadow-2xl p-10 leading-relaxed resize-none focus:ring-0" 
+                                          />
+                                        </div>
+                                      ) : ['accordion', 'tabs'].includes(c.type) ? (
                                         <div className="col-span-2 space-y-6">
                                           <div className="flex items-center justify-between">
                                             <Label className="text-xs font-black uppercase text-primary">Items Management</Label>
-                                            <Button size="sm" onClick={() => updateComp(i, { items: [...(c.content.items || []), { titleAr: 'عنوان جديد', titleEn: 'New Title', contentAr: 'محتوى جديد', contentEn: 'New Content' }] })} className="h-8 rounded-lg bg-primary text-[10px] font-black uppercase tracking-widest">+ Add Item</Button>
+                                            <Button size="sm" onClick={() => updateComp(i, { content: { ...c.content, items: [...(c.content.items || []), { titleAr: 'عنوان جديد', titleEn: 'New Title', contentAr: 'محتوى جديد', contentEn: 'New Content' }] } })} className="h-8 rounded-lg bg-primary text-[10px] font-black uppercase tracking-widest">+ Add Item</Button>
                                           </div>
                                           <div className="space-y-4">
                                             {c.content.items?.map((item: any, itemIdx: number) => (
                                               <div key={itemIdx} className="p-6 bg-white border rounded-2xl shadow-sm relative group">
                                                 <Button size="icon" variant="ghost" className="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100" onClick={() => {
                                                   const ni = c.content.items.filter((_: any, idx: number) => idx !== itemIdx);
-                                                  updateComp(i, { items: ni });
+                                                  updateComp(i, { content: { ...c.content, items: ni } });
                                                 }}><X size={14}/></Button>
                                                 <div className="grid grid-cols-2 gap-4">
                                                   <div className="space-y-2">
                                                     <Label className="text-[9px] font-black text-slate-400">TITLE AR</Label>
                                                     <Input value={item.titleAr} onChange={e => {
-                                                      const ni = [...c.content.items]; ni[itemIdx].titleAr = e.target.value; updateComp(i, { items: ni });
+                                                      const ni = [...c.content.items]; ni[itemIdx].titleAr = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
                                                     }} className="h-9 rounded-lg font-bold" />
                                                   </div>
                                                   <div className="space-y-2">
                                                     <Label className="text-[9px] font-black text-slate-400">TITLE EN</Label>
                                                     <Input value={item.titleEn} onChange={e => {
-                                                      const ni = [...c.content.items]; ni[itemIdx].titleEn = e.target.value; updateComp(i, { items: ni });
+                                                      const ni = [...c.content.items]; ni[itemIdx].titleEn = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
                                                     }} className="h-9 rounded-lg font-bold" />
                                                   </div>
                                                   <div className="space-y-2 col-span-2">
                                                     <Label className="text-[9px] font-black text-slate-400">CONTENT AR</Label>
                                                     <Textarea value={item.contentAr} onChange={e => {
-                                                      const ni = [...c.content.items]; ni[itemIdx].contentAr = e.target.value; updateComp(i, { items: ni });
+                                                      const ni = [...c.content.items]; ni[itemIdx].contentAr = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
                                                     }} className="min-h-[60px] rounded-lg text-xs" />
                                                   </div>
                                                   <div className="space-y-2 col-span-2">
                                                     <Label className="text-[9px] font-black text-slate-400">CONTENT EN</Label>
                                                     <Textarea value={item.contentEn} onChange={e => {
-                                                      const ni = [...c.content.items]; ni[itemIdx].contentEn = e.target.value; updateComp(i, { items: ni });
+                                                      const ni = [...c.content.items]; ni[itemIdx].contentEn = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
                                                     }} className="min-h-[60px] rounded-lg text-xs" />
                                                   </div>
                                                 </div>
@@ -281,15 +294,15 @@ function PageBuilderContent() {
                                            <div className="grid grid-cols-2 gap-6">
                                               <div className="space-y-2">
                                                 <Label className="text-[10px] font-black">NAME AR</Label>
-                                                <Input value={c.content.nameAr} onChange={e => updateComp(i, { nameAr: e.target.value })} className="h-12 font-black" />
+                                                <Input value={c.content.nameAr} onChange={e => updateComp(i, { content: { ...c.content, nameAr: e.target.value } })} className="h-12 font-black" />
                                               </div>
                                               <div className="space-y-2">
                                                 <Label className="text-[10px] font-black">NAME EN</Label>
-                                                <Input value={c.content.nameEn} onChange={e => updateComp(i, { nameEn: e.target.value })} className="h-12 font-black" />
+                                                <Input value={c.content.nameEn} onChange={e => updateComp(i, { content: { ...c.content, nameEn: e.target.value } })} className="h-12 font-black" />
                                               </div>
                                               <div className="space-y-2 col-span-2">
                                                 <Label className="text-[10px] font-black">IMAGE URL</Label>
-                                                <Input value={c.content.src} onChange={e => updateComp(i, { src: e.target.value })} placeholder="https://..." className="h-12 font-mono text-xs" />
+                                                <Input value={c.content.src} onChange={e => updateComp(i, { content: { ...c.content, src: e.target.value } })} placeholder="https://..." className="h-12 font-mono text-xs" />
                                               </div>
                                            </div>
                                         </div>
@@ -301,7 +314,7 @@ function PageBuilderContent() {
                                                 <Badge variant="outline" className="text-[8px]">PRIMARY</Badge>
                                              </div>
                                              {['bodyAr', 'textAr', 'labelAr'].some(k => c.content[k] !== undefined) ? (
-                                               <Textarea value={c.content.bodyAr || c.content.textAr || c.content.labelAr} onChange={e => updateComp(i, { [c.content.bodyAr !== undefined ? 'bodyAr' : c.content.textAr !== undefined ? 'textAr' : 'labelAr']: e.target.value })} className="bg-white font-black min-h-[150px] rounded-2xl border-slate-200" />
+                                               <Textarea value={c.content.bodyAr || c.content.textAr || c.content.labelAr} onChange={e => updateComp(i, { content: { ...c.content, [c.content.bodyAr !== undefined ? 'bodyAr' : c.content.textAr !== undefined ? 'textAr' : 'labelAr']: e.target.value } })} className="bg-white font-black min-h-[150px] rounded-2xl border-slate-200" />
                                              ) : <p className="text-xs font-bold text-slate-400 italic">No simple text fields for this component.</p>}
                                           </div>
                                           
@@ -313,7 +326,7 @@ function PageBuilderContent() {
                                                 </Button>
                                              </div>
                                              {['bodyEn', 'textEn', 'labelEn'].some(k => c.content[k] !== undefined) ? (
-                                               <Textarea value={c.content.bodyEn || c.content.textEn || c.content.labelEn} onChange={e => updateComp(i, { [c.content.bodyEn !== undefined ? 'bodyEn' : c.content.textEn !== undefined ? 'textEn' : 'labelEn']: e.target.value })} className="bg-white font-bold min-h-[150px] rounded-2xl border-slate-200" />
+                                               <Textarea value={c.content.bodyEn || c.content.textEn || c.content.labelEn} onChange={e => updateComp(i, { content: { ...c.content, [c.content.bodyEn !== undefined ? 'bodyEn' : c.content.textEn !== undefined ? 'textEn' : 'labelEn']: e.target.value } })} className="bg-white font-bold min-h-[150px] rounded-2xl border-slate-200" />
                                              ) : <p className="text-xs font-bold text-slate-400 italic">No simple text fields for this component.</p>}
                                           </div>
                                         </>
@@ -321,26 +334,34 @@ function PageBuilderContent() {
                                       
                                       {c.type === 'stats' && (
                                         <div className="col-span-2 grid grid-cols-4 gap-6 bg-white p-8 rounded-[2rem] shadow-inner">
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">VALUE 1</Label><Input value={c.content.v1} onChange={e => updateComp(i, {v1: e.target.value})} className="rounded-xl font-black text-primary" /></div>
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">TITLE 1</Label><Input value={c.content.t1} onChange={e => updateComp(i, {t1: e.target.value})} className="rounded-xl font-bold" /></div>
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">VALUE 2</Label><Input value={c.content.v2} onChange={e => updateComp(i, {v2: e.target.value})} className="rounded-xl font-black text-primary" /></div>
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">TITLE 2</Label><Input value={c.content.t2} onChange={e => updateComp(i, {t2: e.target.value})} className="rounded-xl font-bold" /></div>
+                                          <div className="space-y-2"><Label className="text-[9px] font-black">VALUE 1</Label><Input value={c.content.v1} onChange={e => updateComp(i, { content: { ...c.content, v1: e.target.value } })} className="rounded-xl font-black text-primary" /></div>
+                                          <div className="space-y-2"><Label className="text-[9px] font-black">TITLE 1</Label><Input value={c.content.t1} onChange={e => updateComp(i, { content: { ...c.content, t1: e.target.value } })} className="rounded-xl font-bold" /></div>
+                                          <div className="space-y-2"><Label className="text-[9px] font-black">VALUE 2</Label><Input value={c.content.v2} onChange={e => updateComp(i, { content: { ...c.content, v2: e.target.value } })} className="rounded-xl font-black text-primary" /></div>
+                                          <div className="space-y-2"><Label className="text-[9px] font-black">TITLE 2</Label><Input value={c.content.t2} onChange={e => updateComp(i, { content: { ...c.content, t2: e.target.value } })} className="rounded-xl font-bold" /></div>
                                         </div>
                                       )}
 
                                       {c.type === 'pdf' && (
                                         <div className="col-span-2 space-y-2">
                                           <Label className="text-[10px] font-black">DOC URL (FOR PREVIEW ATTACH)</Label>
-                                          <Input value={c.content.url} onChange={e => updateComp(i, { url: e.target.value })} className="h-12 font-mono text-xs" />
+                                          <Input value={c.content.url} onChange={e => updateComp(i, { content: { ...c.content, url: e.target.value } })} className="h-12 font-mono text-xs" />
                                         </div>
                                       )}
-
-                                      {c.type === 'html' && (
-                                        <div className="col-span-2 space-y-4">
-                                          <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Neural Code Injection (HTML/CSS)</Label>
-                                          <Textarea value={c.content.code} onChange={e => updateComp(i, {code: e.target.value})} className="font-mono text-sm h-64 bg-slate-900 text-emerald-400 rounded-3xl border-none shadow-2xl p-8" />
-                                        </div>
-                                      )}
+                                   </div>
+                                </div>
+                              ) : compModes[c.id] === 'css' ? (
+                                <div className="p-12 bg-slate-950 animate-in fade-in zoom-in-95">
+                                   <div className="space-y-4">
+                                      <Label className="text-[10px] font-black uppercase text-accent tracking-widest">Custom Component CSS</Label>
+                                      <Textarea 
+                                        value={c.customCss || ''} 
+                                        onChange={e => updateComp(i, { customCss: e.target.value })} 
+                                        placeholder="/* Write CSS here... use .custom-widget { ... } */"
+                                        className="font-mono text-sm h-80 bg-slate-950 text-blue-300 rounded-3xl border border-white/10 p-10 leading-relaxed resize-none focus:ring-0" 
+                                      />
+                                      <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                         <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest">Note: Custom CSS is scoped to this specific instance container.</p>
+                                      </div>
                                    </div>
                                 </div>
                               ) : (
@@ -350,12 +371,10 @@ function PageBuilderContent() {
                                      onChange={e => {
                                         try {
                                           const parsed = JSON.parse(e.target.value);
-                                          updateComp(i, parsed);
-                                        } catch (err) {
-                                          // Keep raw text if invalid JSON while typing
-                                        }
+                                          updateComp(i, { content: parsed });
+                                        } catch (err) {}
                                      }}
-                                     className="font-mono text-xs h-96 bg-slate-900 text-blue-300 rounded-none border-none p-10 leading-relaxed focus:ring-0 resize-none" 
+                                     className="font-mono text-xs h-[500px] bg-slate-950 text-blue-300 rounded-none border-none p-12 leading-relaxed focus:ring-0 resize-none" 
                                    />
                                 </div>
                               )}
@@ -397,158 +416,175 @@ function WidgetBtn({ icon, label, onClick }: any) {
 
 function CompModeBtn({ active, onClick, icon, label }: any) {
   return (
-    <Button variant="ghost" size="xs" onClick={onClick} className={cn("h-10 px-6 gap-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all", active ? "bg-accent text-slate-900 shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5")}>
+    <Button variant="ghost" size="xs" onClick={onClick} className={cn("h-10 px-4 gap-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all", active ? "bg-accent text-slate-900 shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5")}>
       {icon} {label}
     </Button>
   );
 }
 
-function ComponentRenderer({ type, content, lang }: any) {
+function ComponentRenderer({ type, content, lang, customCss }: any) {
   const isAr = lang === 'ar';
   
-  switch (type) {
-    case 'heading': 
-      return <h2 className={cn("font-black text-primary tracking-tighter text-center", content.level === 'h1' ? "text-6xl md:text-8xl" : "text-4xl md:text-5xl")}>{isAr ? content.textAr : content.textEn}</h2>;
-    
-    case 'text': 
-      return <p className="text-slate-600 leading-loose text-2xl text-center font-medium max-w-4xl mx-auto whitespace-pre-wrap">{isAr ? content.bodyAr : content.bodyEn}</p>;
-    
-    case 'info': 
-      return (
-        <Card className="rounded-[3rem] border-none shadow-2xl bg-white max-w-4xl mx-auto overflow-hidden border-t-8 border-primary relative">
-           <div className="absolute top-0 right-0 size-40 dm-wave-5 opacity-5 -rotate-45" />
-           <CardContent className="p-16 text-center">
-              <div className="text-3xl font-black text-slate-800 leading-relaxed italic">
-                "{isAr ? content.bodyAr : content.bodyEn}"
-              </div>
-           </CardContent>
-        </Card>
-      );
-    
-    case 'stats': 
-      return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto text-center">
-           <div className="p-10 bg-primary text-white rounded-[2.5rem] shadow-2xl space-y-2">
-              <h3 className="text-5xl font-black text-accent">{content.v1}</h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{content.t1}</p>
-           </div>
-           <div className="p-10 bg-slate-900 text-white rounded-[2.5rem] shadow-2xl space-y-2 border-t-4 border-accent">
-              <h3 className="text-5xl font-black text-accent">{content.v2}</h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{content.t2}</p>
-           </div>
-        </div>
-      );
-    
-    case 'accordion': 
-      return (
-        <Card className="max-w-4xl mx-auto rounded-[2.5rem] border-none shadow-xl bg-white p-12">
-          <Accordion type="single" collapsible className="w-full">
-            {content.items?.map((item: any, idx: number) => (
-              <AccordionItem key={idx} value={`i-${idx}`} className="border-slate-100 last:border-0 py-4">
-                <AccordionTrigger className="text-2xl font-black text-primary hover:text-accent transition-colors no-underline">
-                  {isAr ? item.titleAr : item.titleEn}
-                </AccordionTrigger>
-                <AccordionContent className="text-xl text-slate-500 font-bold leading-loose pt-6">
-                  {isAr ? item.contentAr : item.contentEn}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </Card>
-      );
+  const RenderContent = () => {
+    switch (type) {
+      case 'style':
+        return (
+          <div className="p-8 border-2 border-dashed rounded-3xl bg-slate-50 text-center">
+             <Brush className="mx-auto mb-2 text-accent" />
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global CSS Injection Component</p>
+          </div>
+        );
 
-    case 'tabs':
-      return (
-        <Card className="max-w-5xl mx-auto rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
-          <Tabs defaultValue="tab-0" className="w-full">
-            <TabsList className="w-full h-24 bg-slate-950 rounded-none p-0 flex">
-              {content.items?.map((item: any, idx: number) => (
-                <TabsTrigger key={idx} value={`tab-${idx}`} className="flex-1 rounded-none text-white/40 data-[state=active]:bg-accent data-[state=active]:text-slate-900 font-black text-xl h-full border-x border-white/5 transition-all">
-                  {isAr ? item.titleAr : item.titleEn}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {content.items?.map((item: any, idx: number) => (
-              <TabsContent key={idx} value={`tab-${idx}`} className="p-20 text-center animate-in fade-in zoom-in-95 duration-500">
-                <div className="text-3xl text-slate-700 font-medium leading-loose">
-                   {isAr ? item.contentAr : item.contentEn}
+      case 'heading': 
+        return <h2 className={cn("font-black text-primary tracking-tighter text-center", content.level === 'h1' ? "text-6xl md:text-8xl" : "text-4xl md:text-5xl")}>{isAr ? content.textAr : content.textEn}</h2>;
+      
+      case 'text': 
+        return <p className="text-slate-600 leading-loose text-2xl text-center font-medium max-w-4xl mx-auto whitespace-pre-wrap">{isAr ? content.bodyAr : content.bodyEn}</p>;
+      
+      case 'info': 
+        return (
+          <Card className="rounded-[3rem] border-none shadow-2xl bg-white max-w-4xl mx-auto overflow-hidden border-t-8 border-primary relative">
+             <div className="absolute top-0 right-0 size-40 dm-wave-5 opacity-5 -rotate-45" />
+             <CardContent className="p-16 text-center">
+                <div className="text-3xl font-black text-slate-800 leading-relaxed italic">
+                  "{isAr ? content.bodyAr : content.bodyEn}"
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </Card>
-      );
-    
-    case 'html': 
-      return <div className="rounded-[3rem] overflow-hidden border shadow-inner" dangerouslySetInnerHTML={{ __html: content.code }} />;
-    
-    case 'avatar': 
-      return (
-        <div className="flex flex-col items-center gap-6">
-           <Avatar className="size-48 border-[12px] border-white shadow-2xl">
-              <AvatarImage src={content.src} />
-              <AvatarFallback className="bg-primary text-white text-6xl font-black">{isAr ? content.nameAr?.[0] : content.nameEn?.[0]}</AvatarFallback>
-           </Avatar>
-           <div className="text-center">
-              <h4 className="text-3xl font-black text-primary tracking-tighter">{isAr ? content.nameAr : content.nameEn}</h4>
-              <Badge className="bg-accent text-slate-900 font-black mt-2 px-6 py-1 rounded-full uppercase tracking-widest text-[10px]">Authorized Identity</Badge>
-           </div>
-        </div>
-      );
-
-    case 'pdf':
-      return (
-        <div className="flex justify-center">
-           <a href={content.url} target="_blank" className="group flex items-center gap-10 p-12 rounded-[3.5rem] bg-white shadow-2xl border-4 border-transparent hover:border-primary transition-all">
-              <div className="size-24 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all">
-                <FileText size={48} />
-              </div>
-              <div className="space-y-1">
-                <p className="text-3xl font-black text-slate-800">{isAr ? content.labelAr : content.labelEn}</p>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">Official Document Viewer <ExternalLink size={14}/></p>
-              </div>
-           </a>
-        </div>
-      );
-
-    case 'badge':
-      return (
-        <div className="flex justify-center">
-          <Badge className="bg-accent text-slate-900 font-black text-xl px-10 py-3 rounded-2xl shadow-lg animate-pulse">
-            {isAr ? content.textAr : content.textEn}
-          </Badge>
-        </div>
-      );
-
-    case 'table':
-      return (
-        <Card className="max-w-4xl mx-auto rounded-[2rem] border-none shadow-xl overflow-hidden bg-white">
-          <Table>
-            <TableHeader className="bg-slate-900">
-              <TableRow>
-                {content.headers?.map((h: string, idx: number) => (
-                  <TableHead key={idx} className="font-black p-6 text-white text-lg">{h}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {content.rows?.map((row: any, idx: number) => (
-                <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
-                  <TableCell className="font-bold p-6 text-lg">{row.c1}</TableCell>
-                  <TableCell className="font-black text-emerald-600 p-6 text-lg">{row.c2}</TableCell>
-                </TableRow>
+             </CardContent>
+          </Card>
+        );
+      
+      case 'stats': 
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto text-center">
+             <div className="p-10 bg-primary text-white rounded-[2.5rem] shadow-2xl space-y-2">
+                <h3 className="text-5xl font-black text-accent">{content.v1}</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{content.t1}</p>
+             </div>
+             <div className="p-10 bg-slate-900 text-white rounded-[2.5rem] shadow-2xl space-y-2 border-t-4 border-accent">
+                <h3 className="text-5xl font-black text-accent">{content.v2}</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{content.t2}</p>
+             </div>
+          </div>
+        );
+      
+      case 'accordion': 
+        return (
+          <Card className="max-w-4xl mx-auto rounded-[2.5rem] border-none shadow-xl bg-white p-12">
+            <Accordion type="single" collapsible className="w-full">
+              {content.items?.map((item: any, idx: number) => (
+                <AccordionItem key={idx} value={`i-${idx}`} className="border-slate-100 last:border-0 py-4">
+                  <AccordionTrigger className="text-2xl font-black text-primary hover:text-accent transition-colors no-underline">
+                    {isAr ? item.titleAr : item.titleEn}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-xl text-slate-500 font-bold leading-loose pt-6">
+                    {isAr ? item.contentAr : item.contentEn}
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </TableBody>
-          </Table>
-        </Card>
-      );
+            </Accordion>
+          </Card>
+        );
 
-    case 'separator':
-      return <Separator className="max-w-4xl mx-auto h-px bg-slate-200 my-16" />;
-    
-    default: 
-      return <div className="p-16 border-4 border-dashed rounded-[3rem] bg-slate-50 text-slate-300 font-black text-center text-2xl uppercase tracking-[0.3em]">Widget Area: {type}</div>;
-  }
+      case 'tabs':
+        return (
+          <Card className="max-w-5xl mx-auto rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
+            <Tabs defaultValue="tab-0" className="w-full">
+              <TabsList className="w-full h-24 bg-slate-950 rounded-none p-0 flex">
+                {content.items?.map((item: any, idx: number) => (
+                  <TabsTrigger key={idx} value={`tab-${idx}`} className="flex-1 rounded-none text-white/40 data-[state=active]:bg-accent data-[state=active]:text-slate-900 font-black text-xl h-full border-x border-white/5 transition-all">
+                    {isAr ? item.titleAr : item.titleEn}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {content.items?.map((item: any, idx: number) => (
+                <TabsContent key={idx} value={`tab-${idx}`} className="p-20 text-center animate-in fade-in zoom-in-95 duration-500">
+                  <div className="text-3xl text-slate-700 font-medium leading-loose">
+                     {isAr ? item.contentAr : item.contentEn}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </Card>
+        );
+      
+      case 'html': 
+        return <div className="rounded-[3rem] overflow-hidden border shadow-inner" dangerouslySetInnerHTML={{ __html: content.code }} />;
+      
+      case 'avatar': 
+        return (
+          <div className="flex flex-col items-center gap-6">
+             <Avatar className="size-48 border-[12px] border-white shadow-2xl">
+                <AvatarImage src={content.src} />
+                <AvatarFallback className="bg-primary text-white text-6xl font-black">{isAr ? content.nameAr?.[0] : content.nameEn?.[0]}</AvatarFallback>
+             </Avatar>
+             <div className="text-center">
+                <h4 className="text-3xl font-black text-primary tracking-tighter">{isAr ? content.nameAr : content.nameEn}</h4>
+                <Badge className="bg-accent text-slate-900 font-black mt-2 px-6 py-1 rounded-full uppercase tracking-widest text-[10px]">Authorized Identity</Badge>
+             </div>
+          </div>
+        );
+
+      case 'pdf':
+        return (
+          <div className="flex justify-center">
+             <a href={content.url} target="_blank" className="group flex items-center gap-10 p-12 rounded-[3.5rem] bg-white shadow-2xl border-4 border-transparent hover:border-primary transition-all">
+                <div className="size-24 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all">
+                  <FileText size={48} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-3xl font-black text-slate-800">{isAr ? content.labelAr : content.labelEn}</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">Official Document Viewer <ExternalLink size={14}/></p>
+                </div>
+             </a>
+          </div>
+        );
+
+      case 'badge':
+        return (
+          <div className="flex justify-center">
+            <Badge className="bg-accent text-slate-900 font-black text-xl px-10 py-3 rounded-2xl shadow-lg animate-pulse">
+              {isAr ? content.textAr : content.textEn}
+            </Badge>
+          </div>
+        );
+
+      case 'table':
+        return (
+          <Card className="max-w-4xl mx-auto rounded-[2rem] border-none shadow-xl overflow-hidden bg-white">
+            <Table>
+              <TableHeader className="bg-slate-900">
+                <TableRow>
+                  {content.headers?.map((h: string, idx: number) => (
+                    <TableHead key={idx} className="font-black p-6 text-white text-lg">{h}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {content.rows?.map((row: any, idx: number) => (
+                  <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
+                    <TableCell className="font-bold p-6 text-lg">{row.c1}</TableCell>
+                    <TableCell className="font-black text-emerald-600 p-6 text-lg">{row.c2}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        );
+
+      case 'separator':
+        return <Separator className="max-w-4xl mx-auto h-px bg-slate-200 my-16" />;
+      
+      default: 
+        return <div className="p-16 border-4 border-dashed rounded-[3rem] bg-slate-50 text-slate-300 font-black text-center text-2xl uppercase tracking-[0.3em]">Widget Area: {type}</div>;
+    }
+  };
+
+  return (
+    <div className="custom-widget-container">
+      {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
+      <RenderContent />
+    </div>
+  );
 }
 
 export default function PageBuilder() {

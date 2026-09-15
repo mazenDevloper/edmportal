@@ -93,8 +93,9 @@ export interface SpatialWindow {
 
 export interface BuilderComponent {
   id: string;
-  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator' | 'table' | 'progress' | 'avatar' | 'badge' | 'html' | 'stepper' | 'tabs' | 'cards_scroller';
+  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator' | 'table' | 'progress' | 'avatar' | 'badge' | 'html' | 'stepper' | 'tabs' | 'cards_scroller' | 'style';
   content: any;
+  customCss?: string;
 }
 
 export interface CustomPage {
