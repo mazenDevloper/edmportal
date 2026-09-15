@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -196,22 +197,6 @@ function WorkflowEngineContent() {
     }
   };
 
-  const getDescendantEdges = useCallback((startEdgeId: string, currentEdges: Edge[]) => {
-    const descendants = new Set<string>([startEdgeId]);
-    const edge = currentEdges.find(e => e.id === startEdgeId);
-    if (!edge) return descendants;
-    const traverse = (targetId: string) => {
-      currentEdges.filter(e => e.source === targetId).forEach(e => {
-        if (!descendants.has(e.id)) {
-          descendants.add(e.id);
-          traverse(e.target);
-        }
-      });
-    };
-    traverse(edge.target);
-    return descendants;
-  }, []);
-
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
     let logicColorIndex = 0;
@@ -245,28 +230,10 @@ function WorkflowEngineContent() {
         }
       });
     });
-
-    if (hoveredEdgeId) {
-      const highlighted = getDescendantEdges(hoveredEdgeId, e);
-      return e.map(edge => ({
-        ...edge,
-        style: { ...edge.style, strokeWidth: highlighted.has(edge.id) ? 10 : 2, opacity: highlighted.has(edge.id) ? 1 : 0.05 },
-        label: highlighted.has(edge.id) ? edge.label : ''
-      }));
-    }
     return e;
-  }, [steps, isAr, hoveredEdgeId, getDescendantEdges]);
+  }, [steps, isAr]);
 
   const nodes: Node[] = useMemo(() => {
-    const highlightedNodeIds = new Set<string>();
-    if (hoveredEdgeId) {
-      const descendants = getDescendantEdges(hoveredEdgeId, edges);
-      descendants.forEach(eid => {
-        const edge = edges.find(e => e.id === eid);
-        if (edge) { highlightedNodeIds.add(edge.source); highlightedNodeIds.add(edge.target); }
-      });
-    }
-
     const total = steps.length;
     let cols = 3;
     if (total <= 3) cols = 1;
@@ -275,13 +242,12 @@ function WorkflowEngineContent() {
     return steps.map((step, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
-      const isFocused = hoveredEdgeId ? highlightedNodeIds.has(step.id) : true;
       return {
         id: step.id,
         type: 'serviceStep',
         data: { 
           stepIndex: idx,
-          isFocused,
+          isFocused: true,
           label: isAr ? step.titleAr : (step.titleEn || step.titleAr),
           onEdit: () => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); },
           onRemove: () => setSteps(prev => prev.filter(s => s.id !== step.id))
@@ -289,7 +255,7 @@ function WorkflowEngineContent() {
         position: { x: col * 350, y: row * 300 },
       };
     });
-  }, [steps, isAr, hoveredEdgeId, edges, getDescendantEdges]);
+  }, [steps, isAr]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -319,17 +285,6 @@ function WorkflowEngineContent() {
     const ns = [...steps];
     const field = ns[sIdx].fields[fIdx];
     field.options = [...(field.options || []), val];
-    setSteps(ns);
-  };
-
-  const handleAddVisualChoice = (sIdx: number, fIdx: number) => {
-    const icon = prompt(isAr ? "اسم الأيقونة (مثال: User, Building2):" : "Icon name (e.g. User, Building2):", "LayoutGrid");
-    const label = prompt(isAr ? "نص الخيار:" : "Option Label:");
-    if (!label) return;
-    
-    const ns = [...steps];
-    const field = ns[sIdx].fields[fIdx];
-    field.options = [...(field.options || []), `${icon}|${label}`];
     setSteps(ns);
   };
 
@@ -370,15 +325,6 @@ function WorkflowEngineContent() {
                           <Input value={serviceInfo.titleEn || ''} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} className="h-11 border-slate-200" />
                        </div>
                     </div>
-                    <div className="space-y-4 pt-4">
-                       <div className="relative">
-                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الوصف المختصر (AR)" : "Description (AR)"}</Label>
-                          <Textarea value={serviceInfo.description || ''} onChange={e => setServiceInfo({...serviceInfo, description: e.target.value})} className="font-bold text-xs border-slate-200 min-h-[80px]" />
-                          <Button size="icon" variant="ghost" className="absolute bottom-1 right-1 text-accent" onClick={() => handleAiTranslate(serviceInfo.description || '', 'desc')} disabled={aiLoading === 'description'}>
-                             <Sparkles size={16}/>
-                          </Button>
-                       </div>
-                    </div>
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-2">
                           <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الفئة" : "Category"}</Label>
@@ -408,7 +354,6 @@ function WorkflowEngineContent() {
                                }} />
                             </div>
                           ))}
-                          <Button variant="outline" size="sm" onClick={() => setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), 'New Document']})} className="w-full h-8 text-[9px] border-dashed">+ {isAr ? 'إضافة يدوي' : 'Add Manual'}</Button>
                        </div>
                     </div>
                     <Button onClick={addStep} className="w-full h-14 rounded-2xl dm-gradient-primary font-black shadow-lg mt-4">+ Add Phase</Button>
@@ -447,34 +392,26 @@ function WorkflowEngineContent() {
                                     {id: 'upload', icon: <Upload size={12}/>}, 
                                     {id: 'date', icon: <Calendar size={12}/>}, 
                                     {id: 'select', icon: <List size={12}/>}, 
-                                    {id: 'visual_choice', icon: <MousePointer2 size={12}/>, labelAr: 'خيار بصري'},
                                     {id: 'map', icon: <MapPin size={12}/>}
                                   ].map(fType => (
                                     <Button key={fType.id} size="sm" variant="outline" className="rounded-xl font-black text-[9px] h-9 gap-2 border-slate-200" onClick={() => {
                                       const nf = [...(step.fields || []), { id: `f_${Date.now()}`, type: fType.id as any, labelAr: '', labelEn: '', required: true, options: [] }];
                                       updateStep(sIdx, { fields: nf });
-                                    }}>
-                                      {fType.icon} {fType.labelAr || fType.id.toUpperCase()}
-                                    </Button>
+                                    }}>{fType.icon} {fType.id.toUpperCase()}</Button>
                                   ))}
                                </div>
                                <div className="space-y-4">
                                   {(step.fields || []).map((f, fIdx) => (
-                                    <div key={f.id} className="p-5 bg-slate-50/50 rounded-2xl border-2 border-slate-100 space-y-4 group hover:border-accent/30 transition-all">
+                                    <div key={f.id} className="p-5 bg-slate-50/50 rounded-2xl border-2 border-slate-100 space-y-4 group">
                                        <div className="flex gap-3 items-center">
                                           <Badge className="bg-primary/10 text-primary text-[8px] font-black uppercase px-2 py-1">{f.type}</Badge>
-                                          <Input 
-                                            value={isAr ? f.labelAr : f.labelEn} 
-                                            onChange={e => {
-                                              const nf = [...step.fields]; if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
-                                              updateStep(sIdx, {fields: nf});
-                                            }} 
-                                            className="h-9 text-xs font-black bg-white" 
-                                            placeholder={isAr ? "تسمية الحقل (مثال: نوع الهوية)" : "Field Label"} 
-                                          />
+                                          <Input value={isAr ? f.labelAr : f.labelEn} onChange={e => {
+                                             const nf = [...step.fields]; if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
+                                             updateStep(sIdx, {fields: nf});
+                                          }} className="h-9 text-xs font-black bg-white" placeholder="Field Label" />
                                           <Button variant="ghost" size="icon" onClick={() => {
                                             const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf});
-                                          }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity"><X size={16}/></Button>
+                                          }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100"><X size={16}/></Button>
                                        </div>
 
                                        {f.type === 'select' && (
@@ -493,30 +430,6 @@ function WorkflowEngineContent() {
                                             </div>
                                          </div>
                                        )}
-
-                                       {f.type === 'visual_choice' && (
-                                         <div className="space-y-3 pl-6 border-l-4 border-accent/20">
-                                            <div className="grid grid-cols-2 gap-2">
-                                               {(f.options || []).map((opt, oIdx) => {
-                                                 const [icon, label] = opt.split('|');
-                                                 return (
-                                                  <div key={oIdx} className="bg-white p-3 rounded-xl border flex items-center gap-3 relative group/opt">
-                                                     {React.createElement((Icons as any)[icon] || Icons.LayoutGrid, { size: 14, className: 'text-primary' })}
-                                                     <span className="text-[10px] font-black">{label}</span>
-                                                     <X size={10} className="absolute top-1 right-1 text-red-300 cursor-pointer opacity-0 group-hover/opt:opacity-100" onClick={() => {
-                                                       const nf = [...step.fields]; nf[fIdx].options = nf[fIdx].options?.filter((_, i) => i !== oIdx);
-                                                       updateStep(sIdx, {fields: nf});
-                                                     }} />
-                                                  </div>
-                                                 );
-                                               })}
-                                               <Button size="xs" variant="ghost" className="h-10 border-dashed border-2 rounded-xl text-[9px] font-black text-accent flex flex-col" onClick={() => handleAddVisualChoice(sIdx, fIdx)}>
-                                                  <MousePointer2 size={12} />
-                                                  {isAr ? "إضافة خيار بصري" : "Add Visual"}
-                                               </Button>
-                                            </div>
-                                         </div>
-                                       )}
                                     </div>
                                   ))}
                                </div>
@@ -529,7 +442,7 @@ function WorkflowEngineContent() {
                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المسار الافتراضي" : "DEFAULT PATH"}</span>
                                      <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, {defaultNextStepId: v === 'none' ? undefined : v})}>
                                         <SelectTrigger className="w-48 h-10 font-bold bg-white rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                        <SelectContent className="rounded-2xl">
                                            <SelectItem value="none">Terminal Point</SelectItem>
                                            {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : (s.titleEn || s.titleAr)}</SelectItem>)}
                                         </SelectContent>
@@ -596,8 +509,6 @@ function WorkflowEngineContent() {
                             nodes={nodes} 
                             edges={edges}
                             nodeTypes={nodeTypes}
-                            onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
-                            onEdgeMouseLeave={() => setHoveredEdgeId(null)}
                             fitView
                           >
                              <Background color="#cbd5e1" gap={30} size={1} />
@@ -606,15 +517,6 @@ function WorkflowEngineContent() {
                              <FlowControls />
                           </ReactFlow>
                        </ReactFlowProvider>
-                       <div className="absolute bottom-10 left-10 z-10 pointer-events-none max-w-sm">
-                          <div className="bg-white/95 backdrop-blur-xl p-8 rounded-[2.5rem] border-2 border-accent/30 shadow-2xl">
-                             <div className="flex items-center gap-3 mb-3">
-                                <div className="size-2 bg-emerald-500 rounded-full animate-ping" />
-                                <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">Flow Path Intelligence</p>
-                             </div>
-                             <p className="text-[11px] text-slate-500 font-bold leading-loose">قم بتمرير الماوس فوق أي مسار لتسليط الضوء على رحلة المواطن الكاملة وفهم الفروع الشرطية والتبعيات التقنية.</p>
-                          </div>
-                       </div>
                     </Card>
                  </TabsContent>
               </Tabs>

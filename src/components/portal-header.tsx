@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, ArrowRight, Languages, Palette } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, ArrowRight, Languages, Palette, Search } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -138,6 +138,13 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
               {isAr ? 'الرئيسية' : 'Home'}
               <div className={cn("absolute -bottom-2 left-0 h-1 bg-accent transition-all duration-300", pathname === '/' ? "w-full" : "w-0 group-hover:w-full")} />
             </Link>
+
+            <Link href="/catalog" className={cn("text-md font-black hover:text-primary transition-all relative group flex items-center gap-2", pathname === '/catalog' ? "text-primary" : "text-slate-600")}>
+              <Search size={16} className="text-accent" />
+              {isAr ? 'دليل الخدمات' : 'Service Catalog'}
+              <div className={cn("absolute -bottom-2 left-0 h-1 bg-accent transition-all duration-300", pathname === '/catalog' ? "w-full" : "w-0 group-hover:w-full")} />
+            </Link>
+
             {menuItems.map(item => (
               <Link key={item.id} href={item.link} className={cn("text-md font-black hover:text-primary transition-all relative group", pathname === item.link ? "text-primary" : "text-slate-600")}>
                 {isAr ? item.labelAr : item.labelEn}
@@ -183,6 +190,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                   <Link href="/" className="text-2xl font-black flex items-center justify-between group">
                     {isAr ? 'الرئيسية' : 'Home'}
                     <ArrowRight className="text-accent group-hover:translate-x-2 transition-transform" />
+                  </Link>
+                  <Link href="/catalog" className="text-2xl font-black flex items-center justify-between group">
+                    {isAr ? 'دليل الخدمات' : 'Service Catalog'}
+                    <Search className="text-accent group-hover:translate-x-2 transition-transform" />
                   </Link>
                   <Link href="/identity" className="text-2xl font-black flex items-center justify-between group">
                     {isAr ? 'دليل الهوية' : 'Identity Guide'}
