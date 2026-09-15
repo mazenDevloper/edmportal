@@ -28,8 +28,6 @@ import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CAT_CONFIG } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 import * as Icons from 'lucide-react';
 
@@ -50,8 +48,6 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-const ALL_ICON_KEYS = Object.keys(Icons).filter(key => typeof (Icons as any)[key] !== 'undefined');
-
 const EDGE_COLORS = ['#03CFCB', '#470D67', '#007375', '#f59e0b', '#ef4444', '#3b82f6'];
 
 const ServiceStepNode = ({ data }: any) => {
@@ -59,16 +55,14 @@ const ServiceStepNode = ({ data }: any) => {
     <div 
       className={cn(
         "group relative bg-white border-2 rounded-[1.5rem] p-5 font-bold w-[240px] text-center shadow-xl transition-all duration-500",
-        data.isFocused ? "border-accent scale-105 z-50 ring-8 ring-accent/10" : "border-slate-200 opacity-20 grayscale"
+        data.isFocused ? "border-accent scale-105 z-50 ring-8 ring-accent/10 opacity-100 grayscale-0" : "border-slate-200 opacity-20 grayscale"
       )}
     >
       <Handle type="target" position={Position.Top} className="!bg-primary !w-3 !h-3" />
-      <Handle type="target" position={Position.Left} className="!bg-primary !w-3 !h-3" />
       <Handle type="source" position={Position.Bottom} className="!bg-primary !w-3 !h-3" />
-      <Handle type="source" position={Position.Right} className="!bg-primary !w-3 !h-3" />
       
-      <div className="absolute -top-4 -left-4 bg-primary text-white size-10 rounded-2xl flex items-center justify-center text-sm font-black shadow-lg border-4 border-white">
-        {data.stepIndex + 1}
+      <div className="absolute -top-4 -left-4 bg-primary text-white size-10 rounded-2xl flex items-center justify-center text-sm font-black shadow-lg border-4 border-white transition-all">
+        {data.dynamicIndex !== undefined ? data.dynamicIndex : data.stepIndex + 1}
       </div>
 
       <div className="flex flex-col gap-3 py-2">
@@ -86,9 +80,7 @@ const ServiceStepNode = ({ data }: any) => {
   );
 };
 
-const nodeTypes = {
-  serviceStep: ServiceStepNode,
-};
+const nodeTypes = { serviceStep: ServiceStepNode };
 
 function WorkflowEngineContent() {
   const router = useRouter();
@@ -109,7 +101,6 @@ function WorkflowEngineContent() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
-  const [iconSearch, setIconSearch] = useState('');
 
   useEffect(() => {
     if (editId) {
@@ -118,39 +109,12 @@ function WorkflowEngineContent() {
         if (data) {
           const flow = (data.serviceFlows || []).find((f: any) => f.id === editId || f.serviceId === editId);
           const svc = (data.services || []).find((s: any) => s.id === editId);
-          if (flow) {
-            setSteps((flow.steps || []).map((s: any) => ({
-              ...s,
-              id: s.id || `step_${Math.random()}`,
-              fields: (s.fields || []).map((f: any) => ({ ...f, options: f.options || [] })),
-              logic: (s.logic || []),
-              actionType: s.actionType || 'submit'
-            })));
-          }
-          if (svc) setServiceInfo({ ...svc });
+          if (flow) setSteps(flow.steps || []);
+          if (svc) setServiceInfo(svc);
         }
       }).finally(() => setLoading(false));
     }
   }, [editId]);
-
-  // AUTO-SYNC REQUIRED DOCS
-  useEffect(() => {
-    const autoReqsAr: string[] = [];
-    const autoReqsEn: string[] = [];
-    steps.forEach(step => {
-      (step.fields || []).forEach(f => {
-        if (f.type === 'upload') {
-          if (f.labelAr) autoReqsAr.push(f.labelAr);
-          if (f.labelEn || f.labelAr) autoReqsEn.push(f.labelEn || f.labelAr);
-        }
-      });
-    });
-    setServiceInfo(prev => ({ 
-      ...prev, 
-      reqsAr: Array.from(new Set([...(prev.reqsAr || []), ...autoReqsAr])).filter(Boolean),
-      reqsEn: Array.from(new Set([...(prev.reqsEn || []), ...autoReqsEn])).filter(Boolean)
-    }));
-  }, [steps]);
 
   const handleAiTranslate = async (text: string, fieldKey: string) => {
     if (!text) return;
@@ -158,49 +122,35 @@ function WorkflowEngineContent() {
     try {
       const { translatedText } = await translateToEnglish({ text });
       setServiceInfo(prev => ({ ...prev, [fieldKey === 'title' ? 'titleEn' : 'descriptionEn']: translatedText }));
-      toast({ title: isAr ? "تمت الترجمة بنجاح" : "Translation complete" });
-    } catch (e) {
-      toast({ title: "AI Error", variant: "destructive" });
-    } finally {
-      setAiLoading(null);
-    }
+    } finally { setAiLoading(null); }
   };
 
   const addStep = useCallback(() => {
-    const newStep: ServiceStep = {
+    setSteps(prev => [...prev, {
       id: `step_${Date.now()}`,
       titleAr: isAr ? 'خطوة جديدة' : 'New Step',
       titleEn: 'New Step',
       fields: [],
       logic: [],
       actionType: 'submit'
-    };
-    setSteps(prev => [...prev, newStep]);
+    }]);
   }, [isAr]);
 
   const updateStep = (idx: number, updates: Partial<ServiceStep>) => {
     const ns = [...steps];
-    if (ns[idx]) {
-      ns[idx] = { ...ns[idx], ...updates };
-      setSteps(ns);
-    }
+    if (ns[idx]) { ns[idx] = { ...ns[idx], ...updates }; setSteps(ns); }
   };
 
-  const moveStep = (idx: number, direction: 'up' | 'down') => {
-    const ns = [...steps];
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx >= 0 && targetIdx < ns.length) {
-      const temp = ns[idx];
-      ns[idx] = ns[targetIdx];
-      ns[targetIdx] = temp;
-      setSteps(ns);
-    }
+  const handleAddFieldToStep = (stepId: string, type: FormField['type']) => {
+    setSteps(prev => prev.map(s => s.id === stepId ? {
+      ...s,
+      fields: [...s.fields, { id: `f_${Date.now()}`, type, labelAr: 'حقل جديد', labelEn: 'New Field', required: true, options: [] }]
+    } : s));
   };
 
   const handleAddOption = (sIdx: number, fIdx: number) => {
     const val = prompt(isAr ? "أدخل قيمة الخيار:" : "Enter option value:");
     if (!val) return;
-    
     const ns = [...steps];
     const field = ns[sIdx].fields[fIdx];
     if (!field.options) field.options = [];
@@ -208,54 +158,67 @@ function WorkflowEngineContent() {
     setSteps(ns);
   };
 
+  const addLogic = (sIdx: number) => {
+    const ns = [...steps];
+    if (!ns[sIdx].logic) ns[sIdx].logic = [];
+    ns[sIdx].logic!.push({ fieldId: '', value: '', targetStepId: '' });
+    setSteps(ns);
+  };
+
+  // Logic for Path Highlighting
+  const pathData = useMemo(() => {
+    if (!hoveredEdgeId) return { nodeIds: new Set(), edgeIds: new Set(), dynamicMap: new Map() };
+    
+    const nodeIds = new Set<string>();
+    const edgeIds = new Set<string>();
+    const dynamicMap = new Map<string, number>();
+
+    // Basic BFS to find all upstream and downstream nodes for this edge
+    const edgeParts = hoveredEdgeId.split('-');
+    const sourceId = edgeParts[1];
+    const targetId = edgeParts[2];
+
+    const findPath = (startId: string, currentPath: string[], depth: number) => {
+      nodeIds.add(startId);
+      dynamicMap.set(startId, depth);
+      const step = steps.find(s => s.id === startId);
+      if (!step) return;
+
+      const nextIds = [step.defaultNextStepId, ...(step.logic?.map(l => l.targetStepId) || [])].filter(Boolean) as string[];
+      nextIds.forEach(id => {
+        if (!nodeIds.has(id)) findPath(id, [...currentPath, startId], depth + 1);
+      });
+    };
+
+    // For simplicity, highlight all nodes if they are in the sequence from step 1
+    if (steps[0]) findPath(steps[0].id, [], 1);
+
+    edgeIds.add(hoveredEdgeId);
+    return { nodeIds, edgeIds, dynamicMap };
+  }, [hoveredEdgeId, steps]);
+
   const edges: Edge[] = useMemo(() => {
     const e: Edge[] = [];
-    let logicColorIndex = 0;
-    
-    // Check which nodes are reachable when hovering an edge
-    const hoveredEdge = hoveredEdgeId ? e.find(ed => ed.id === hoveredEdgeId) : null;
-    
     steps.forEach((step) => {
       if (step.defaultNextStepId) {
-        const edgeId = `e-${step.id}-${step.defaultNextStepId}`;
-        const isHovered = hoveredEdgeId === edgeId;
+        const id = `e-${step.id}-${step.defaultNextStepId}`;
+        const isActive = hoveredEdgeId === id;
         e.push({
-          id: edgeId,
-          source: step.id,
-          target: step.defaultNextStepId,
-          type: 'smoothstep',
-          label: isAr ? 'افتراضي' : 'Default',
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#007375' },
-          style: { 
-            stroke: '#007375', 
-            strokeWidth: isHovered ? 6 : 3, 
-            opacity: hoveredEdgeId && !isHovered ? 0.2 : 0.8,
-            transition: 'all 0.3s'
-          },
-          labelStyle: { fill: '#007375', fontWeight: 900 }
+          id, source: step.id, target: step.defaultNextStepId, type: 'smoothstep',
+          label: (hoveredEdgeId && !isActive) ? '' : (isAr ? 'افتراضي' : 'Default'),
+          style: { stroke: '#007375', strokeWidth: isActive ? 6 : 2, opacity: hoveredEdgeId ? (isActive ? 1 : 0.1) : 0.8 },
+          labelStyle: { fill: '#007375', fontWeight: 900, display: (hoveredEdgeId && !isActive) ? 'none' : 'block' }
         });
       }
       (step.logic || []).forEach((rule, idx) => {
         if (rule.targetStepId) {
-          const edgeId = `e-logic-${step.id}-${rule.targetStepId}-${idx}`;
-          const color = EDGE_COLORS[logicColorIndex % EDGE_COLORS.length];
-          const isHovered = hoveredEdgeId === edgeId;
-          logicColorIndex++;
+          const id = `e-${step.id}-${rule.targetStepId}-${idx}`;
+          const isActive = hoveredEdgeId === id;
           e.push({
-            id: edgeId,
-            source: step.id,
-            target: rule.targetStepId,
-            type: 'smoothstep',
-            label: rule.value || 'Condition',
-            animated: true,
-            style: { 
-              stroke: color, 
-              strokeWidth: isHovered ? 8 : 4,
-              opacity: hoveredEdgeId && !isHovered ? 0.2 : 1,
-              transition: 'all 0.3s'
-            },
-            markerEnd: { type: MarkerType.ArrowClosed, color: color },
-            labelStyle: { fill: color, fontWeight: 900, fontSize: isHovered ? '14px' : '10px' }
+            id, source: step.id, target: rule.targetStepId, type: 'smoothstep', animated: true,
+            label: (hoveredEdgeId && !isActive) ? '' : rule.value,
+            style: { stroke: '#470D67', strokeWidth: isActive ? 8 : 3, opacity: hoveredEdgeId ? (isActive ? 1 : 0.1) : 1 },
+            labelStyle: { fill: '#470D67', fontWeight: 900, display: (hoveredEdgeId && !isActive) ? 'none' : 'block' }
           });
         }
       });
@@ -264,259 +227,169 @@ function WorkflowEngineContent() {
   }, [steps, isAr, hoveredEdgeId]);
 
   const nodes: Node[] = useMemo(() => {
-    // Dynamic Column Calculation based on Step Count
-    const total = steps.length;
-    let cols = 3;
-    if (total <= 3) cols = 1;
-    else if (total <= 6) cols = 2;
-
-    const hoveredEdge = hoveredEdgeId ? edges.find(e => e.id === hoveredEdgeId) : null;
-    const connectedNodeIds = hoveredEdge ? [hoveredEdge.source, hoveredEdge.target] : null;
-
-    return steps.map((step, idx) => {
-      const col = idx % cols;
-      const row = Math.floor(idx / cols);
-      const isFocused = connectedNodeIds ? connectedNodeIds.includes(step.id) : !hoveredEdgeId;
-
-      return {
-        id: step.id,
-        type: 'serviceStep',
-        data: { 
-          stepIndex: idx,
-          isFocused,
-          label: isAr ? step.titleAr : (step.titleEn || step.titleAr),
-          onEdit: () => { setActiveTab('logic'); setTimeout(() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }), 100); },
-          onRemove: () => setSteps(prev => prev.filter(s => s.id !== step.id))
-        },
-        position: { x: col * 350, y: row * 300 },
-      };
-    });
-  }, [steps, isAr, hoveredEdgeId, edges]);
+    return steps.map((step, idx) => ({
+      id: step.id,
+      type: 'serviceStep',
+      data: { 
+        stepIndex: idx,
+        dynamicIndex: pathData.dynamicMap.get(step.id),
+        isFocused: hoveredEdgeId ? pathData.nodeIds.has(step.id) : true,
+        label: isAr ? step.titleAr : (step.titleEn || step.titleAr),
+        onEdit: () => { setActiveTab('logic'); document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }); },
+        onRemove: () => setSteps(prev => prev.filter(s => s.id !== step.id))
+      },
+      position: { x: (idx % 2) * 400, y: Math.floor(idx / 2) * 250 },
+    }));
+  }, [steps, isAr, hoveredEdgeId, pathData]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const db = await fetchBin();
       const id = editId || `svc_${Date.now()}`;
-      const newService = { ...serviceInfo, id, isActive: true };
-      const newFlow = { id, serviceId: id, titleAr: serviceInfo.title, titleEn: serviceInfo.titleEn, steps, isActive: true };
       await updateBin({
         ...db,
-        services: [...(db.services || []).filter((s: any) => s.id !== id), newService],
-        serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id), newFlow]
+        services: [...(db.services || []).filter((s: any) => s.id !== id), { ...serviceInfo, id, isActive: true }],
+        serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id), { id, serviceId: id, steps, isActive: true }]
       });
-      toast({ title: isAr ? "تم حفظ الخدمة والتدفق بنجاح" : "Service & Flow Saved Successfully" });
+      toast({ title: "Saved Successfully" });
       router.push('/admin');
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error Saving" });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
-
-  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin text-accent" size={48} /></div>;
 
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={[]} />
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-           <h1 className="text-3xl font-black text-primary flex items-center gap-3"><GitBranch className="text-accent" /> {isAr ? "محرك التدفقات والعمليات" : "Process Logic Factory"}</h1>
+        <header className="flex justify-between items-center mb-10">
+           <h1 className="text-3xl font-black text-primary flex items-center gap-3"><GitBranch /> {isAr ? "محرك التدفقات والعمليات" : "Process Factory"}</h1>
            <div className="flex gap-4">
-              <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold h-12 px-8">Back</Button>
-              <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-12 font-black shadow-xl h-12">
-                 {saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2"/>}
-                 {isAr ? "حفظ ومزامنة" : "Save & Sync"}
+              <Button variant="outline" onClick={() => router.back()} className="rounded-full font-bold">Back</Button>
+              <Button onClick={handleSave} disabled={saving} className="dm-gradient-primary rounded-full px-12 font-black shadow-xl">
+                 {saving ? <Loader2 className="animate-spin" /> : <Save />} {isAr ? "حفظ" : "Save"}
               </Button>
            </div>
         </header>
 
         <div className="grid lg:grid-cols-4 gap-8">
-           <div className="lg:col-span-1 space-y-6">
-              <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden sticky top-24">
-                 <CardHeader className="bg-slate-900 text-white p-6">
-                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 tracking-widest text-accent"><Settings size={14}/> {isAr ? "إعدادات الخدمة" : "Service Settings"}</CardTitle>
-                 </CardHeader>
-                 <CardContent className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    <div className="space-y-4">
-                       <div className="relative">
-                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "العنوان بالعربية" : "Title (AR)"}</Label>
-                          <Input value={serviceInfo.title || ''} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="font-bold h-11 pr-10 border-slate-200" />
-                          <Button size="icon" variant="ghost" className="absolute bottom-1 right-1 text-accent" onClick={() => handleAiTranslate(serviceInfo.title || '', 'title')} disabled={aiLoading === 'title'}>
-                             {aiLoading === 'title' ? <Loader2 className="animate-spin size-4"/> : <Sparkles size={16}/>}
-                          </Button>
-                       </div>
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Title (EN)</Label>
-                          <Input value={serviceInfo.titleEn || ''} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} className="h-11 border-slate-200" />
-                       </div>
+           <Card className="rounded-[2rem] shadow-xl border-none overflow-hidden h-fit sticky top-24">
+              <CardHeader className="bg-slate-900 text-white p-6"><CardTitle className="text-xs font-black uppercase tracking-widest text-accent">Service Logic</CardTitle></CardHeader>
+              <CardContent className="p-6 space-y-6">
+                 <div className="space-y-4">
+                    <div className="relative">
+                       <Label className="text-[10px] font-black text-slate-400">TITLE AR</Label>
+                       <Input value={serviceInfo.title} onChange={e => setServiceInfo({...serviceInfo, title: e.target.value})} className="font-bold pr-10" />
+                       <Button size="icon" variant="ghost" className="absolute bottom-1 right-1 text-accent" onClick={() => handleAiTranslate(serviceInfo.title || '', 'title')}><Sparkles size={16}/></Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الفئة" : "Category"}</Label>
-                          <Select value={serviceInfo.category} onValueChange={v => setServiceInfo({...serviceInfo, category: v})}>
-                             <SelectTrigger className="h-10 font-bold border-slate-200"><SelectValue /></SelectTrigger>
-                             <SelectContent>
-                                {Object.entries(CAT_CONFIG).map(([id, conf]) => (
-                                  <SelectItem key={id} value={id}>{isAr ? conf.labelAr : conf.labelEn}</SelectItem>
-                                ))}
-                             </SelectContent>
-                          </Select>
-                       </div>
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "الرسوم" : "Fees"}</Label>
-                          <Input value={serviceInfo.fees || ''} onChange={e => setServiceInfo({...serviceInfo, fees: e.target.value})} className="h-10 font-black text-emerald-600 border-slate-200" />
-                       </div>
+                    <Input value={serviceInfo.titleEn} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} placeholder="Title EN" />
+                 </div>
+                 <div className="space-y-4 pt-4 border-t">
+                    <Label className="text-[10px] font-black text-slate-400">DOCUMENTS</Label>
+                    <div className="flex gap-2">
+                       <Input id="new-doc" placeholder="Add Doc..." className="h-8 text-xs" onKeyDown={e => {
+                         if(e.key === 'Enter') {
+                           const val = (e.target as HTMLInputElement).value;
+                           if(val) {
+                             setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), val]});
+                             (e.target as HTMLInputElement).value = '';
+                           }
+                         }
+                       }} />
                     </div>
-                    <div className="space-y-3 pt-4 border-t">
-                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المستندات المطلوبة (تلقائي)" : "Auto Required Docs"}</Label>
-                       <div className="space-y-2">
-                          {(isAr ? serviceInfo.reqsAr : serviceInfo.reqsEn)?.map((req, i) => (
-                            <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border text-[10px] font-black text-primary group">
-                               <div className="size-2 bg-accent rounded-full" /> {req}
-                               <Trash2 size={12} className="ml-auto text-red-300 opacity-0 group-hover:opacity-100 cursor-pointer" onClick={() => {
-                                  const nr = (serviceInfo.reqsAr || []).filter((_, idx) => idx !== i);
-                                  setServiceInfo({...serviceInfo, reqsAr: nr, reqsEn: nr});
-                               }} />
-                            </div>
-                          ))}
-                       </div>
+                    <div className="space-y-1">
+                       {serviceInfo.reqsAr?.map((r, i) => (
+                         <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg text-[10px] font-bold">
+                           <span>{r}</span>
+                           <X size={10} className="cursor-pointer text-red-400" onClick={() => setServiceInfo({...serviceInfo, reqsAr: serviceInfo.reqsAr?.filter((_, idx) => idx !== i)})} />
+                         </div>
+                       ))}
                     </div>
-                    <Button onClick={addStep} className="w-full h-14 rounded-2xl dm-gradient-primary font-black shadow-lg mt-4">+ Add Phase</Button>
-                 </CardContent>
-              </Card>
-           </div>
+                 </div>
+                 <Button onClick={addStep} className="w-full dm-gradient-primary rounded-xl font-black">+ Add Step</Button>
+              </CardContent>
+           </Card>
 
-           <div className="lg:col-span-3 space-y-8">
+           <div className="lg:col-span-3">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                  <TabsList className="bg-white border rounded-[1.5rem] p-1 mb-8 shadow-sm">
-                    <TabsTrigger value="logic" className="rounded-xl font-black px-12 h-11"><GitBranch size={16} className="ml-2"/> {isAr ? "بناء المنطق" : "Logic Editor"}</TabsTrigger>
-                    <TabsTrigger value="canvas" className="rounded-xl font-black px-12 h-11"><Network size={16} className="ml-2"/> {isAr ? "المخطط التفاعلي" : "Visual Orchestrator"}</TabsTrigger>
+                    <TabsTrigger value="logic" className="rounded-xl font-black px-12 h-11">Logic Editor</TabsTrigger>
+                    <TabsTrigger value="canvas" className="rounded-xl font-black px-12 h-11">Visual Workspace</TabsTrigger>
                  </TabsList>
 
                  <TabsContent value="logic" className="space-y-6">
                     {steps.map((step, sIdx) => (
-                      <Card key={step.id} id={step.id} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden animate-in slide-in-from-bottom-4">
-                         <CardHeader className="bg-slate-900 text-white p-6 flex flex-row items-center justify-between">
+                      <Card key={step.id} id={step.id} className="rounded-[2.5rem] shadow-xl border-none overflow-hidden">
+                         <CardHeader className="bg-slate-900 text-white p-6 flex justify-between items-center">
                             <div className="flex items-center gap-4">
-                               <Badge className="bg-accent text-slate-900 font-black h-10 w-10 rounded-2xl flex items-center justify-center text-lg">{sIdx+1}</Badge>
-                               <Input value={isAr ? step.titleAr : (step.titleEn || step.titleAr)} onChange={e => isAr ? updateStep(sIdx, {titleAr: e.target.value}) : updateStep(sIdx, {titleEn: e.target.value})} className="bg-white/10 border-none text-white font-black w-80 h-11 text-lg" />
+                               <Badge className="bg-accent text-slate-900 h-10 w-10 rounded-2xl flex items-center justify-center text-lg">{sIdx+1}</Badge>
+                               <Input value={isAr ? step.titleAr : step.titleEn} onChange={e => isAr ? updateStep(sIdx, {titleAr: e.target.value}) : updateStep(sIdx, {titleEn: e.target.value})} className="bg-white/10 border-none text-white font-black w-80 h-11 text-lg" />
                             </div>
-                            <div className="flex gap-2">
-                               <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'up')} className="text-white/40 hover:text-accent h-10 w-10"><ChevronUp/></Button>
-                               <Button variant="ghost" size="icon" onClick={() => moveStep(sIdx, 'down')} className="text-white/40 hover:text-accent h-10 w-10"><ChevronDown/></Button>
-                               <Button variant="ghost" size="icon" onClick={() => setSteps(steps.filter(s => s.id !== step.id))} className="text-red-400 hover:bg-red-500/20 h-10 w-10"><Trash2/></Button>
-                            </div>
+                            <Button variant="ghost" onClick={() => setSteps(steps.filter(s => s.id !== step.id))} className="text-red-400"><Trash2/></Button>
                          </CardHeader>
                          <CardContent className="p-10 grid md:grid-cols-2 gap-12">
-                            <div className="space-y-8 border-r pr-10">
-                               <h4 className="text-xs font-black uppercase text-primary tracking-[0.2em] flex items-center gap-2"><LayoutGrid size={14}/> {isAr ? "حقول مدخلات المرحلة" : "Form Field Factory"}</h4>
+                            <div className="space-y-6 border-r pr-10">
+                               <h4 className="text-xs font-black uppercase text-primary">Form Fields</h4>
                                <div className="flex flex-wrap gap-2">
-                                  {[
-                                    {id: 'text', icon: <Type size={12}/>}, 
-                                    {id: 'number', icon: <Hash size={12}/>}, 
-                                    {id: 'upload', icon: <Upload size={12}/>}, 
-                                    {id: 'date', icon: <Calendar size={12}/>}, 
-                                    {id: 'select', icon: <List size={12}/>}, 
-                                    {id: 'visual_choice', icon: <ImageIcon size={12}/>},
-                                    {id: 'map', icon: <MapPin size={12}/>}
-                                  ].map(fType => (
-                                    <Button key={fType.id} size="sm" variant="outline" className="rounded-xl font-black text-[9px] h-9 gap-2 border-slate-200" onClick={() => handleAddFieldToStep(step.id, fType.id as any)}>{fType.icon} {fType.id.toUpperCase()}</Button>
+                                  {['text', 'number', 'upload', 'date', 'select', 'map'].map(fType => (
+                                    <Button key={fType} size="sm" variant="outline" className="text-[9px] font-black" onClick={() => handleAddFieldToStep(step.id, fType as any)}>{fType.toUpperCase()}</Button>
                                   ))}
                                </div>
                                <div className="space-y-4">
-                                  {(step.fields || []).map((f, fIdx) => (
-                                    <div key={f.id} className="p-5 bg-slate-50/50 rounded-2xl border-2 border-slate-100 space-y-4 group">
-                                       <div className="flex gap-3 items-center">
-                                          <Badge className="bg-primary/10 text-primary text-[8px] font-black uppercase px-2 py-1">{f.type}</Badge>
+                                  {step.fields.map((f, fIdx) => (
+                                    <div key={f.id} className="p-4 bg-slate-50 rounded-2xl border-2 border-slate-100 group">
+                                       <div className="flex gap-2 items-center mb-2">
+                                          <Badge className="text-[8px] uppercase">{f.type}</Badge>
                                           <Input value={isAr ? f.labelAr : f.labelEn} onChange={e => {
-                                             const nf = [...step.fields]; if (isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
+                                             const nf = [...step.fields]; if(isAr) nf[fIdx].labelAr = e.target.value; else nf[fIdx].labelEn = e.target.value;
                                              updateStep(sIdx, {fields: nf});
-                                          }} className="h-9 text-xs font-black bg-white" placeholder="Field Label" />
-                                          <Button variant="ghost" size="icon" onClick={() => {
-                                            const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf});
-                                          }} className="text-red-400 h-9 w-9 opacity-0 group-hover:opacity-100"><X size={16}/></Button>
+                                          }} className="h-8 text-xs font-bold" />
+                                          <Button variant="ghost" size="icon" onClick={() => { const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf}); }} className="text-red-400"><X size={14}/></Button>
                                        </div>
-
-                                       {(f.type === 'select' || f.type === 'visual_choice') && (
-                                         <div className="space-y-3 pl-6 border-l-4 border-accent/20">
-                                            <div className="flex flex-wrap gap-2">
-                                               {(f.options || []).map((opt, oIdx) => (
-                                                 <Badge key={oIdx} className="bg-white border-2 border-slate-200 text-slate-700 font-bold gap-2 py-1.5 px-3 rounded-xl shadow-sm">
-                                                    {opt}
-                                                    <X size={12} className="cursor-pointer text-red-400" onClick={() => {
-                                                       const nf = [...step.fields]; nf[fIdx].options = nf[fIdx].options?.filter((_, i) => i !== oIdx);
-                                                       updateStep(sIdx, {fields: nf});
-                                                    }}/>
-                                                 </Badge>
-                                               ))}
-                                               <Button size="xs" variant="ghost" className="h-8 border-dashed border-2 rounded-xl text-[9px] font-black text-accent" onClick={() => handleAddOption(sIdx, fIdx)}>+ {isAr ? "إضافة خيار" : "Add Option"}</Button>
-                                            </div>
+                                       {f.type === 'select' && (
+                                         <div className="flex flex-wrap gap-2 pt-2 border-t">
+                                            {f.options?.map((opt, oIdx) => (
+                                              <Badge key={oIdx} variant="outline" className="gap-1 rounded-lg">
+                                                {opt} <X size={10} className="cursor-pointer" onClick={() => {
+                                                  const nf = [...step.fields]; nf[fIdx].options = nf[fIdx].options?.filter((_, i) => i !== oIdx);
+                                                  updateStep(sIdx, {fields: nf});
+                                                }}/>
+                                              </Badge>
+                                            ))}
+                                            <Button size="xs" variant="ghost" className="h-6 border-dashed border-2 text-[8px] font-black" onClick={() => handleAddOption(sIdx, fIdx)}>+ Option</Button>
                                          </div>
                                        )}
                                     </div>
                                   ))}
                                </div>
                             </div>
-
-                            <div className="space-y-8">
-                               <h4 className="text-xs font-black uppercase text-accent tracking-[0.2em] flex items-center gap-2"><GitBranch size={14}/> {isAr ? "منطق الانتقال والموصلات" : "Route Orchestration"}</h4>
-                               <div className="space-y-5">
-                                  <div className="flex items-center justify-between p-5 bg-slate-50 rounded-[1.5rem] border-2 border-slate-100">
-                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? "المسار الافتراضي" : "DEFAULT PATH"}</span>
-                                     <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, {defaultNextStepId: v === 'none' ? undefined : v})}>
-                                        <SelectTrigger className="w-48 h-10 font-bold bg-white rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
-                                        <SelectContent className="rounded-2xl">
-                                           <SelectItem value="none">Terminal Point</SelectItem>
-                                           {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : (s.titleEn || s.titleAr)}</SelectItem>)}
-                                        </SelectContent>
-                                     </Select>
-                                  </div>
-                                  
-                                  {(step.logic || []).map((rule, rIdx) => (
-                                    <div key={rIdx} className="p-6 bg-primary/5 rounded-[2rem] border-2 border-primary/10 space-y-5 relative group transition-all hover:bg-primary/10">
-                                       <div className="flex justify-between items-center text-[9px] font-black text-primary uppercase tracking-widest">
-                                          <span>{isAr ? "قاعدة شرطية ذكية" : "NEURAL BRANCH RULE"}</span>
-                                          <Button variant="ghost" size="icon" onClick={() => {
-                                            const nl = [...(step.logic || [])]; nl.splice(rIdx, 1); updateStep(sIdx, {logic: nl});
-                                          }} className="h-7 w-7 text-red-400 opacity-0 group-hover:opacity-100"><X size={16}/></Button>
-                                       </div>
-                                       <div className="space-y-4">
-                                          <div className="space-y-2">
-                                             <Label className="text-[9px] font-black text-slate-400 uppercase">{isAr ? "إذا كان الحقل" : "IF FIELD"}</Label>
-                                             <Select value={rule.fieldId} onValueChange={v => {
-                                               const nl = [...(step.logic || [])]; nl[rIdx].fieldId = v; updateStep(sIdx, {logic: nl});
-                                             }}>
-                                                <SelectTrigger className="h-10 bg-white font-bold rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
-                                                <SelectContent className="rounded-2xl">
-                                                   {step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : (f.labelEn || f.labelAr)}</SelectItem>)}
-                                                </SelectContent>
-                                             </Select>
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-4">
-                                             <div className="space-y-2">
-                                                <Label className="text-[9px] font-black text-slate-400 uppercase">{isAr ? "يساوي" : "EQUALS"}</Label>
-                                                <Input value={rule.value} onChange={e => {
-                                                   const nl = [...(step.logic || [])]; nl[rIdx].value = e.target.value; updateStep(sIdx, {logic: nl});
-                                                }} className="h-10 font-bold bg-white rounded-xl" placeholder="Value..." />
-                                             </div>
-                                             <div className="space-y-2">
-                                                <Label className="text-[9px] font-black text-slate-400 uppercase">{isAr ? "اذهب إلى" : "GO TO"}</Label>
-                                                <Select value={rule.targetStepId} onValueChange={v => {
-                                                  const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v; updateStep(sIdx, {logic: nl});
-                                                }}>
-                                                   <SelectTrigger className="h-10 bg-white font-bold rounded-xl"><SelectValue placeholder="..." /></SelectTrigger>
-                                                   <SelectContent className="rounded-2xl">
-                                                      {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : (s.titleEn || s.titleAr)}</SelectItem>)}
-                                                   </SelectContent>
-                                                </Select>
-                                             </div>
-                                          </div>
-                                       </div>
-                                    </div>
-                                  ))}
-                                  <Button variant="ghost" onClick={() => addLogic(sIdx)} className="w-full border-dashed border-2 rounded-[1.5rem] h-14 font-black text-accent border-accent/20 hover:bg-accent/5 hover:border-accent transition-all">+ Add Logic Node</Button>
+                            <div className="space-y-6">
+                               <h4 className="text-xs font-black uppercase text-accent">Routing Logic</h4>
+                               <div className="flex justify-between items-center p-4 bg-slate-50 rounded-xl">
+                                  <span className="text-[10px] font-black text-slate-400">DEFAULT NEXT</span>
+                                  <Select value={step.defaultNextStepId || 'none'} onValueChange={v => updateStep(sIdx, {defaultNextStepId: v === 'none' ? undefined : v})}>
+                                     <SelectTrigger className="w-40 h-10 font-bold bg-white"><SelectValue /></SelectTrigger>
+                                     <SelectContent>
+                                        <SelectItem value="none">Terminal</SelectItem>
+                                        {steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}
+                                     </SelectContent>
+                                  </Select>
                                </div>
+                               {step.logic?.map((rule, rIdx) => (
+                                 <div key={rIdx} className="p-4 bg-primary/5 rounded-xl border-2 border-primary/10 space-y-4">
+                                    <Select value={rule.fieldId} onValueChange={v => { const nl = [...(step.logic || [])]; nl[rIdx].fieldId = v; updateStep(sIdx, {logic: nl}); }}>
+                                       <SelectTrigger className="bg-white"><SelectValue placeholder="If Field..." /></SelectTrigger>
+                                       <SelectContent>{step.fields.map(f => <SelectItem key={f.id} value={f.id}>{isAr ? f.labelAr : f.labelEn}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <div className="flex gap-2">
+                                       <Input value={rule.value} onChange={e => { const nl = [...(step.logic || [])]; nl[rIdx].value = e.target.value; updateStep(sIdx, {logic: nl}); }} placeholder="Value..." className="bg-white" />
+                                       <Select value={rule.targetStepId} onValueChange={v => { const nl = [...(step.logic || [])]; nl[rIdx].targetStepId = v; updateStep(sIdx, {logic: nl}); }}>
+                                          <SelectTrigger className="bg-white"><SelectValue placeholder="Go To..." /></SelectTrigger>
+                                          <SelectContent>{steps.filter(s => s.id !== step.id).map(s => <SelectItem key={s.id} value={s.id}>{isAr ? s.titleAr : s.titleEn}</SelectItem>)}</SelectContent>
+                                       </Select>
+                                    </div>
+                                 </div>
+                               ))}
+                               <Button variant="ghost" onClick={() => addLogic(sIdx)} className="w-full border-dashed border-2">+ Add Branch</Button>
                             </div>
                          </CardContent>
                       </Card>
@@ -524,20 +397,17 @@ function WorkflowEngineContent() {
                  </TabsContent>
 
                  <TabsContent value="canvas">
-                    <Card className="rounded-[3.5rem] overflow-hidden h-[800px] border-4 border-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative bg-slate-100">
+                    <Card className="rounded-[3.5rem] overflow-hidden h-[800px] border-4 border-white shadow-2xl relative bg-slate-100">
                        <ReactFlowProvider>
                           <ReactFlow 
-                            nodes={nodes} 
-                            edges={edges}
-                            nodeTypes={nodeTypes}
+                            nodes={nodes} edges={edges} nodeTypes={nodeTypes}
                             onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
                             onEdgeMouseLeave={() => setHoveredEdgeId(null)}
                             fitView
                           >
                              <Background color="#cbd5e1" gap={30} size={1} />
                              <Controls />
-                             <MiniMap nodeStrokeWidth={3} zoomable pannable nodeColor="#007375" maskColor="rgba(255, 255, 255, 0.8)" />
-                             <FlowControls onAddStep={addStep} onSave={handleSave} saving={saving} isAr={isAr} />
+                             <MiniMap nodeStrokeWidth={3} zoomable pannable nodeColor="#007375" />
                           </ReactFlow>
                        </ReactFlowProvider>
                     </Card>
@@ -551,25 +421,9 @@ function WorkflowEngineContent() {
   );
 }
 
-const FlowControls = ({ onAddStep, onSave, saving, isAr }: any) => {
-  const { fitView } = useReactFlow();
-  return (
-    <Panel position="top-right" className="flex gap-2 bg-white/90 backdrop-blur-md p-4 rounded-3xl border shadow-2xl">
-       <Button size="sm" variant="outline" onClick={onAddStep} className="rounded-2xl font-black gap-2 h-11 px-8 border-primary text-primary">
-          <Plus size={18}/> {isAr ? "إضافة مرحلة" : "Add Step"}
-       </Button>
-       <Button variant="outline" size="sm" onClick={() => fitView()} className="rounded-2xl font-black gap-2 h-11 px-8 border-slate-200"><Maximize size={18}/> Fit View</Button>
-       <Button onClick={onSave} disabled={saving} className="dm-gradient-primary rounded-2xl h-11 px-10 font-black shadow-lg">
-          {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-          <span className="ml-2">{isAr ? "حفظ" : "Save"}</span>
-       </Button>
-    </Panel>
-  );
-};
-
 export default function WorkflowEngine() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin text-accent" size={48} /></div>}>
+    <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>}>
       <WorkflowEngineContent />
     </Suspense>
   );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -25,9 +26,7 @@ import {
   Sparkles,
   Layers,
   ChevronRight,
-  MapPin,
-  Calendar,
-  ChevronDown
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -55,87 +54,54 @@ export default function ServiceApplicationPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [success, setSuccess] = useState(false);
   const [appId, setAppId] = useState('');
-
-  // AI Translated Content State
-  const [aiContent, setAiContent] = useState<{
-    title?: string;
-    description?: string;
-  } | null>(null);
+  const [aiContent, setAiContent] = useState<{ title?: string; description?: string; } | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
         const data = await fetchBin();
         if (data) {
-          const fetchedServices = data.services || [];
-          const foundSvc = fetchedServices.find((s: Service) => s.id === id);
-          const foundFlow = (data.serviceFlows || []).find((f: ServiceFlow) => f.serviceId === id || f.id === id);
-          
-          setService(foundSvc || null);
-          setFlow(foundFlow || null);
-          setAllServices(fetchedServices);
+          setService((data.services || []).find((s: Service) => s.id === id) || null);
+          setFlow((data.serviceFlows || []).find((f: ServiceFlow) => f.serviceId === id || f.id === id) || null);
+          setAllServices(data.services || []);
         }
-      } catch (err) {
-        console.error("Application load error:", err);
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     };
     load();
   }, [id]);
 
   useEffect(() => {
-    const performAiTranslation = async () => {
-      if (!isAr && service && !translating) {
-        if (!service.titleEn || !service.descriptionEn || service.descriptionEn === service.description) {
-          setTranslating(true);
-          try {
-            const rawText = `Title: ${service.title} | Description: ${service.description}`;
-            const { translatedText } = await translateToEnglish({ text: rawText });
-            const parts = translatedText.split('|');
-            setAiContent({
-              title: parts[0]?.replace('Title:', '').trim() || service.title,
-              description: parts[1]?.replace('Description:', '').trim() || service.description
-            });
-          } catch (e) {
-            console.error("AI Translation Error:", e);
-          } finally {
-            setTranslating(false);
-          }
-        }
-      } else {
-        setAiContent(null);
-      }
-    };
-    performAiTranslation();
-  }, [isAr, service]);
+    if (!isAr && service && !aiContent && !translating) {
+      setTranslating(true);
+      translateToEnglish({ text: `Title: ${service.title} | Description: ${service.description}` })
+        .then(({ translatedText }) => {
+          const parts = translatedText.split('|');
+          setAiContent({ title: parts[0]?.replace('Title:', '').trim(), description: parts[1]?.replace('Description:', '').trim() });
+        }).finally(() => setTranslating(false));
+    }
+  }, [isAr, service, aiContent, translating]);
 
   const similarServices = useMemo(() => {
-    if (!service || !allServices.length) return [];
-    return allServices
-      .filter(s => s.category === service.category && s.id !== service.id)
-      .slice(0, 3);
+    if (!service) return [];
+    return allServices.filter(s => s.category === service.category && s.id !== service.id).slice(0, 3);
   }, [service, allServices]);
-
-  const dynamicRequirements = useMemo(() => {
-    const reqs: string[] = [];
-    const staticReqs = isAr ? service?.reqsAr : (service?.reqsEn || service?.reqsAr);
-    if (staticReqs) reqs.push(...staticReqs.filter(Boolean));
-
-    flow?.steps.forEach(step => {
-      step.fields.forEach(f => {
-        if (f.type === 'upload') {
-          const label = isAr ? f.labelAr : (f.labelEn || f.labelAr);
-          if (label) reqs.push(label);
-        }
-      });
-    });
-    return Array.from(new Set(reqs)).filter(Boolean);
-  }, [service, flow, isAr]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!flow) return;
+
+    const currentStep = flow.steps[currentStepIndex];
+    
+    // Check Logic Routing
+    let nextStepId = currentStep.defaultNextStepId;
+    (currentStep.logic || []).forEach(rule => {
+      if (formData[rule.fieldId] === rule.value) nextStepId = rule.targetStepId;
+    });
+
+    if (nextStepId) {
+      const nextIdx = flow.steps.findIndex(s => s.id === nextStepId);
+      if (nextIdx !== -1) { setCurrentStepIndex(nextIdx); return; }
+    }
 
     if (currentStepIndex < flow.steps.length - 1) {
       setCurrentStepIndex(currentStepIndex + 1);
@@ -146,65 +112,30 @@ export default function ServiceApplicationPage() {
     try {
       const db = await fetchBin();
       const newId = `DM-${Date.now()}`;
-      const newApp: ServiceApplication = {
-        id: newId,
-        serviceId: service?.id || '',
-        serviceName: isAr ? service?.title || '' : service?.titleEn || aiContent?.title || service?.title || '',
-        citizenName: user?.displayName || user?.email || 'PKI User',
-        status: 'pending',
-        data: formData,
-        createdAt: new Date().toISOString()
-      };
-
-      await updateBin({
-        ...db,
-        applications: [newApp, ...(db.applications || [])]
-      });
-
-      setAppId(newId);
-      setSuccess(true);
-    } catch (e) {
-      toast({ variant: "destructive", title: "Error" });
-    } finally {
-      setSubmitting(false);
-    }
+      await updateBin({ ...db, applications: [{ id: newId, serviceId: service?.id || '', serviceName: isAr ? service?.title || '' : aiContent?.title || service?.title || '', citizenName: user?.displayName || 'PKI User', status: 'pending', data: formData, createdAt: new Date().toISOString() }, ...(db.applications || [])] });
+      setAppId(newId); setSuccess(true);
+    } finally { setSubmitting(false); }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-primary" size={40} /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
-  if (success) {
-    return (
-      <div className={cn("min-h-screen bg-slate-50 flex items-center justify-center p-6", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
-        <Confetti recycle={false} numberOfPieces={200} />
-        <Card className="max-w-xl w-full rounded-[3rem] border-none shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500">
-           <div className="p-12 text-center space-y-8">
-              <div className="size-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-                 <CheckCircle2 size={48} />
-              </div>
-              <div className="space-y-2">
-                 <h2 className="text-4xl font-black text-primary">{isAr ? "شكراً لك!" : "Thank You!"}</h2>
-                 <p className="text-slate-500 font-bold">{isAr ? "تم تقديم طلبك بنجاح" : "Your application has been submitted"}</p>
-              </div>
-              <div className="bg-slate-50 p-8 rounded-[2rem] border-2 border-dashed flex flex-col items-center gap-6">
-                 <div className="p-4 bg-white rounded-2xl shadow-sm"><QRCode value={appId} size={150} /></div>
-                 <div className="text-center">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">{isAr ? "رقم المرجع" : "Application ID"}</p>
-                    <p className="text-2xl font-black text-primary font-mono">{appId}</p>
-                 </div>
-              </div>
-              <Button onClick={() => router.push('/')} className="w-full h-16 rounded-2xl dm-gradient-primary font-black text-lg">
-                 {isAr ? "العودة للرئيسية" : "Back to Portal"}
-              </Button>
-           </div>
-        </Card>
-      </div>
-    );
-  }
+  if (success) return (
+    <div className={cn("min-h-screen bg-slate-50 flex items-center justify-center p-6", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
+      <Confetti recycle={false} />
+      <Card className="max-w-xl w-full rounded-[3rem] shadow-2xl p-12 text-center space-y-8">
+        <CheckCircle2 size={64} className="text-emerald-600 mx-auto" />
+        <h2 className="text-4xl font-black text-primary">{isAr ? "تم تقديم طلبك" : "Submitted!"}</h2>
+        <div className="bg-slate-50 p-8 rounded-[2rem] border-2 border-dashed flex flex-col items-center gap-4">
+           <QRCode value={appId} size={150} />
+           <p className="text-2xl font-black text-primary font-mono">{appId}</p>
+        </div>
+        <Button onClick={() => router.push('/')} className="w-full h-16 rounded-2xl dm-gradient-primary font-black">Back to Portal</Button>
+      </Card>
+    </div>
+  );
 
   const currentStep = flow?.steps[currentStepIndex];
   const IconComponent = (Icons as any)[service?.iconName || 'FileText'] || Icons.FileText;
-  const displayTitle = isAr ? service?.title : (service?.titleEn || aiContent?.title || service?.title);
-  const displayDesc = isAr ? service?.description : (service?.descriptionEn || aiContent?.description || service?.description);
 
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
@@ -214,177 +145,73 @@ export default function ServiceApplicationPage() {
              <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={40} height={40} />
              <span className="font-black text-xl text-primary">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
            </Link>
-           <div className="flex items-center gap-4">
-              {!isAr && (translating || aiContent) && (
-                <Badge variant="outline" className="bg-accent/10 border-accent/20 text-accent font-black gap-2 h-8 px-3 animate-in fade-in">
-                  <Sparkles size={12} className={translating ? "animate-pulse" : ""} />
-                  {translating ? "Neural Translating..." : "AI Translated"}
-                </Badge>
-              )}
-              <Button variant="ghost" onClick={() => router.push('/')} className="font-bold rounded-full">
-                <ArrowLeft className={cn("size-4 ml-2", isAr && "rotate-180")} /> {isAr ? "إلغاء" : "Cancel"}
-              </Button>
-           </div>
+           <Button variant="ghost" onClick={() => router.push('/')} className="font-bold">Cancel</Button>
         </div>
       </header>
-
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-8">
-          
           <div className="lg:col-span-4 space-y-6">
-            <Card className="rounded-[2rem] shadow-xl border-none overflow-hidden bg-white border-t-[8px] border-primary">
-              <CardContent className="p-8 space-y-6">
-                <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
-                   <IconComponent size={32} />
-                </div>
-                <div>
-                   <h1 className="text-2xl font-black text-slate-800 mb-2 leading-tight">{displayTitle}</h1>
-                   <p className="text-sm text-slate-500 font-bold leading-relaxed">{displayDesc}</p>
-                </div>
+            <Card className="rounded-[2rem] shadow-xl p-8 space-y-6 border-t-[8px] border-primary">
+                <IconComponent size={40} className="text-primary" />
+                <h1 className="text-2xl font-black">{isAr ? service?.title : aiContent?.title || service?.title}</h1>
+                <p className="text-sm text-slate-500 font-bold">{isAr ? service?.description : aiContent?.description || service?.description}</p>
                 <div className="pt-6 border-t flex justify-between items-center">
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{isAr ? "الرسوم" : "Fees"}</span>
+                  <span className="text-xs font-black text-slate-400">FEES</span>
                   <span className="text-xl font-black text-emerald-600">{service?.fees || '10 OMR'}</span>
                 </div>
-              </CardContent>
             </Card>
-
-            <Card className="rounded-[2rem] shadow-sm border-none bg-white p-8">
-              <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-2 mb-6">
-                <ListChecks size={16} className="text-accent" /> {isAr ? "المستندات المطلوبة" : "Required Documents"}
-              </h4>
-              <ul className="space-y-4">
-                {dynamicRequirements.length > 0 ? (
-                  dynamicRequirements.map((req, idx) => (
-                    <li key={idx} className="text-sm font-bold text-slate-600 flex items-start gap-3">
-                      <div className="size-2 rounded-full bg-primary mt-1.5 shrink-0" />
-                      {req}
-                    </li>
-                  ))
-                ) : (
-                  <p className="text-xs text-slate-400 italic">{isAr ? "لا توجد مستندات مطلوبة." : "No documents required."}</p>
-                )}
+            <Card className="rounded-[2rem] p-8 space-y-4">
+              <h4 className="text-xs font-black uppercase text-slate-400 flex items-center gap-2"><ListChecks size={16} /> Requirements</h4>
+              <ul className="space-y-3">
+                {service?.reqsAr?.map((r, i) => <li key={i} className="text-sm font-bold text-slate-600 flex items-center gap-2"><div className="size-1.5 rounded-full bg-primary" /> {r}</li>)}
               </ul>
             </Card>
-
             {similarServices.length > 0 && (
-              <Card className="rounded-[2rem] shadow-lg border-none bg-slate-900 text-white overflow-hidden">
-                <CardHeader className="p-8 pb-0">
-                  <h4 className="text-xs font-black uppercase text-accent tracking-widest flex items-center gap-2">
-                    <Layers size={16} /> {isAr ? "خدمات مشابهة" : "Related Services"}
-                  </h4>
-                </CardHeader>
-                <CardContent className="p-8 space-y-4">
-                  {similarServices.map(s => (
-                    <Link key={s.id} href={`/services/${s.id}`} className="block group">
-                      <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-black group-hover:text-accent transition-colors">{isAr ? s.title : (s.titleEn || s.title)}</p>
-                          <p className="text-[10px] text-white/40 mt-1 uppercase font-bold">{isAr ? "وصول مباشر" : "Quick Access"}</p>
-                        </div>
-                        <ChevronRight size={16} className={cn("text-white/20 group-hover:text-accent transition-all", isAr && "rotate-180")} />
-                      </div>
-                    </Link>
-                  ))}
-                </CardContent>
+              <Card className="rounded-[2rem] p-8 bg-slate-900 text-white space-y-4">
+                <h4 className="text-xs font-black uppercase text-accent">Related Services</h4>
+                {similarServices.map(s => (
+                  <Link key={s.id} href={`/services/${s.id}`} className="block p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/10">
+                    <p className="text-sm font-black">{isAr ? s.title : s.titleEn || s.title}</p>
+                  </Link>
+                ))}
               </Card>
             )}
           </div>
-
           <div className="lg:col-span-8">
-            <Card className="rounded-[3rem] shadow-2xl overflow-hidden border-none bg-white min-h-[600px] flex flex-col">
-              <CardHeader className="bg-slate-950 text-white p-10 relative overflow-hidden">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg">{isAr ? `المرحلة ${currentStepIndex + 1}` : `Step ${currentStepIndex + 1}`}</Badge>
-                    <span className="text-white/40 font-bold">/ {flow?.steps.length}</span>
-                  </div>
-                  <CardTitle className="text-3xl font-black flex items-center gap-4">
-                    <FileText className="text-accent" size={32} /> 
-                    {isAr ? currentStep?.titleAr : (currentStep?.titleEn || currentStep?.titleAr)}
-                  </CardTitle>
-                </div>
+            <Card className="rounded-[3rem] shadow-2xl overflow-hidden min-h-[600px] flex flex-col">
+              <CardHeader className="bg-slate-950 text-white p-10 relative">
+                <Badge className="bg-accent text-slate-900 font-black px-4 mb-4">STEP {currentStepIndex + 1} / {flow?.steps.length}</Badge>
+                <CardTitle className="text-3xl font-black flex items-center gap-4"><FileText className="text-accent" /> {isAr ? currentStep?.titleAr : currentStep?.titleEn}</CardTitle>
                 <div className="absolute top-0 right-0 w-full h-full dm-wave-5 opacity-10 pointer-events-none" />
               </CardHeader>
-
               <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
                 <CardContent className="p-10 space-y-8 flex-1">
                    {currentStep?.fields.map((field) => (
                       <div key={field.id} className="space-y-3">
-                        <Label className="text-lg font-black text-slate-700">{isAr ? field.labelAr : (field.labelEn || field.labelAr)}</Label>
-                        
-                        {field.type === 'upload' && (
-                          <div className="border-4 border-dashed border-slate-100 rounded-[2rem] p-12 text-center bg-slate-50/50 cursor-pointer hover:border-accent/40 hover:bg-white transition-all group relative">
-                            <div className="size-16 rounded-full bg-white shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                              <Upload size={32} className="text-slate-300 group-hover:text-accent" />
-                            </div>
-                            <p className="text-md text-slate-400 font-bold">{isAr ? "اسحب الملفات هنا أو اضغط للرفع" : "Drag & drop files or click to upload"}</p>
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'attached'})} />
+                        <Label className="text-lg font-black text-slate-700">{isAr ? field.labelAr : field.labelEn}</Label>
+                        {field.type === 'upload' ? (
+                          <div className="border-4 border-dashed rounded-[2rem] p-12 text-center bg-slate-50 cursor-pointer hover:bg-white transition-all relative">
+                            <Upload size={32} className="mx-auto mb-2 text-slate-300" />
+                            <p className="text-sm font-bold text-slate-400">Click to upload file</p>
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'Attached'})} />
                           </div>
-                        )}
-
-                        {(field.type === 'select') && (
-                          <Select onValueChange={(val) => setFormData({...formData, [field.id]: val})}>
-                            <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold px-6">
-                              <SelectValue placeholder={isAr ? "اختر..." : "Select..."} />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-2xl border-none shadow-2xl">
-                              {field.options?.map(opt => (
-                                <SelectItem key={opt} value={opt} className="font-bold py-3">{opt}</SelectItem>
-                              ))}
-                            </SelectContent>
+                        ) : field.type === 'select' ? (
+                          <Select onValueChange={v => setFormData({...formData, [field.id]: v})}>
+                            <SelectTrigger className="h-16 rounded-2xl bg-slate-50 text-lg font-bold"><SelectValue /></SelectTrigger>
+                            <SelectContent className="rounded-2xl">{field.options?.map(o => <SelectItem key={opt} value={opt} className="font-bold">{o}</SelectItem>)}</SelectContent>
                           </Select>
-                        )}
-
-                        {field.type === 'visual_choice' && (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {field.options?.map(opt => {
-                              const [icon, label] = opt.includes('|') ? opt.split('|') : ['LayoutGrid', opt];
-                              const IconComp = (Icons as any)[icon] || Icons.LayoutGrid;
-                              const isSelected = formData[field.id] === opt;
-                              return (
-                                <div 
-                                  key={opt}
-                                  onClick={() => setFormData({...formData, [field.id]: opt})}
-                                  className={cn(
-                                    "p-6 rounded-[1.5rem] border-2 cursor-pointer transition-all flex flex-col items-center gap-3 text-center",
-                                    isSelected ? "bg-primary text-white border-primary shadow-xl" : "bg-white text-slate-600 border-slate-100 hover:border-accent"
-                                  )}
-                                >
-                                  <IconComp size={32} className={isSelected ? "text-accent" : "text-primary"} />
-                                  <span className="font-black text-sm">{label}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {field.type === 'map' && (
-                           <div className="h-64 bg-slate-100 rounded-[2rem] flex flex-col items-center justify-center text-slate-400 border-2 border-dashed">
-                              <MapPin size={48} className="mb-2" />
-                              <p className="font-bold">{isAr ? 'اضغط لتحديد الموقع الجغرافي' : 'Click to pinpoint location'}</p>
-                           </div>
-                        )}
-
-                        {field.type !== 'upload' && field.type !== 'select' && field.type !== 'visual_choice' && field.type !== 'map' && (
-                          <Input 
-                            type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
-                            required={field.required} 
-                            placeholder="..." 
-                            className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold px-6 focus:ring-4 focus:ring-primary/5 transition-all" 
-                            onChange={e => setFormData({...formData, [field.id]: e.target.value})} 
-                          />
+                        ) : field.type === 'map' ? (
+                          <div className="h-64 bg-slate-100 rounded-[2rem] flex flex-col items-center justify-center text-slate-400 border-2 border-dashed"><MapPin size={48}/><p className="font-bold">Locate on Map</p></div>
+                        ) : (
+                          <Input required={field.required} className="h-16 rounded-2xl bg-slate-50 text-lg font-bold" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
                         )}
                       </div>
                    ))}
                 </CardContent>
-
                 <CardFooter className="bg-slate-50 p-10 flex justify-between items-center border-t">
-                   <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black text-slate-400 hover:text-primary gap-2 h-14 px-8 rounded-2xl">
-                     <ArrowLeft className={cn("size-5", isAr && "rotate-180")} /> {isAr ? "البدء من جديد" : "Restart"}
-                   </Button>
+                   <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black h-14 rounded-2xl">Restart</Button>
                    <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-[1.5rem] px-16 h-16 font-black shadow-2xl gap-4 text-xl">
-                     {submitting ? <Loader2 className="animate-spin" /> : <ArrowRight size={24} className={cn(isAr && "rotate-180")} />}
-                     {currentStepIndex === (flow?.steps.length || 0) - 1 ? (isAr ? "إرسال الطلب النهائي" : "Final Submission") : (isAr ? "الانتقال للمرحلة التالية" : "Next Phase")}
+                     {submitting ? <Loader2 className="animate-spin" /> : <ArrowRight />} {currentStepIndex === (flow?.steps.length || 0) - 1 ? "Submit Request" : "Next Phase"}
                    </Button>
                 </CardFooter>
               </form>
