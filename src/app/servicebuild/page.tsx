@@ -168,7 +168,7 @@ function WorkflowEngineContent() {
     setSteps(ns);
   };
 
-  // Advanced Path Calculation for Hover Logic
+  // Path Calculation for Hover Logic
   const pathData = useMemo(() => {
     if (!hoveredEdgeId) return { nodeIds: new Set(), edgeIds: new Set(), dynamicMap: new Map() };
     
@@ -176,8 +176,6 @@ function WorkflowEngineContent() {
     const edgeIds = new Set<string>();
     const dynamicMap = new Map<string, number>();
 
-    // Identify the specific branch we are following
-    // hoveredEdgeId format: e-SOURCE-TARGET or e-SOURCE-TARGET-IDX
     const parts = hoveredEdgeId.split('-');
     const sourceId = parts[1];
     const targetId = parts[2];
@@ -190,22 +188,18 @@ function WorkflowEngineContent() {
       const step = steps.find(s => s.id === currentId);
       if (!step) return;
 
-      // If we are at the source of the hovered edge, ONLY follow that branch
       if (currentId === sourceId) {
         if (targetId) findReachable(targetId, depth + 1);
         return;
       }
 
-      // Otherwise, follow the default path and logic paths
       if (step.defaultNextStepId) findReachable(step.defaultNextStepId, depth + 1);
       step.logic?.forEach(l => {
         if (l.targetStepId) findReachable(l.targetStepId, depth + 1);
       });
     };
 
-    // Calculate reachability starting from the FIRST node but highlighting the branch
     if (steps[0]) {
-      // Basic forward traversal
       let currentDepth = 1;
       const traverse = (id: string, depth: number) => {
           if (nodeIds.has(id)) return;
@@ -215,13 +209,11 @@ function WorkflowEngineContent() {
           const step = steps.find(s => s.id === id);
           if (!step) return;
 
-          // If this is the source of the hovered edge, ONLY follow the target branch
           if (id === sourceId) {
             findReachable(targetId, depth + 1);
             return;
           }
 
-          // Normal traversal
           const nextIds = [step.defaultNextStepId, ...(step.logic?.map(l => l.targetStepId) || [])].filter(Boolean) as string[];
           nextIds.forEach(nextId => traverse(nextId, depth + 1));
       };
@@ -238,7 +230,6 @@ function WorkflowEngineContent() {
       if (step.defaultNextStepId) {
         const id = `e-${step.id}-${step.defaultNextStepId}`;
         const isActive = hoveredEdgeId === id;
-        const isPartOfPath = pathData.edgeIds.has(id);
         
         e.push({
           id, source: step.id, target: step.defaultNextStepId, type: 'smoothstep',
@@ -270,7 +261,7 @@ function WorkflowEngineContent() {
       });
     });
     return e;
-  }, [steps, isAr, hoveredEdgeId, pathData]);
+  }, [steps, isAr, hoveredEdgeId]);
 
   const nodes: Node[] = useMemo(() => {
     return steps.map((step, idx) => ({
@@ -294,13 +285,10 @@ function WorkflowEngineContent() {
     try {
       const db = await fetchBin();
       const id = editId || `svc_${Date.now()}`;
-      // Auto-extract requirements from upload fields
-      const autoReqs = new Set(serviceInfo.reqsAr || []);
-      steps.forEach(s => s.fields.forEach(f => { if(f.type === 'upload') autoReqs.add(f.labelAr); }));
       
       await updateBin({
         ...db,
-        services: [...(db.services || []).filter((s: any) => s.id !== id), { ...serviceInfo, id, reqsAr: Array.from(autoReqs), isActive: true }],
+        services: [...(db.services || []).filter((s: any) => s.id !== id), { ...serviceInfo, id, isActive: true }],
         serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id), { id, serviceId: id, steps, isActive: true }]
       });
       toast({ title: "Saved Successfully" });

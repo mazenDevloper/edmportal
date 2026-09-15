@@ -26,7 +26,8 @@ import {
   Layers,
   ChevronRight,
   MapPin,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
