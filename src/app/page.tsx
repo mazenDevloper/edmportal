@@ -164,9 +164,9 @@ export default function DhofarPortal() {
                  </div>
                </motion.div>
 
-               <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5">
-                 <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.15)] rounded-[3rem] bg-white relative overflow-hidden flex flex-col border-t-[12px] border-primary">
-                   <div className="absolute inset-0 dm-pattern-wave-pro opacity-10 pointer-events-none" />
+               <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative">
+                 <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 pointer-events-none scale-110 -z-10" />
+                 <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.15)] rounded-[3rem] bg-white/90 backdrop-blur-sm relative overflow-hidden flex flex-col border-t-[12px] border-primary h-full">
                    <CardHeader className="bg-slate-50/80 backdrop-blur-sm p-8 flex flex-row items-center justify-between border-b relative z-10">
                      <div className="flex items-center gap-4">
                        <div className="p-3.5 rounded-2xl bg-primary text-white shadow-xl">
