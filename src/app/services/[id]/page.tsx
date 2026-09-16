@@ -76,12 +76,14 @@ export default function ServiceApplicationPage() {
 
   useEffect(() => {
     if (!isAr && service && !aiContent && !translating) {
-      setTranslating(true);
-      translateToEnglish({ text: `Title: ${service.title} | Description: ${service.description}` })
-        .then(({ translatedText }) => {
-          const parts = translatedText.split('|');
-          setAiContent({ title: parts[0]?.replace('Title:', '').trim(), description: parts[1]?.replace('Description:', '').trim() });
-        }).finally(() => setTranslating(false));
+      if (!service.titleEn || !service.descriptionEn) {
+        setTranslating(true);
+        translateToEnglish({ text: `Title: ${service.title} | Description: ${service.description}` })
+          .then(({ translatedText }) => {
+            const parts = translatedText.split('|');
+            setAiContent({ title: parts[0]?.replace('Title:', '').trim(), description: parts[1]?.replace('Description:', '').trim() });
+          }).finally(() => setTranslating(false));
+      }
     }
   }, [isAr, service, aiContent, translating]);
 
@@ -132,7 +134,7 @@ export default function ServiceApplicationPage() {
           { 
             id: newId, 
             serviceId: service?.id || '', 
-            serviceName: isAr ? service?.title || '' : aiContent?.title || service?.title || '', 
+            serviceName: isAr ? service?.title || '' : aiContent?.title || service?.titleEn || service?.title || '', 
             citizenName: user?.displayName || 'PKI User', 
             status: 'pending', 
             data: formData, 
@@ -187,10 +189,10 @@ export default function ServiceApplicationPage() {
                   <IconComponent size={32} />
                 </div>
                 <h1 className="text-2xl font-black text-slate-800 leading-tight">
-                  {isAr ? service?.title : aiContent?.title || service?.title}
+                  {isAr ? service?.title : aiContent?.title || service?.titleEn || service?.title}
                 </h1>
                 <p className="text-sm text-slate-500 font-bold leading-relaxed">
-                  {isAr ? service?.description : aiContent?.description || service?.description}
+                  {isAr ? service?.description : aiContent?.description || service?.descriptionEn || service?.description}
                 </p>
                 <div className="pt-6 border-t flex justify-between items-center">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? 'الرسوم المقررة' : 'ESTIMATED FEES'}</span>
