@@ -7,7 +7,7 @@ import { PortalFooter } from '@/components/portal-footer';
 import { IdentityShowcase } from '@/components/identity-showcase';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
-import { Palette, Box, Code2, CSS3, Globe, Copy, Check } from 'lucide-react';
+import { Palette, Box, Code2, Braces, Globe, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -53,12 +53,10 @@ export default function IdentityPage() {
             <div className="relative z-10 size-40 rounded-[3rem] bg-primary text-white flex items-center justify-center shadow-2xl rotate-6 group hover:rotate-0 transition-transform duration-500">
               <Palette size={70} className="group-hover:scale-110 transition-transform" />
             </div>
-            {/* Decoration */}
             <div className="absolute top-0 right-0 w-full h-full dm-wave-5 opacity-5 pointer-events-none" />
           </div>
         </div>
 
-        {/* The Component Gallery */}
         <IdentityShowcase 
           isAr={isAr} 
           onViewCode={(comp) => { setSelectedComponent(comp); setActiveTab('code'); }} 
@@ -66,7 +64,6 @@ export default function IdentityPage() {
         />
       </main>
 
-      {/* Code Viewer Modal */}
       <Dialog open={!!selectedComponent} onOpenChange={() => setSelectedComponent(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden p-0 rounded-[2.5rem] border-none shadow-2xl flex flex-col bg-slate-950">
           <DialogHeader className="p-8 bg-slate-900 border-b border-white/5">
@@ -76,8 +73,8 @@ export default function IdentityPage() {
                    <DialogDescription className="text-slate-400 font-bold mt-1">Source Code Explorer v4.0</DialogDescription>
                 </div>
                 <div className="flex gap-2">
-                   <Button variant={activeTab === 'code' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('code')} className="rounded-xl gap-2 font-black"><Code2 size={16}/> Component</Button>
-                   <Button variant={activeTab === 'css' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('css')} className="rounded-xl gap-2 font-black"><CSS3 size={16}/> CSS</Button>
+                   <Button variant={activeTab === 'code' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('code')} className="rounded-xl gap-2 font-black h-10 px-6"><Code2 size={16}/> {isAr ? 'الكود' : 'Code'}</Button>
+                   <Button variant={activeTab === 'css' ? 'secondary' : 'ghost'} onClick={() => setActiveTab('css')} className="rounded-xl gap-2 font-black h-10 px-6"><Braces size={16}/> CSS</Button>
                 </div>
              </div>
           </DialogHeader>
@@ -85,18 +82,18 @@ export default function IdentityPage() {
           <div className="flex-1 overflow-auto p-8 custom-scrollbar">
             {activeTab === 'code' ? (
               <Tabs defaultValue="react" className="w-full">
-                <TabsList className="bg-white/5 border-none p-1 rounded-xl mb-6">
-                  <TabsTrigger value="react" className="font-black gap-2">React (TSX)</TabsTrigger>
-                  <TabsTrigger value="html" className="font-black gap-2">HTML / Tailwind</TabsTrigger>
-                  <TabsTrigger value="dotnet" className="font-black gap-2">.NET / Structure</TabsTrigger>
+                <TabsList className="bg-white/5 border-none p-1 rounded-xl mb-6 h-12">
+                  <TabsTrigger value="react" className="font-black gap-2 h-10 px-6">React (TSX)</TabsTrigger>
+                  <TabsTrigger value="html" className="font-black gap-2 h-10 px-6">HTML / Tailwind</TabsTrigger>
+                  <TabsTrigger value="dotnet" className="font-black gap-2 h-10 px-6">.NET / Structure</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="react" className="relative group">
                    <pre className="p-6 bg-black rounded-2xl text-emerald-400 font-mono text-xs leading-relaxed overflow-x-auto">
                      <code>{selectedComponent?.codeReact}</code>
                    </pre>
-                   <Button onClick={() => handleCopy(selectedComponent?.codeReact)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-8 p-0">
-                     {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                   <Button onClick={() => handleCopy(selectedComponent?.codeReact)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-10 p-0">
+                     {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
                    </Button>
                 </TabsContent>
 
@@ -104,8 +101,8 @@ export default function IdentityPage() {
                    <pre className="p-6 bg-black rounded-2xl text-blue-400 font-mono text-xs leading-relaxed overflow-x-auto">
                      <code>{selectedComponent?.codeHtml}</code>
                    </pre>
-                   <Button onClick={() => handleCopy(selectedComponent?.codeHtml)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-8 p-0">
-                     {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                   <Button onClick={() => handleCopy(selectedComponent?.codeHtml)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-10 p-0">
+                     {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
                    </Button>
                 </TabsContent>
 
@@ -113,18 +110,18 @@ export default function IdentityPage() {
                    <pre className="p-6 bg-black rounded-2xl text-purple-400 font-mono text-xs leading-relaxed overflow-x-auto">
                      <code>{selectedComponent?.codeDotNet}</code>
                    </pre>
-                   <Button onClick={() => handleCopy(selectedComponent?.codeDotNet)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-8 p-0">
-                     {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                   <Button onClick={() => handleCopy(selectedComponent?.codeDotNet)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-10 p-0">
+                     {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
                    </Button>
                 </TabsContent>
               </Tabs>
             ) : (
               <div className="relative group h-full">
-                <pre className="p-6 bg-black rounded-2xl text-blue-300 font-mono text-xs leading-relaxed overflow-x-auto h-full">
+                <pre className="p-6 bg-black rounded-2xl text-blue-300 font-mono text-xs leading-relaxed overflow-x-auto h-full min-h-[300px]">
                   <code>{selectedComponent?.codeCss || '/* No custom CSS required for this component. */'}</code>
                 </pre>
-                <Button onClick={() => handleCopy(selectedComponent?.codeCss)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-8 p-0">
-                  {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                <Button onClick={() => handleCopy(selectedComponent?.codeCss)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-lg size-10 p-0">
+                  {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
                 </Button>
               </div>
             )}

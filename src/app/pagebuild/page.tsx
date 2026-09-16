@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -14,7 +15,7 @@ import {
   Code, Database, User, Award, Layers, MousePointer2,
   ChevronUp, ChevronDown, GripVertical, Settings2, Globe, Edit3, X,
   ExternalLink, CheckCircle2, PlayCircle, Users, ShieldCheck, Mail, Brush, Palette,
-  Maximize2, Smartphone, Monitor, Code2
+  Maximize2, Smartphone, Monitor, Code2, Braces
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -130,7 +131,6 @@ function PageBuilderContent() {
     <div className={cn("min-h-screen bg-slate-100 flex flex-col", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={[]} />
       <main className="flex-1 flex overflow-hidden">
-        {/* Widget Sidebar */}
         <aside className="w-80 bg-slate-900 text-white flex flex-col border-r border-white/5 shadow-2xl z-20">
            <div className="p-8 bg-slate-950 border-b border-white/10">
               <span className="font-black text-xs uppercase tracking-[0.3em] text-accent block">Components Hub</span>
@@ -176,7 +176,6 @@ function PageBuilderContent() {
            </div>
         </aside>
 
-        {/* Live Canvas */}
         <div className="flex-1 flex flex-col relative bg-[#f4f7f9]">
            <header className="bg-white border-b px-10 py-6 flex items-center justify-between shadow-sm z-10">
               <div className="flex items-center gap-8">
@@ -219,7 +218,6 @@ function PageBuilderContent() {
                           c.gridSpan === 12 ? "col-span-12" : "col-span-12"
                         )}
                       >
-                        {/* Interactive Controls Overlay */}
                         <div className="absolute -left-12 top-0 flex flex-col gap-2 opacity-0 group-hover/canvas:opacity-100 transition-all z-20">
                            <Button variant="outline" size="icon" onClick={() => {
                              const nc = [...components];
@@ -237,7 +235,6 @@ function PageBuilderContent() {
                               <div className="flex items-center gap-3">
                                  <GripVertical className="text-white/20" size={16}/>
                                  
-                                 {/* Width Control */}
                                  <Select value={(c.gridSpan || 12).toString()} onValueChange={v => updateComp(i, { gridSpan: parseInt(v) })}>
                                     <SelectTrigger className="h-7 w-28 bg-white/5 border-none text-white/50 text-[9px] font-black uppercase rounded-lg">
                                        <div className="flex items-center gap-1.5">
@@ -255,7 +252,6 @@ function PageBuilderContent() {
                                     </SelectContent>
                                  </Select>
 
-                                 {/* Height Control */}
                                  <Select value={c.gridHeight || 'auto'} onValueChange={v => updateComp(i, { gridHeight: v })}>
                                     <SelectTrigger className="h-7 w-28 bg-white/5 border-none text-white/50 text-[9px] font-black uppercase rounded-lg">
                                        <div className="flex items-center gap-1.5">
@@ -283,7 +279,7 @@ function PageBuilderContent() {
                               <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
                                  <CompModeBtn active={compModes[c.id] === 'preview'} onClick={() => setCompModes({...compModes, [c.id]: 'preview'})} icon={<Eye size={12}/>} label="Preview" />
                                  <CompModeBtn active={compModes[c.id] === 'settings'} onClick={() => setCompModes({...compModes, [c.id]: 'settings'})} icon={<Settings2 size={12}/>} label="Settings" />
-                                 <CompModeBtn active={compModes[c.id] === 'css'} onClick={() => setCompModes({...compModes, [c.id]: 'css'})} icon={<Palette size={12}/>} label="CSS" />
+                                 <CompModeBtn active={compModes[c.id] === 'css'} onClick={() => setCompModes({...compModes, [c.id]: 'css'})} icon={<Braces size={12}/>} label="CSS" />
                                  <CompModeBtn active={compModes[c.id] === 'code'} onClick={() => setCompModes({...compModes, [c.id]: 'code'})} icon={<Code2 size={12}/>} label="Edit Stack" />
                               </div>
                            </div>
@@ -305,35 +301,47 @@ function PageBuilderContent() {
                                             className="font-mono text-sm h-96 bg-slate-950 text-emerald-400 rounded-[2.5rem] border-none shadow-2xl p-10 leading-relaxed resize-none focus:ring-0" 
                                           />
                                         </div>
-                                      ) : ['accordion', 'tabs'].includes(c.type) ? (
+                                      ) : ['accordion', 'tabs', 'avatar'].includes(c.type) ? (
                                         <div className="col-span-2 space-y-6">
                                           <div className="flex items-center justify-between">
                                             <Label className="text-xs font-black uppercase text-primary">Dynamic Elements Management</Label>
-                                            <Button size="sm" onClick={() => updateComp(i, { content: { ...c.content, items: [...(c.content.items || []), { titleAr: 'عنوان جديد', titleEn: 'New Item', contentAr: 'محتوى جديد', contentEn: 'New Body' }] } })} className="h-8 rounded-lg bg-primary text-[10px] font-black uppercase tracking-widest">+ Add New</Button>
+                                            {c.type !== 'avatar' && (
+                                                <Button size="sm" onClick={() => updateComp(i, { content: { ...c.content, items: [...(c.content.items || []), { titleAr: 'عنوان جديد', titleEn: 'New Item', contentAr: 'محتوى جديد', contentEn: 'New Body' }] } })} className="h-8 rounded-lg bg-primary text-[10px] font-black uppercase tracking-widest">+ Add New</Button>
+                                            )}
                                           </div>
                                           <div className="space-y-4">
-                                            {c.content.items?.map((item: any, itemIdx: number) => (
-                                              <div key={itemIdx} className="p-6 bg-white border rounded-2xl shadow-sm relative group/item">
-                                                <Button size="icon" variant="ghost" className="absolute top-2 right-2 text-red-400 opacity-0 group-hover/item:opacity-100" onClick={() => {
-                                                  const ni = c.content.items.filter((_: any, idx: number) => idx !== itemIdx);
-                                                  updateComp(i, { content: { ...c.content, items: ni } });
-                                                }}><X size={14}/></Button>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                  <Input value={item.titleAr} onChange={e => {
-                                                    const ni = [...c.content.items]; ni[itemIdx].titleAr = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
-                                                  }} className="h-9 rounded-lg font-bold" placeholder="Title AR" />
-                                                  <Input value={item.titleEn} onChange={e => {
-                                                    const ni = [...c.content.items]; ni[itemIdx].titleEn = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
-                                                  }} className="h-9 rounded-lg font-bold" placeholder="Title EN" />
-                                                  <Textarea value={item.contentAr} onChange={e => {
-                                                    const ni = [...c.content.items]; ni[itemIdx].contentAr = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
-                                                  }} className="min-h-[60px] rounded-lg text-xs col-span-2" placeholder="Body AR" />
-                                                  <Textarea value={item.contentEn} onChange={e => {
-                                                    const ni = [...c.content.items]; ni[itemIdx].contentEn = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
-                                                  }} className="min-h-[60px] rounded-lg text-xs col-span-2" placeholder="Body EN" />
+                                            {c.type === 'avatar' ? (
+                                                <div className="p-6 bg-white border rounded-2xl shadow-sm space-y-4">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <Input value={c.content.nameAr} onChange={e => updateComp(i, { content: {...c.content, nameAr: e.target.value} })} placeholder="Name AR" />
+                                                        <Input value={c.content.nameEn} onChange={e => updateComp(i, { content: {...c.content, nameEn: e.target.value} })} placeholder="Name EN" />
+                                                        <Input value={c.content.src} onChange={e => updateComp(i, { content: {...c.content, src: e.target.value} })} placeholder="Image URL" className="col-span-2" />
+                                                    </div>
                                                 </div>
-                                              </div>
-                                            ))}
+                                            ) : (
+                                                c.content.items?.map((item: any, itemIdx: number) => (
+                                                    <div key={itemIdx} className="p-6 bg-white border rounded-2xl shadow-sm relative group/item">
+                                                        <Button size="icon" variant="ghost" className="absolute top-2 right-2 text-red-400 opacity-0 group-hover/item:opacity-100" onClick={() => {
+                                                        const ni = c.content.items.filter((_: any, idx: number) => idx !== itemIdx);
+                                                        updateComp(i, { content: { ...c.content, items: ni } });
+                                                        }}><X size={14}/></Button>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                        <Input value={item.titleAr} onChange={e => {
+                                                            const ni = [...c.content.items]; ni[itemIdx].titleAr = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
+                                                        }} className="h-9 rounded-lg font-bold" placeholder="Title AR" />
+                                                        <Input value={item.titleEn} onChange={e => {
+                                                            const ni = [...c.content.items]; ni[itemIdx].titleEn = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
+                                                        }} className="h-9 rounded-lg font-bold" placeholder="Title EN" />
+                                                        <Textarea value={item.contentAr} onChange={e => {
+                                                            const ni = [...c.content.items]; ni[itemIdx].contentAr = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
+                                                        }} className="min-h-[60px] rounded-lg text-xs col-span-2" placeholder="Body AR" />
+                                                        <Textarea value={item.contentEn} onChange={e => {
+                                                            const ni = [...c.content.items]; ni[itemIdx].contentEn = e.target.value; updateComp(i, { content: { ...c.content, items: ni } });
+                                                        }} className="min-h-[60px] rounded-lg text-xs col-span-2" placeholder="Body EN" />
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
                                           </div>
                                         </div>
                                       ) : (
@@ -361,7 +369,7 @@ function PageBuilderContent() {
                                    </div>
                                 </div>
                               ) : compModes[c.id] === 'css' ? (
-                                <div className="flex-1 bg-slate-950 flex flex-col">
+                                <div className="flex-1 bg-slate-950 flex flex-col h-full">
                                    <div className="p-4 bg-slate-900 border-b border-white/5 flex items-center justify-between">
                                       <Label className="text-[10px] font-black uppercase text-accent tracking-widest">Custom Component CSS</Label>
                                       <p className="text-[8px] text-white/30 uppercase">Scoped Styles</p>
@@ -369,7 +377,7 @@ function PageBuilderContent() {
                                    <Textarea 
                                       value={c.customCss || ''} 
                                       onChange={e => updateComp(i, { customCss: e.target.value })} 
-                                      className="flex-1 font-mono text-sm bg-transparent text-blue-300 border-none p-10 leading-relaxed resize-none focus:ring-0" 
+                                      className="flex-1 font-mono text-sm bg-transparent text-blue-300 border-none p-10 leading-relaxed resize-none focus:ring-0 min-h-[300px]" 
                                       placeholder="/* Write custom CSS for this widget here... */"
                                    />
                                 </div>
@@ -378,7 +386,7 @@ function PageBuilderContent() {
                                    <div className="p-4 bg-slate-900 border-b border-white/5 flex items-center justify-between">
                                       <div className="flex gap-2">
                                          {['html', 'react', 'dotnet'].map(stack => (
-                                           <Button key={stack} variant="ghost" size="xs" onClick={() => updateComp(i, { codeType: stack })} className={cn("h-7 px-4 rounded-lg font-black text-[9px] uppercase", c.codeType === stack ? "bg-accent text-slate-900" : "text-white/40 hover:text-white")}>
+                                           <Button key={stack} variant="ghost" size="xs" onClick={() => updateComp(i, { codeType: stack as any })} className={cn("h-7 px-4 rounded-lg font-black text-[9px] uppercase", c.codeType === stack ? "bg-accent text-slate-900" : "text-white/40 hover:text-white")}>
                                               {stack.toUpperCase()}
                                            </Button>
                                          ))}
@@ -399,7 +407,7 @@ function PageBuilderContent() {
                                           updateComp(i, { content: e.target.value });
                                         }
                                      }}
-                                     className="flex-1 font-mono text-xs bg-transparent text-emerald-400 border-none p-10 leading-relaxed focus:ring-0 resize-none" 
+                                     className="flex-1 font-mono text-xs bg-transparent text-emerald-400 border-none p-10 leading-relaxed focus:ring-0 resize-none min-h-[300px]" 
                                    />
                                 </div>
                               )}
