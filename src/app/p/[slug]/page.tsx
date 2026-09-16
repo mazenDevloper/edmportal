@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -64,15 +65,23 @@ export default function DynamicCustomPage() {
           <div className="h-2 w-32 bg-accent mx-auto rounded-full" />
         </div>
 
-        <div className="space-y-16">
+        <div className="grid grid-cols-12 gap-8">
           {page.components.map((comp, i) => (
             <motion.div 
               key={comp.id} 
               initial={{opacity:0, y:30}} 
               whileInView={{opacity:1, y:0}} 
               viewport={{once: true}}
-              transition={{delay: i * 0.1}}
-              className={cn("animate-in fade-in duration-700", `widget-${comp.id}`)}
+              transition={{delay: i * 0.05}}
+              className={cn(
+                "animate-in fade-in duration-700", 
+                `widget-${comp.id}`,
+                comp.gridSpan === 3 ? "col-span-12 md:col-span-3" :
+                comp.gridSpan === 4 ? "col-span-12 md:col-span-4" :
+                comp.gridSpan === 6 ? "col-span-12 md:col-span-6" :
+                comp.gridSpan === 9 ? "col-span-12 md:col-span-9" :
+                "col-span-12"
+              )}
             >
               {comp.customCss && (
                 <style dangerouslySetInnerHTML={{ __html: comp.customCss.replace('.custom-widget', `.widget-${comp.id}`) }} />
@@ -95,11 +104,11 @@ export default function DynamicCustomPage() {
               )}
 
               {comp.type === 'html' && (
-                <div className="my-8 rounded-[2rem] overflow-hidden" dangerouslySetInnerHTML={{ __html: comp.content.code }} />
+                <div className="my-4 rounded-[2rem] overflow-hidden" dangerouslySetInnerHTML={{ __html: comp.content.code }} />
               )}
 
               {comp.type === 'info' && (
-                <Card className="rounded-[3rem] border-none shadow-2xl bg-white max-w-5xl mx-auto overflow-hidden border-t-8 border-primary relative group">
+                <Card className="rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden border-t-8 border-primary relative group">
                   <div className="absolute top-0 right-0 size-64 dm-wave-5 opacity-10 -rotate-45 translate-x-32 -translate-y-32" />
                   <CardContent className="p-12 md:p-20 text-center relative z-10">
                     <div className="prose prose-xl mx-auto text-slate-700 font-medium leading-loose text-2xl whitespace-pre-wrap">
@@ -110,18 +119,19 @@ export default function DynamicCustomPage() {
               )}
 
               {comp.type === 'text' && (
-                <div className="max-w-4xl mx-auto prose prose-xl text-slate-700 font-medium leading-relaxed whitespace-pre-wrap text-lg">
+                <div className="max-w-4xl mx-auto prose prose-xl text-slate-700 font-medium leading-relaxed whitespace-pre-wrap text-lg py-4">
                   {isAr ? comp.content.bodyAr : comp.content.bodyEn}
                 </div>
               )}
 
               {comp.type === 'table' && (
-                <Card className="max-w-4xl mx-auto rounded-[2rem] border-none shadow-xl overflow-hidden bg-white">
+                <Card className="rounded-[2rem] border-none shadow-xl overflow-hidden bg-white">
                   <Table>
                     <TableHeader className="bg-slate-900 text-white">
                       <TableRow>
-                        <TableHead className="font-black p-6 text-white">{comp.content.headers[0]}</TableHead>
-                        <TableHead className="font-black p-6 text-center text-white">{comp.content.headers[1]}</TableHead>
+                        {comp.content.headers?.map((h: string, idx: number) => (
+                          <TableHead key={idx} className="font-black p-6 text-white">{h}</TableHead>
+                        ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -137,7 +147,7 @@ export default function DynamicCustomPage() {
               )}
 
               {comp.type === 'accordion' && (
-                <Card className="max-w-4xl mx-auto rounded-[2rem] border-none shadow-xl bg-white p-10">
+                <Card className="rounded-[2rem] border-none shadow-xl bg-white p-10">
                   <Accordion type="single" collapsible className="w-full">
                     {comp.content.items?.map((item: any, idx: number) => (
                       <AccordionItem key={idx} value={`item-${idx}`} className="border-slate-100 last:border-0 py-2">
@@ -154,7 +164,7 @@ export default function DynamicCustomPage() {
               )}
 
               {comp.type === 'stats' && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-10 max-w-6xl mx-auto text-center bg-slate-900 p-16 rounded-[4rem] text-white shadow-[0_50px_100px_rgba(0,0,0,0.2)] border-t-4 border-accent relative overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-center bg-slate-900 p-16 rounded-[4rem] text-white shadow-[0_50px_100px_rgba(0,0,0,0.2)] border-t-4 border-accent relative overflow-hidden">
                    <div className="absolute inset-0 dm-wave-5 opacity-5 pointer-events-none" />
                    <div className="space-y-4 relative z-10">
                      <h3 className="text-6xl font-black text-accent">{comp.content.v1}</h3>
@@ -201,7 +211,7 @@ export default function DynamicCustomPage() {
               )}
 
               {comp.type === 'tabs' && (
-                <Card className="max-w-6xl mx-auto rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
+                <Card className="rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
                   <Tabs defaultValue="tab-0" className="w-full">
                     <TabsList className="w-full h-20 bg-slate-900 rounded-none p-0 flex">
                       {comp.content.items?.map((item: any, idx: number) => (

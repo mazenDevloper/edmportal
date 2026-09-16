@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -14,7 +15,8 @@ import {
   Heading1, Video, FileText, List, Minus, Table as TableIcon,
   Code, Database, User, Award, Layers, MousePointer2,
   ChevronUp, ChevronDown, GripVertical, Settings2, Globe, Edit3, X,
-  ExternalLink, CheckCircle2, PlayCircle, Users, ShieldCheck, Mail, Brush, Palette
+  ExternalLink, CheckCircle2, PlayCircle, Users, ShieldCheck, Mail, Brush, Palette,
+  Maximize2
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -83,7 +85,7 @@ function PageBuilderContent() {
       html: { code: '<div class="p-12 border-4 border-dashed rounded-[3rem] text-center bg-slate-50 text-slate-400 font-black text-xl uppercase tracking-widest">Neural HTML Container</div>' },
       style: { code: '/* Custom Global CSS for this page */\nbody {\n  /* background: #f0f0f0; */\n}' }
     };
-    const newComp = { id, type, content: defaultContents[type] || {}, customCss: '' };
+    const newComp = { id, type, content: defaultContents[type] || {}, customCss: '', gridSpan: 12 };
     setComponents([...components, newComp]);
     setCompModes(prev => ({ ...prev, [id]: 'preview' }));
   };
@@ -197,45 +199,64 @@ function PageBuilderContent() {
            </header>
 
            <ScrollArea className="flex-1 p-16">
-              <div className="max-w-5xl mx-auto space-y-12 pb-32">
+              <div className="max-w-6xl mx-auto grid grid-cols-12 gap-8 pb-32">
                  <AnimatePresence>
                     {components.map((c, i) => (
-                      <motion.div key={c.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="group/canvas relative">
+                      <motion.div 
+                        key={c.id} 
+                        initial={{ opacity: 0, y: 30 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        className={cn("group/canvas relative", c.gridSpan === 3 ? "col-span-3" : c.gridSpan === 4 ? "col-span-4" : c.gridSpan === 6 ? "col-span-6" : c.gridSpan === 9 ? "col-span-9" : "col-span-12")}
+                      >
                         {/* Interactive Controls Overlay */}
-                        <div className="absolute -left-16 top-0 flex flex-col gap-2 opacity-0 group-hover/canvas:opacity-100 transition-all">
+                        <div className="absolute -left-12 top-0 flex flex-col gap-2 opacity-0 group-hover/canvas:opacity-100 transition-all z-20">
                            <Button variant="outline" size="icon" onClick={() => {
                              const nc = [...components];
                              if(i>0) {[nc[i], nc[i-1]] = [nc[i-1], nc[i]]; setComponents(nc);}
-                           }} className="size-11 rounded-2xl bg-white shadow-xl text-primary border-none"><ChevronUp size={24}/></Button>
+                           }} className="size-10 rounded-xl bg-white shadow-xl text-primary border-none"><ChevronUp size={20}/></Button>
                            <Button variant="outline" size="icon" onClick={() => {
                              const nc = [...components];
                              if(i < components.length - 1) {[nc[i], nc[i+1]] = [nc[i+1], nc[i]]; setComponents(nc);}
-                           }} className="size-11 rounded-2xl bg-white shadow-xl text-primary border-none"><ChevronDown size={24}/></Button>
-                           <Button variant="outline" size="icon" onClick={() => setComponents(components.filter(cp => cp.id !== c.id))} className="size-11 rounded-2xl bg-white text-red-500 shadow-xl border-none"><Trash2 size={24}/></Button>
+                           }} className="size-10 rounded-xl bg-white shadow-xl text-primary border-none"><ChevronDown size={20}/></Button>
+                           <Button variant="outline" size="icon" onClick={() => setComponents(components.filter(cp => cp.id !== c.id))} className="size-10 rounded-xl bg-white text-red-500 shadow-xl border-none"><Trash2 size={20}/></Button>
                         </div>
 
-                        <Card className="rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.08)] border-none overflow-hidden bg-white ring-1 ring-slate-100 transition-all group-hover/canvas:ring-primary/20">
-                           <div className="bg-slate-900 px-8 py-4 flex items-center justify-between">
+                        <Card className="rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.08)] border-none overflow-hidden bg-white ring-1 ring-slate-100 transition-all group-hover/canvas:ring-primary/20 h-full flex flex-col">
+                           <div className="bg-slate-900 px-6 py-3 flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                 <GripVertical className="text-white/20" size={20}/>
-                                 <Badge className="bg-accent text-slate-900 font-black text-[9px] uppercase tracking-[0.2em] px-3">{c.type}</Badge>
+                                 <GripVertical className="text-white/20" size={16}/>
+                                 <Badge className="bg-accent text-slate-900 font-black text-[8px] uppercase tracking-[0.2em] px-2">{c.type}</Badge>
+                                 
+                                 {/* Grid Span Selector */}
+                                 <Select value={(c.gridSpan || 12).toString()} onValueChange={v => updateComp(i, { gridSpan: parseInt(v) })}>
+                                    <SelectTrigger className="h-6 w-24 bg-white/5 border-none text-white/50 text-[9px] font-black uppercase rounded-lg">
+                                       <div className="flex items-center gap-1.5"><Maximize2 size={10}/> Width: {v => v === '12' ? 'Full' : `${Math.round((parseInt(v)/12)*100)}%`}</div>
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                       <SelectItem value="3">25% Width</SelectItem>
+                                       <SelectItem value="4">33% Width</SelectItem>
+                                       <SelectItem value="6">50% Width</SelectItem>
+                                       <SelectItem value="9">75% Width</SelectItem>
+                                       <SelectItem value="12">100% (Full)</SelectItem>
+                                    </SelectContent>
+                                 </Select>
                               </div>
-                              <div className="flex gap-1.5 bg-white/5 p-1 rounded-xl">
-                                 <CompModeBtn active={compModes[c.id] === 'preview'} onClick={() => setCompModes({...compModes, [c.id]: 'preview'})} icon={<Eye size={14}/>} label="Preview" />
-                                 <CompModeBtn active={compModes[c.id] === 'settings'} onClick={() => setCompModes({...compModes, [c.id]: 'settings'})} icon={<Settings2 size={14}/>} label="Settings" />
-                                 <CompModeBtn active={compModes[c.id] === 'css'} onClick={() => setCompModes({...compModes, [c.id]: 'css'})} icon={<Palette size={14}/>} label="CSS" />
-                                 <CompModeBtn active={compModes[c.id] === 'data'} onClick={() => setCompModes({...compModes, [c.id]: 'data'})} icon={<Code size={14}/>} label="Code" />
+                              <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
+                                 <CompModeBtn active={compModes[c.id] === 'preview'} onClick={() => setCompModes({...compModes, [c.id]: 'preview'})} icon={<Eye size={12}/>} label="Preview" />
+                                 <CompModeBtn active={compModes[c.id] === 'settings'} onClick={() => setCompModes({...compModes, [c.id]: 'settings'})} icon={<Settings2 size={12}/>} label="Settings" />
+                                 <CompModeBtn active={compModes[c.id] === 'css'} onClick={() => setCompModes({...compModes, [c.id]: 'css'})} icon={<Palette size={12}/>} label="CSS" />
+                                 <CompModeBtn active={compModes[c.id] === 'data'} onClick={() => setCompModes({...compModes, [c.id]: 'data'})} icon={<Code size={12}/>} label="Code" />
                               </div>
                            </div>
                            
-                           <CardContent className="p-0">
+                           <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
                               {compModes[c.id] === 'preview' ? (
-                                <div className={cn("p-12", previewLang === 'ar' ? "font-arabic" : "font-sans")} dir={previewLang === 'ar' ? 'rtl' : 'ltr'}>
+                                <div className={cn("p-10 flex-1 overflow-auto", previewLang === 'ar' ? "font-arabic" : "font-sans")} dir={previewLang === 'ar' ? 'rtl' : 'ltr'}>
                                    <ComponentRenderer type={c.type} content={c.content} lang={previewLang} customCss={c.customCss} />
                                 </div>
                               ) : compModes[c.id] === 'settings' ? (
-                                <div className="p-12 bg-slate-50 space-y-8 animate-in fade-in zoom-in-95">
-                                   <div className="grid md:grid-cols-2 gap-10">
+                                <div className="p-10 bg-slate-50 space-y-6 animate-in fade-in zoom-in-95 flex-1 overflow-auto">
+                                   <div className="grid md:grid-cols-2 gap-8">
                                       {c.type === 'style' || c.type === 'html' ? (
                                         <div className="col-span-2 space-y-4">
                                           <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Neural Code Editor ({c.type.toUpperCase()})</Label>
@@ -307,64 +328,48 @@ function PageBuilderContent() {
                                         </div>
                                       ) : (
                                         <>
-                                          <div className="space-y-6">
+                                          <div className="space-y-4">
                                              <div className="flex items-center justify-between">
                                                 <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Arabic Content</Label>
-                                                <Badge variant="outline" className="text-[8px]">PRIMARY</Badge>
                                              </div>
                                              {['bodyAr', 'textAr', 'labelAr'].some(k => c.content[k] !== undefined) ? (
-                                               <Textarea value={c.content.bodyAr || c.content.textAr || c.content.labelAr} onChange={e => updateComp(i, { content: { ...c.content, [c.content.bodyAr !== undefined ? 'bodyAr' : c.content.textAr !== undefined ? 'textAr' : 'labelAr']: e.target.value } })} className="bg-white font-black min-h-[150px] rounded-2xl border-slate-200" />
-                                             ) : <p className="text-xs font-bold text-slate-400 italic">No simple text fields for this component.</p>}
+                                               <Textarea value={c.content.bodyAr || c.content.textAr || c.content.labelAr} onChange={e => updateComp(i, { content: { ...c.content, [c.content.bodyAr !== undefined ? 'bodyAr' : c.content.textAr !== undefined ? 'textAr' : 'labelAr']: e.target.value } })} className="bg-white font-black min-h-[120px] rounded-2xl border-slate-200" />
+                                             ) : <p className="text-xs font-bold text-slate-400 italic">No text fields.</p>}
                                           </div>
                                           
-                                          <div className="space-y-6">
+                                          <div className="space-y-4">
                                              <div className="flex items-center justify-between">
                                                 <Label className="text-[10px] font-black uppercase text-accent tracking-widest">English Content</Label>
-                                                <Button size="xs" variant="ghost" className="h-6 text-accent font-black gap-1" onClick={() => handleAiTranslate(c.content.bodyAr || c.content.textAr || c.content.labelAr, i)}>
+                                                <Button variant="ghost" className="h-6 text-accent font-black gap-1 text-[9px]" onClick={() => handleAiTranslate(c.content.bodyAr || c.content.textAr || c.content.labelAr, i)}>
                                                   <Sparkles size={10}/> AI AUTO
                                                 </Button>
                                              </div>
                                              {['bodyEn', 'textEn', 'labelEn'].some(k => c.content[k] !== undefined) ? (
-                                               <Textarea value={c.content.bodyEn || c.content.textEn || c.content.labelEn} onChange={e => updateComp(i, { content: { ...c.content, [c.content.bodyEn !== undefined ? 'bodyEn' : c.content.textEn !== undefined ? 'textEn' : 'labelEn']: e.target.value } })} className="bg-white font-bold min-h-[150px] rounded-2xl border-slate-200" />
-                                             ) : <p className="text-xs font-bold text-slate-400 italic">No simple text fields for this component.</p>}
+                                               <Textarea value={c.content.bodyEn || c.content.textEn || c.content.labelEn} onChange={e => updateComp(i, { content: { ...c.content, [c.content.bodyEn !== undefined ? 'bodyEn' : c.content.textEn !== undefined ? 'textEn' : 'labelEn']: e.target.value } })} className="bg-white font-bold min-h-[120px] rounded-2xl border-slate-200" />
+                                             ) : <p className="text-xs font-bold text-slate-400 italic">No text fields.</p>}
                                           </div>
                                         </>
-                                      )}
-                                      
-                                      {c.type === 'stats' && (
-                                        <div className="col-span-2 grid grid-cols-4 gap-6 bg-white p-8 rounded-[2rem] shadow-inner">
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">VALUE 1</Label><Input value={c.content.v1} onChange={e => updateComp(i, { content: { ...c.content, v1: e.target.value } })} className="rounded-xl font-black text-primary" /></div>
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">TITLE 1</Label><Input value={c.content.t1} onChange={e => updateComp(i, { content: { ...c.content, t1: e.target.value } })} className="rounded-xl font-bold" /></div>
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">VALUE 2</Label><Input value={c.content.v2} onChange={e => updateComp(i, { content: { ...c.content, v2: e.target.value } })} className="rounded-xl font-black text-primary" /></div>
-                                          <div className="space-y-2"><Label className="text-[9px] font-black">TITLE 2</Label><Input value={c.content.t2} onChange={e => updateComp(i, { content: { ...c.content, t2: e.target.value } })} className="rounded-xl font-bold" /></div>
-                                        </div>
-                                      )}
-
-                                      {c.type === 'pdf' && (
-                                        <div className="col-span-2 space-y-2">
-                                          <Label className="text-[10px] font-black">DOC URL (FOR PREVIEW ATTACH)</Label>
-                                          <Input value={c.content.url} onChange={e => updateComp(i, { content: { ...c.content, url: e.target.value } })} className="h-12 font-mono text-xs" />
-                                        </div>
                                       )}
                                    </div>
                                 </div>
                               ) : compModes[c.id] === 'css' ? (
-                                <div className="p-12 bg-slate-950 animate-in fade-in zoom-in-95">
-                                   <div className="space-y-4">
+                                <div className="flex-1 bg-slate-950 animate-in fade-in zoom-in-95 flex flex-col">
+                                   <div className="p-4 bg-slate-900 border-b border-white/5 flex items-center justify-between">
                                       <Label className="text-[10px] font-black uppercase text-accent tracking-widest">Custom Component CSS</Label>
-                                      <Textarea 
-                                        value={c.customCss || ''} 
-                                        onChange={e => updateComp(i, { customCss: e.target.value })} 
-                                        placeholder="/* Write CSS here... use .custom-widget { ... } */"
-                                        className="font-mono text-sm h-80 bg-slate-950 text-blue-300 rounded-3xl border border-white/10 p-10 leading-relaxed resize-none focus:ring-0" 
-                                      />
-                                      <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                                         <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest">Note: Custom CSS is scoped to this specific instance container.</p>
-                                      </div>
+                                      <p className="text-[8px] text-white/30 uppercase">Scoped to .custom-widget</p>
                                    </div>
+                                   <Textarea 
+                                      value={c.customCss || ''} 
+                                      onChange={e => updateComp(i, { customCss: e.target.value })} 
+                                      placeholder="/* Write custom styles here... */"
+                                      className="flex-1 font-mono text-sm bg-transparent text-blue-300 border-none p-10 leading-relaxed resize-none focus:ring-0" 
+                                   />
                                 </div>
                               ) : (
-                                <div className="p-0 animate-in fade-in slide-in-from-top-4">
+                                <div className="flex-1 bg-slate-950 animate-in fade-in slide-in-from-top-4 flex flex-col">
+                                   <div className="p-4 bg-slate-900 border-b border-white/5 flex items-center justify-between">
+                                      <Label className="text-[10px] font-black uppercase text-accent tracking-widest">JSON Data Model</Label>
+                                   </div>
                                    <Textarea 
                                      value={JSON.stringify(c.content, null, 2)} 
                                      onChange={e => {
@@ -373,7 +378,7 @@ function PageBuilderContent() {
                                           updateComp(i, { content: parsed });
                                         } catch (err) {}
                                      }}
-                                     className="font-mono text-xs h-[500px] bg-slate-950 text-blue-300 rounded-none border-none p-12 leading-relaxed focus:ring-0 resize-none" 
+                                     className="flex-1 font-mono text-xs bg-transparent text-emerald-400 border-none p-10 leading-relaxed focus:ring-0 resize-none" 
                                    />
                                 </div>
                               )}
@@ -384,7 +389,7 @@ function PageBuilderContent() {
                  </AnimatePresence>
                  
                  {components.length === 0 && (
-                   <div className="py-40 text-center space-y-6">
+                   <div className="col-span-12 py-40 text-center space-y-6">
                       <div className="size-32 rounded-[2.5rem] bg-white shadow-xl mx-auto flex items-center justify-center text-slate-200 border-4 border-dashed border-slate-100">
                          <Layout size={64}/>
                       </div>
@@ -415,7 +420,7 @@ function WidgetBtn({ icon, label, onClick }: any) {
 
 function CompModeBtn({ active, onClick, icon, label }: any) {
   return (
-    <Button variant="ghost" size="xs" onClick={onClick} className={cn("h-10 px-4 gap-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all", active ? "bg-accent text-slate-900 shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5")}>
+    <Button variant="ghost" size="xs" onClick={onClick} className={cn("h-8 px-3 gap-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all", active ? "bg-accent text-slate-900 shadow-lg" : "text-white/40 hover:text-white hover:bg-white/5")}>
       {icon} {label}
     </Button>
   );
@@ -454,7 +459,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
       
       case 'stats': 
         return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
              <div className="p-10 bg-primary text-white rounded-[2.5rem] shadow-2xl space-y-2">
                 <h3 className="text-5xl font-black text-accent">{content.v1}</h3>
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{content.t1}</p>
@@ -468,7 +473,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
       
       case 'accordion': 
         return (
-          <Card className="max-w-4xl mx-auto rounded-[2.5rem] border-none shadow-xl bg-white p-12">
+          <Card className="rounded-[2.5rem] border-none shadow-xl bg-white p-12 w-full">
             <Accordion type="single" collapsible className="w-full">
               {content.items?.map((item: any, idx: number) => (
                 <AccordionItem key={idx} value={`i-${idx}`} className="border-slate-100 last:border-0 py-4">
@@ -486,7 +491,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
 
       case 'tabs':
         return (
-          <Card className="max-w-5xl mx-auto rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
+          <Card className="w-full rounded-[3rem] border-none shadow-2xl bg-white overflow-hidden">
             <Tabs defaultValue="tab-0" className="w-full">
               <TabsList className="w-full h-24 bg-slate-950 rounded-none p-0 flex">
                 {content.items?.map((item: any, idx: number) => (
@@ -507,7 +512,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
         );
       
       case 'html': 
-        return <div className="rounded-[3rem] overflow-hidden border shadow-inner" dangerouslySetInnerHTML={{ __html: content.code }} />;
+        return <div className="rounded-[2rem] overflow-hidden w-full" dangerouslySetInnerHTML={{ __html: content.code }} />;
       
       case 'avatar': 
         return (
@@ -525,7 +530,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
 
       case 'pdf':
         return (
-          <div className="flex justify-center">
+          <div className="flex justify-center w-full">
              <a href={content.url} target="_blank" className="group flex items-center gap-10 p-12 rounded-[3.5rem] bg-white shadow-2xl border-4 border-transparent hover:border-primary transition-all">
                 <div className="size-24 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all">
                   <FileText size={48} />
@@ -540,7 +545,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
 
       case 'badge':
         return (
-          <div className="flex justify-center">
+          <div className="flex justify-center w-full">
             <Badge className="bg-accent text-slate-900 font-black text-xl px-10 py-3 rounded-2xl shadow-lg animate-pulse">
               {isAr ? content.textAr : content.textEn}
             </Badge>
@@ -549,7 +554,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
 
       case 'table':
         return (
-          <Card className="max-w-4xl mx-auto rounded-[2rem] border-none shadow-xl overflow-hidden bg-white">
+          <Card className="w-full rounded-[2rem] border-none shadow-xl overflow-hidden bg-white">
             <Table>
               <TableHeader className="bg-slate-900">
                 <TableRow>
@@ -571,7 +576,7 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
         );
 
       case 'separator':
-        return <Separator className="max-w-4xl mx-auto h-px bg-slate-200 my-16" />;
+        return <Separator className="w-full h-px bg-slate-200 my-16" />;
       
       default: 
         return <div className="p-16 border-4 border-dashed rounded-[3rem] bg-slate-50 text-slate-300 font-black text-center text-2xl uppercase tracking-[0.3em]">Widget Area: {type}</div>;
