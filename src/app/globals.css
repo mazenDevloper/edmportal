@@ -9,6 +9,7 @@
     /* Darkened from 28% to 23% to meet WCAG 4.5:1 contrast on white */
     --dm-teal-dark: 181 100% 23%;     /* #007375 */
     --dm-purple: 278 78% 20%;         /* #470D67 */
+    --dm-purple-light: 278 50% 90%;
     
     /* Dhofar Municipality Brand Palette - Secondary/Soft */
     --dm-turquoise-light: 177 40% 95%; 
@@ -69,6 +70,27 @@
   background-image: url("data:image/svg+xml,%3Csvg width='100' height='40' viewBox='0 0 100 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10' fill='transparent' stroke='%2303CFCB' stroke-width='1'/%3E%3Cpath d='M0 15 Q 12.5 5 25 15 T 50 15 T 75 15 T 100 15' fill='transparent' stroke='%2303CFCB' stroke-width='1.5' opacity='0.8'/%3E%3Cpath d='M0 20 Q 12.5 10 25 20 T 50 20 T 75 20 T 100 20' fill='transparent' stroke='%2303CFCB' stroke-width='2' opacity='0.6'/%3E%3Cpath d='M0 25 Q 12.5 15 25 25 T 50 25 T 75 25 T 100 25' fill='transparent' stroke='%2303CFCB' stroke-width='1' opacity='0.4'/%3E%3Cpath d='M0 30 Q 12.5 20 25 30 T 50 30 T 75 30 T 100 30' fill='transparent' stroke='%2303CFCB' stroke-width='0.5' opacity='0.2'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
   background-size: 200px 80px;
+}
+
+/* New Patterns from Image */
+.dm-pattern-waves-dense {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10' fill='transparent' stroke='%2303CFCB' stroke-width='1' opacity='0.2'/%3E%3Cpath d='M0 20 Q 12.5 10 25 20 T 50 20 T 75 20 T 100 20' fill='transparent' stroke='%2303CFCB' stroke-width='1' opacity='0.2'/%3E%3Cpath d='M0 30 Q 12.5 20 25 30 T 50 30 T 75 30 T 100 30' fill='transparent' stroke='%2303CFCB' stroke-width='1' opacity='0.2'/%3E%3Cpath d='M0 40 Q 12.5 30 25 40 T 50 40 T 75 40 T 100 40' fill='transparent' stroke='%2303CFCB' stroke-width='1' opacity='0.2'/%3E%3Cpath d='M0 50 Q 12.5 40 25 50 T 50 50 T 75 50 T 100 50' fill='transparent' stroke='%2303CFCB' stroke-width='1' opacity='0.2'/%3E%3C/svg%3E");
+  background-size: 100px 100px;
+}
+
+.dm-pattern-waves-thick {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='60' viewBox='0 0 100 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10' fill='transparent' stroke='%23007375' stroke-width='4'/%3E%3Cpath d='M0 25 Q 12.5 15 25 25 T 50 25 T 75 25 T 100 25' fill='transparent' stroke='%23007375' stroke-width='4'/%3E%3Cpath d='M0 40 Q 12.5 30 25 40 T 50 40 T 75 40 T 100 40' fill='transparent' stroke='%23007375' stroke-width='4'/%3E%3C/svg%3E");
+  background-size: 200px 120px;
+}
+
+.dm-pattern-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='60' viewBox='0 0 100 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 L 50 10 L 100 40' fill='transparent' stroke='%23470D67' stroke-width='4' opacity='0.1'/%3E%3Cpath d='M0 55 L 50 25 L 100 55' fill='transparent' stroke='%23470D67' stroke-width='4' opacity='0.1'/%3E%3C/svg%3E");
+  background-size: 200px 120px;
+}
+
+.dm-pattern-zigzag {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='40' viewBox='0 0 100 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 L 10 10 L 20 20 L 30 10 L 40 20 L 50 10 L 60 20 L 70 10 L 80 20 L 90 10 L 100 20' fill='transparent' stroke='%2303CFCB' stroke-width='2' opacity='0.3'/%3E%3Cpath d='M0 30 L 10 20 L 20 30 L 30 20 L 40 30 L 50 20 L 60 30 L 70 20 L 80 30 L 90 20 L 100 30' fill='transparent' stroke='%2303CFCB' stroke-width='2' opacity='0.2'/%3E%3C/svg%3E");
+  background-size: 100px 40px;
 }
 
 .dm-gradient-primary {
