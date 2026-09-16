@@ -164,27 +164,31 @@ export default function DhofarPortal() {
                  </div>
                </motion.div>
 
-               <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative">
-                 <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 pointer-events-none scale-110 -z-10" />
-                 <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.15)] rounded-[3rem] bg-white/90 backdrop-blur-sm relative overflow-hidden flex flex-col border-t-[12px] border-primary h-full">
-                   <CardHeader className="bg-slate-50/80 backdrop-blur-sm p-8 flex flex-row items-center justify-between border-b relative z-10">
-                     <div className="flex items-center gap-4">
-                       <div className="p-3.5 rounded-2xl bg-primary text-white shadow-xl">
-                         <Fingerprint className="size-8" />
-                       </div>
-                       <div>
-                         <CardTitle className="font-black text-lg text-primary">{isAr ? "الهوية الرقمية (ثقة)" : "Neural ID (Theqa)"}</CardTitle>
-                         <CardDescription className="text-xs font-bold text-slate-500">{isAr ? "نظام المصادقة الوطنية الموحد" : "Unified National Security"}</CardDescription>
-                       </div>
-                     </div>
-                     <Badge className={cn("rounded-full border-none px-4 py-1.5 font-black text-[10px] transition-all", pkiStatus === 'connected' ? "bg-emerald-600 text-white" : "bg-amber-600 text-white")}>
-                       {pkiStatus === 'connected' ? (isAr ? "نشط وآمن" : "Active & Secure") : (isAr ? "غير متصل" : "Not Linked")}
-                     </Badge>
-                   </CardHeader>
-                   
+               {/* Shrunk Thiqa Card with Larger Background Pattern */}
+               <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative group">
+                 {/* Matrix All Pattern - Larger than the card */}
+                 <div className="absolute -inset-16 dm-pattern-matrix-all opacity-20 pointer-events-none scale-110 -z-10 group-hover:scale-125 transition-transform duration-1000" />
+                 
+                 <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.15)] rounded-[3rem] bg-white/90 backdrop-blur-sm relative overflow-hidden flex flex-col border-t-[12px] border-primary">
+                   {/* Combined content to shrink the overall card height */}
                    <CardContent className="p-10 space-y-8 relative z-10">
-                     <div className="flex justify-center py-8 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 relative group transition-all hover:bg-white hover:border-accent/40">
-                        <div className="relative w-64 h-24">
+                     <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                         <div className="p-3.5 rounded-2xl bg-primary text-white shadow-xl">
+                           <Fingerprint className="size-8" />
+                         </div>
+                         <div>
+                           <h4 className="font-black text-lg text-primary">{isAr ? "الهوية الرقمية (ثقة)" : "Neural ID (Theqa)"}</h4>
+                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isAr ? "المصادقة الموحدة" : "Unified Auth"}</p>
+                         </div>
+                       </div>
+                       <Badge className={cn("rounded-full border-none px-4 py-1.5 font-black text-[9px] transition-all", pkiStatus === 'connected' ? "bg-emerald-600 text-white" : "bg-amber-600 text-white")}>
+                         {pkiStatus === 'connected' ? (isAr ? "نشط" : "Active") : (isAr ? "مفصول" : "Linked")}
+                       </Badge>
+                     </div>
+
+                     <div className="flex justify-center py-6 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 relative group transition-all hover:bg-white hover:border-accent/40">
+                        <div className="relative w-48 h-16">
                            <Image 
                              src="https://gov.om/documents/20117/254616/FLIPPED-Theqa-HomePage.png/3a21164e-8832-38df-f66b-6780161591d2?t=1788817339796"
                              alt="Theqa"
@@ -194,21 +198,20 @@ export default function DhofarPortal() {
                            />
                         </div>
                      </div>
+                     
                      <div className="space-y-6">
-                        <p className="text-md text-slate-700 font-bold leading-loose text-center">
+                        <p className="text-sm text-slate-700 font-bold leading-relaxed text-center">
                           {isAr 
                             ? "نظام ثقة يمنحك وصولاً فورياً لكافة الخدمات الحكومية دون الحاجة لإدخال بياناتك يدوياً."
                             : "Theqa provides instant, secure access to all e-services without manual data entry."}
                         </p>
-                        <div className="flex flex-col gap-4">
-                          <Button 
-                            className="w-full h-16 dm-gradient-primary rounded-2xl font-black shadow-2xl gap-4 text-lg"
-                            onClick={() => setPkiStatus(pkiStatus === 'connected' ? 'disconnected' : 'connected')}
-                          >
-                            <Fingerprint size={24} />
-                            {isAr ? "تسجيل دخول رقمي آمن" : "Secure Digital Sign-In"}
-                          </Button>
-                        </div>
+                        <Button 
+                          className="w-full h-16 dm-gradient-primary rounded-2xl font-black shadow-2xl gap-4 text-lg"
+                          onClick={() => setPkiStatus(pkiStatus === 'connected' ? 'disconnected' : 'connected')}
+                        >
+                          <Fingerprint size={24} />
+                          {isAr ? "دخول رقمي آمن" : "Secure Sign-In"}
+                        </Button>
                      </div>
                    </CardContent>
                  </Card>
