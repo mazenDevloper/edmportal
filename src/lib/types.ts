@@ -96,7 +96,11 @@ export interface BuilderComponent {
   type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator' | 'table' | 'progress' | 'avatar' | 'badge' | 'html' | 'stepper' | 'tabs' | 'cards_scroller' | 'style';
   content: any;
   customCss?: string;
-  gridSpan?: number; // 3 = 25%, 4 = 33%, 6 = 50%, 9 = 75%, 12 = 100%
+  gridSpan?: number; 
+  gridHeight?: string; // 'auto' | 'sm' | 'md' | 'lg' | 'full' | 'custom'
+  customWidth?: string; 
+  customHeight?: string;
+  codeType?: 'html' | 'react' | 'dotnet';
 }
 
 export interface CustomPage {
