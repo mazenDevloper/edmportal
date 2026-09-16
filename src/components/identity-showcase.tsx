@@ -66,6 +66,15 @@ export function IdentityShowcase({ isAr, onViewCode, onViewCss }: ShowcaseProps)
 
   const LIBRARY = useMemo(() => {
     return [
+      // NEW POLYGON PATTERN
+      {
+        id: 'pattern-polygon-custom', category: 'patterns', name: isAr ? 'نمط البطاقة المضلعة' : 'Custom Polygon Pattern',
+        render: <div className="w-64 h-80 rounded-[2rem] border dm-pattern-polygon-card relative overflow-hidden flex flex-col justify-end p-6"><Badge className="bg-white/80 backdrop-blur-md text-primary w-fit">Custom SVG Pattern</Badge></div>,
+        codeReact: `<div className="dm-pattern-polygon-card" />`,
+        codeHtml: `<div class="dm-pattern-polygon-card"></div>`,
+        codeDotNet: `string Pattern = "CustomPolygon";`,
+        codeCss: `.dm-pattern-polygon-card { background-image: url(...); }`
+      },
       // PATTERNS FROM IMAGE
       {
         id: 'pattern-chevron', category: 'patterns', name: isAr ? 'نمط الأقواس (شيفرون)' : 'Chevron Pattern',
