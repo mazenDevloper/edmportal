@@ -7,7 +7,7 @@ import { PortalFooter } from '@/components/portal-footer';
 import { IdentityShowcase } from '@/components/identity-showcase';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
-import { Palette, Box, Code2, Braces, Globe, Copy, Check } from 'lucide-react';
+import { Palette, Box, Code2, Braces, Globe, Copy, Check, LayoutPanelTop } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,27 +33,26 @@ export default function IdentityPage() {
   };
 
   return (
-    <div className={cn("min-h-screen bg-[#F8FAFC]", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
+    <div className={cn("min-h-screen bg-[#F0F2FA]", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={[]} />
       
-      <main className="py-16">
-        <div className="max-w-7xl mx-auto px-6 mb-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-12 bg-white rounded-[3.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden">
-            <div className="relative z-10 space-y-4 text-center md:text-right">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 text-accent font-black text-[10px] uppercase tracking-widest mx-auto md:mx-0">
-                <Box size={14} /> {isAr ? 'نظام التصميم الرقمي لبلدية ظفار' : 'Dhofar Municipality Digital Design System'}
+      <main className="py-12">
+        <div className="max-w-[1400px] mx-auto px-6 mb-12">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-10 bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] border border-white/50 relative overflow-hidden">
+            <div className="relative z-10 space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary font-black text-[10px] uppercase tracking-widest">
+                <LayoutPanelTop size={14} /> {isAr ? 'نظام التصميم الرقمي لبلدية ظفار' : 'Dhofar Municipality UI Kit v4.0'}
               </div>
-              <h1 className="text-5xl md:text-7xl font-black text-primary tracking-tighter leading-none">
-                {isAr ? 'معرض المكونات الذكي' : 'Smart Component Matrix'}
+              <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tighter leading-none">
+                {isAr ? 'مكونات الواجهة الموحدة' : 'Unified UI Matrix'}
               </h1>
-              <p className="text-lg font-bold text-slate-400 max-w-2xl leading-relaxed">
-                {isAr ? 'استكشف وانسخ أكثر من 40 مكوناً هندسياً مبنياً وفق أعلى معايير النفاذ الرقمي والهوية البصرية العمانية.' : 'Explore and copy 40+ engineered components built with Omani visual identity and accessibility standards.'}
+              <p className="text-md font-bold text-slate-400 max-w-xl leading-relaxed">
+                {isAr ? 'استكشف أكثر من 40 مكوناً ذكياً تم تصميمها هندسياً لخدمة مواطني محافظة ظفار وفق أرقى المعايير.' : 'Explore 40+ smart components engineered for Dhofar Governorate citizens with premium standards.'}
               </p>
             </div>
-            <div className="relative z-10 size-40 rounded-[3rem] bg-primary text-white flex items-center justify-center shadow-2xl rotate-6 group hover:rotate-0 transition-transform duration-500">
-              <Palette size={70} className="group-hover:scale-110 transition-transform" />
+            <div className="relative z-10 size-32 rounded-[2.5rem] bg-accent text-slate-900 flex items-center justify-center shadow-2xl rotate-3 group hover:rotate-0 transition-transform duration-500">
+              <Palette size={50} className="group-hover:scale-110 transition-transform" />
             </div>
-            <div className="absolute top-0 right-0 w-full h-full dm-wave-5 opacity-5 pointer-events-none" />
           </div>
         </div>
 
@@ -85,7 +84,7 @@ export default function IdentityPage() {
                 <TabsList className="bg-white/5 border-none p-1 rounded-xl mb-6 h-12">
                   <TabsTrigger value="react" className="font-black gap-2 h-10 px-6">React (TSX)</TabsTrigger>
                   <TabsTrigger value="html" className="font-black gap-2 h-10 px-6">HTML / Tailwind</TabsTrigger>
-                  <TabsTrigger value="dotnet" className="font-black gap-2 h-10 px-6">.NET / Structure</TabsTrigger>
+                  <TabsTrigger value="dotnet" className="font-black gap-2 h-10 px-6">.NET Model</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="react" className="relative group">

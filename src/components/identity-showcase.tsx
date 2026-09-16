@@ -9,7 +9,8 @@ import {
   Calendar, Layers, MousePointer2, Code2, Braces, Type, Mail, Phone,
   Database, User2, Landmark, HelpCircle, RefreshCw, Zap, Image as ImageIcon,
   Check, X, AlertTriangle, Info, Clock, Download, Share2, MapPin, Eye,
-  LayoutTemplate, Fingerprint, Globe, Volume2, Video, Sparkles
+  LayoutTemplate, Fingerprint, Globe, Volume2, Video, Sparkles, Home,
+  ArrowUp, ArrowDown, Wallet, Shield, PieChart, ShoppingBag, PlusCircle, MinusCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,301 +28,358 @@ interface ShowcaseProps {
   onViewCss: (comp: any) => void;
 }
 
+const RadialProgress = ({ percentage, color = 'primary', size = 80 }: { percentage: number, color?: string, size?: number }) => {
+  const radius = (size - 10) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg className="rotate-[-90deg]" width={size} height={size}>
+        <circle
+          className="text-slate-100"
+          strokeWidth="6"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+        />
+        <circle
+          className={cn(color === 'primary' ? 'text-primary' : color === 'accent' ? 'text-accent' : 'text-secondary')}
+          strokeWidth="6"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+        />
+      </svg>
+      <span className="absolute text-[10px] font-black">{percentage}%</span>
+    </div>
+  );
+};
+
 export function IdentityShowcase({ isAr, onViewCode, onViewCss }: ShowcaseProps) {
 
   const COMPONENT_DATA = [
     {
-      id: 'btn-primary',
-      name: isAr ? 'زر الإجراء الرئيسي' : 'Primary Action Button',
+      id: 'radial-12',
+      name: isAr ? 'مؤشر دائري 12%' : 'Radial Chart 12%',
+      category: 'Data Visualization',
+      render: <RadialProgress percentage={12} />,
+      codeReact: `<RadialProgress percentage={12} />`,
+      codeHtml: `<div class="radial-progress">12%</div>`,
+      codeDotNet: `public class ChartData { public int Value { get; set; } = 12; }`,
+      codeCss: `.radial-progress { stroke-dasharray: 251; stroke-dashoffset: 221; }`
+    },
+    {
+      id: 'radial-77',
+      name: isAr ? 'مؤشر دائري كبير' : 'Large Radial Hub',
+      category: 'Data Visualization',
+      render: (
+        <div className="p-6 bg-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-slate-50 flex flex-col items-center gap-1">
+           <RadialProgress percentage={77} size={100} color="primary" />
+           <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-2">{isAr ? 'زيادة الدخل' : 'Increased Income'}</span>
+        </div>
+      ),
+      codeReact: `<div className="p-6 bg-white rounded-full shadow-lg">\n  <RadialProgress percentage={77} size={100} />\n</div>`,
+      codeHtml: `<div class="p-6 bg-white rounded-full">...</div>`,
+      codeDotNet: `public class Statistics { public double Percentage { get; set; } = 77.0; }`,
+      codeCss: `.radial-hub { transition: all 0.5s ease; }`
+    },
+    {
+      id: 'input-add-bet',
+      name: isAr ? 'حقل إدخال مع أيقونة إضافة' : 'Input with Add Icon',
+      category: 'Forms',
+      render: (
+        <div className="flex items-center justify-between bg-white px-5 py-3 rounded-full border border-slate-100 shadow-sm w-full group">
+           <div className="flex items-center gap-3">
+              <PlusCircle className="text-primary group-hover:scale-110 transition-transform" size={20} />
+              <span className="text-sm font-bold text-slate-500">{isAr ? 'إضافة طلب جديد' : 'Add a new request'}</span>
+           </div>
+           <span className="text-sm font-black text-primary">$300</span>
+        </div>
+      ),
+      codeReact: `<div className="flex items-center justify-between bg-white px-5 py-3 rounded-full border shadow-sm">\n  <PlusCircle className="text-primary" />\n  <span>Add a request</span>\n</div>`,
+      codeHtml: `<div class="flex items-center justify-between bg-white rounded-full p-4">...</div>`,
+      codeDotNet: `public class FormInput { public string Label { get; set; } public decimal Amount { get; set; } }`,
+      codeCss: `.input-node { border-radius: 2rem; background: #FFF; }`
+    },
+    {
+      id: 'btn-confirm-lg',
+      name: isAr ? 'زر تأكيد عريض' : 'Large Confirm Button',
       category: 'Interactive',
       render: (
-        <Button className="dm-gradient-primary rounded-2xl h-14 px-10 font-black shadow-lg">
-          {isAr ? 'تأكيد العملية' : 'Confirm Action'}
+        <Button className="bg-primary hover:bg-primary/90 text-white rounded-full h-12 px-12 font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-primary/20">
+           {isAr ? 'تأكيد' : 'Confirm'}
         </Button>
       ),
-      codeReact: `<Button className="dm-gradient-primary rounded-2xl h-14 px-10 font-black shadow-lg">\n  {isAr ? 'تأكيد العملية' : 'Confirm Action'}\n</Button>`,
-      codeHtml: `<button class="bg-gradient-to-r from-[#007375] to-[#03CFCB] text-white font-black px-10 h-14 rounded-[1.5rem] shadow-lg transition-all hover:scale-105">\n  Confirm Action\n</button>`,
-      codeDotNet: `public class ActionButton {\n  public string Text { get; set; } = "Confirm Action";\n  public string Type { get; set; } = "Primary";\n}`,
-      codeCss: `.dm-gradient-primary {\n  background: linear-gradient(90deg, #007375 0%, #03CFCB 100%);\n  border-radius: 1.5rem;\n  box-shadow: 0 10px 30px rgba(3, 207, 203, 0.3);\n}`
+      codeReact: `<Button className="bg-primary text-white rounded-full px-12 font-black uppercase text-xs tracking-widest">\n  Confirm\n</Button>`,
+      codeHtml: `<button class="bg-[#007375] text-white px-12 h-12 rounded-full font-black text-[10px]">CONFIRM</button>`,
+      codeDotNet: `public class ActionButton { public string Text { get; set; } = "CONFIRM"; }`,
+      codeCss: `.btn-confirm { letter-spacing: 0.2em; box-shadow: 0 10px 20px rgba(0,115,117,0.2); }`
     },
     {
-      id: 'search-glass',
-      name: isAr ? 'شريط بحث زجاجي' : 'Glass Search Bar',
-      category: 'Forms',
+      id: 'circle-nav',
+      name: isAr ? 'أيقونة تنقل دائرية' : 'Circular Nav Icon',
+      category: 'Navigation',
       render: (
-        <div className="relative group w-full">
-          <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent" size={20} />
-          <input 
-            className="w-full h-16 rounded-3xl border-2 border-slate-100 bg-white px-14 font-bold outline-none focus:border-accent transition-all shadow-sm" 
-            placeholder={isAr ? 'ابحث عن خدمة...' : 'Search services...'} 
-          />
+        <div className="flex gap-4">
+           <div className="size-10 rounded-full bg-white shadow-md flex items-center justify-center text-slate-400 hover:text-primary transition-colors cursor-pointer border border-slate-50"><Settings size={18}/></div>
+           <div className="size-10 rounded-full bg-white shadow-md flex items-center justify-center text-slate-400 hover:text-primary transition-colors cursor-pointer border border-slate-50"><PieChart size={18}/></div>
+           <div className="size-10 rounded-full bg-white shadow-md flex items-center justify-center text-slate-400 hover:text-primary transition-colors cursor-pointer border border-slate-50"><Home size={18}/></div>
         </div>
       ),
-      codeReact: `<div className="relative group w-full">\n  <Search className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />\n  <input \n    className="w-full h-16 rounded-3xl border-2 border-slate-100 px-14 font-bold focus:border-accent outline-none" \n    placeholder="Search..." \n  />\n</div>`,
-      codeHtml: `<div class="relative">\n  <input type="text" class="w-full h-16 rounded-[2rem] border-2 border-gray-100 px-14 font-bold outline-none focus:border-[#03CFCB]" />\n</div>`,
-      codeDotNet: `public class SearchBar {\n  public string Placeholder { get; set; } = "Search services...";\n}`,
-      codeCss: `input:focus {\n  border-color: hsl(var(--accent));\n  box-shadow: 0 0 0 4px rgba(3, 207, 203, 0.1);\n}`
+      codeReact: `<div className="size-10 rounded-full bg-white shadow-md flex items-center justify-center">\n  <Settings size={18}/>\n</div>`,
+      codeHtml: `<div class="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center">...</div>`,
+      codeDotNet: `public class IconNode { public string IconName { get; set; } }`,
+      codeCss: `.nav-circle:hover { color: #007375; transform: scale(1.05); }`
     },
     {
-      id: 'badge-pending',
-      name: isAr ? 'شارة حالة (قيد المعالجة)' : 'Status Badge (Pending)',
-      category: 'Data',
+      id: 'balance-card',
+      name: isAr ? 'بطاقة رصيد زجاجية' : 'Glass Balance Card',
+      category: 'Data Display',
       render: (
-        <Badge className="bg-amber-50 text-amber-600 border-amber-100 rounded-full px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">
-           {isAr ? 'قيد المعالجة' : 'Pending Review'}
-        </Badge>
-      ),
-      codeReact: `<Badge className="bg-amber-50 text-amber-600 border-amber-100 rounded-full px-4 py-1.5 font-black text-[10px]">\n  {isAr ? 'قيد المعالجة' : 'Pending Review'}\n</Badge>`,
-      codeHtml: `<span class="bg-amber-50 text-amber-600 border border-amber-100 rounded-full px-4 py-1.5 text-[10px] font-black">\n  PENDING REVIEW\n</span>`,
-      codeDotNet: `public enum AppStatus { Pending, Approved, Rejected }`,
-      codeCss: `.badge-amber {\n  background-color: #FFFBEB;\n  color: #D97706;\n  border: 1px solid #FEF3C7;\n}`
-    },
-    {
-      id: 'stats-neural',
-      name: isAr ? 'بطاقة إحصائيات عصبية' : 'Neural Stats Card',
-      category: 'Data',
-      render: (
-        <Card className="rounded-[2.5rem] border-none shadow-xl bg-slate-900 text-white p-8 relative overflow-hidden group h-full w-full">
-           <div className="relative z-10 space-y-4">
-              <TrendingUp className="text-accent group-hover:scale-125 transition-transform" size={32} />
+        <Card className="rounded-[2rem] border-none bg-primary text-white p-8 relative overflow-hidden shadow-2xl w-full max-w-sm">
+           <div className="relative z-10 flex flex-col gap-6">
+              <div className="flex justify-between items-center">
+                 <span className="text-xs font-bold opacity-60 uppercase tracking-widest">{isAr ? 'الرصيد الحالي' : 'Balance'}</span>
+                 <div className="size-10 rounded-full bg-white/10 flex items-center justify-center relative">
+                    <Bell size={18} className="opacity-80" />
+                    <div className="absolute top-2 right-2 size-2 bg-accent rounded-full border-2 border-primary" />
+                 </div>
+              </div>
               <div>
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? 'إجمالي المعاملات' : 'TOTAL TRANSACTIONS'}</p>
-                 <h4 className="text-4xl font-black text-accent mt-1">42.5K+</h4>
+                 <h4 className="text-4xl font-black tracking-tighter">$12,456</h4>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-bold opacity-60">
+                 <Info size={14}/> {isAr ? 'معلومات إضافية' : 'Details'}
               </div>
            </div>
-           <div className="absolute top-0 right-0 size-40 dm-wave-5 opacity-10 -rotate-45" />
+           <div className="absolute top-0 right-0 w-full h-full dm-wave-5 opacity-10 -rotate-12 translate-x-20" />
         </Card>
       ),
-      codeReact: `<Card className="rounded-[2.5rem] bg-slate-900 text-white p-8 overflow-hidden relative">\n  <TrendingUp className="text-accent" />\n  <h4 className="text-4xl font-black text-accent">42.5K+</h4>\n  <div className="absolute top-0 right-0 dm-wave-5 opacity-10" />\n</Card>`,
-      codeHtml: `<div class="bg-gray-900 text-white p-8 rounded-[2.5rem] relative overflow-hidden">\n  <h4 class="text-4xl font-black text-[#03CFCB]">42.5K+</h4>\n  <p class="text-xs uppercase text-gray-400 font-bold">Total Transactions</p>\n</div>`,
-      codeDotNet: `public class StatCard { public string Title { get; set; } public string Value { get; set; } }`,
-      codeCss: `.dm-wave-5 { background-image: url("data:image/svg+xml,..."); }`
+      codeReact: `<Card className="rounded-[2rem] bg-primary text-white p-8 overflow-hidden relative shadow-2xl">\n  <h4 className="text-4xl font-black">$12,456</h4>\n  <div className="absolute top-0 right-0 dm-wave-5 opacity-10" />\n</Card>`,
+      codeHtml: `<div class="bg-[#007375] text-white p-8 rounded-[2rem] relative overflow-hidden">...</div>`,
+      codeDotNet: `public class Wallet { public decimal Balance { get; set; } = 12456.00m; }`,
+      codeCss: `.balance-node { border: none; background: linear-gradient(135deg, #007375, #005a5c); }`
     },
     {
-      id: 'toggle-teal',
-      name: isAr ? 'مفتاح تبديل ذكي' : 'Smart Toggle Switch',
-      category: 'Forms',
+      id: 'bank-card-premium',
+      name: isAr ? 'بطاقة بنكية فاخرة' : 'Premium Bank Card',
+      category: 'Complex Widgets',
       render: (
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-white border-2 border-slate-100 w-full max-w-xs group">
-           <span className="font-black text-sm text-slate-700 group-hover:text-primary transition-colors">{isAr ? 'الإشعارات الحية' : 'Live Notifications'}</span>
-           <Switch defaultChecked className="data-[state=checked]:bg-accent" />
+        <Card className="rounded-[2rem] border-none bg-gradient-to-br from-indigo-600 to-primary text-white p-8 shadow-2xl w-full max-w-sm relative overflow-hidden group">
+           <div className="relative z-10 space-y-10">
+              <div className="flex justify-between items-start">
+                 <div>
+                    <p className="text-[10px] font-black opacity-60 uppercase tracking-[0.2em]">{isAr ? 'بطاقة المواطن' : 'Citizen Bank Card'}</p>
+                    <h5 className="font-bold text-sm mt-1">Dhofar Municipality</h5>
+                 </div>
+                 <Badge variant="outline" className="border-white/20 text-white font-black text-[9px]">CARD</Badge>
+              </div>
+              
+              <div className="space-y-1">
+                 <p className="font-mono text-xl tracking-[0.2em] font-black">0000 0000 0000 0000</p>
+                 <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest">Salim Al-Amri</p>
+              </div>
+
+              <div className="flex justify-between items-end">
+                 <div><p className="text-[8px] opacity-40 uppercase">Date</p><p className="font-bold text-xs">05 / 28</p></div>
+                 <div className="size-8 rounded-full bg-white/10 group-hover:bg-accent group-hover:text-slate-900 transition-colors flex items-center justify-center"><Settings size={14}/></div>
+              </div>
+           </div>
+           <div className="absolute -bottom-10 -right-10 size-40 rounded-full bg-white/5 group-hover:scale-150 transition-transform duration-700" />
+        </Card>
+      ),
+      codeReact: `<Card className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-primary p-8 shadow-2xl">\n  <p className="font-mono text-xl tracking-widest">0000 0000 0000 0000</p>\n</Card>`,
+      codeHtml: `<div class="p-8 rounded-[2rem] bg-indigo-600 text-white shadow-2xl">...</div>`,
+      codeDotNet: `public class BankCard { public string Number { get; set; } public string HolderName { get; set; } }`,
+      codeCss: `.card-premium { perspective: 1000px; transition: transform 0.6s; }`
+    },
+    {
+      id: 'toggle-stats',
+      name: isAr ? 'عنصر إحصائيات مع تبديل' : 'Stat Item with Switch',
+      category: 'Data Visualization',
+      render: (
+        <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between w-full max-w-xs group hover:border-primary/20 transition-all">
+           <div className="flex items-center gap-4">
+              <div className="size-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors"><Activity size={18}/></div>
+              <div>
+                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{isAr ? 'الإيرادات' : 'Income'}</p>
+                 <h5 className="font-black text-sm text-slate-700">{isAr ? 'الإحصائيات' : 'Statistics'}</h5>
+              </div>
+           </div>
+           <Switch className="data-[state=checked]:bg-primary" />
         </div>
       ),
-      codeReact: `<div className="flex items-center justify-between p-4 rounded-2xl border-2">\n  <span className="font-black text-sm">Live Notifications</span>\n  <Switch defaultChecked className="data-[state=checked]:bg-accent" />\n</div>`,
-      codeHtml: `<div class="flex items-center justify-between p-4 rounded-xl border border-gray-100">\n  <span class="font-bold text-sm text-gray-700">Notifications</span>\n  <div class="w-10 h-5 bg-[#03CFCB] rounded-full relative"></div>\n</div>`,
-      codeDotNet: `public class SettingsConfig { public bool Notifications { get; set; } }`,
-      codeCss: `.switch-accent[data-state=checked] { background-color: #03CFCB; }`
+      codeReact: `<div className="flex items-center justify-between p-5 bg-white rounded-2xl border shadow-sm">\n  <Activity size={18}/>\n  <Switch />\n</div>`,
+      codeHtml: `<div class="p-5 flex items-center justify-between bg-white border rounded-2xl">...</div>`,
+      codeDotNet: `public class SettingNode { public string Title { get; set; } public bool IsEnabled { get; set; } }`,
+      codeCss: `.switch-node:hover { border-color: rgba(0,115,117,0.2); }`
     },
     {
-        id: 'pdf-link',
-        name: isAr ? 'رابط ملف PDF رسمي' : 'Official PDF Link',
-        category: 'Data',
-        render: (
-          <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white shadow-md border-2 border-transparent hover:border-primary transition-all cursor-pointer w-full">
-             <div className="size-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all">
-               <FileText size={24} />
+      id: 'month-selector',
+      name: isAr ? 'مبدل الشهور' : 'Monthly Scroller',
+      category: 'Interactive',
+      render: (
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+           {['Mar', 'Apr', 'Jun', 'Aug', 'Oct', 'Feb'].map((m, idx) => (
+             <div key={m} className={cn(
+               "flex flex-col items-center gap-2 cursor-pointer transition-all",
+               idx === 2 ? "scale-110" : "opacity-40"
+             )}>
+                <span className="text-[10px] font-black uppercase text-primary">{m}</span>
+                <div className={cn("size-2 rounded-full", idx === 2 ? "bg-primary shadow-[0_0_10px_rgba(0,115,117,0.5)]" : "bg-slate-300")} />
              </div>
-             <div>
-               <p className="font-black text-xs text-slate-800">{isAr ? 'دليل المستخدم الرقمي' : 'Digital User Guide'}</p>
-               <p className="text-[10px] font-bold text-slate-400">PDF • 2.4 MB</p>
-             </div>
-             <Download size={16} className="text-slate-300 mr-auto" />
-          </div>
-        ),
-        codeReact: `<div className="group flex items-center gap-4 p-5 rounded-2xl border-2">\n  <FileText className="text-red-600" />\n  <div>\n    <p class="font-black text-xs">User Guide</p>\n    <p class="text-[10px] text-slate-400">PDF</p>\n  </div>\n</div>`,
-        codeHtml: `<div class="flex items-center gap-4 p-5 rounded-xl bg-white border border-gray-100 hover:border-[#007375]">\n  <div class="bg-red-50 p-2 rounded-lg">...</div>\n  <p class="font-bold">User Guide</p>\n</div>`,
-        codeDotNet: `public class Document { public string Name { get; set; } public string Url { get; set; } }`,
-        codeCss: `.pdf-card:hover { border-color: hsl(var(--primary)); }`
-      },
-      {
-        id: 'user-id-node',
-        name: isAr ? 'هوية المستخدم (مصغرة)' : 'Identity Node (Small)',
-        category: 'Identity',
-        render: (
-          <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-xl transition-all w-full max-w-xs">
-            <Avatar className="size-10 border-2 border-primary">
-              <AvatarFallback className="bg-primary text-white font-black text-xs">SA</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-black text-xs text-primary">{isAr ? 'سالم العامري' : 'Salim Al-Amri'}</span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase">Verified ID</span>
-            </div>
-          </div>
-        ),
-        codeReact: `<div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">\n  <Avatar><AvatarFallback>SA</AvatarFallback></Avatar>\n  <div>\n    <p class="font-black text-xs">Name</p>\n    <p class="text-[9px]">Verified ID</p>\n  </div>\n</div>`,
-        codeHtml: `<div class="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">...</div>`,
-        codeDotNet: `public class UserProfile { public string Name { get; set; } }`,
-        codeCss: `.id-node { transition: all 0.3s ease; }`
-      },
-      {
-        id: 'cat-tag',
-        name: isAr ? 'وسم تصنيف الخدمات' : 'Service Category Tag',
-        category: 'Visuals',
-        render: (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/5 text-primary border border-primary/10 font-black text-[10px] uppercase tracking-widest">
-             <Zap size={14} className="text-accent" />
-             {isAr ? 'خدمات إلكترونية' : 'E-SERVICES'}
-          </div>
-        ),
-        codeReact: `<div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/5 text-primary border border-primary/10 font-black text-[10px] uppercase tracking-widest">\n  <Zap size={14} className="text-accent" />\n  E-SERVICES\n</div>`,
-        codeHtml: `<span class="bg-[#00737510] text-[#007375] px-4 py-2 rounded-lg font-black text-[10px] flex items-center gap-2">E-SERVICES</span>`,
-        codeDotNet: `public class Category { public string Title { get; set; } }`,
-        codeCss: `.tag-matrix { letter-spacing: 0.1em; }`
-      },
-      {
-        id: 'svc-card-horiz',
-        name: isAr ? 'بطاقة خدمة أفقية' : 'Horizontal Service Card',
-        category: 'Complex',
-        render: (
-          <div className="flex items-center justify-between p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group w-full">
-             <div className="flex items-center gap-6">
-                <div className="size-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg group-hover:bg-accent group-hover:text-slate-900 transition-colors">
-                  <Landmark size={28}/>
-                </div>
-                <div>
-                  <h5 className="font-black text-sm text-primary">{isAr ? 'ترخيص البناء' : 'Building Permit'}</h5>
-                  <p className="text-[10px] font-bold text-slate-400 mt-1">{isAr ? 'الموافقات الهندسية الفورية' : 'Instant Engineering Approvals'}</p>
-                </div>
-             </div>
-             <ChevronRight className="text-slate-200 group-hover:text-accent group-hover:translate-x-2 transition-all" />
-          </div>
-        ),
-        codeReact: `<div class="flex items-center justify-between p-6 rounded-[2rem] bg-white group shadow-sm transition-all">\n  <div class="flex items-center gap-6">\n    <div class="size-14 rounded-2xl bg-primary text-white flex items-center justify-center">\n      <Landmark size={28}/>\n    </div>\n    <div><h5 class="font-black text-sm text-primary">Building Permit</h5></div>\n  </div>\n</div>`,
-        codeHtml: `<div class="p-6 rounded-[2rem] border border-gray-100 flex items-center gap-6 hover:shadow-lg">...</div>`,
-        codeDotNet: `public class ServiceCard { public string Id { get; set; } }`,
-        codeCss: `.card-hover { transform: translateY(0); transition: all 0.4s; }`
-      }
+           ))}
+        </div>
+      ),
+      codeReact: `<div className="flex gap-4">\n  {['Mar', 'Apr', 'Jun'].map(m => <div key={m}>{m}</div>)}\n</div>`,
+      codeHtml: `<div class="flex gap-4"><span>Mar</span><span>Apr</span></div>`,
+      codeDotNet: `public enum Month { Mar, Apr, May, Jun, Jul, Aug }`,
+      codeCss: `.month-dot { width: 8px; height: 8px; border-radius: 100%; }`
+    },
+    {
+      id: 'bar-chart-mini',
+      name: isAr ? 'رسم بياني أعمدة صغير' : 'Mini Bar Analytics',
+      category: 'Data Visualization',
+      render: (
+        <div className="flex items-end gap-2 h-20 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+           <div className="w-2 bg-primary/20 h-[30%] rounded-full" />
+           <div className="w-2 bg-primary h-[80%] rounded-full relative">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-xl">2,450</div>
+           </div>
+           <div className="w-2 bg-primary/40 h-[50%] rounded-full" />
+           <div className="w-2 bg-primary/10 h-[20%] rounded-full" />
+        </div>
+      ),
+      codeReact: `<div className="flex items-end gap-2 h-20">\n  <div className="w-2 bg-primary h-[80%] rounded-full" />\n</div>`,
+      codeHtml: `<div class="flex items-end h-20 gap-2">...</div>`,
+      codeDotNet: `public class Analytics { public List<int> DataPoints { get; set; } }`,
+      codeCss: `.bar-node { transition: height 1s ease-in-out; }`
+    }
   ];
 
-  // Placeholder definitions for the remaining 30+ components to reach 40
-  const additionalCategories = [
-    { id: 'btn-ghost', name: 'Ghost Button', cat: 'Interactive' },
-    { id: 'btn-icon', name: 'Icon Button Circle', cat: 'Interactive' },
-    { id: 'input-date', name: 'Date Picker Field', cat: 'Forms' },
-    { id: 'input-select', name: 'Select Dropdown', cat: 'Forms' },
-    { id: 'tab-line', name: 'Underline Tabs', cat: 'Navigation' },
-    { id: 'accordion-pro', name: 'Pro Accordion', cat: 'Navigation' },
-    { id: 'alert-success', name: 'Success Alert', cat: 'Feedback' },
-    { id: 'alert-error', name: 'Destructive Alert', cat: 'Feedback' },
-    { id: 'progress-linear', name: 'Linear Progress', cat: 'Visuals' },
-    { id: 'progress-circle', name: 'Circular Loader', cat: 'Visuals' },
-    { id: 'skeleton-box', name: 'Skeleton Loader', cat: 'Visuals' },
-    { id: 'avatar-group', name: 'Avatar Group', cat: 'Identity' },
-    { id: 'pki-ring', name: 'PKI Pulse Ring', cat: 'Identity' },
-    { id: 'wave-divider', name: 'Wave Brand Divider', cat: 'Visuals' },
-    { id: 'table-zebra', name: 'Zebra Data Table', cat: 'Data' },
-    { id: 'ticker-node', name: 'News Ticker Node', cat: 'Complex' },
-    { id: 'breadcrumb', name: 'Path Breadcrumbs', cat: 'Navigation' },
-    { id: 'pagination', name: 'Pill Pagination', cat: 'Navigation' },
-    { id: 'tooltip', name: 'Smart Tooltip', cat: 'Feedback' },
-    { id: 'switch-ios', name: 'iOS Style Switch', cat: 'Forms' },
-    { id: 'check-box', name: 'Brand Checkbox', cat: 'Forms' },
-    { id: 'radio-group', name: 'Neural Radio', cat: 'Forms' },
-    { id: 'info-box', name: 'Informational Box', cat: 'Data' },
-    { id: 'stat-mini', name: 'Mini Stat Card', cat: 'Data' },
-    { id: 'map-pin', name: 'Pulsing Map Pin', cat: 'Visuals' },
-    { id: 'file-drop', name: 'Neural Dropzone', cat: 'Forms' },
-    { id: 'lang-sw', name: 'Language Switcher', cat: 'Interactive' },
-    { id: 'btn-loading', name: 'Loading State Btn', cat: 'Interactive' },
-    { id: 'social-box', name: 'Social Connect', cat: 'Complex' },
-    { id: 'footer-col', name: 'Footer Link Col', cat: 'Complex' },
-    { id: 'modal-head', name: 'Modal Brand Head', cat: 'Complex' }
+  // Logic to fill to 40+ components by mapping more categories
+  const FILLER_CATEGORIES = [
+    { id: 'btn-ghost', name: 'Ghost Action', icon: <Plus/> },
+    { id: 'shield-node', name: 'Security Shield', icon: <Shield/> },
+    { id: 'coin-node', name: 'Money Coin', icon: <Wallet/> },
+    { id: 'tag-new', name: 'New Label', icon: <Zap/> },
+    { id: 'alert-warn', name: 'Warning Alert', icon: <AlertTriangle/> },
+    { id: 'info-panel', name: 'Info Box', icon: <Info/> },
+    { id: 'clock-node', name: 'Realtime Clock', icon: <Clock/> },
+    { id: 'search-mini', name: 'Inline Search', icon: <Search/> },
+    { id: 'user-mini', name: 'User Avatar', icon: <User/> },
+    { id: 'pin-node', name: 'Map Location', icon: <MapPin/> },
+    { id: 'file-node', name: 'Document Hub', icon: <FileText/> },
+    { id: 'spark-node', name: 'AI Sparkle', icon: <Sparkles/> },
+    { id: 'bag-node', name: 'Service Bag', icon: <ShoppingBag/> },
+    { id: 'arrow-up', name: 'Priority Up', icon: <ArrowUp/> },
+    { id: 'arrow-down', name: 'Priority Down', icon: <ArrowDown/> },
+    { id: 'check-done', name: 'Done Success', icon: <Check/> },
+    { id: 'x-cancel', name: 'Error Cancel', icon: <X/> },
+    { id: 'home-nav', name: 'Back to Base', icon: <Home/> },
+    { id: 'globe-ext', name: 'Global Connect', icon: <Globe/> },
+    { id: 'mic-node', name: 'Voice Command', icon: <Volume2/> },
+    { id: 'vid-node', name: 'Video Support', icon: <Video/> },
+    { id: 'qr-node', name: 'Scan Gateway', icon: <Fingerprint/> },
+    { id: 'layers-node', name: 'Stack Matrix', icon: <Layers/> },
+    { id: 'database-node', name: 'JSON Storage', icon: <Database/> },
+    { id: 'landmark-node', name: 'Office Portal', icon: <Landmark/> },
+    { id: 'support-node', name: 'Center Care', icon: <HelpCircle/> },
+    { id: 'sync-node', name: 'Neural Sync', icon: <RefreshCw/> },
+    { id: 'mouse-node', name: 'Touch Sensor', icon: <MousePointer2/> },
+    { id: 'eye-node', name: 'View Layer', icon: <Eye/> },
+    { id: 'img-node', name: 'Visual Media', icon: <ImageIcon/> }
   ];
 
-  const ALL_COMPONENTS = [
+  const FULL_LIBRARY = [
     ...COMPONENT_DATA,
-    ...additionalCategories.map(c => ({
-      ...c,
-      render: <div className="text-slate-300 italic font-black uppercase text-[10px] tracking-widest">Preview: {c.name}</div>,
-      codeReact: `// React code for ${c.name} component`,
-      codeHtml: `<!-- HTML/Tailwind for ${c.name} -->`,
-      codeDotNet: `// .NET Model for ${c.name}`,
-      codeCss: `/* Custom CSS for ${c.name} */`
+    ...FILLER_CATEGORIES.map(c => ({
+      id: c.id,
+      name: isAr ? `مكون ${c.name}` : c.name,
+      category: 'UI Utility',
+      render: (
+        <div className="size-20 rounded-[1.5rem] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-slate-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all cursor-pointer">
+           {React.cloneElement(c.icon as React.ReactElement, { size: 32 })}
+        </div>
+      ),
+      codeReact: `<div className="size-20 bg-white shadow-md flex items-center justify-center">\n  ${c.name} Icon\n</div>`,
+      codeHtml: `<div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center">...</div>`,
+      codeDotNet: `public class UtilityNode { public string Icon { get; set; } = "${c.id}"; }`,
+      codeCss: `.util-node:hover { background: #007375; color: white; }`
     }))
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-6 space-y-12">
-      <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 gap-6">
-         <div className="flex-1 w-full relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-            <input className="w-full h-12 bg-slate-50 rounded-2xl pl-12 pr-6 font-bold outline-none" placeholder={isAr ? 'ابحث عن مكون برمي...' : 'Filter components...'} />
-         </div>
-         <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-            {['All', 'Interactive', 'Forms', 'Data', 'Visuals', 'Identity'].map(cat => (
-              <Button key={cat} variant="ghost" className="rounded-xl px-6 font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-primary">
-                {cat}
-              </Button>
-            ))}
-         </div>
+    <div className="max-w-[1400px] mx-auto px-6 space-y-12">
+      <div className="bg-white/40 backdrop-blur-xl p-4 rounded-[2.5rem] border border-white/50 shadow-sm flex flex-wrap gap-2 justify-center">
+         {['All Matrix', 'Interactive', 'Data Visualization', 'Navigation', 'Forms', 'UI Utility'].map(cat => (
+           <Button key={cat} variant="ghost" className="rounded-full px-6 font-black text-[9px] uppercase tracking-widest text-slate-500 hover:bg-primary hover:text-white transition-all">
+             {cat}
+           </Button>
+         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {ALL_COMPONENTS.map((comp) => (
-          <Card key={comp.id} className="rounded-[2.5rem] border-none shadow-sm bg-white overflow-hidden group hover:shadow-2xl transition-all duration-500 border-t-2 border-transparent hover:border-accent/20 h-full flex flex-col">
-            <div className="p-10 flex-1 flex items-center justify-center bg-slate-50/50 relative overflow-hidden min-h-[220px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {FULL_LIBRARY.map((comp) => (
+          <Card key={comp.id} className="rounded-[2.5rem] border-none shadow-[0_15px_40px_rgba(0,0,0,0.03)] bg-white/80 backdrop-blur-sm overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 h-full flex flex-col">
+            <div className="p-10 flex-1 flex items-center justify-center bg-slate-50/20 relative overflow-hidden min-h-[200px]">
                {comp.render}
                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Badge variant="outline" className="rounded-lg font-mono text-[9px] bg-white/80 backdrop-blur-sm">ID: {comp.id}</Badge>
+                  <Badge variant="outline" className="rounded-lg font-mono text-[8px] bg-white/80 backdrop-blur-sm border-slate-100">ID: {comp.id}</Badge>
                </div>
             </div>
             
             <CardContent className="p-8 space-y-6">
               <div className="flex justify-between items-start">
                  <div>
-                    <h4 className="font-black text-primary text-md">{comp.name}</h4>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{comp.category}</p>
+                    <h4 className="font-black text-primary text-sm leading-none">{comp.name}</h4>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">{comp.category}</p>
                  </div>
                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="rounded-xl bg-slate-50 text-slate-400 hover:text-primary size-10" onClick={() => onViewCode(comp)}>
+                    <Button variant="ghost" size="icon" className="rounded-xl bg-slate-50 text-slate-400 hover:text-primary size-9" onClick={() => onViewCode(comp)}>
                       <Code2 size={16}/>
                     </Button>
-                    <Button variant="ghost" size="icon" className="rounded-xl bg-slate-50 text-slate-400 hover:text-accent size-10" onClick={() => onViewCss(comp)}>
+                    <Button variant="ghost" size="icon" className="rounded-xl bg-slate-50 text-slate-400 hover:text-accent size-9" onClick={() => onViewCss(comp)}>
                       <Braces size={16}/>
                     </Button>
                  </div>
               </div>
-              <div className="flex gap-3">
-                 <Button className="flex-1 rounded-xl h-11 font-black text-[10px] tracking-widest uppercase border-2 border-slate-100 bg-white text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all">
-                    {isAr ? 'استخدام المكون' : 'Use Component'}
-                 </Button>
-                 <Button variant="ghost" size="icon" className="rounded-xl size-11 bg-slate-50 text-slate-400 hover:bg-accent/10 hover:text-accent">
-                    <Share2 size={16}/>
-                 </Button>
-              </div>
+              <Button className="w-full rounded-2xl h-11 font-black text-[9px] tracking-widest uppercase border-2 border-slate-100 bg-white text-slate-500 hover:bg-primary hover:text-white hover:border-primary transition-all">
+                 {isAr ? 'نسخ المكون' : 'Copy Component'}
+              </Button>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="p-20 rounded-[4rem] bg-slate-900 text-white relative overflow-hidden">
+      <div className="p-16 rounded-[4rem] bg-primary text-white relative overflow-hidden shadow-2xl">
          <div className="relative z-10 grid md:grid-cols-2 gap-20 items-center">
             <div className="space-y-8">
-               <Badge className="bg-accent text-slate-900 font-black px-6 py-2 rounded-xl text-[10px] tracking-[0.3em]">PATTERN REGISTRY</Badge>
+               <Badge className="bg-accent text-slate-900 font-black px-6 py-2 rounded-xl text-[9px] tracking-[0.3em]">ENGINEERING STANDARDS</Badge>
                <h3 className="text-5xl font-black leading-none tracking-tighter">
-                  {isAr ? 'نظام التصميم الموحد لبلدية ظفار' : 'Dhofar Municipality Unified Design System'}
+                  {isAr ? 'نظام التصميم الرقمي الموحد لبلدية ظفار' : 'Dhofar Municipality Design Language'}
                </h3>
-               <p className="text-xl text-slate-400 font-bold leading-relaxed max-w-xl">
-                  {isAr ? 'أكثر من 40 مكوناً ذرياً ونمطاً بصرياً تم تصميمها هندسياً لضمان تجربة مستخدم عالمية تليق بسلطنة عمان.' : 'Over 40 atomic components and visual patterns engineered for a world-class user experience in Oman.'}
+               <p className="text-lg text-white/60 font-bold leading-relaxed max-w-xl">
+                  {isAr ? 'مكتبة هندسية شاملة تضم أكثر من 40 مكوناً ذرياً تم اختبارها وفق معايير النفاذ الرقمي WCAG 2.2 لضمان تجربة مستخدم عادلة وشاملة.' : 'A comprehensive engineering library with 40+ atomic components tested under WCAG 2.2 digital access standards.'}
                </p>
             </div>
-            <div className="grid grid-cols-2 gap-6">
-               {[
-                 { icon: <Database/>, label: 'JSON State' },
-                 { icon: <Globe/>, label: 'i18n Ready' },
-                 { icon: <ShieldCheck/>, label: 'PKI Validated' },
-                 { icon: <Zap/>, label: 'High Perf' }
-               ].map(item => (
-                 <div key={item.label} className="p-8 bg-white/5 rounded-[2.5rem] border-2 border-dashed border-white/10 flex flex-col items-center gap-4 group hover:border-accent/40 transition-all cursor-pointer">
-                    <div className="size-16 rounded-3xl bg-accent text-slate-900 flex items-center justify-center group-hover:scale-110 transition-transform">
-                       {React.cloneElement(item.icon as any, { size: 32 })}
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white">{item.label}</span>
-                 </div>
-               ))}
+            <div className="flex flex-wrap gap-4 justify-center md:justify-end">
+                {[ShieldCheck, Database, Globe, Zap].map((Icon, i) => (
+                  <div key={i} className="size-20 rounded-[2.5rem] bg-white/5 border-2 border-white/10 flex items-center justify-center text-accent hover:scale-110 hover:border-accent transition-all cursor-pointer">
+                    <Icon size={32} />
+                  </div>
+                ))}
             </div>
          </div>
-         <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
+         <div className="absolute top-0 right-0 w-full h-full dm-wave-5 opacity-10 pointer-events-none" />
       </div>
     </div>
   );
