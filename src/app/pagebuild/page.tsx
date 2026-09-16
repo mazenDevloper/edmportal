@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 function PageBuilderContent() {
   const router = useRouter();
@@ -87,7 +88,7 @@ function PageBuilderContent() {
       id, type, content: defaultContents[type] || {}, 
       customCss: '', gridSpan: 12, gridHeight: 'auto', 
       codeType: 'react' 
-    };
+    } as BuilderComponent;
     setComponents([...components, newComp]);
     setCompModes(prev => ({ ...prev, [id]: 'preview' }));
   };
