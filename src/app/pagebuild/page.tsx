@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -15,7 +14,7 @@ import {
   Code, Database, User, Award, Layers, MousePointer2,
   ChevronUp, ChevronDown, GripVertical, Settings2, Globe, Edit3, X,
   ExternalLink, CheckCircle2, PlayCircle, Users, ShieldCheck, Mail, Brush, Palette,
-  Maximize2, Height, Smartphone, Monitor, Code2
+  Maximize2, Smartphone, Monitor, Code2
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -240,7 +239,10 @@ function PageBuilderContent() {
                                  {/* Width Control */}
                                  <Select value={(c.gridSpan || 12).toString()} onValueChange={v => updateComp(i, { gridSpan: parseInt(v) })}>
                                     <SelectTrigger className="h-7 w-28 bg-white/5 border-none text-white/50 text-[9px] font-black uppercase rounded-lg">
-                                       <div className="flex items-center gap-1.5"><Monitor size={10}/> Width: {v => v === '0' ? 'Custom' : `${Math.round((parseInt(v)/12)*100)}%`}</div>
+                                       <div className="flex items-center gap-1.5">
+                                         <Monitor size={10}/> 
+                                         Width: {c.gridSpan === 0 ? 'Custom' : `${Math.round(((c.gridSpan || 12)/12)*100)}%`}
+                                       </div>
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl">
                                        <SelectItem value="3">25% (Narrow)</SelectItem>
@@ -255,7 +257,10 @@ function PageBuilderContent() {
                                  {/* Height Control */}
                                  <Select value={c.gridHeight || 'auto'} onValueChange={v => updateComp(i, { gridHeight: v })}>
                                     <SelectTrigger className="h-7 w-28 bg-white/5 border-none text-white/50 text-[9px] font-black uppercase rounded-lg">
-                                       <div className="flex items-center gap-1.5"><Maximize2 size={10}/> Height: {c.gridHeight?.toUpperCase()}</div>
+                                       <div className="flex items-center gap-1.5">
+                                         <Maximize2 size={10}/> 
+                                         Height: {c.gridHeight === 'custom' ? 'Custom' : c.gridHeight?.toUpperCase()}
+                                       </div>
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl">
                                        <SelectItem value="auto">Auto (Content)</SelectItem>
@@ -383,7 +388,6 @@ function PageBuilderContent() {
                                      value={typeof c.content === 'object' ? JSON.stringify(c.content, null, 2) : c.content} 
                                      onChange={e => {
                                         try {
-                                          // If it's pure text/code (React/Dotnet/HTML), just store as string
                                           if (['react', 'dotnet', 'html'].includes(c.codeType || '')) {
                                             updateComp(i, { content: e.target.value });
                                           } else {
@@ -391,7 +395,6 @@ function PageBuilderContent() {
                                             updateComp(i, { content: parsed });
                                           }
                                         } catch (err) {
-                                          // Fallback to string if JSON fails
                                           updateComp(i, { content: e.target.value });
                                         }
                                      }}
