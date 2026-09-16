@@ -3,286 +3,190 @@
 
 import React, { useState } from 'react';
 import { 
-  Accessibility, 
-  Search, 
-  ChevronRight, 
   CheckCircle2, 
-  AlertCircle, 
-  Info, 
   Plus, 
   Upload, 
-  Filter, 
-  Flag,
   CreditCard,
   User,
   LayoutGrid,
   FileText,
-  Clock,
   ArrowRight,
   Palette,
-  Loader2,
   ExternalLink,
-  ChevronLeft,
-  X,
-  Menu,
+  ChevronRight,
   MoreHorizontal,
   Contrast,
-  Type,
-  Maximize2
+  Bell,
+  Search,
+  Settings,
+  ShieldCheck,
+  TrendingUp,
+  Activity,
+  Calendar,
+  Layers,
+  MousePointer2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 export function IdentityShowcase({ isAr }: { isAr: boolean }) {
-  const [viewCode, setViewCode] = useState<string | null>(null);
-
-  const elements = [
-    {
-      id: 'accordion',
-      title: isAr ? 'الأكورديون (Accordion)' : 'Accordion',
-      desc: 'Used to expand and collapse detailed pieces of information dynamically.',
-      code: `<Accordion type="single" collapsible>\n  <AccordionItem value="1">\n    <AccordionTrigger>How to login?</AccordionTrigger>\n    <AccordionContent>Use your Thiqa app or secure national identity smartcard.</AccordionContent>\n  </AccordionItem>\n</Accordion>`,
-      render: (
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="item-1" className="border-slate-100">
-            <AccordionTrigger className="font-bold text-slate-800 hover:text-primary">
-              {isAr ? 'كيف يمكنني تقديم طلب رخص بناء؟' : 'How to request building permit?'}
-            </AccordionTrigger>
-            <AccordionContent className="font-medium text-slate-500 leading-relaxed">
-              {isAr ? 'يمكنك تقديم الطلب عبر تحميل المستندات المحددة ودفع رسوم البوابه الإلكترونيه البالغة 50 ريال عماني.' : 'You can submit the request by uploading the specified documents and paying the 50 OMR fee.'}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      )
-    },
-    {
-      id: 'avatar',
-      title: isAr ? 'الأفتار (Avatar)' : 'Avatar',
-      desc: 'Visual representation of user profile or municipal account avatar details.',
-      code: `<Avatar>\n  <AvatarImage src="/user.jpg" />\n  <AvatarFallback>DM</AvatarFallback>\n</Avatar>`,
-      render: (
-        <div className="flex gap-4 items-center">
-          <Avatar className="h-12 w-12 border-2 border-primary shadow-sm">
-            <AvatarFallback className="bg-primary text-white font-black">ظفار</AvatarFallback>
-          </Avatar>
-          <Avatar className="h-12 w-12 border-2 border-accent shadow-sm">
-            <AvatarFallback className="bg-secondary text-white font-black">OM</AvatarFallback>
-          </Avatar>
-        </div>
-      )
-    },
-    {
-      id: 'badge',
-      title: isAr ? 'الشارة (Badge)' : 'Badge',
-      desc: 'Used for system states, counts, and classification tags.',
-      code: `<Badge className="bg-accent text-white">جديد</Badge>`,
-      render: (
-        <div className="flex flex-wrap gap-2">
-          <Badge className="bg-accent text-white px-4 py-1.5 rounded-full border-none">{isAr ? 'معتمد' : 'Approved'}</Badge>
-          <Badge className="bg-secondary text-white px-4 py-1.5 rounded-full border-none">{isAr ? 'قيد المراجعة' : 'Under Review'}</Badge>
-          <Badge variant="outline" className="border-red-500 text-red-600 px-4 py-1.5 rounded-full">{isAr ? 'مرفوض' : 'Rejected'}</Badge>
-        </div>
-      )
-    },
-    {
-      id: 'button',
-      title: isAr ? 'الزر (Button)' : 'Button',
-      desc: 'Standard brand button behaviors optimized for interactive action hierarchies.',
-      code: `<Button className="dm-gradient-primary rounded-full px-8 font-black">Primary Action</Button>`,
-      render: (
-        <div className="flex flex-wrap gap-3">
-          <Button className="dm-gradient-primary rounded-full px-8 font-black shadow-lg">
-            {isAr ? 'الإجراء الأساسي' : 'Primary Action'}
-          </Button>
-          <Button variant="outline" className="rounded-full border-primary text-primary font-bold hover:bg-primary/5">
-            {isAr ? 'إجراء ثانوي' : 'Secondary action'}
-          </Button>
-        </div>
-      )
-    },
-    {
-      id: 'checkbox',
-      title: isAr ? 'مربع الاختيار (Checkbox)' : 'Checkbox',
-      desc: 'Allows selection of multiple related items or system variables in forms.',
-      code: `<Checkbox id="terms" />\n<Label htmlFor="terms">Accept compliance policy</Label>`,
-      render: (
-        <div className="flex items-center gap-3">
-          <Checkbox id="terms-id" className="border-primary data-[state=checked]:bg-primary" />
-          <Label htmlFor="terms-id" className="font-bold text-slate-700 cursor-pointer">
-            {isAr ? 'أوافق على كافة الشروط والأحكام والأنظمة البلدية المعمول بها.' : 'I agree to all digital service terms and regulations.'}
-          </Label>
-        </div>
-      )
-    },
-    {
-      id: 'stepper',
-      title: isAr ? 'معالج الخطوات (Stepper)' : 'Stepper',
-      desc: 'Displays sequence steps for citizens during municipal transactions workflow.',
-      code: `// Custom step rendering container`,
-      render: (
-        <div className="flex items-center justify-between w-full max-w-md mx-auto py-2">
-          {[1, 2, 3].map((step) => (
-            <React.Fragment key={step}>
-              <div className="flex flex-col items-center gap-1">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm transition-all",
-                  step === 1 ? "bg-primary text-white scale-110" : "bg-slate-100 text-slate-400"
-                )}>
-                  {step}
-                </div>
-                <span className="text-[10px] font-bold text-slate-400">{isAr ? `خطوة ${step}` : `Step ${step}`}</span>
-              </div>
-              {step < 3 && <div className="flex-1 h-1 bg-slate-100 mx-2 rounded-full" />}
-            </React.Fragment>
-          ))}
-        </div>
-      )
-    },
-    {
-      id: 'progress',
-      title: isAr ? 'مؤشر التقدم (Progress)' : 'Progress Bar',
-      desc: 'Linear completion indicator for processing tasks or request reviews status.',
-      code: `<Progress value={65} />`,
-      render: (
-        <div className="w-full space-y-2">
-          <Progress value={65} className="h-2 rounded-full bg-slate-100" />
-          <div className="flex justify-between text-[11px] font-black text-slate-400">
-            <span>{isAr ? 'نسبة إنجاز المعاملة' : 'Request progress status'}</span>
-            <span className="text-primary">65%</span>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'switch',
-      title: isAr ? 'مفتاح التبديل (Toggle Switch)' : 'Switch',
-      desc: 'Instant preference switch mechanism for dynamic preferences values change.',
-      code: `<Switch checked={true} />`,
-      render: (
-        <div className="flex items-center gap-4">
-          <Switch id="notify-switch" className="data-[state=checked]:bg-accent" />
-          <Label htmlFor="notify-switch" className="font-bold text-slate-600">
-            {isAr ? 'تفعيل الإشعارات النصية القصيرة ببلدية ظفار' : 'Enable Dhofar Municipality SMS alerts'}
-          </Label>
-        </div>
-      )
-    },
-    {
-      id: 'table',
-      title: isAr ? 'الجدول (Table)' : 'Dynamic Data Table',
-      desc: 'Structured spreadsheet table style for municipal fees and services indices.',
-      code: `<Table> ... </Table>`,
-      render: (
-        <div className="w-full border rounded-xl overflow-hidden bg-white">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead className="font-bold text-primary">{isAr ? 'الخدمة البلديّة' : 'Service'}</TableHead>
-                <TableHead className="font-bold text-primary text-center">{isAr ? 'الرسوم المقررة' : 'Fees'}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-bold text-xs">{isAr ? 'ترخيص حفر وتمديد' : 'Trenching Permit'}</TableCell>
-                <TableCell className="font-black text-xs text-emerald-600 text-center">50 OMR</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-bold text-xs">{isAr ? 'تجديد عقود الإيجار الرقمية' : 'Lease Renewal'}</TableCell>
-                <TableCell className="font-black text-xs text-emerald-600 text-center">15 OMR</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-      )
-    }
-  ];
-
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 animate-in fade-in duration-500">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center gap-3 px-5 py-1.5 rounded-full bg-slate-50 border mb-4 shadow-sm">
-          <Palette className="text-primary" size={16} />
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-            {isAr ? 'دليل مكونات الهوية الرقمية الشاملة لبلدية ظفار' : 'Dhofar Municipality Visual Standard Assets'}
-          </span>
-        </div>
-        <h2 className="text-4xl font-black text-primary tracking-tight mb-2">
-          {isAr ? 'نظام تصميم الخدمات الحكومية لسلطنة عمان' : 'Oman Government Design System Components Library'}
-        </h2>
-        <p className="text-slate-500 font-bold max-w-2xl mx-auto text-sm leading-relaxed">
-          {isAr 
-            ? 'مجموعة متكاملة من المكونات القابلة للتخصيص بدرجة عالية لبناء واجهات الاستخدام البلدية الرقمية وفقاً لإرشادات إمكانية الوصول العالمية (WCAG 2.2).'
-            : 'Highly compliant ready-tested layout atomic elements matching visual instructions rules for Omani Digital Infrastructure environments.'}
-        </p>
-      </div>
+    <div className="max-w-7xl mx-auto px-6 space-y-12">
+      {/* Dynamic Component Grid - Matching requested visual style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 items-start">
+        
+        {/* Card 1: Main Stats / Circular Rings */}
+        <Card className="col-span-1 md:col-span-2 rounded-[2.5rem] border-none shadow-xl bg-white p-8 space-y-8 h-full">
+          <div className="flex justify-between items-center">
+             <h4 className="font-black text-primary text-lg">{isAr ? 'مؤشرات الأداء' : 'Service Metrics'}</h4>
+             <MoreHorizontal className="text-slate-300" />
+          </div>
+          <div className="flex flex-wrap justify-around gap-8 py-4">
+             {[
+               { val: 77, label: isAr ? 'المعاملات المنجزة' : 'Transactions', color: 'text-accent' },
+               { val: 42, label: isAr ? 'رضا المواطن' : 'User Satisfaction', color: 'text-primary' },
+               { val: 95, label: isAr ? 'النفاذ الرقمي' : 'Accessibility', color: 'text-secondary' }
+             ].map((stat, i) => (
+               <div key={i} className="flex flex-col items-center gap-4">
+                  <div className={cn("size-24 rounded-full border-[8px] flex items-center justify-center font-black text-xl", stat.color, "border-slate-50")}>
+                    {stat.val}%
+                  </div>
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{stat.label}</span>
+               </div>
+             ))}
+          </div>
+        </Card>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        {elements.map((el) => (
-          <Card key={el.id} className="rounded-brand border-slate-100 shadow-sm overflow-hidden flex flex-col justify-between group">
-            <CardHeader className="bg-slate-50/50 border-b py-3 px-6 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-black text-primary flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-accent" />
-                  {el.title}
-                </CardTitle>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">{el.desc}</p>
+        {/* Card 2: Quick Actions / Buttons */}
+        <Card className="rounded-[2.5rem] border-none shadow-xl bg-white p-8 space-y-6">
+           <h4 className="font-black text-primary text-lg">{isAr ? 'أدوات التحكم' : 'Interactive Controls'}</h4>
+           <div className="space-y-4">
+             <Button className="w-full dm-gradient-primary rounded-2xl h-14 font-black shadow-lg">CONFIRM</Button>
+             <Button variant="outline" className="w-full rounded-2xl h-14 font-black border-2 border-slate-100 hover:bg-slate-50">CANCEL</Button>
+             <div className="flex gap-2">
+                <Button size="icon" className="rounded-xl size-12 bg-accent"><Plus /></Button>
+                <Button size="icon" className="rounded-xl size-12 bg-secondary"><Settings /></Button>
+                <Button size="icon" className="rounded-xl size-12 bg-primary"><Bell /></Button>
+             </div>
+           </div>
+        </Card>
+
+        {/* Card 3: User Profiles / Identity */}
+        <Card className="rounded-[2.5rem] border-none shadow-xl bg-primary text-white p-8 space-y-8">
+           <div className="flex justify-between items-center">
+              <ShieldCheck className="text-accent" size={32} />
+              <Badge className="bg-white/10 text-white rounded-full px-4 text-[10px]">VERIFIED</Badge>
+           </div>
+           <div className="space-y-4">
+              <h4 className="text-2xl font-black">{isAr ? 'الهوية الرقمية' : 'Neural Identity'}</h4>
+              <p className="text-xs opacity-60 leading-relaxed">{isAr ? 'نظام المصادقة الموحد لبوابة بلدية ظفار.' : 'Unified authentication for Dhofar Municipality.'}</p>
+           </div>
+           <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+              <Avatar className="size-12 border-2 border-accent">
+                 <AvatarFallback className="bg-white text-primary font-black">DM</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                 <p className="font-black text-sm">{isAr ? 'المواطن الرقمي' : 'Digital Citizen'}</p>
+                 <p className="text-[10px] opacity-40 font-mono">ID: 987654321</p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs text-secondary font-bold hover:bg-secondary/5 rounded-lg h-8"
-                onClick={() => setViewCode(viewCode === el.id ? null : el.id)}
-              >
-                {viewCode === el.id ? (isAr ? 'إخفاء الكود' : 'Hide Code') : (isAr ? 'عرض الكود' : 'Source Code')}
-              </Button>
-            </CardHeader>
-            <CardContent className="p-8 flex flex-col justify-center items-center bg-white min-h-[140px]">
-              {viewCode === el.id ? (
-                <pre className="w-full p-4 rounded-xl bg-slate-900 text-emerald-400 text-[10px] font-mono overflow-x-auto text-left direction-ltr">
-                  <code>{el.code}</code>
-                </pre>
-              ) : (
-                <div className="w-full flex justify-center">{el.render}</div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+              <ChevronRight size={16} className="text-accent" />
+           </div>
+        </Card>
+
+        {/* Card 4: Navigation / Tags */}
+        <Card className="rounded-[2.5rem] border-none shadow-xl bg-white p-8 space-y-6">
+           <h4 className="font-black text-slate-400 text-[10px] uppercase tracking-widest">{isAr ? 'التصنيفات' : 'CATEGORIES'}</h4>
+           <nav className="flex flex-col gap-2">
+              {['Building', 'Environment', 'Financial', 'Corporate'].map(tag => (
+                <div key={tag} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-accent/10 transition-colors group">
+                   <span className="font-bold text-sm text-slate-600 group-hover:text-primary">{tag}</span>
+                   <div className="size-2 rounded-full bg-slate-300 group-hover:bg-accent" />
+                </div>
+              ))}
+           </nav>
+        </Card>
+
+        {/* Card 5: Form Elements */}
+        <Card className="rounded-[2.5rem] border-none shadow-xl bg-white p-8 space-y-8 col-span-1 md:col-span-2">
+           <h4 className="font-black text-primary text-lg">{isAr ? 'نماذج البيانات' : 'Form Elements'}</h4>
+           <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between p-4 rounded-2xl border-2 border-slate-100 bg-white">
+                    <span className="font-black text-sm text-slate-700">Income Level</span>
+                    <Switch defaultChecked className="data-[state=checked]:bg-accent" />
+                 </div>
+                 <div className="flex items-center justify-between p-4 rounded-2xl border-2 border-slate-100 bg-white">
+                    <span className="font-black text-sm text-slate-700">Online Wallet</span>
+                    <Switch className="data-[state=checked]:bg-accent" />
+                 </div>
+              </div>
+              <div className="space-y-6">
+                 <Progress value={65} className="h-2 bg-slate-100" />
+                 <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Growth Rate</p>
+                       <h5 className="text-3xl font-black text-primary">+12.5%</h5>
+                    </div>
+                    <TrendingUp className="text-emerald-500 mb-1" />
+                 </div>
+              </div>
+           </div>
+        </Card>
+
+        {/* Card 6: Charts / Visuals */}
+        <Card className="rounded-[3rem] border-none shadow-xl bg-slate-900 text-white p-10 space-y-6 h-full flex flex-col justify-between">
+           <div className="space-y-2">
+              <h4 className="text-2xl font-black">{isAr ? 'الإحصائيات' : 'Data Insight'}</h4>
+              <p className="text-xs text-slate-500">{isAr ? 'تحديث لحظي لكافة المعاملات.' : 'Real-time sync of all transactions.'}</p>
+           </div>
+           <div className="flex items-end gap-3 h-32 px-4">
+              {[40, 70, 45, 90, 60, 80].map((h, i) => (
+                <div key={i} className="flex-1 bg-accent/20 rounded-t-xl group relative">
+                   <div 
+                     className="absolute bottom-0 left-0 w-full bg-accent rounded-t-xl transition-all duration-1000" 
+                     style={{ height: `${h}%` }} 
+                   />
+                </div>
+              ))}
+           </div>
+           <Button variant="ghost" className="w-full text-accent font-black hover:text-white hover:bg-white/5">VIEW FULL REPORT</Button>
+        </Card>
       </div>
 
       {/* Corporate Pattern Showcase */}
-      <div className="mt-16 p-8 md:p-12 rounded-[2rem] bg-slate-900 text-white relative overflow-hidden shadow-xl border-t-4 border-accent">
-        <div className="relative z-10 grid md:grid-cols-2 gap-8 items-center">
-          <div>
-            <h3 className="text-2xl font-black mb-3">
-               {isAr ? 'أنماط الموجات المعتمدة خماسية الطبقات' : 'Unified Brand Dynamic Multi-Wave Grid'}
+      <div className="p-16 rounded-[4rem] bg-white shadow-2xl relative overflow-hidden border border-white/50">
+        <div className="relative z-10 grid md:grid-cols-2 gap-16 items-center">
+          <div className="space-y-8">
+            <h3 className="text-4xl font-black text-primary leading-tight">
+               {isAr ? 'نظام التصميم الرقمي لبلدية ظفار' : 'Dhofar Municipality Digital DS'}
             </h3>
-            <p className="text-slate-400 font-medium text-xs leading-relaxed mb-6">
+            <p className="text-slate-500 font-bold leading-relaxed">
               {isAr 
-                ? 'تعتبر الموجات الخمس المتتالية في ترويسة وتذييل منصات بلدية ظفار دلالة على الانسيابية العالية والتحول الرقمي السلس.'
-                : 'The structural five waves background represents visual synchronization of continuous municipal upgrades across the Sultanate.'}
+                ? 'مجموعة متكاملة من العناصر البصرية والودجيت البرمجية التي تضمن توحيد التجربة الرقمية في كافة منصات البلدية.'
+                : 'A cohesive set of visual elements and functional widgets that ensure a unified digital experience across all municipal platforms.'}
             </p>
-            <div className="flex gap-2">
-               {[1, 2, 3, 4, 5].map(i => (
-                 <div key={i} className="w-10 h-1 bg-accent rounded-full" style={{ opacity: i * 0.2 }} />
-               ))}
+            <div className="flex gap-4">
+               <Badge className="bg-primary text-white px-6 py-2 rounded-xl">v4.5 Stable</Badge>
+               <Badge variant="outline" className="border-accent text-accent px-6 py-2 rounded-xl">WCAG 2.2 Compliant</Badge>
             </div>
           </div>
-          <div className="h-40 w-full dm-wave-5 opacity-40 bg-center border border-white/5 rounded-2xl" />
+          <div className="grid grid-cols-2 gap-4">
+             <div className="p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center gap-4 group hover:border-primary/20 transition-all">
+                <MousePointer2 className="text-primary group-hover:scale-110 transition-transform" size={40} />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Interaction</span>
+             </div>
+             <div className="p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center gap-4 group hover:border-accent/20 transition-all">
+                <Palette className="text-accent group-hover:scale-110 transition-transform" size={40} />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Visuals</span>
+             </div>
+          </div>
         </div>
+        <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
       </div>
     </div>
   );
