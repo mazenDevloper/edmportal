@@ -32,7 +32,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart as RechartsLine, Line, RadialBarChart, RadialBar, Legend
+  BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart as RechartsLine, Line, RadialBarChart, RadialBar, Legend,
+  ComposedChart, Scatter, Bubble
 } from 'recharts';
 
 export default function IdentityGuide() {
@@ -60,6 +61,12 @@ export default function IdentityGuide() {
 
   const PIE_DATA = [
     { name: 'Engineering', value: 400 }, { name: 'Health', value: 300 }, { name: 'Admin', value: 300 }
+  ];
+
+  const RADIAL_DATA = [
+    { name: 'Completed', value: 80, fill: '#03CFCB' },
+    { name: 'Pending', value: 45, fill: '#470D67' },
+    { name: 'Delayed', value: 20, fill: '#FF5733' }
   ];
 
   const LIBRARY = useMemo(() => [
@@ -102,24 +109,6 @@ export default function IdentityGuide() {
         <div className="w-full h-56 rounded-[3rem] bg-primary relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
            <div className="absolute inset-0 dm-pattern-wave-pro opacity-100" />
            <Badge className="relative z-10 bg-white text-primary font-black px-4 py-1 rounded-lg w-fit">.dm-pattern-wave-pro</Badge>
-        </div>
-      )
-    },
-    {
-      id: 'pattern-tree-pro', category: 'municipality', name: isAr ? 'نمط الشجرة' : 'Tree Pro Pattern',
-      render: (
-        <div className="w-full h-56 rounded-[3rem] bg-emerald-700 relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
-           <div className="absolute inset-0 dm-pattern-tree-pro opacity-100" />
-           <Badge className="relative z-10 bg-white text-emerald-800 font-black px-4 py-1 rounded-lg w-fit">.dm-pattern-tree-pro</Badge>
-        </div>
-      )
-    },
-    {
-      id: 'pattern-matrix-all', category: 'municipality', name: isAr ? 'النمط الشامل' : 'Matrix All Pattern',
-      render: (
-        <div className="w-full h-56 rounded-[3rem] bg-slate-900 relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
-           <div className="absolute inset-0 dm-pattern-matrix-all opacity-30" />
-           <Badge className="relative z-10 bg-white text-slate-900 font-black px-4 py-1 rounded-lg w-fit">.dm-pattern-matrix-all</Badge>
         </div>
       )
     },
@@ -180,17 +169,15 @@ export default function IdentityGuide() {
       )
     },
     {
-        id: 'chart-bar-main', category: 'charts', name: isAr ? 'مؤشرات الأداء البيانية' : 'Performance Analytics',
+        id: 'chart-radial-progress', category: 'charts', name: isAr ? 'مخطط إنجاز دائري' : 'Radial Goal Tracker',
         render: (
-          <div className="w-full h-64 p-4 bg-white rounded-[2.5rem] shadow-inner">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={CHART_DATA}>
-                <Bar dataKey="value" radius={[12, 12, 0, 0]}>
-                   {CHART_DATA.map((_, i) => <Cell key={i} fill={i % 2 === 0 ? '#470D67' : '#03CFCB'} />)}
-                </Bar>
-                <Tooltip cursor={{fill: 'transparent'}} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full h-64 bg-white rounded-[3rem] p-4 flex flex-col items-center justify-center">
+             <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="80%" barSize={10} data={RADIAL_DATA}>
+                  <RadialBar label={{ position: 'insideStart', fill: '#fff' }} background dataKey="value" />
+                  <Legend iconSize={10} layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{fontSize: '10px', fontWeight: 'bold'}} />
+                </RadialBarChart>
+             </ResponsiveContainer>
           </div>
         )
     },
@@ -211,10 +198,20 @@ export default function IdentityGuide() {
         </div>
       )
     },
-
-    // 6. CARDS
     {
-      id: 'user-id-card', category: 'cards', name: isAr ? 'بطاقة المواطن الذكية' : 'Digital ID Card',
+        id: 'form-upload-zone', category: 'forms', name: isAr ? 'منطقة رفع ملفات' : 'Smart Upload Dropzone',
+        render: (
+          <div className="w-full p-10 border-4 border-dashed border-slate-100 bg-white rounded-[3rem] text-center space-y-4 hover:border-primary/20 transition-all cursor-pointer group">
+             <div className="size-16 rounded-full bg-primary/5 text-primary mx-auto flex items-center justify-center group-hover:scale-110 transition-transform"><Upload size={32}/></div>
+             <p className="text-sm font-black text-slate-600">Drag & Drop Documents</p>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PDF, JPG up to 20MB</p>
+          </div>
+        )
+    },
+
+    // 6. CARDS (PATTERN BASED ID CARDS)
+    {
+      id: 'user-id-card-matrix', category: 'cards', name: isAr ? 'بطاقة المواطن (مصفوفة)' : 'Digital ID Card (Matrix)',
       render: (
         <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
            <div className="flex justify-between items-start mb-16 relative z-10">
@@ -226,6 +223,70 @@ export default function IdentityGuide() {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">National Resident Matrix: #12345678</p>
            </div>
            <div className="absolute top-0 right-0 w-full h-full dm-pattern-matrix-all opacity-20 pointer-events-none" />
+        </div>
+      )
+    },
+    {
+      id: 'user-id-card-landmark', category: 'cards', name: isAr ? 'بطاقة المواطن (معالم)' : 'Digital ID Card (Landmark)',
+      render: (
+        <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
+           <div className="flex justify-between items-start mb-16 relative z-10">
+              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/landmark/400/400" /><AvatarFallback>LM</AvatarFallback></Avatar>
+              <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
+           </div>
+           <div className="space-y-2 relative z-10">
+              <h4 className="text-2xl font-black text-slate-800 tracking-tight">Ahmed Salim Al-Maashani</h4>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">National Resident Matrix: #12345678</p>
+           </div>
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-landmark opacity-15 pointer-events-none" />
+        </div>
+      )
+    },
+    {
+      id: 'user-id-card-wave', category: 'cards', name: isAr ? 'بطاقة المواطن (أمواج)' : 'Digital ID Card (Wave)',
+      render: (
+        <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
+           <div className="flex justify-between items-start mb-16 relative z-10">
+              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/wave/400/400" /><AvatarFallback>WV</AvatarFallback></Avatar>
+              <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
+           </div>
+           <div className="space-y-2 relative z-10">
+              <h4 className="text-2xl font-black text-slate-800 tracking-tight">Ahmed Salim Al-Maashani</h4>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">National Resident Matrix: #12345678</p>
+           </div>
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-wave-pro opacity-15 pointer-events-none" />
+        </div>
+      )
+    },
+    {
+      id: 'user-id-card-tree', category: 'cards', name: isAr ? 'بطاقة المواطن (شجرة)' : 'Digital ID Card (Tree)',
+      render: (
+        <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
+           <div className="flex justify-between items-start mb-16 relative z-10">
+              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/tree/400/400" /><AvatarFallback>TR</AvatarFallback></Avatar>
+              <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
+           </div>
+           <div className="space-y-2 relative z-10">
+              <h4 className="text-2xl font-black text-slate-800 tracking-tight">Ahmed Salim Al-Maashani</h4>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">National Resident Matrix: #12345678</p>
+           </div>
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-tree-pro opacity-15 pointer-events-none" />
+        </div>
+      )
+    },
+    {
+      id: 'user-id-card-circle', category: 'cards', name: isAr ? 'بطاقة المواطن (دوائر)' : 'Digital ID Card (Circle)',
+      render: (
+        <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
+           <div className="flex justify-between items-start mb-16 relative z-10">
+              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/circle/400/400" /><AvatarFallback>CR</AvatarFallback></Avatar>
+              <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
+           </div>
+           <div className="space-y-2 relative z-10">
+              <h4 className="text-2xl font-black text-slate-800 tracking-tight">Ahmed Salim Al-Maashani</h4>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">National Resident Matrix: #12345678</p>
+           </div>
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-circle-pro opacity-15 pointer-events-none" />
         </div>
       )
     },
@@ -244,7 +305,7 @@ export default function IdentityGuide() {
              </div>
           </div>
         )
-      },
+    },
 
     // 7. TEMPLATES
     {
