@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { fetchBin } from '@/lib/jsonbin';
+import logoImg from '@/app/dm-new-logo.png';
 import {
   Sheet,
   SheetContent,
@@ -103,7 +104,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center gap-6 group">
                <div className="relative group-hover:rotate-[360deg] transition-transform duration-1000 ease-in-out">
-                 <Image src="/dm-new-logo.png" alt="Dhofar Logo" width={65} height={65} className="object-contain" priority />
+                 <Image src={logoImg} alt="Dhofar Logo" width={65} height={65} className="object-contain" priority />
                </div>
                <div className="flex flex-col">
                  <span className="text-3xl font-black text-[#470D67] leading-none tracking-tighter uppercase">بلدية ظفار</span>
@@ -111,7 +112,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                </div>
             </Link>
 
-            {/* Tajawoob Logo Integrated */}
             <div className="hidden xl:flex items-center gap-5 pl-10 border-l border-slate-100">
               <a href="https://tajawob.om" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
                 <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" width={120} height={45} className="object-contain" unoptimized />
