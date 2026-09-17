@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { fetchBin } from '@/lib/jsonbin';
-import logoImg from '@/app/dm-new-logo.png';
 import {
   Sheet,
   SheetContent,
@@ -104,7 +103,15 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center gap-6 group">
                <div className="relative group-hover:rotate-[360deg] transition-transform duration-1000 ease-in-out">
-                 <Image src={logoImg} alt="Dhofar Logo" width={65} height={65} className="object-contain" priority />
+                 <Image 
+                  src="https://imagetourl.cloud/a90z81isxaf9.png" 
+                  alt="Dhofar Logo" 
+                  width={65} 
+                  height={65} 
+                  className="object-contain" 
+                  priority 
+                  unoptimized
+                 />
                </div>
                <div className="flex flex-col">
                  <span className="text-3xl font-black text-[#470D67] leading-none tracking-tighter uppercase">بلدية ظفار</span>
