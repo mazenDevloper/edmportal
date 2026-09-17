@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -12,9 +13,8 @@ import {
   TrendingUp, Layers3, Zap, Timer, Map, Database, Type, MousePointer2,
   FileText, ExternalLink, Activity, LayoutGrid, CheckCircle2, AlertTriangle, MessageSquare,
   Search, Check as CheckIcon, X, Info, Clock, Download, Share2, MapPin, Eye,
-  LayoutTemplate as LayoutTemplateIcon, Fingerprint as FingerprintIcon, Globe as GlobeIcon, 
   Volume2, Video, Sparkles, Home, ArrowUp, ArrowDown, Wallet, Shield, ShoppingBag, 
-  PlusCircle, MinusCircle, FileBox, LineChart, Timer as TimerIcon, Map as MapIcon, Layers3 as LayersIcon
+  PlusCircle, MinusCircle, FileBox, LineChart, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -86,6 +86,7 @@ export default function IdentityPage() {
       codeReact: `<h1 className="font-arabic font-black">...</h1>`,
       codeCss: `.font-arabic { font-family: 'Noto Kufi Arabic', sans-serif; }`
     },
+
     // GOV COMPONENTS
     {
       id: 'tajawoob-card', category: 'gov', name: isAr ? 'كرت منصة تجاوب' : 'Tajawoob Card',
@@ -93,7 +94,7 @@ export default function IdentityPage() {
         <div className="p-8 bg-white border-2 border-emerald-100 rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 w-full relative overflow-hidden group">
            <div className="absolute top-0 right-0 w-full h-full bg-emerald-50/30 opacity-0 group-hover:opacity-100 transition-opacity" />
            <div className="relative z-10 w-48 h-12">
-              <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" fill className="object-contain" />
+              <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" fill className="object-contain" unoptimized />
            </div>
            <p className="text-center text-xs font-bold text-slate-600 relative z-10 leading-relaxed">
              {isAr ? 'المنصة الوطنية الموحدة للمقترحات والشكاوى في سلطنة عُمان.' : 'The unified national platform for suggestions and complaints in Oman.'}
@@ -120,6 +121,7 @@ export default function IdentityPage() {
       codeReact: `<ThiqaAuth />`,
       codeCss: `.thiqa-auth { border-radius: 2.5rem; }`
     },
+
     // PATTERNS
     {
       id: 'pattern-matrix-all', category: 'patterns', name: isAr ? 'النمط الشامل للبلدية' : 'Matrix All-in-One Pattern',
@@ -127,6 +129,13 @@ export default function IdentityPage() {
       codeReact: `<div className="dm-pattern-matrix-all" />`,
       codeCss: `.dm-pattern-matrix-all { background-image: url("data:image/svg+xml,..."); }`
     },
+    {
+      id: 'pattern-wave-pro', category: 'patterns', name: isAr ? 'الموجة الكبيرة الملونة' : 'Wave Pro Pattern',
+      render: <div className="w-full h-48 rounded-[2.5rem] border dm-pattern-wave-pro relative overflow-hidden flex flex-col justify-end p-6"><Badge className="bg-white/80 backdrop-blur-md text-primary w-fit">Wave Pro SVG</Badge></div>,
+      codeReact: `<div className="dm-pattern-wave-pro" />`,
+      codeCss: `.dm-pattern-wave-pro { background-image: url("data:image/svg+xml,..."); }`
+    },
+
     // CARDS
     {
       id: 'citizen-card', category: 'cards', name: isAr ? 'بطاقة المواطن الرقمية' : 'Citizen Digital ID',
@@ -160,6 +169,7 @@ export default function IdentityPage() {
       codeReact: `<StatsCard progress={77} />`,
       codeCss: `.stats-card { border-radius: 2rem; }`
     },
+
     // FORMS
     {
       id: 'smart-search', category: 'forms', name: isAr ? 'حقل البحث الذكي' : 'Neural Search Field',
@@ -184,6 +194,7 @@ export default function IdentityPage() {
       codeReact: `<Dropzone />`,
       codeCss: `.dropzone { border: 4px dashed #f1f5f9; }`
     },
+
     // CHARTS
     {
       id: 'kpi-linear', category: 'charts', name: isAr ? 'مؤشر أداء خطي' : 'Linear KPI Tracker',
@@ -196,6 +207,7 @@ export default function IdentityPage() {
       codeReact: `<LinearKPI value={92} />`,
       codeCss: `.kpi-bar { height: 12px; }`
     },
+
     // TABLES
     {
       id: 'data-table-v1', category: 'tables', name: isAr ? 'جدول المتابعة الفني' : 'Technical Tracking Table',

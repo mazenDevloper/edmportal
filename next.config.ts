@@ -19,7 +19,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'gov.om', pathname: '/**' },
       { protocol: 'https', hostname: 'imgs.search.brave.com', pathname: '/**' },
       { protocol: 'https', hostname: 'oman-daily.com', pathname: '/**' },
-      { protocol: 'https', hostname: 'omandaily.om', pathname: '/**' }
+      { protocol: 'https', hostname: 'omandaily.om', pathname: '/**' },
+      { protocol: 'https', hostname: 'tajawob.om', pathname: '/**' }
     ],
   },
 };

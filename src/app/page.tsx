@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -167,7 +168,7 @@ export default function DhofarPortal() {
                {/* Shrunk Thiqa Card with Larger Background Pattern */}
                <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative group">
                  {/* Matrix All Pattern - Larger than the card */}
-                 <div className="absolute -inset-16 dm-pattern-matrix-all opacity-20 pointer-events-none scale-110 -z-10 group-hover:scale-125 transition-transform duration-1000" />
+                 <div className="absolute -inset-24 dm-pattern-matrix-all opacity-20 pointer-events-none scale-125 -z-10 group-hover:scale-150 transition-transform duration-1000" />
                  
                  <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.15)] rounded-[3rem] bg-white/90 backdrop-blur-sm relative overflow-hidden flex flex-col border-t-[12px] border-primary">
                    {/* Combined content to shrink the overall card height */}
@@ -179,11 +180,11 @@ export default function DhofarPortal() {
                          </div>
                          <div>
                            <h4 className="font-black text-lg text-primary">{isAr ? "الهوية الرقمية (ثقة)" : "Neural ID (Theqa)"}</h4>
-                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isAr ? "المصادقة الموحدة" : "Unified Auth"}</p>
+                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isAr ? "نظام المصادقة الوطنية الموحد" : "Unified National Auth"}</p>
                          </div>
                        </div>
                        <Badge className={cn("rounded-full border-none px-4 py-1.5 font-black text-[9px] transition-all", pkiStatus === 'connected' ? "bg-emerald-600 text-white" : "bg-amber-600 text-white")}>
-                         {pkiStatus === 'connected' ? (isAr ? "نشط" : "Active") : (isAr ? "مفصول" : "Linked")}
+                         {pkiStatus === 'connected' ? (isAr ? "نشط وآمن" : "Active & Secure") : (isAr ? "غير مفعل" : "Disconnected")}
                        </Badge>
                      </div>
 
@@ -210,7 +211,7 @@ export default function DhofarPortal() {
                           onClick={() => setPkiStatus(pkiStatus === 'connected' ? 'disconnected' : 'connected')}
                         >
                           <Fingerprint size={24} />
-                          {isAr ? "دخول رقمي آمن" : "Secure Sign-In"}
+                          {isAr ? "تسجيل دخول رقمي آمن" : "Secure Digital Sign-In"}
                         </Button>
                      </div>
                    </CardContent>
@@ -260,7 +261,7 @@ export default function DhofarPortal() {
                           fill 
                           className="object-cover brightness-[0.3]" 
                           priority
-                          unoptimized={item.imageUrl?.includes('brave.com') || item.imageUrl?.includes('omandaily')}
+                          unoptimized={item.imageUrl?.includes('brave.com') || item.imageUrl?.includes('omandaily') || item.imageUrl?.includes('tajawob.om')}
                         />
                       )}
                       <div className="relative z-10 text-center text-white px-6 max-w-5xl">
