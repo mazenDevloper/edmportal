@@ -11,7 +11,11 @@ import {
   Type, Search, ExternalLink, Activity, LayoutGrid, ArrowUpRight, TrendingUp,
   ShieldCheck, Mail, Phone, Box, Search as SearchIcon, FileText, Upload,
   MoreHorizontal, ChevronRight, CheckCircle2, User, PlayCircle, Award, Users,
-  Star, Bell, Calendar, MousePointer2, RefreshCw, Layers, Grid
+  Star, Bell, Calendar, MousePointer2, RefreshCw, Layers, Grid, List, MapPin,
+  TrendingDown, FileSpreadsheet, Lock, Volume2, Video, Sparkles, Smartphone,
+  Monitor, Maximize2, Check, X, Shield, Info, Clock, AlertTriangle, Share2,
+  Download, PieChart, ShoppingBag, PlusCircle, MinusCircle, FileBox, Grid3X3,
+  LineChart, Timer, Map
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, RadialBarChart, RadialBar, Legend
+  BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart as RechartsLine, Line, RadialBarChart, RadialBar, Legend
 } from 'recharts';
 
 export default function IdentityGuide() {
@@ -54,50 +58,68 @@ export default function IdentityGuide() {
     { name: 'Apr', value: 800 }, { name: 'May', value: 500 }, { name: 'Jun', value: 900 }
   ];
 
+  const PIE_DATA = [
+    { name: 'Engineering', value: 400 }, { name: 'Health', value: 300 }, { name: 'Admin', value: 300 }
+  ];
+
   const LIBRARY = useMemo(() => [
     // 1. MUNICIPALITY IDENTITY
     {
       id: 'brand-palette', category: 'municipality', name: isAr ? 'لوحة الألوان الملكية' : 'Royal Color Palette',
       render: (
         <div className="grid grid-cols-2 gap-4 w-full">
-           <div className="h-28 rounded-[2rem] bg-[#470D67] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-white font-black uppercase tracking-widest">Royal Purple</span><span className="text-[10px] text-white/50 font-mono">#470D67</span></div>
-           <div className="h-28 rounded-[2rem] bg-[#03CFCB] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-slate-900 font-black uppercase tracking-widest">Vital Teal</span><span className="text-[10px] text-slate-900/50 font-mono">#03CFCB</span></div>
-           <div className="h-28 rounded-[2rem] bg-[#00843D] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-white font-black uppercase tracking-widest">Oman Green</span><span className="text-[10px] text-white/50 font-mono">#00843D</span></div>
-           <div className="h-28 rounded-[2rem] bg-slate-900 flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-white font-black uppercase tracking-widest">Slate Matrix</span><span className="text-[10px] text-white/50 font-mono">#0F172A</span></div>
+           <div className="h-28 rounded-[2rem] bg-[#03CFCB] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-slate-900 font-black uppercase tracking-widest">Primary Teal</span><span className="text-[10px] text-slate-900/50 font-mono">#03CFCB</span></div>
+           <div className="h-28 rounded-[2rem] bg-[#470D67] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-white font-black uppercase tracking-widest">Secondary Purple</span><span className="text-[10px] text-white/50 font-mono">#470D67</span></div>
+           <div className="h-28 rounded-[2rem] bg-[#008E91] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-white font-black uppercase tracking-widest">Teal Shade 1</span><span className="text-[10px] text-white/50 font-mono">#008E91</span></div>
+           <div className="h-28 rounded-[2rem] bg-[#005751] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-white font-black uppercase tracking-widest">Teal Shade 2</span><span className="text-[10px] text-white/50 font-mono">#005751</span></div>
+           <div className="h-28 rounded-[2rem] bg-[#A187B2] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-slate-900 font-black uppercase tracking-widest">Purple Shade 1</span><span className="text-[10px] text-slate-900/50 font-mono">#A187B2</span></div>
+           <div className="h-28 rounded-[2rem] bg-[#BCA3CC] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-slate-900 font-black uppercase tracking-widest">Purple Shade 2</span><span className="text-[10px] text-slate-900/50 font-mono">#BCA3CC</span></div>
         </div>
       )
     },
     {
-      id: 'pattern-matrix-all', category: 'municipality', name: isAr ? 'نمط المصفوفة الشاملة' : 'Master Matrix Pattern',
+      id: 'typography-readex', category: 'municipality', name: isAr ? 'خط Readex Pro' : 'Readex Pro Typography',
       render: (
-        <div className="w-full h-56 rounded-[3rem] bg-primary relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
-           <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 scale-150" />
-           <div className="relative z-10 space-y-2">
-              <Badge className="bg-white text-primary font-black px-4 py-1 rounded-lg">.dm-pattern-matrix-all</Badge>
-              <p className="text-white/60 text-[10px] font-bold uppercase">Official Master Background</p>
-           </div>
+        <div className="p-8 bg-white rounded-3xl w-full border border-slate-100 space-y-6">
+           <h1 className="text-4xl font-black text-primary leading-tight">العنوان الرئيسي الموحد</h1>
+           <p className="text-xl font-bold text-slate-600">The unified digital experience for Dhofar.</p>
+           <p className="text-sm text-slate-400 leading-relaxed font-medium">هذا الخط يجمع بين الحداثة الرقمية وسهولة القراءة في المستندات الحكومية الرسمية.</p>
         </div>
       )
     },
     {
-      id: 'pattern-landmark', category: 'municipality', name: isAr ? 'نمط معالم ظفار' : 'Dhofar Landmark Pattern',
-      render: (
-        <div className="w-full h-56 rounded-[3rem] bg-primary relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
-           <div className="absolute inset-0 dm-pattern-landmark opacity-20" />
-           <div className="relative z-10 space-y-2">
-              <Badge className="bg-white text-primary font-black px-4 py-1 rounded-lg">.dm-pattern-landmark</Badge>
-           </div>
-        </div>
-      )
-    },
-    {
-      id: 'pattern-wave-pro', category: 'municipality', name: isAr ? 'نمط الموجة المطور' : 'Wave Pro Pattern',
+      id: 'pattern-landmark', category: 'municipality', name: isAr ? 'نمط المعالم' : 'Landmark Pattern',
       render: (
         <div className="w-full h-56 rounded-[3rem] bg-secondary relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
-           <div className="absolute inset-0 dm-pattern-wave-pro opacity-20 scale-125" />
-           <div className="relative z-10 space-y-2">
-              <Badge className="bg-white text-secondary font-black px-4 py-1 rounded-lg">.dm-pattern-wave-pro</Badge>
-           </div>
+           <div className="absolute inset-0 dm-pattern-landmark opacity-100" />
+           <Badge className="relative z-10 bg-white text-secondary font-black px-4 py-1 rounded-lg w-fit">.dm-pattern-landmark</Badge>
+        </div>
+      )
+    },
+    {
+      id: 'pattern-wave-pro', category: 'municipality', name: isAr ? 'نمط الأمواج' : 'Wave Pro Pattern',
+      render: (
+        <div className="w-full h-56 rounded-[3rem] bg-primary relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
+           <div className="absolute inset-0 dm-pattern-wave-pro opacity-100" />
+           <Badge className="relative z-10 bg-white text-primary font-black px-4 py-1 rounded-lg w-fit">.dm-pattern-wave-pro</Badge>
+        </div>
+      )
+    },
+    {
+      id: 'pattern-tree-pro', category: 'municipality', name: isAr ? 'نمط الشجرة' : 'Tree Pro Pattern',
+      render: (
+        <div className="w-full h-56 rounded-[3rem] bg-emerald-700 relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
+           <div className="absolute inset-0 dm-pattern-tree-pro opacity-100" />
+           <Badge className="relative z-10 bg-white text-emerald-800 font-black px-4 py-1 rounded-lg w-fit">.dm-pattern-tree-pro</Badge>
+        </div>
+      )
+    },
+    {
+      id: 'pattern-matrix-all', category: 'municipality', name: isAr ? 'النمط الشامل' : 'Matrix All Pattern',
+      render: (
+        <div className="w-full h-56 rounded-[3rem] bg-slate-900 relative overflow-hidden flex flex-col justify-end p-10 shadow-2xl border-4 border-white">
+           <div className="absolute inset-0 dm-pattern-matrix-all opacity-30" />
+           <Badge className="relative z-10 bg-white text-slate-900 font-black px-4 py-1 rounded-lg w-fit">.dm-pattern-matrix-all</Badge>
         </div>
       )
     },
@@ -107,11 +129,11 @@ export default function IdentityGuide() {
       id: 'tajawoob-card-royal', category: 'gov', name: isAr ? 'كرت منصة تجاوب' : 'Tajawoob Citizen Hub',
       render: (
         <div className="p-10 bg-[#470D67] rounded-[3rem] shadow-2xl flex flex-col items-center gap-8 w-full relative overflow-hidden group hover:scale-[1.02] transition-transform">
-           <div className="absolute top-0 right-0 w-full h-full dm-pattern-wave-pro opacity-10" />
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-wave-pro opacity-20" />
            <div className="relative w-56 h-14">
               <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" fill className="object-contain brightness-0 invert" unoptimized />
            </div>
-           <p className="text-center text-[10px] font-black text-white/50 relative z-10 leading-relaxed uppercase tracking-[0.4em]">Integrated Suggestions & Complaint System</p>
+           <p className="text-center text-[10px] font-black text-white/50 relative z-10 leading-relaxed uppercase tracking-[0.4em]">National Suggestions & Complaints Platform</p>
            <Button className="w-full bg-white text-[#470D67] hover:bg-primary hover:text-white rounded-2xl h-14 font-black relative z-10 shadow-xl transition-all">Connect to Tajawoob</Button>
         </div>
       )
@@ -120,13 +142,13 @@ export default function IdentityGuide() {
       id: 'vision-2040-card-green', category: 'gov', name: isAr ? 'رؤية عُمان 2040' : 'Oman Vision 2040',
       render: (
         <div className="p-10 bg-[#00843D] rounded-[3rem] shadow-2xl flex flex-col items-center gap-8 w-full relative overflow-hidden">
-           <div className="absolute inset-0 dm-pattern-tree-pro opacity-10" />
+           <div className="absolute inset-0 dm-pattern-tree-pro opacity-30" />
            <div className="relative w-48 h-24">
               <Image src="https://oman2040.om/themes/v2040/images/logo_en.png" alt="Vision 2040" fill className="object-contain brightness-0 invert" unoptimized />
            </div>
            <div className="text-center text-white relative z-10 space-y-2">
               <h5 className="font-black text-xl">Moving Forward</h5>
-              <Badge variant="outline" className="text-white/60 border-white/20">Strategic Hub</Badge>
+              <Badge variant="outline" className="text-white/60 border-white/20">National Strategy Hub</Badge>
            </div>
         </div>
       )
@@ -139,7 +161,7 @@ export default function IdentityGuide() {
         <div className="flex flex-wrap gap-4 justify-center w-full">
            <Button className="dm-gradient-primary rounded-2xl px-10 h-14 font-black shadow-xl">Teal Action</Button>
            <Button className="dm-gradient-royal rounded-2xl px-10 h-14 font-black shadow-xl text-white">Royal Action</Button>
-           <Button variant="outline" className="rounded-2xl px-10 h-14 font-black border-secondary/20 text-secondary">Secondary</Button>
+           <Button variant="outline" className="rounded-2xl px-10 h-14 font-black border-secondary/20 text-secondary">Secondary Outline</Button>
            <Button variant="ghost" size="icon" className="size-14 rounded-2xl bg-slate-50 text-primary hover:bg-secondary hover:text-white transition-all shadow-md"><Zap size={24}/></Button>
         </div>
       )
@@ -152,8 +174,8 @@ export default function IdentityGuide() {
         <div className="text-center p-12 bg-slate-950 rounded-[3.5rem] text-white w-full border-t-8 border-primary shadow-2xl relative overflow-hidden">
            <div className="absolute top-0 right-0 size-32 dm-pattern-wave-pro opacity-5 -rotate-45" />
            <TrendingUp className="mx-auto text-primary mb-6 animate-pulse" size={48} />
-           <h3 className="text-6xl font-black mb-2 tracking-tighter">42.5K</h3>
-           <p className="text-[10px] font-black opacity-50 uppercase tracking-[0.3em]">Digital Applications Processed</p>
+           <h3 className="text-6xl font-black mb-2 tracking-tighter">42,590</h3>
+           <p className="text-[10px] font-black opacity-50 uppercase tracking-[0.3em]">Applications Processed</p>
         </div>
       )
     },
@@ -266,13 +288,13 @@ export default function IdentityGuide() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-12 p-16 bg-white rounded-[5rem] shadow-[0_40px_100px_rgba(0,0,0,0.03)] border border-slate-100 relative overflow-hidden group">
             <div className="relative z-10 space-y-8 flex-1">
               <div className="inline-flex items-center gap-4 px-8 py-3 rounded-full bg-secondary/5 text-secondary font-black text-[11px] uppercase tracking-widest shadow-sm">
-                <LayoutPanelTop size={18} className="text-primary" /> Matrix Component Hub v11.0
+                <LayoutPanelTop size={18} className="text-primary" /> Matrix Component Hub v12.0
               </div>
               <h1 className="text-6xl md:text-8xl font-black text-secondary tracking-tighter leading-[0.9] uppercase max-w-4xl">
                 {isAr ? 'موسوعة المكونات الهندسية' : 'Unified Component Hub'}
               </h1>
               <p className="text-2xl font-bold text-slate-400 max-w-2xl leading-relaxed">
-                {isAr ? 'المرجع الهندسي الشامل لبناء المنظومات الرقمية لبلدية ظفار.' : 'The comprehensive engineering reference for Dhofar digital systems.'}
+                {isAr ? 'المرجع الهندسي الشامل لبناء المنظومات الرقمية لبلدية ظفار بـ 300+ مكون.' : 'The comprehensive engineering reference for Dhofar digital systems with 300+ components.'}
               </p>
             </div>
             <div className="relative z-10 size-64 rounded-[4.5rem] bg-primary text-slate-900 flex items-center justify-center shadow-[0_30px_80px_rgba(3,207,203,0.4)] rotate-6 group-hover:rotate-0 transition-all duration-1000">
@@ -342,7 +364,7 @@ export default function IdentityGuide() {
              <div className="relative z-10">
                 <DialogTitle className="text-white text-4xl font-black uppercase tracking-tighter">{selectedComponent?.name}</DialogTitle>
                 <DialogDescription className="text-primary font-black mt-3 uppercase text-[11px] tracking-widest flex items-center gap-2">
-                   <ShieldCheck size={14}/> Enterprise Component Architecture v11.2
+                   <ShieldCheck size={14}/> Enterprise Component Architecture v12.2
                 </DialogDescription>
              </div>
              <div className="absolute top-0 right-0 w-full h-full dm-pattern-matrix-all opacity-5 pointer-events-none" />

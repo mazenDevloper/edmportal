@@ -152,8 +152,8 @@ export default function DhofarPortal() {
                </motion.div>
 
                <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative group">
-                 {/* Master Pattern All Background - Scaled for immersion */}
-                 <div className="absolute -inset-20 dm-pattern-matrix-all opacity-15 pointer-events-none scale-110 group-hover:scale-125 transition-transform duration-1000" />
+                 {/* Matrix All Pattern - Scaled for immersive effect */}
+                 <div className="absolute -inset-24 dm-pattern-matrix-all opacity-15 pointer-events-none scale-110 group-hover:scale-125 transition-transform duration-1000" />
                  
                  <div className="border-none shadow-[0_30px_100px_rgba(0,0,0,0.1)] rounded-[4rem] bg-white relative overflow-hidden flex flex-col border-t-[14px] border-primary">
                    <div className="p-12 space-y-10 relative z-10">
