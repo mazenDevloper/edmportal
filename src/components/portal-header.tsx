@@ -104,9 +104,9 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             <Link href="/" className="flex items-center gap-6 group">
                <div className="relative">
                  <Image 
-                  src="https://imagetourl.cloud/a90z81isxaf9.png" 
+                  src="https://www.image2url.com/r2/default/images/1789636348577-3f7b7f11-ddf8-4de5-8a32-65506cebcfce.png" 
                   alt="Dhofar Logo" 
-                  width={65} 
+                  width={95} 
                   height={65} 
                   className="object-contain" 
                   priority 
@@ -115,7 +115,6 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                </div>
                <div className="flex flex-col">
                  <span className="text-3xl font-black text-[#470D67] leading-none tracking-tighter uppercase">بلدية ظفار</span>
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{isAr ? 'بوابة الخدمات الرقمية الموحدة' : 'Unified Digital Portal'}</span>
                </div>
             </Link>
 
