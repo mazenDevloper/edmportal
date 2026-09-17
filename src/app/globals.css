@@ -4,12 +4,10 @@
 
 @layer base {
   :root {
-    /* Dhofar Municipality Brand Palette - Primary */
-    --dm-turquoise: 179 97% 41%;      /* #03CFCB */
-    --dm-teal-dark: 181 100% 23%;     /* #007375 */
-    --dm-purple: 278 78% 20%;         /* #470D67 */
-    --dm-purple-light: 278 50% 90%;
-    --dm-green: 148 100% 26%;         /* #00843D */
+    /* Dhofar Municipality Brand Palette - Teal Primary */
+    --dm-turquoise: 179 97% 41%;      /* #03CFCB - Primary Teal */
+    --dm-purple: 278 78% 20%;         /* #470D67 - Royal Purple */
+    --dm-green: 148 100% 26%;         /* #00843D - Oman Green */
     
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -18,24 +16,25 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
     
-    --primary: var(--dm-purple);
-    --primary-foreground: 0 0% 100%;
+    /* Swap primary to Teal as requested */
+    --primary: var(--dm-turquoise);
+    --primary-foreground: 222.2 47.4% 11.2%;
     
-    --secondary: var(--dm-turquoise);
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: var(--dm-purple);
+    --secondary-foreground: 0 0% 100%;
     
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     
-    --accent: var(--dm-turquoise);
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: var(--dm-purple);
+    --accent-foreground: 0 0% 100%;
     
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: var(--dm-purple);
+    --ring: var(--dm-turquoise);
     --radius: 0.75rem;
   }
 }
@@ -50,28 +49,22 @@
   }
 }
 
-/* Identity Patterns */
+/* Identity Patterns - White Covers for Purple Cards */
 .dm-wave {
   background-image: url("data:image/svg+xml,%3Csvg width='100' height='40' viewBox='0 0 100 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10' fill='transparent' stroke='white' stroke-width='2' opacity='0.2'/%3E%3Cpath d='M0 20 Q 12.5 10 25 20 T 50 20 T 75 20 T 100 20' fill='transparent' stroke='white' stroke-width='2' opacity='0.1'/%3E%3C/svg%3E");
 }
 
 .dm-pattern-polygon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z' fill='white' opacity='0.05'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z' fill='white' opacity='0.08'/%3E%3C/svg%3E");
   background-size: 60px 60px;
 }
 
-.dm-pattern-matrix-all {
-  background-image: url("data:image/svg+xml,%3Csvg id='Layer_2' data-name='Layer 2' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 705.62 794.28'%3E%3Cpath d='M394.6 386.05 394.6 13.38 408.6 5.01 448.45 25.02 451.91 25.02 479.38 2.04 490.68 2 518.51 25.02 527.74 25.02 555.58 2 566.87 2.04 594.34 25.02 597.8 25.02 637.65 5.01 651.65 13.38 651.65 386.05 394.6 386.05' fill='white' opacity='0.1'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: cover;
-}
-
 .dm-gradient-primary {
-  background: linear-gradient(90deg, #470D67 0%, #6b149b 100%) !important;
+  background: linear-gradient(90deg, #03CFCB 0%, #009698 100%) !important;
 }
 
-.dm-gradient-teal {
-  background: linear-gradient(90deg, #007375 0%, #03CFCB 100%) !important;
+.dm-gradient-royal {
+  background: linear-gradient(90deg, #470D67 0%, #6b149b 100%) !important;
 }
 
 @keyframes marquee {
@@ -81,4 +74,8 @@
 
 .animate-marquee {
   animation: marquee 40s linear infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
 }
