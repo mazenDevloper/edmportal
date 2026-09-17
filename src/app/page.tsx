@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -17,7 +16,9 @@ import {
   Plus,
   Minus,
   ArrowUpRight,
-  Megaphone
+  Megaphone,
+  CheckCircle2,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, CarouselItem, Survey, PopupMessage } from '@/lib/types';
@@ -46,13 +47,13 @@ export default function DhofarPortal() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [pkiStatus, setPkiStatus] = useState<'connected' | 'disconnected'>('connected');
-  const [showThiqaDetails, setShowThiqaDetails] = useState(false);
-
   const [services, setServices] = useState<Service[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [menuItems, setMenuItems] = useState([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [surveyResponse, setSurveyResponse] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -64,6 +65,7 @@ export default function DhofarPortal() {
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
           setPopups(data.popups || []);
+          setSurveys(data.surveys || []);
         }
       } catch (err) {
         console.error("Home Load Error:", err);
@@ -73,6 +75,8 @@ export default function DhofarPortal() {
     };
     load();
   }, []);
+
+  const activeSurvey = useMemo(() => surveys.find(s => s.isActive), [surveys]);
 
   const featuredServices = useMemo(() => {
     const s = (services || []).filter(s => s.isFeatured).slice(0, 6);
@@ -90,7 +94,7 @@ export default function DhofarPortal() {
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   return (
-    <div className={cn("flex min-h-screen flex-col bg-white", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
+    <div className={cn("flex min-h-screen flex-col bg-white")}>
       <PortalHeader menuItems={menuItems} />
       
       <PopupManager popups={popups} />
@@ -156,22 +160,14 @@ export default function DhofarPortal() {
                           })}
                         </AnimatePresence>
                      </div>
-                     <div className="mt-8 text-center">
-                        <Button variant="link" asChild className="text-accent font-black text-lg">
-                           <Link href="/catalog">{isAr ? "مشاهدة كافة الخدمات في الدليل" : "View all services in catalog"} →</Link>
-                        </Button>
-                     </div>
                    </div>
                  </div>
                </motion.div>
 
-               {/* Shrunk Thiqa Card with Larger Background Pattern */}
                <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative group">
-                 {/* Matrix All Pattern - Larger than the card */}
                  <div className="absolute -inset-24 dm-pattern-matrix-all opacity-20 pointer-events-none scale-125 -z-10 group-hover:scale-150 transition-transform duration-1000" />
                  
                  <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.15)] rounded-[3rem] bg-white/90 backdrop-blur-sm relative overflow-hidden flex flex-col border-t-[12px] border-primary">
-                   {/* Combined content to shrink the overall card height */}
                    <CardContent className="p-10 space-y-8 relative z-10">
                      <div className="flex items-center justify-between">
                        <div className="flex items-center gap-4">
@@ -186,18 +182,6 @@ export default function DhofarPortal() {
                        <Badge className={cn("rounded-full border-none px-4 py-1.5 font-black text-[9px] transition-all", pkiStatus === 'connected' ? "bg-emerald-600 text-white" : "bg-amber-600 text-white")}>
                          {pkiStatus === 'connected' ? (isAr ? "نشط وآمن" : "Active & Secure") : (isAr ? "غير مفعل" : "Disconnected")}
                        </Badge>
-                     </div>
-
-                     <div className="flex justify-center py-6 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 relative group transition-all hover:bg-white hover:border-accent/40">
-                        <div className="relative w-48 h-16">
-                           <Image 
-                             src="https://gov.om/documents/20117/254616/FLIPPED-Theqa-HomePage.png/3a21164e-8832-38df-f66b-6780161591d2?t=1788817339796"
-                             alt="Theqa"
-                             fill
-                             className="object-contain"
-                             priority
-                           />
-                        </div>
                      </div>
                      
                      <div className="space-y-6">
@@ -219,21 +203,69 @@ export default function DhofarPortal() {
                </motion.div>
              </div>
            </div>
-           <div className="absolute top-0 right-0 w-1/2 h-full dm-wave-5 opacity-10 pointer-events-none" />
         </section>
+
+        {/* Dynamic Survey Section */}
+        {activeSurvey && (
+          <section className="py-24 bg-white relative overflow-hidden">
+             <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center">
+                <div className="space-y-8">
+                   <Badge className="bg-primary text-white font-black px-6 py-2 rounded-xl text-md">{isAr ? "شاركنا رأيك" : "Citizen Opinion"}</Badge>
+                   <h3 className="text-5xl font-black text-primary leading-tight">
+                     {isAr ? activeSurvey.titleAr : activeSurvey.titleEn}
+                   </h3>
+                   <p className="text-xl text-slate-500 font-bold leading-relaxed">
+                     {isAr ? "مشاركتك تساهم في صياغة مستقبل الخدمات الرقمية لبلدية ظفار." : "Your feedback shapes the future of Dhofar's digital services."}
+                   </p>
+                </div>
+
+                <Card className="rounded-[3rem] border-none shadow-2xl bg-slate-50 p-10 overflow-hidden relative group">
+                  <div className="relative z-10 space-y-8">
+                    {activeSurvey.questions.map((q, qIdx) => (
+                      <div key={q.id} className="space-y-6">
+                        <h5 className="text-xl font-black text-primary leading-relaxed">
+                          {qIdx + 1}. {isAr ? q.questionAr : q.questionEn}
+                        </h5>
+                        <div className="grid grid-cols-1 gap-3">
+                          {q.type === 'mcq' && q.options?.map((opt, i) => (
+                            <Button 
+                              key={i} 
+                              variant={surveyResponse[q.id] === opt.textEn ? "default" : "outline"}
+                              className={cn(
+                                "h-14 rounded-2xl justify-between px-6 font-black border-2 transition-all",
+                                surveyResponse[q.id] === opt.textEn ? "bg-primary text-white border-primary" : "bg-white hover:border-accent hover:bg-accent/5"
+                              )}
+                              onClick={() => setSurveyResponse({...surveyResponse, [q.id]: opt.textEn})}
+                            >
+                              {isAr ? opt.textAr : opt.textEn}
+                              {surveyResponse[q.id] === opt.textEn ? <CheckCircle2 size={20} /> : <div className="size-5 rounded-full border-2 border-slate-200" />}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <Button className="w-full h-16 dm-gradient-primary rounded-2xl font-black text-lg shadow-xl uppercase tracking-widest">
+                       {isAr ? "إرسال التصويت" : "Submit Poll"}
+                    </Button>
+                  </div>
+                  <div className="absolute top-0 right-0 size-64 dm-wave opacity-5 -rotate-45 translate-x-32 -translate-y-32 pointer-events-none" />
+                </Card>
+             </div>
+          </section>
+        )}
 
         {/* Stats Section */}
         <section className="py-24 bg-primary text-white relative overflow-hidden">
            <div className="max-w-7xl mx-auto px-6 relative z-10">
              <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
                 {[
-                  { icon: <TrendingUp/>, val: siteConfig?.stats?.transactions || 25000, labelAr: 'معاملة رقمية', labelEn: 'Digital Transactions' },
-                  { icon: <ShieldCheck/>, val: siteConfig?.stats?.permits || 4200, labelAr: 'رخصة بناء', labelEn: 'Building Permits' },
-                  { icon: <FileText/>, val: siteConfig?.stats?.contracts || 8500, labelAr: 'عقد إيجار', labelEn: 'Lease Contracts' },
-                  { icon: <Users/>, val: siteConfig?.stats?.tickets || 12000, labelAr: 'مستفيد نشط', labelEn: 'Active Citizens' },
+                  { icon: <TrendingUp/>, val: 25000, labelAr: 'معاملة رقمية', labelEn: 'Digital Transactions' },
+                  { icon: <ShieldCheck/>, val: 4200, labelAr: 'رخصة بناء', labelEn: 'Building Permits' },
+                  { icon: <FileText/>, val: 8500, labelAr: 'عقد إيجار', labelEn: 'Lease Contracts' },
+                  { icon: <Users/>, val: 12000, labelAr: 'مستفيد نشط', labelEn: 'Active Citizens' },
                 ].map((stat, i) => (
                   <div key={i} className="space-y-3">
-                     <div className="mx-auto text-accent mb-4 p-4 rounded-3xl bg-white/10 w-fit shrink-0">{React.cloneElement(stat.icon as any, {size: 32})}</div>
+                     <div className="mx-auto text-accent mb-4 p-4 rounded-3xl bg-white/10 w-fit">{React.cloneElement(stat.icon as any, {size: 32})}</div>
                      <h3 className="text-5xl font-black flex items-center justify-center gap-1">
                        <CountUp end={stat.val} duration={3} enableScrollSpy scrollSpyOnce />
                        <span className="text-accent">+</span>
@@ -242,88 +274,6 @@ export default function DhofarPortal() {
                   </div>
                 ))}
              </div>
-           </div>
-           <div className="absolute inset-0 dm-wave-5 opacity-5" />
-        </section>
-
-        {/* Banner Carousel */}
-        {carouselItems.length > 0 && (
-          <section className="relative group overflow-hidden border-y-[20px] border-slate-50">
-            <Carousel className="w-full" opts={{ loop: true }}>
-              <CarouselContent>
-                {carouselItems.map(item => (
-                  <CarouselItemUI key={item.id}>
-                    <div className="relative h-[650px] w-full flex items-center justify-center">
-                      {item.imageUrl && (
-                        <Image 
-                          src={item.imageUrl} 
-                          alt="" 
-                          fill 
-                          className="object-cover brightness-[0.3]" 
-                          priority
-                          unoptimized={item.imageUrl?.includes('brave.com') || item.imageUrl?.includes('omandaily') || item.imageUrl?.includes('tajawob.om')}
-                        />
-                      )}
-                      <div className="relative z-10 text-center text-white px-6 max-w-5xl">
-                        <motion.h2 initial={{y:30, opacity:0}} whileInView={{y:0, opacity:1}} className="text-6xl md:text-8xl font-black mb-8 drop-shadow-2xl tracking-tighter">{isAr ? item.titleAr : item.titleEn}</motion.h2>
-                        <motion.p initial={{y:30, opacity:0}} whileInView={{y:0, opacity:1}} transition={{delay:0.2}} className="text-2xl md:text-3xl font-bold opacity-80 mb-12 leading-relaxed">{isAr ? item.subtitleAr : item.subtitleEn}</motion.p>
-                        <Button className="dm-gradient-primary rounded-full px-16 h-16 text-xl font-black shadow-[0_20px_50px_rgba(3,207,203,0.3)]">
-                          {isAr ? 'ابدأ الخدمة الآن' : 'Start Service Now'}
-                        </Button>
-                      </div>
-                    </div>
-                  </CarouselItemUI>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-12 size-12 bg-white/10 border-white/20 text-white hover:bg-accent hover:text-slate-900" />
-              <CarouselNext className="right-12 size-12 bg-white/10 border-white/20 text-white hover:bg-accent hover:text-slate-900" />
-            </Carousel>
-          </section>
-        )}
-
-        {/* Breaking News */}
-        <section className="py-24 bg-slate-950 text-white relative overflow-hidden">
-           <div className="max-w-7xl mx-auto px-6 relative z-10 grid lg:grid-cols-2 gap-20 items-center">
-              <div className="space-y-8">
-                 <Badge className="bg-accent text-slate-900 font-black px-6 py-2 rounded-xl text-md">{isAr ? "أخبار البلدية" : "Breaking News"}</Badge>
-                 <h3 className="text-5xl font-black leading-tight">{isAr ? "مواكبة دائمة لمشاريع التطوير في محافظة ظفار" : "Continuous Development Projects in Dhofar."}</h3>
-                 <div className="space-y-6">
-                    {[
-                      { date: '24 May', text: isAr ? 'افتتاح مشروع رصف الطرق في منطقة صحلنوت الشمالية.' : 'Opening of the paving project in Sahalnoot.' },
-                      { date: '18 May', text: isAr ? 'بلدية ظفار تطلق حملة التفتيش الصحي السنوية لموسم الخريف.' : 'Health inspection campaign for Khareef season.' },
-                    ].map((news, i) => (
-                      <div key={i} className="flex gap-6 p-6 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
-                         <div className="text-accent font-black text-sm shrink-0 uppercase tracking-widest">{news.date}</div>
-                         <p className="font-bold text-lg group-hover:text-accent transition-colors">{news.text}</p>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-
-              <Card className="rounded-[3rem] border-none shadow-2xl bg-white text-slate-900 p-10 overflow-hidden relative">
-                <div className="relative z-10 space-y-8">
-                   <div className="flex items-center gap-4">
-                      <div className="size-14 rounded-3xl bg-accent text-slate-900 flex items-center justify-center shadow-lg"><Megaphone size={28}/></div>
-                      <div>
-                         <h4 className="text-2xl font-black text-primary">{isAr ? "صوتك يهمنا" : "Voice of Citizen"}</h4>
-                         <p className="text-sm font-bold text-slate-400">{isAr ? "ساهم في تحسين جودة خدماتنا" : "Help us improve quality"}</p>
-                      </div>
-                   </div>
-                   <div className="space-y-6">
-                      <h5 className="text-xl font-bold leading-relaxed">{isAr ? "ما هي أكثر قناة تفضلها للتواصل مع بلدية ظفار؟" : "What is your preferred contact channel?"}</h5>
-                      <div className="grid grid-cols-1 gap-3">
-                         {['تطبيق الهاتف', 'البوابة الإلكترونية', 'مركز الاتصال 1771', 'زيارة المبنى'].map((opt, i) => (
-                           <Button key={i} variant="outline" className="h-14 rounded-2xl justify-between px-6 font-black border-2 hover:border-accent hover:bg-accent/5">
-                              {opt}
-                              <div className="size-5 rounded-full border-2 border-slate-200" />
-                           </Button>
-                         ))}
-                      </div>
-                      <Button className="w-full h-16 dm-gradient-primary rounded-2xl font-black text-lg shadow-xl">{isAr ? "إرسال التصويت" : "Submit Poll"}</Button>
-                   </div>
-                </div>
-                <div className="absolute top-0 right-0 size-64 dm-wave-5 opacity-10 -rotate-45 translate-x-32 -translate-y-32" />
-              </Card>
            </div>
         </section>
       </main>
