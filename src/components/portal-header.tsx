@@ -102,7 +102,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center gap-6 group">
-               <div className="relative group-hover:rotate-[360deg] transition-transform duration-1000 ease-in-out">
+               <div className="relative">
                  <Image 
                   src="https://imagetourl.cloud/a90z81isxaf9.png" 
                   alt="Dhofar Logo" 
