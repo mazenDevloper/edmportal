@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, ArrowRight, Languages, Palette, Search, MessageSquare } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Languages, Palette, Search, MessageSquare } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,6 @@ import {
   SheetContent,
   SheetTrigger,
   SheetTitle,
-  SheetDescription,
 } from "@/components/ui/sheet";
 
 interface PortalHeaderProps {
@@ -61,7 +60,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
       {/* Dynamic News Ticker */}
       <div className="bg-[#470D67] text-white py-3 overflow-hidden border-b border-white/10">
         <div className="flex items-center gap-4 px-6 animate-marquee whitespace-nowrap">
-           <div className="flex items-center gap-3 font-black text-[10px] uppercase tracking-widest bg-accent text-slate-900 px-3 py-1 rounded-full shrink-0">
+           <div className="flex items-center gap-3 font-black text-[10px] uppercase tracking-widest bg-[#03CFCB] text-slate-900 px-3 py-1 rounded-full shrink-0">
              <Megaphone size={12} />
              {isAr ? "آخر الأخبار" : "Breaking News"}
            </div>
@@ -75,19 +74,19 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
 
       <nav className="bg-slate-900 text-white py-3 text-[10px] font-bold tracking-widest border-b border-white/5">
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
-          <span className="flex items-center gap-2 opacity-80">
-            <Globe size={14} aria-hidden="true" className="text-accent" /> {isAr ? 'بوابة حكومة سلطنة عُمان الموحدة' : 'Oman Government Unified Portal'}
+          <span className="flex items-center gap-2 opacity-80 uppercase">
+            <Globe size={14} className="text-[#03CFCB]" /> {isAr ? 'بوابة حكومة سلطنة عُمان الموحدة' : 'Oman Government Unified Portal'}
           </span>
           <div className="flex items-center gap-8">
             {editLink && (
-              <Button variant="ghost" asChild className="text-accent hover:text-white h-auto py-0.5 px-3 font-black gap-2 animate-pulse bg-white/5 rounded-full">
+              <Button variant="ghost" asChild className="text-[#03CFCB] hover:text-white h-auto py-0.5 px-3 font-black gap-2 animate-pulse bg-white/5 rounded-full">
                 <Link href={editLink}>
-                  <Edit2 size={12} aria-hidden="true" /> {isAr ? 'تعديل هذا القسم' : 'Edit Section'}
+                  <Edit2 size={12} /> {isAr ? 'تعديل هذا القسم' : 'Edit Section'}
                 </Link>
               </Button>
             )}
-            <Link href="/admin" className="text-accent hover:underline flex items-center gap-2 font-black">
-              <LayoutDashboard size={14} aria-hidden="true" /> {isAr ? 'لوحة التحكم' : 'Admin'}
+            <Link href="/admin" className="text-[#03CFCB] hover:underline flex items-center gap-2 font-black">
+              <LayoutDashboard size={14} /> {isAr ? 'لوحة التحكم' : 'Admin'}
             </Link>
           </div>
         </div>
@@ -101,7 +100,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                  <Image src="https://edm.gov.om/wp-content/uploads/2025/05/dhofar-logo-1.svg" alt="Dhofar Logo" width={60} height={60} className="object-contain" priority />
                </div>
                <div className="flex flex-col">
-                 <span className="text-2xl font-black text-[#470D67] leading-none tracking-tighter">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+                 <span className="text-2xl font-black text-[#470D67] leading-none tracking-tighter uppercase">بلدية ظفار</span>
                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">{isAr ? 'بوابة الخدمات الرقمية الموحدة' : 'Unified Digital Portal'}</span>
                </div>
             </Link>
@@ -109,21 +108,21 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             {/* Tajawoob Logo Integrated */}
             <div className="hidden xl:flex items-center gap-4 pl-8 border-l border-slate-100">
               <a href="https://tajawob.om" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" width={100} height={35} className="object-contain" unoptimized />
+                <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" width={110} height={40} className="object-contain" unoptimized />
               </a>
             </div>
           </div>
           
           <div className="hidden lg:flex items-center gap-6">
-            <Link href="/" className={cn("text-sm font-black hover:text-primary transition-all", pathname === '/' ? "text-primary border-b-2 border-accent" : "text-slate-600")}>{isAr ? 'الرئيسية' : 'Home'}</Link>
-            <Link href="/catalog" className={cn("text-sm font-black hover:text-primary transition-all", pathname === '/catalog' ? "text-primary border-b-2 border-accent" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
-            <Link href="/identity" className={cn("text-sm font-black text-accent bg-accent/5 px-4 py-1.5 rounded-full hover:bg-accent hover:text-white transition-all", pathname === '/identity' && "bg-accent text-white")}>{isAr ? 'دليل الهوية' : 'Identity Guide'}</Link>
+            <Link href="/" className={cn("text-sm font-black hover:text-[#470D67] transition-all uppercase tracking-widest", pathname === '/' ? "text-[#470D67] border-b-2 border-[#03CFCB]" : "text-slate-600")}>{isAr ? 'الرئيسية' : 'Home'}</Link>
+            <Link href="/catalog" className={cn("text-sm font-black hover:text-[#470D67] transition-all uppercase tracking-widest", pathname === '/catalog' ? "text-[#470D67] border-b-2 border-[#03CFCB]" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
+            <Link href="/identity" className={cn("text-sm font-black text-[#03CFCB] bg-[#03CFCB]/5 px-4 py-1.5 rounded-full hover:bg-[#03CFCB] hover:text-white transition-all uppercase tracking-widest", pathname === '/identity' && "bg-[#03CFCB] text-white")}>{isAr ? 'دليل الهوية' : 'Identity Guide'}</Link>
             
             <Button variant="outline" size="sm" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="rounded-full border-[#470D67]/20 font-black h-9 px-4 text-[#470D67]">
               <Languages size={14} className="ml-2" /> {isAr ? 'English' : 'العربية'}
             </Button>
 
-            <Button asChild className="bg-[#470D67] hover:bg-[#470D67]/90 rounded-full px-6 h-9 font-black shadow-lg text-white">
+            <Button asChild className="bg-[#470D67] hover:bg-slate-800 rounded-full px-8 h-9 font-black shadow-lg text-white uppercase text-[10px] tracking-widest">
               <Link href="/services/svc_105">{isAr ? 'تواصل معنا' : 'Support'}</Link>
             </Button>
           </div>
@@ -138,7 +137,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                 <nav className="flex flex-col gap-6">
                   <Link href="/" className="text-2xl font-black">{isAr ? 'الرئيسية' : 'Home'}</Link>
                   <Link href="/catalog" className="text-2xl font-black">{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
-                  <Link href="/identity" className="text-2xl font-black text-accent">{isAr ? 'دليل الهوية' : 'Identity'}</Link>
+                  <Link href="/identity" className="text-2xl font-black text-[#03CFCB]">{isAr ? 'دليل الهوية' : 'Identity'}</Link>
                   <a href="https://tajawob.om" target="_blank" className="text-2xl font-black text-emerald-600">{isAr ? 'منصة تجاوب' : 'Tajawoob'}</a>
                 </nav>
               </SheetContent>
