@@ -1,3 +1,4 @@
+
 export interface SiteConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -49,6 +50,16 @@ export interface CarouselItem {
   subtitleEn: string;
   imageUrl: string;
   linkUrl?: string;
+}
+
+export interface NewsItem {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  contentAr: string;
+  contentEn: string;
+  imageUrl: string;
+  createdAt: string;
 }
 
 export interface Service {

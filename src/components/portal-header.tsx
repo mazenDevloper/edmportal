@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -27,15 +28,19 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
   const isAr = language === 'ar';
   
   const [editLink, setEditLink] = useState<string | null>(null);
+  const [tickerText, setTickerText] = useState('');
 
   useEffect(() => {
     const determineEditLink = async () => {
       try {
+        const data = await fetchBin();
+        if (data) {
+          setTickerText(data.newsTickerText || '');
+        }
         if (pathname === '/') {
           setEditLink('/admin');
           return;
         }
-        const data = await fetchBin();
         if (!data) return;
 
         if (pathname.startsWith('/p/')) {
@@ -57,17 +62,18 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
 
   return (
     <header className="w-full">
-      {/* Dynamic News Ticker - Royal Purple Palette */}
-      <div className="bg-[#470D67] text-white py-3.5 overflow-hidden border-b border-white/10 shadow-lg">
-        <div className="flex items-center gap-6 px-6 animate-marquee whitespace-nowrap">
-           <div className="flex items-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] bg-[#03CFCB] text-slate-900 px-4 py-1.5 rounded-full shrink-0 shadow-xl">
+      {/* Dynamic News Ticker - Gradient Teal Palette */}
+      <div className="dm-gradient-primary text-white py-3.5 overflow-hidden border-b border-white/10 shadow-lg relative">
+        <div className="absolute inset-0 dm-pattern-wave-pro opacity-10 pointer-events-none" />
+        <div className="flex items-center gap-6 px-6 animate-marquee whitespace-nowrap relative z-10">
+           <div className="flex items-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] bg-white text-primary px-4 py-1.5 rounded-full shrink-0 shadow-xl">
              <Megaphone size={14} />
              {isAr ? "آخر الأخبار" : "Breaking News"}
            </div>
-           <p className="text-base font-bold opacity-95 tracking-tight">
-             {isAr 
+           <p className="text-base font-black opacity-95 tracking-tight">
+             {tickerText || (isAr 
                ? "بدء العمل في مشروع رصف الطرق الداخلية بمنطقة المزيونة - بلدية ظفار تدعو المواطنين لتحديث بياناتهم عبر البوابة الموحدة."
-               : "New road paving projects launched in Al-Mazyuna - Dhofar Municipality invites citizens to update data via the unified portal."}
+               : "New road paving projects launched in Al-Mazyuna - Dhofar Municipality invites citizens to update data via the portal.")}
            </p>
         </div>
       </div>
@@ -97,7 +103,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center gap-6 group">
                <div className="relative group-hover:rotate-[360deg] transition-transform duration-1000 ease-in-out">
-                 <Image src="https://edm.gov.om/wp-content/uploads/2025/05/dhofar-logo-1.svg" alt="Dhofar Logo" width={65} height={65} className="object-contain" priority />
+                 <Image src="/dm-new-logo.png" alt="Dhofar Logo" width={65} height={65} className="object-contain" priority />
                </div>
                <div className="flex flex-col">
                  <span className="text-3xl font-black text-[#470D67] leading-none tracking-tighter uppercase">بلدية ظفار</span>

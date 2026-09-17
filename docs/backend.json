@@ -36,6 +36,20 @@
       },
       "required": ["heroTitle", "contactPhone"]
     },
+    "NewsItem": {
+      "title": "News Item",
+      "description": "Official news for the news matrix.",
+      "type": "object",
+      "properties": {
+        "titleAr": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "contentAr": { "type": "string" },
+        "contentEn": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["titleAr", "imageUrl"]
+    },
     "NewsTicker": {
       "title": "News Ticker",
       "description": "Breaking news items for the top bar ticker.",
@@ -91,6 +105,10 @@
     "/config/site": {
       "schema": "SiteConfig",
       "description": "Singleton document for site configuration."
+    },
+    "/news/{newsId}": {
+      "schema": "NewsItem",
+      "description": "Collection of official portal news."
     },
     "/news_ticker/{itemId}": {
       "schema": "NewsTicker",

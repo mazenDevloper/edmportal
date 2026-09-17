@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -21,7 +22,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
-import { Service, SiteConfig, CarouselItem, Survey, PopupMessage } from '@/lib/types';
+import { Service, SiteConfig, CarouselItem, Survey, PopupMessage, NewsItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
@@ -48,10 +49,10 @@ export default function DhofarPortal() {
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [menuItems, setMenuItems] = useState([]);
   const [carouselItems, setCarouselItems] = useState<CarouselItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [popups, setPopups] = useState<PopupMessage[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [surveyResponse, setSurveyResponse] = useState<Record<string, string>>({});
-  const [newsTickerText, setNewsTickerText] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -62,9 +63,9 @@ export default function DhofarPortal() {
           setSiteConfig(data.siteConfig || null);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
+          setNews(data.news || []);
           setPopups(data.popups || []);
           setSurveys(data.surveys || []);
-          setNewsTickerText(data.newsTickerText || '');
         }
       } catch (err) {
         console.error("Home Load Error:", err);
@@ -99,25 +100,13 @@ export default function DhofarPortal() {
       <PopupManager popups={popups} />
 
       <main className="flex-grow" id="main-content">
-        {/* News Ticker - Teal Background Integration */}
-        <div className="bg-[#03CFCB] text-white py-3.5 overflow-hidden border-b border-black/5 shadow-md">
-          <div className="flex items-center gap-6 px-6 animate-marquee whitespace-nowrap">
-             <div className="flex items-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] bg-white text-[#03CFCB] px-4 py-1.5 rounded-full shrink-0 shadow-xl">
-               <Megaphone size={14} />
-               {isAr ? "أخبار البلدية" : "News Ticker"}
-             </div>
-             <p className="text-base font-bold tracking-tight opacity-95">
-               {newsTickerText || (isAr ? "بدء العمل في مشروع رصف الطرق الداخلية بمنطقة المزيونة - بلدية ظفار تدعو المواطنين لتحديث بياناتهم عبر البوابة الموحدة." : "New infrastructure projects launched in Dhofar - Update your profile via the unified portal.")}
-             </p>
-          </div>
-        </div>
-
+     
         {/* Hero & Search */}
         <section className="py-24 bg-slate-50 relative overflow-hidden">
            <div className="max-w-7xl mx-auto px-6 relative z-10">
              <div className="grid lg:grid-cols-12 gap-16 items-center">
                <motion.div initial={{opacity:0, x:-50}} animate={{opacity:1, x:0}} transition={{duration:0.8}} className="lg:col-span-7">
-                 <h1 className="text-6xl md:text-8xl font-black text-[#470D67] tracking-tighter mb-8 leading-[0.9]">
+                 <h1 className="text-6xl md:text-8xl font-black text-[#008E91] tracking-tighter mb-8 leading-[0.9]">
                    {siteConfig?.heroTitle || (isAr ? "خدماتنا رقمية، أسرع، وأسهل" : "Digital Services")}
                  </h1>
                  <p className="text-2xl text-slate-500 font-bold mb-12 max-w-xl leading-relaxed">
@@ -177,7 +166,6 @@ export default function DhofarPortal() {
                </motion.div>
 
                <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative group">
-                 {/* Matrix All Pattern - Scaled for immersive effect */}
                  <div className="absolute -inset-24 dm-pattern-matrix-all opacity-15 pointer-events-none scale-110 group-hover:scale-125 transition-transform duration-1000" />
                  
                  <div className="border-none shadow-[0_30px_100px_rgba(0,0,0,0.1)] rounded-[4rem] bg-white relative overflow-hidden flex flex-col border-t-[14px] border-primary">
@@ -230,9 +218,6 @@ export default function DhofarPortal() {
                        <h3 className="text-5xl font-black text-slate-900 leading-[1.1] tracking-tighter">
                          {isAr ? activeSurvey.titleAr : activeSurvey.titleEn}
                        </h3>
-                       <p className="text-xl text-slate-500 font-bold leading-relaxed">
-                         {isAr ? "مشاركتك تساهم في صياغة مستقبل الخدمات الرقمية." : "Your feedback shapes our digital future."}
-                       </p>
                      </div>
 
                      <div className="rounded-[4rem] border-none shadow-[0_30px_80px_rgba(0,0,0,0.05)] bg-slate-50 p-12 overflow-hidden relative group ring-1 ring-slate-100">
@@ -260,9 +245,6 @@ export default function DhofarPortal() {
                               </div>
                             </div>
                           ))}
-                          <Button className="w-full h-16 dm-gradient-primary rounded-2xl font-black text-lg shadow-xl uppercase tracking-[0.2em] transition-all hover:scale-[1.02]">
-                             {isAr ? "إرسال المشاركة" : "Submit Opinion"}
-                          </Button>
                         </div>
                         <div className="absolute top-0 right-0 size-80 dm-pattern-matrix-all opacity-5 -rotate-45 translate-x-32 -translate-y-32 pointer-events-none" />
                      </div>
@@ -278,34 +260,27 @@ export default function DhofarPortal() {
               <div className="relative rounded-[4.5rem] overflow-hidden min-h-[650px] group shadow-[0_50px_100px_rgba(0,0,0,0.15)] border-t-[12px] border-primary">
                 <Carousel className="w-full h-full" opts={{ loop: true }}>
                   <CarouselContent className="h-full -ml-0">
-                    {(carouselItems.length > 0 ? carouselItems : [
-                      { id: '1', titleAr: 'مهرجان خريف ظفار 2025', titleEn: 'Dhofar Khareef Festival', imageUrl: 'https://picsum.photos/seed/dhofar1/1200/800', subtitleAr: 'انطلاق فعاليات المهرجان السياحي الأكبر في المنطقة.' },
-                      { id: '2', titleAr: 'مشاريع التحول الرقمي', titleEn: 'Digital Transformation', imageUrl: 'https://picsum.photos/seed/dhofar2/1200/800', subtitleAr: 'أتمتة كافة الخدمات البلدية لخدمة المواطنين.' }
+                    {(news.length > 0 ? news : [
+                      { id: '1', titleAr: 'افتتاح مشاريع الطرق الجديدة', contentAr: 'بلدية ظفار تدشن حزمة من مشاريع رصف الطرق بالمحافظة.', imageUrl: 'https://oman-daily.com/wp-content/uploads/2023/12/Dhofar-Roads.jpg' },
                     ]).map((item) => (
                       <CarouselItemUI key={item.id} className="h-full pl-0 relative">
                         <div className="relative w-full h-[650px]">
-                           <Image 
+                           <img 
                              src={item.imageUrl} 
                              alt={item.titleAr} 
-                             fill 
-                             className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                            />
-                           {/* Gradient Transparent Overlay */}
                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
-                           
-                           {/* Pattern All Overlay */}
                            <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 pointer-events-none mix-blend-overlay" />
-                           
-                           {/* Text Content Overlay */}
                            <div className="absolute inset-x-0 bottom-0 p-16 space-y-6">
                               <Badge className="bg-primary text-white font-black px-6 py-1.5 rounded-full uppercase text-[10px] tracking-[0.3em] shadow-2xl">
-                                {isAr ? "أخبارMatrix" : "MATRIX NEWS"}
+                                {isAr ? "مصفوفة الأخبار" : "MATRIX NEWS"}
                               </Badge>
                               <h4 className="text-5xl font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl">
                                 {isAr ? item.titleAr : item.titleEn}
                               </h4>
                               <p className="text-white/70 font-bold text-xl max-w-lg line-clamp-3 leading-relaxed">
-                                {isAr ? item.subtitleAr || "استكشف أحدث المبادرات والمشاريع التطويرية في محافظة ظفار تحت مظلة التحول الرقمي." : item.subtitleEn || "Explore the latest initiatives and digital transformation projects in Dhofar."}
+                                {isAr ? item.contentAr : item.contentEn}
                               </p>
                               <div className="pt-6">
                                 <Button className="bg-white text-slate-900 font-black rounded-2xl px-10 h-14 shadow-2xl hover:bg-primary hover:text-white transition-all text-lg group/btn">
@@ -326,6 +301,31 @@ export default function DhofarPortal() {
               </div>
            </div>
         </section>
+
+        {/* 100% Width Banner Section (Under News Matrix) */}
+        {carouselItems.length > 0 && (
+          <section className="py-12 bg-white">
+            <div className="max-w-7xl mx-auto px-6">
+               <div className="rounded-[4.5rem] overflow-hidden shadow-2xl relative h-[400px] group">
+                  <Carousel className="w-full h-full" opts={{ loop: true }}>
+                    <CarouselContent className="h-full -ml-0">
+                      {carouselItems.map(banner => (
+                        <CarouselItemUI key={banner.id} className="h-full pl-0 relative">
+                           <img src={banner.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
+                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-20 text-center">
+                              <div className="space-y-6">
+                                <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter drop-shadow-xl">{isAr ? banner.titleAr : banner.titleEn}</h2>
+                                <Button className="dm-gradient-primary rounded-full px-12 h-14 font-black shadow-2xl">{isAr ? 'اكتشف المزيد' : 'Explore Now'}</Button>
+                              </div>
+                           </div>
+                        </CarouselItemUI>
+                      ))}
+                    </CarouselContent>
+                  </Carousel>
+               </div>
+            </div>
+          </section>
+        )}
 
         {/* Stats Section */}
         <section className="py-24 bg-[#470D67] text-white relative overflow-hidden">
