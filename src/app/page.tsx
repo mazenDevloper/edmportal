@@ -15,7 +15,10 @@ import {
   Users,
   Fingerprint,
   ArrowUpRight,
-  CheckCircle2
+  CheckCircle2,
+  Megaphone,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, CarouselItem, Survey, PopupMessage } from '@/lib/types';
@@ -26,6 +29,13 @@ import { PopupManager } from '@/components/popup-manager';
 import { motion, AnimatePresence } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import * as Icons from 'lucide-react';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem as CarouselItemUI,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
@@ -41,6 +51,7 @@ export default function DhofarPortal() {
   const [popups, setPopups] = useState<PopupMessage[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [surveyResponse, setSurveyResponse] = useState<Record<string, string>>({});
+  const [newsTickerText, setNewsTickerText] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -53,6 +64,7 @@ export default function DhofarPortal() {
           setCarouselItems(data.carouselItems || []);
           setPopups(data.popups || []);
           setSurveys(data.surveys || []);
+          setNewsTickerText(data.newsTickerText || '');
         }
       } catch (err) {
         console.error("Home Load Error:", err);
@@ -81,12 +93,25 @@ export default function DhofarPortal() {
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   return (
-    <div className={cn("flex min-h-screen flex-col bg-white")}>
+    <div className={cn("flex min-h-screen flex-col bg-white", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={menuItems} />
       
       <PopupManager popups={popups} />
 
       <main className="flex-grow" id="main-content">
+        {/* News Ticker - Teal Background Integration */}
+        <div className="bg-[#03CFCB] text-white py-3.5 overflow-hidden border-b border-black/5 shadow-md">
+          <div className="flex items-center gap-6 px-6 animate-marquee whitespace-nowrap">
+             <div className="flex items-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] bg-white text-[#03CFCB] px-4 py-1.5 rounded-full shrink-0 shadow-xl">
+               <Megaphone size={14} />
+               {isAr ? "أخبار البلدية" : "News Ticker"}
+             </div>
+             <p className="text-base font-bold tracking-tight opacity-95">
+               {newsTickerText || (isAr ? "بدء العمل في مشروع رصف الطرق الداخلية بمنطقة المزيونة - بلدية ظفار تدعو المواطنين لتحديث بياناتهم عبر البوابة الموحدة." : "New infrastructure projects launched in Dhofar - Update your profile via the unified portal.")}
+             </p>
+          </div>
+        </div>
+
         {/* Hero & Search */}
         <section className="py-24 bg-slate-50 relative overflow-hidden">
            <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -193,60 +218,114 @@ export default function DhofarPortal() {
            </div>
         </section>
 
-        {/* Dynamic Survey Section */}
-        {activeSurvey && (
-          <section className="py-24 bg-white relative overflow-hidden border-y border-slate-100">
-             <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-24 items-center">
-                <div className="space-y-8">
-                   <Badge className="bg-[#470D67] text-white font-black px-8 py-2.5 rounded-2xl text-md shadow-xl">{isAr ? "شاركنا رأيك" : "Citizen Opinion"}</Badge>
-                   <h3 className="text-6xl font-black text-slate-900 leading-[1.1] tracking-tighter">
-                     {isAr ? activeSurvey.titleAr : activeSurvey.titleEn}
-                   </h3>
-                   <p className="text-2xl text-slate-500 font-bold leading-relaxed">
-                     {isAr ? "مشاركتك تساهم في صياغة مستقبل الخدمات الرقمية لبلدية ظفار." : "Your feedback shapes the future of Dhofars digital services."}
-                   </p>
-                </div>
+        {/* Dynamic Survey & News Matrix Section - 50/50 Grid */}
+        <section className="py-24 bg-white relative overflow-hidden border-y border-slate-100">
+           <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-stretch">
+              {/* Left Column: Citizen Survey (50% width widget) */}
+              <div className="flex flex-col justify-center h-full">
+                {activeSurvey ? (
+                  <div className="space-y-8 h-full flex flex-col justify-center">
+                     <div className="space-y-4">
+                       <Badge className="bg-[#470D67] text-white font-black px-8 py-2.5 rounded-2xl text-md shadow-xl">{isAr ? "صوتك يهمنا" : "Public Sentiment"}</Badge>
+                       <h3 className="text-5xl font-black text-slate-900 leading-[1.1] tracking-tighter">
+                         {isAr ? activeSurvey.titleAr : activeSurvey.titleEn}
+                       </h3>
+                       <p className="text-xl text-slate-500 font-bold leading-relaxed">
+                         {isAr ? "مشاركتك تساهم في صياغة مستقبل الخدمات الرقمية." : "Your feedback shapes our digital future."}
+                       </p>
+                     </div>
 
-                <div className="rounded-[4rem] border-none shadow-[0_40px_100px_rgba(0,0,0,0.05)] bg-slate-50 p-14 overflow-hidden relative group ring-1 ring-slate-100">
-                  <div className="relative z-10 space-y-12">
-                    {activeSurvey.questions.map((q, qIdx) => (
-                      <div key={q.id} className="space-y-8">
-                        <h5 className="text-2xl font-black text-[#470D67] leading-tight">
-                          {qIdx + 1}. {isAr ? q.questionAr : q.questionEn}
-                        </h5>
-                        <div className="grid grid-cols-1 gap-4">
-                          {q.type === 'mcq' && q.options?.map((opt, i) => (
-                            <Button 
-                              key={i} 
-                              variant={surveyResponse[q.id] === opt.textEn ? "default" : "outline"}
-                              className={cn(
-                                "h-16 rounded-[1.5rem] justify-between px-8 font-black border-2 transition-all text-lg",
-                                surveyResponse[q.id] === opt.textEn ? "bg-primary text-white border-primary shadow-xl scale-[1.02]" : "bg-white hover:border-primary hover:bg-primary/5 shadow-sm"
-                              )}
-                              onClick={() => setSurveyResponse({...surveyResponse, [q.id]: opt.textEn})}
-                            >
-                              {isAr ? opt.textAr : opt.textEn}
-                              {surveyResponse[q.id] === opt.textEn ? <CheckCircle2 size={24} /> : <div className="size-6 rounded-full border-2 border-slate-200" />}
-                            </Button>
+                     <div className="rounded-[4rem] border-none shadow-[0_30px_80px_rgba(0,0,0,0.05)] bg-slate-50 p-12 overflow-hidden relative group ring-1 ring-slate-100">
+                        <div className="relative z-10 space-y-10">
+                          {activeSurvey.questions.slice(0, 2).map((q, qIdx) => (
+                            <div key={q.id} className="space-y-6">
+                              <h5 className="text-xl font-black text-[#470D67] leading-tight">
+                                {qIdx + 1}. {isAr ? q.questionAr : q.questionEn}
+                              </h5>
+                              <div className="grid grid-cols-1 gap-3">
+                                {q.type === 'mcq' && q.options?.map((opt, i) => (
+                                  <Button 
+                                    key={i} 
+                                    variant={surveyResponse[q.id] === opt.textEn ? "default" : "outline"}
+                                    className={cn(
+                                      "h-14 rounded-2xl justify-between px-6 font-bold border-2 transition-all text-md",
+                                      surveyResponse[q.id] === opt.textEn ? "bg-primary text-white border-primary shadow-xl scale-[1.02]" : "bg-white hover:border-primary/30 shadow-sm"
+                                    )}
+                                    onClick={() => setSurveyResponse({...surveyResponse, [q.id]: opt.textEn})}
+                                  >
+                                    {isAr ? opt.textAr : opt.textEn}
+                                    {surveyResponse[q.id] === opt.textEn ? <CheckCircle2 size={20} /> : <div className="size-5 rounded-full border-2 border-slate-200" />}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
                           ))}
-                          {q.type === 'text' && (
-                            <textarea 
-                              placeholder={isAr ? "اكتب تعليقك هنا..." : "Type your response..."}
-                              className="w-full h-32 rounded-[1.5rem] border-2 border-white bg-white p-6 font-bold shadow-inner focus:border-primary outline-none transition-all"
-                            />
-                          )}
+                          <Button className="w-full h-16 dm-gradient-primary rounded-2xl font-black text-lg shadow-xl uppercase tracking-[0.2em] transition-all hover:scale-[1.02]">
+                             {isAr ? "إرسال المشاركة" : "Submit Opinion"}
+                          </Button>
                         </div>
-                      </div>
-                    ))}
-                    <Button className="w-full h-20 dm-gradient-primary rounded-[2rem] font-black text-xl shadow-2xl uppercase tracking-[0.2em] transition-all hover:scale-[1.02]">
-                       {isAr ? "إرسال التصويت" : "Submit Poll"}
-                    </Button>
+                        <div className="absolute top-0 right-0 size-80 dm-pattern-matrix-all opacity-5 -rotate-45 translate-x-32 -translate-y-32 pointer-events-none" />
+                     </div>
                   </div>
-                  <div className="absolute top-0 right-0 size-80 dm-pattern-matrix-all opacity-5 -rotate-45 translate-x-32 -translate-y-32 pointer-events-none" />
-                </div>
-             </div>
-          </section>
-        )}
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-slate-50 rounded-[4rem] border-2 border-dashed border-slate-200 p-20 text-center">
+                    <p className="text-slate-400 font-black text-xl italic">{isAr ? "لا توجد استطلاعات نشطة حالياً" : "No active surveys at this time"}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: News Matrix Carousel (50% width immersive widget) */}
+              <div className="relative rounded-[4.5rem] overflow-hidden min-h-[650px] group shadow-[0_50px_100px_rgba(0,0,0,0.15)] border-t-[12px] border-primary">
+                <Carousel className="w-full h-full" opts={{ loop: true }}>
+                  <CarouselContent className="h-full -ml-0">
+                    {(carouselItems.length > 0 ? carouselItems : [
+                      { id: '1', titleAr: 'مهرجان خريف ظفار 2025', titleEn: 'Dhofar Khareef Festival', imageUrl: 'https://picsum.photos/seed/dhofar1/1200/800', subtitleAr: 'انطلاق فعاليات المهرجان السياحي الأكبر في المنطقة.' },
+                      { id: '2', titleAr: 'مشاريع التحول الرقمي', titleEn: 'Digital Transformation', imageUrl: 'https://picsum.photos/seed/dhofar2/1200/800', subtitleAr: 'أتمتة كافة الخدمات البلدية لخدمة المواطنين.' }
+                    ]).map((item) => (
+                      <CarouselItemUI key={item.id} className="h-full pl-0 relative">
+                        <div className="relative w-full h-[650px]">
+                           <Image 
+                             src={item.imageUrl} 
+                             alt={item.titleAr} 
+                             fill 
+                             className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                           />
+                           {/* Gradient Transparent Overlay */}
+                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
+                           
+                           {/* Pattern All Overlay */}
+                           <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 pointer-events-none mix-blend-overlay" />
+                           
+                           {/* Text Content Overlay */}
+                           <div className="absolute inset-x-0 bottom-0 p-16 space-y-6">
+                              <Badge className="bg-primary text-white font-black px-6 py-1.5 rounded-full uppercase text-[10px] tracking-[0.3em] shadow-2xl">
+                                {isAr ? "أخبارMatrix" : "MATRIX NEWS"}
+                              </Badge>
+                              <h4 className="text-5xl font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl">
+                                {isAr ? item.titleAr : item.titleEn}
+                              </h4>
+                              <p className="text-white/70 font-bold text-xl max-w-lg line-clamp-3 leading-relaxed">
+                                {isAr ? item.subtitleAr || "استكشف أحدث المبادرات والمشاريع التطويرية في محافظة ظفار تحت مظلة التحول الرقمي." : item.subtitleEn || "Explore the latest initiatives and digital transformation projects in Dhofar."}
+                              </p>
+                              <div className="pt-6">
+                                <Button className="bg-white text-slate-900 font-black rounded-2xl px-10 h-14 shadow-2xl hover:bg-primary hover:text-white transition-all text-lg group/btn">
+                                  {isAr ? "التفاصيل الكاملة" : "Full Story"}
+                                  <ChevronRight size={20} className={cn("inline ml-2 transition-transform group-hover/btn:translate-x-2", isAr && "rotate-180")} />
+                                </Button>
+                              </div>
+                           </div>
+                        </div>
+                      </CarouselItemUI>
+                    ))}
+                  </CarouselContent>
+                  <div className="absolute top-1/2 -translate-y-1/2 inset-x-6 flex justify-between pointer-events-none">
+                     <CarouselPrevious className="relative pointer-events-auto size-14 rounded-3xl bg-white/10 hover:bg-white/30 border-white/20 text-white backdrop-blur-xl shadow-2xl" />
+                     <CarouselNext className="relative pointer-events-auto size-14 rounded-3xl bg-white/10 hover:bg-white/30 border-white/20 text-white backdrop-blur-xl shadow-2xl" />
+                  </div>
+                </Carousel>
+              </div>
+           </div>
+        </section>
 
         {/* Stats Section */}
         <section className="py-24 bg-[#470D67] text-white relative overflow-hidden">
