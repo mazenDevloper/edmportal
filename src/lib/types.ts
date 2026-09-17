@@ -1,4 +1,3 @@
-
 export interface SiteConfig {
   heroTitle: string;
   heroSubtitle: string;
@@ -67,6 +66,10 @@ export interface Service {
   reqsEn: string[];
   fees: string;
   feesEn?: string;
+  durationAr?: string;
+  durationEn?: string;
+  conditionsAr?: string;
+  conditionsEn?: string;
   linkUrl?: string;
   type?: 'workflow' | 'link';
 }

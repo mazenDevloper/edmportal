@@ -1,8 +1,7 @@
-
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowUpRight, ListChecks, Send, Video, Volume2, Loader2 } from 'lucide-react';
+import { ArrowUpRight, ListChecks, Send, Video, Volume2, Loader2, Clock, BadgeCent, ShieldAlert, FileSearch } from 'lucide-react';
 import { Service } from '@/lib/types';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -104,22 +103,40 @@ export const ServiceCardEnhanced = ({ service, isAr, compact = false }: ServiceC
           <ArrowUpRight size={18} className="text-secondary" aria-hidden="true" />
         </div>
 
-        {/* Hover Requirements Overlay */}
+        {/* Hover Information Overlay - Expanded as requested */}
         <div className="absolute inset-0 bg-slate-900/95 p-6 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-between translate-y-4 group-hover:translate-y-0">
-          <div>
-            <div className="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
-              <ListChecks size={16} className="text-accent" aria-hidden="true" />
-              <span className="text-white font-black text-xs">{isAr ? "المتطلبات" : "Requirements"}</span>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-1 border-b border-white/10 pb-2">
+              <FileSearch size={16} className="text-accent" aria-hidden="true" />
+              <span className="text-white font-black text-xs uppercase tracking-widest">{isAr ? "تفاصيل الخدمة" : "Service Details"}</span>
             </div>
-            <ul className="space-y-2">
-              {(isAr ? service.reqsAr : service.reqsEn)?.slice(0, 4).map((req, idx) => (
-                <li key={idx} className="text-slate-300 text-[10px] flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true" /> {req}
-                </li>
-              ))}
-            </ul>
+            
+            {/* Required Documents */}
+            <div className="space-y-1">
+               <span className="text-[9px] text-accent font-black uppercase flex items-center gap-1"><ListChecks size={10}/> {isAr ? 'المستندات المطلوبة' : 'Documents'}</span>
+               <p className="text-white font-bold text-[10px] line-clamp-1">{(isAr ? service.reqsAr : service.reqsEn)?.join(', ')}</p>
+            </div>
+
+            {/* Duration */}
+            <div className="space-y-1">
+               <span className="text-[9px] text-accent font-black uppercase flex items-center gap-1"><Clock size={10}/> {isAr ? 'مدة الإنجاز' : 'Duration'}</span>
+               <p className="text-white font-bold text-[10px]">{isAr ? (service.durationAr || 'فوري') : (service.durationEn || 'Instant')}</p>
+            </div>
+
+            {/* Price/Fees */}
+            <div className="space-y-1">
+               <span className="text-[9px] text-accent font-black uppercase flex items-center gap-1"><BadgeCent size={10}/> {isAr ? 'الرسوم المقررة' : 'Price'}</span>
+               <p className="text-white font-bold text-[10px]">{isAr ? service.fees : (service.feesEn || service.fees)}</p>
+            </div>
+
+            {/* Conditions */}
+            <div className="space-y-1">
+               <span className="text-[9px] text-accent font-black uppercase flex items-center gap-1"><ShieldAlert size={10}/> {isAr ? 'الاشتراطات' : 'Conditions'}</span>
+               <p className="text-white font-bold text-[10px] line-clamp-1">{isAr ? (service.conditionsAr || 'عماني الجنسية') : (service.conditionsEn || 'Omani Citizen')}</p>
+            </div>
           </div>
-          <Button className="w-full bg-accent text-accent-foreground font-black rounded-full h-10 text-xs" asChild>
+          
+          <Button className="w-full bg-accent text-accent-foreground font-black rounded-full h-10 text-xs mt-2" asChild>
             <Link href={`/services/${service.id}`}>
               {isAr ? "تقديم طلب رقمي" : "Apply Digitally"}
             </Link>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -178,7 +177,11 @@ export default function AdminDashboard() {
             isActive: true,
             reqsAr: ['البطاقة الشخصية', 'السجل التجاري (إن وجد)'],
             reqsEn: ['ID Card', 'Commercial Register (if applicable)'],
-            fees: '10 OMR'
+            fees: '10 OMR',
+            durationAr: 'فوري',
+            durationEn: 'Instant',
+            conditionsAr: 'سلطنة عمان',
+            conditionsEn: 'Oman Citizen'
           });
 
           newFlows.push({

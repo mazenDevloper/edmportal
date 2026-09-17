@@ -55,10 +55,12 @@
   }
 }
 
-/* Pattern 1: Landmark */
+/* Pattern 1: Landmark - Updated to NO-REPEAT as requested */
 .dm-pattern-landmark {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 261.06 388.05'%3E%3Cdefs%3E%3ClinearGradient id='lg' x1='130.53' y1='386.05' x2='130.53' y2='2' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%233f6d74' stop-opacity='.11'/%3E%3Cstop offset='1' stop-color='%23386268'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='2 386.05 2 13.38 16 5.01 55.86 25.02 59.31 25.02 86.78 2.04 98.08 2 125.92 25.02 135.14 25.02 162.98 2 174.28 2.04 201.74 25.02 205.2 25.02 245.05 5.01 259.06 13.38 259.06 386.05 2 386.05' fill='url(%23lg)' stroke='white' stroke-width='4'/%3E%3C/svg%3E");
-  background-size: 130px auto;
+  background-size: contain;
+  background-repeat: no-repeat !important;
+  background-position: center bottom;
 }
 
 /* Pattern 2: Wave Pro */
