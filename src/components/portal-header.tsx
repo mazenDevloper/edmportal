@@ -66,8 +66,8 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
            </div>
            <p className="text-sm font-bold opacity-90">
              {isAr 
-               ? "بدء العمل في مشروع رصف الطرق الداخلية بمنطقة المزيونة - بلدية ظفار تدعو المواطنين لتحديث بياناتهم عبر البوابة الموحدة - افتتاح مجمع الخدمات الرقمي الجديد بصلالة."
-               : "New road paving projects launched in Al-Mazyuna - Dhofar Municipality invites citizens to update data via the unified portal - New digital service hub opened in Salalah."}
+               ? "بدء العمل في مشروع رصف الطرق الداخلية بمنطقة المزيونة - بلدية ظفار تدعو المواطنين لتحديث بياناتهم عبر البوابة الموحدة."
+               : "New road paving projects launched in Al-Mazyuna - Dhofar Municipality invites citizens to update data via the unified portal."}
            </p>
         </div>
       </div>
