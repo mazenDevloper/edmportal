@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -11,7 +10,11 @@ import {
   Grid, Landmark, CreditCard, ListChecks, BarChart3, Table2, LayoutTemplate,
   Fingerprint, Globe, User2, Calendar as CalendarIcon, PieChart, ShieldCheck,
   TrendingUp, Layers3, Zap, Timer, Map, Database, Type, MousePointer2,
-  FileText, ExternalLink, Activity, LayoutGrid, CheckCircle2, AlertTriangle, MessageSquare
+  FileText, ExternalLink, Activity, LayoutGrid, CheckCircle2, AlertTriangle, MessageSquare,
+  Search, Check as CheckIcon, X, Info, Clock, Download, Share2, MapPin, Eye,
+  LayoutTemplate as LayoutTemplateIcon, Fingerprint as FingerprintIcon, Globe as GlobeIcon, 
+  Volume2, Video, Sparkles, Home, ArrowUp, ArrowDown, Wallet, Shield, ShoppingBag, 
+  PlusCircle, MinusCircle, FileBox, LineChart, Timer as TimerIcon, Map as MapIcon, Layers3 as LayersIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,7 +55,7 @@ export default function IdentityPage() {
   ];
 
   const LIBRARY = useMemo(() => [
-    // BRAND IDENTITY (First Tab)
+    // BRAND IDENTITY
     {
       id: 'brand-colors', category: 'brand', name: isAr ? 'لوحة الألوان' : 'Color Palette',
       render: (
@@ -83,7 +86,7 @@ export default function IdentityPage() {
       codeReact: `<h1 className="font-arabic font-black">...</h1>`,
       codeCss: `.font-arabic { font-family: 'Noto Kufi Arabic', sans-serif; }`
     },
-    // GOV COMPONENTS (Including Tajawoob Card)
+    // GOV COMPONENTS
     {
       id: 'tajawoob-card', category: 'gov', name: isAr ? 'كرت منصة تجاوب' : 'Tajawoob Card',
       render: (
@@ -105,7 +108,7 @@ export default function IdentityPage() {
       id: 'thiqa-block', category: 'gov', name: isAr ? 'كتلة توثيق ثقة' : 'Thiqa Auth Matrix',
       render: (
         <div className="p-8 bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 w-full relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-full h-full dm-pattern-wave-pro opacity-10" />
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-matrix-all opacity-10" />
            <div className="size-16 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg relative z-10"><Fingerprint size={32}/></div>
            <div className="text-center relative z-10">
               <h4 className="font-black text-primary text-lg">Thiqa Login</h4>
@@ -124,7 +127,7 @@ export default function IdentityPage() {
       codeReact: `<div className="dm-pattern-matrix-all" />`,
       codeCss: `.dm-pattern-matrix-all { background-image: url("data:image/svg+xml,..."); }`
     },
-    // CARDS (More variants)
+    // CARDS
     {
       id: 'citizen-card', category: 'cards', name: isAr ? 'بطاقة المواطن الرقمية' : 'Citizen Digital ID',
       render: (
@@ -157,7 +160,7 @@ export default function IdentityPage() {
       codeReact: `<StatsCard progress={77} />`,
       codeCss: `.stats-card { border-radius: 2rem; }`
     },
-    // FORMS (More variants, NO CALENDAR)
+    // FORMS
     {
       id: 'smart-search', category: 'forms', name: isAr ? 'حقل البحث الذكي' : 'Neural Search Field',
       render: (
@@ -375,4 +378,3 @@ export default function IdentityPage() {
     </div>
   );
 }
-
