@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -60,40 +59,52 @@ export default function IdentityPage() {
       id: 'brand-colors', category: 'brand', name: isAr ? 'لوحة الألوان' : 'Color Palette',
       render: (
         <div className="grid grid-cols-2 gap-3 w-full">
-           <div className="h-16 rounded-xl bg-primary flex items-end p-2"><span className="text-[8px] text-white font-black">PRIMARY (TEAL)</span></div>
-           <div className="h-16 rounded-xl bg-accent flex items-end p-2"><span className="text-[8px] text-slate-900 font-black">ACCENT (TURQUOISE)</span></div>
-           <div className="h-16 rounded-xl bg-secondary flex items-end p-2"><span className="text-[8px] text-white font-black">SECONDARY (PURPLE)</span></div>
-           <div className="h-16 rounded-xl bg-slate-900 flex items-end p-2"><span className="text-[8px] text-white font-black">NEUTRAL (DARK)</span></div>
+           <div className="h-16 rounded-xl bg-[#470D67] flex items-end p-2"><span className="text-[8px] text-white font-black">PRIMARY (PURPLE)</span></div>
+           <div className="h-16 rounded-xl bg-[#00843D] flex items-end p-2"><span className="text-[8px] text-white font-black">SECONDARY (GREEN)</span></div>
+           <div className="h-16 rounded-xl bg-[#03CFCB] flex items-end p-2"><span className="text-[8px] text-slate-900 font-black">ACCENT (TEAL)</span></div>
+           <div className="h-16 rounded-xl bg-white border flex items-end p-2"><span className="text-[8px] text-slate-400 font-black">NEUTRAL (WHITE)</span></div>
         </div>
       ),
-      codeReact: `// globals.css variables\n--primary: 181 100% 23%;\n--accent: 179 97% 41%;\n--secondary: 278 78% 20%;`,
-      codeCss: `.bg-primary { background: hsl(var(--primary)); }`
+      codeReact: `// Purple #470D67 | Green #00843D | Teal #03CFCB`,
+      codeCss: `.bg-primary { background: #470D67; }`
     },
     {
       id: 'brand-typography', category: 'brand', name: isAr ? 'الخطوط الرسمية' : 'Official Typography',
       render: (
         <div className="space-y-4 w-full">
            <div className="space-y-1">
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Arabic Headline</p>
-              <h4 className="font-arabic font-black text-xl text-primary">بلدية ظفار الرقمية</h4>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Arabic Readex Pro</p>
+              <h4 className="font-black text-xl text-[#470D67]">بلدية ظفار الرقمية</h4>
            </div>
            <div className="space-y-1">
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">English Headline</p>
-              <h4 className="font-sans font-black text-xl text-primary">Dhofar Digital Matrix</h4>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">English Readex Pro</p>
+              <h4 className="font-bold text-xl text-[#470D67]">Dhofar Digital Matrix</h4>
            </div>
         </div>
       ),
-      codeReact: `<h1 className="font-arabic font-black">...</h1>`,
-      codeCss: `.font-arabic { font-family: 'Noto Kufi Arabic', sans-serif; }`
+      codeReact: `<h1 className="font-bold">...</h1>`,
+      codeCss: `body { font-family: 'Readex Pro', sans-serif; }`
     },
 
     // GOV COMPONENTS
     {
+      id: 'vision-2040-card', category: 'gov', name: isAr ? 'كرت رؤية عُمان 2040' : 'Oman Vision 2040 Card',
+      render: (
+        <div className="p-8 bg-[#470D67] rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 w-full relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-matrix-all opacity-10" />
+           <Image src="https://oman2040.om/themes/v2040/images/logo_en.png" alt="Vision 2040" width={150} height={50} className="brightness-0 invert relative z-10" unoptimized />
+           <p className="text-center text-[10px] font-bold text-white/70 relative z-10 leading-relaxed uppercase tracking-widest">Moving Forward with Confidence</p>
+           <Button className="w-full bg-white text-[#470D67] hover:bg-slate-100 rounded-xl h-12 font-black relative z-10">Learn More</Button>
+        </div>
+      ),
+      codeReact: `<Vision2040Card />`,
+      codeCss: `.card-vision { background: #470D67; }`
+    },
+    {
       id: 'tajawoob-card', category: 'gov', name: isAr ? 'كرت منصة تجاوب' : 'Tajawoob Card',
       render: (
         <div className="p-8 bg-white border-2 border-emerald-100 rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 w-full relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-full h-full bg-emerald-50/30 opacity-0 group-hover:opacity-100 transition-opacity" />
-           <div className="relative z-10 w-48 h-12">
+           <div className="relative w-48 h-12">
               <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" fill className="object-contain" unoptimized />
            </div>
            <p className="text-center text-xs font-bold text-slate-600 relative z-10 leading-relaxed">
@@ -105,130 +116,107 @@ export default function IdentityPage() {
       codeReact: `<TajawoobCard />`,
       codeCss: `.card-tajawoob { border: 2px solid #ecfdf5; }`
     },
-    {
-      id: 'thiqa-block', category: 'gov', name: isAr ? 'كتلة توثيق ثقة' : 'Thiqa Auth Matrix',
-      render: (
-        <div className="p-8 bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 w-full relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-full h-full dm-pattern-matrix-all opacity-10" />
-           <div className="size-16 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg relative z-10"><Fingerprint size={32}/></div>
-           <div className="text-center relative z-10">
-              <h4 className="font-black text-primary text-lg">Thiqa Login</h4>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Unified Identity</p>
-           </div>
-           <Button className="w-full dm-gradient-primary rounded-xl h-12 font-black relative z-10">Sign In</Button>
-        </div>
-      ),
-      codeReact: `<ThiqaAuth />`,
-      codeCss: `.thiqa-auth { border-radius: 2.5rem; }`
-    },
 
-    // PATTERNS
+    // PATTERNS (White on Purple Card)
     {
-      id: 'pattern-matrix-all', category: 'patterns', name: isAr ? 'النمط الشامل للبلدية' : 'Matrix All-in-One Pattern',
-      render: <div className="w-full h-48 rounded-[2.5rem] border dm-pattern-matrix-all relative overflow-hidden flex flex-col justify-end p-6"><Badge className="bg-white/80 backdrop-blur-md text-primary w-fit">Master Pattern Asset</Badge></div>,
+      id: 'pattern-matrix-white', category: 'patterns', name: isAr ? 'نمط المصفوفة (أبيض)' : 'Matrix Pattern White',
+      render: <div className="w-full h-48 rounded-[2.5rem] bg-[#470D67] dm-pattern-matrix-all relative overflow-hidden flex flex-col justify-end p-6 border-4 border-white shadow-2xl"><Badge className="bg-white text-[#470D67] font-black w-fit">White Cover Asset</Badge></div>,
       codeReact: `<div className="dm-pattern-matrix-all" />`,
-      codeCss: `.dm-pattern-matrix-all { background-image: url("data:image/svg+xml,..."); }`
+      codeCss: `.dm-pattern-matrix-all { opacity: 0.1; }`
     },
     {
-      id: 'pattern-wave-pro', category: 'patterns', name: isAr ? 'الموجة الكبيرة الملونة' : 'Wave Pro Pattern',
-      render: <div className="w-full h-48 rounded-[2.5rem] border dm-pattern-wave-pro relative overflow-hidden flex flex-col justify-end p-6"><Badge className="bg-white/80 backdrop-blur-md text-primary w-fit">Wave Pro SVG</Badge></div>,
+      id: 'pattern-wave-white', category: 'patterns', name: isAr ? 'نمط الموجة (أبيض)' : 'Wave Pattern White',
+      render: <div className="w-full h-48 rounded-[2.5rem] bg-[#470D67] dm-pattern-wave-pro relative overflow-hidden flex flex-col justify-end p-6 border-4 border-white shadow-2xl"><Badge className="bg-white text-[#470D67] font-black w-fit">Wave Pro White</Badge></div>,
       codeReact: `<div className="dm-pattern-wave-pro" />`,
-      codeCss: `.dm-pattern-wave-pro { background-image: url("data:image/svg+xml,..."); }`
+      codeCss: `.dm-pattern-wave-pro { background-repeat: repeat-x; }`
     },
 
-    // CARDS
-    {
-      id: 'citizen-card', category: 'cards', name: isAr ? 'بطاقة المواطن الرقمية' : 'Citizen Digital ID',
+    // CARDS (7 Additional)
+    ...Array.from({length: 7}).map((_, i) => ({
+      id: `card-extra-${i}`, category: 'cards', name: isAr ? `بطاقة خدمية ${i+1}` : `Service Card ${i+1}`,
       render: (
-        <div className="p-8 bg-slate-900 text-white rounded-[3rem] shadow-2xl w-full relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-full h-full dm-pattern-polygon-card opacity-20" />
-           <div className="relative z-10 flex justify-between items-start mb-12">
-              <div className="size-12 rounded-2xl bg-white/10 flex items-center justify-center"><User2/></div>
-              <Badge className="bg-accent text-slate-900 font-black">ACTIVE</Badge>
+        <Card className="w-full rounded-[2rem] border-none shadow-lg overflow-hidden bg-white group hover:shadow-2xl transition-all">
+           <div className="h-32 bg-[#470D67] relative flex items-center justify-center">
+              <div className="absolute inset-0 dm-pattern-matrix-all opacity-10" />
+              <Layers3 className="text-white relative z-10" size={40} />
            </div>
-           <p className="relative z-10 font-mono text-xl tracking-widest mb-1">1234 5678 9012</p>
-           <p className="relative z-10 text-[10px] opacity-60 uppercase font-black">Ahmed Bin Salim</p>
-        </div>
-      ),
-      codeReact: `<IDCard />`,
-      codeCss: `.id-card { background: #0f172a; }`
-    },
-    {
-      id: 'stats-card-v1', category: 'cards', name: isAr ? 'بطاقة إحصائيات دائرية' : 'Radial Stats Card',
-      render: (
-        <Card className="rounded-[2rem] border-none shadow-lg bg-white overflow-hidden w-full">
-           <CardContent className="p-8 flex items-center gap-6">
-              <div className="size-20 rounded-full border-8 border-accent border-r-transparent animate-spin-slow flex items-center justify-center font-black text-sm">77%</div>
-              <div>
-                 <h4 className="font-black text-primary">تحويل الخدمات</h4>
-                 <p className="text-[10px] text-slate-400 font-bold uppercase">Digital Maturity</p>
-              </div>
+           <CardContent className="p-6 space-y-3">
+              <h5 className="font-black text-[#470D67]">Smart Service ${i+1}</h5>
+              <p className="text-[10px] text-slate-400 font-bold leading-relaxed">Efficient digital municipal processing system for Dhofar citizens.</p>
+              <Button size="sm" variant="outline" className="w-full rounded-xl border-[#470D67]/20 text-[#470D67] font-black">View Details</Button>
            </CardContent>
         </Card>
       ),
-      codeReact: `<StatsCard progress={77} />`,
-      codeCss: `.stats-card { border-radius: 2rem; }`
-    },
+      codeReact: `<ServiceCard id={${i}} />`,
+      codeCss: `.card-hover { transform: translateY(-5px); }`
+    })),
 
-    // FORMS
-    {
-      id: 'smart-search', category: 'forms', name: isAr ? 'حقل البحث الذكي' : 'Neural Search Field',
+    // FORMS (7 Additional)
+    ...Array.from({length: 7}).map((_, i) => ({
+      id: `form-extra-${i}`, category: 'forms', name: isAr ? `نموذج إدخال ${i+1}` : `Input Form ${i+1}`,
       render: (
-        <div className="relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input className="w-full h-14 bg-slate-50 border-none rounded-2xl px-12 font-bold shadow-inner outline-none focus:ring-2 focus:ring-accent/20" placeholder="Search Matrix..." />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2"><Badge className="bg-primary text-white text-[9px]">ENTER</Badge></div>
+        <div className="w-full space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Field Mapping ${i+1}</label>
+           <div className="relative">
+              <input className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-xs font-bold focus:ring-2 focus:ring-[#470D67]/20 outline-none" placeholder="Enter meta data..." />
+              <Sparkles className="absolute right-3 top-1/2 -translate-y-1/2 text-accent" size={12} />
+           </div>
         </div>
       ),
-      codeReact: `<SmartSearch />`,
-      codeCss: `.search-input { border-radius: 1rem; }`
-    },
+      codeReact: `<SmartInput label="Field ${i}" />`,
+      codeCss: `.input-focus { border-color: #470D67; }`
+    })),
+
+    // CHARTS & COUNTERS
     {
-      id: 'upload-dropzone', category: 'forms', name: isAr ? 'منطقة رفع المرفقات' : 'Smart Upload Dropzone',
+      id: 'kpi-radial', category: 'charts', name: isAr ? 'مؤشر أداء دائري' : 'Radial KPI Tracker',
       render: (
-        <div className="w-full p-10 border-4 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 flex flex-col items-center gap-4 group hover:bg-white hover:border-primary/20 transition-all cursor-pointer">
-           <div className="size-16 rounded-full bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform"><FileText size={32}/></div>
-           <span className="text-sm font-black text-slate-500">Drop official files here</span>
+        <div className="flex flex-col items-center gap-4">
+           <div className="size-24 rounded-full border-8 border-[#470D67] border-r-transparent animate-spin-slow flex items-center justify-center font-black text-[#470D67]">89%</div>
+           <span className="text-[10px] font-black text-slate-400 uppercase">Growth Rate</span>
         </div>
       ),
-      codeReact: `<Dropzone />`,
-      codeCss: `.dropzone { border: 4px dashed #f1f5f9; }`
+      codeReact: `<RadialChart value={89} />`,
+      codeCss: `.radial-spin { animation: spin 3s linear infinite; }`
     },
-
-    // CHARTS
     {
-      id: 'kpi-linear', category: 'charts', name: isAr ? 'مؤشر أداء خطي' : 'Linear KPI Tracker',
+      id: 'counter-matrix', category: 'charts', name: isAr ? 'عداد معاملات حي' : 'Live Transaction Counter',
       render: (
-        <div className="w-full space-y-3">
-           <div className="flex justify-between items-end"><span className="text-xs font-black text-primary">Transaction Speed</span><span className="text-[10px] font-bold text-accent">92%</span></div>
-           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden"><div className="w-[92%] h-full bg-accent rounded-full shadow-lg" /></div>
+        <div className="text-center p-8 bg-[#470D67] rounded-[2rem] text-white w-full relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-full h-full dm-pattern-matrix-all opacity-10" />
+           <p className="text-[8px] font-black opacity-60 uppercase tracking-[0.2em] mb-2">Total Digital Requests</p>
+           <h3 className="text-4xl font-black text-accent tracking-tighter">42,981</h3>
+           <div className="mt-4 flex items-center justify-center gap-2 text-emerald-400 text-[10px] font-bold"><TrendingUp size={12}/> +12% this month</div>
         </div>
       ),
-      codeReact: `<LinearKPI value={92} />`,
-      codeCss: `.kpi-bar { height: 12px; }`
+      codeReact: `<Counter value={42981} />`,
+      codeCss: `.text-gradient { color: #03CFCB; }`
     },
 
-    // TABLES
+    // TABLES (Data, Report, Filtered)
     {
-      id: 'data-table-v1', category: 'tables', name: isAr ? 'جدول المتابعة الفني' : 'Technical Tracking Table',
+      id: 'data-table-report', category: 'tables', name: isAr ? 'جدول تقارير مفصل' : 'Financial Report Table',
       render: (
-        <Card className="rounded-[2rem] border-none shadow-lg overflow-hidden bg-white w-full">
-           <div className="bg-slate-900 text-white p-4 font-black text-[10px] uppercase tracking-widest">Active Requests</div>
-           <div className="p-4 space-y-3">
-              {[1, 2].map(i => (
-                <div key={i} className="flex justify-between items-center p-3 border-b border-slate-50 last:border-none">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center text-[10px] font-black">#82{i}</div>
-                    <span className="text-xs font-bold">Building Permit</span>
+        <Card className="rounded-[1.5rem] border-none shadow-lg overflow-hidden bg-white w-full">
+           <div className="bg-slate-900 text-white p-3 font-black text-[9px] uppercase tracking-widest flex justify-between">
+              <span>Financial Matrix</span>
+              <Badge className="bg-accent text-slate-900 text-[7px]">LIVE</Badge>
+           </div>
+           <div className="p-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-none">
+                  <div className="flex items-center gap-2">
+                    <div className="size-6 rounded bg-slate-100 flex items-center justify-center text-[8px] font-black text-slate-400">#0{i}</div>
+                    <span className="text-[10px] font-bold">Renewal Svc</span>
                   </div>
-                  <Badge className="bg-emerald-50 text-emerald-600 text-[8px] font-black border-none">APPROVED</Badge>
+                  <span className="text-[10px] font-black text-emerald-600">25.00 OMR</span>
                 </div>
               ))}
            </div>
         </Card>
       ),
-      codeReact: `<StatusTable />`,
-      codeCss: `.table-card { border-radius: 2rem; }`
+      codeReact: `<ReportTable data={matrix} />`,
+      codeCss: `.table-row:hover { background: #f8fafc; }`
     }
   ], [isAr]);
 
@@ -237,21 +225,21 @@ export default function IdentityPage() {
   }, [activeFilter, LIBRARY]);
 
   return (
-    <div className={cn("min-h-screen bg-[#F4F6FC]", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
+    <div className={cn("min-h-screen bg-[#F4F6FC] font-readex")} dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={[]} />
       
       <main className="py-12">
         <div className="max-w-[1600px] mx-auto px-6 mb-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-12 bg-white/80 backdrop-blur-2xl rounded-[4rem] shadow-[0_30px_100px_rgba(0,0,0,0.03)] border border-white relative overflow-hidden">
             <div className="relative z-10 space-y-6">
-              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/10 text-primary font-black text-[10px] uppercase tracking-[0.2em]">
-                <LayoutPanelTop size={16} /> {isAr ? 'نظام التصميم الرقمي لبلدية ظفار' : 'Dhofar Municipality UI Matrix v4.5'}
+              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-[#470D67]/10 text-[#470D67] font-black text-[10px] uppercase tracking-[0.2em]">
+                <LayoutPanelTop size={16} /> {isAr ? 'نظام التصميم الرقمي لبلدية ظفار' : 'Dhofar Municipality UI Matrix v5.0'}
               </div>
-              <h1 className="text-5xl md:text-7xl font-black text-primary tracking-tighter leading-none">
+              <h1 className="text-5xl md:text-7xl font-black text-[#470D67] tracking-tighter leading-none">
                 {isAr ? 'مكتبة الأصول الموحدة' : 'Unified Assets Library'}
               </h1>
               <p className="text-xl font-bold text-slate-400 max-w-2xl leading-relaxed">
-                {isAr ? 'مرجع هندسي شامل يضم الأنماط والودجيت والمكونات البرمجية للهوية الرقمية.' : 'Comprehensive engineering reference featuring patterns, widgets, and digital ID components.'}
+                {isAr ? 'مرجع هندسي شامل يضم الأنماط والودجيت والمكونات البرمجية للهوية الرقمية.' : 'Comprehensive engineering reference featuring patterns, widgets, and digital components.'}
               </p>
             </div>
             <div className="relative z-10 size-48 rounded-[3.5rem] bg-accent text-slate-900 flex items-center justify-center shadow-[0_30px_60px_rgba(3,207,203,0.3)] rotate-6 group hover:rotate-0 transition-transform duration-700">
@@ -271,7 +259,7 @@ export default function IdentityPage() {
                 onClick={() => setActiveFilter(cat.id)}
                 className={cn(
                   "rounded-full px-8 font-black text-[11px] uppercase tracking-widest transition-all gap-3 h-12",
-                  activeFilter === cat.id ? "bg-primary text-white shadow-xl" : "text-slate-500 hover:bg-white"
+                  activeFilter === cat.id ? "bg-[#470D67] text-white shadow-xl" : "text-slate-500 hover:bg-white"
                 )}
                >
                  {cat.icon} {cat.label}
@@ -291,11 +279,11 @@ export default function IdentityPage() {
                   <CardContent className="p-8 space-y-6">
                     <div className="flex justify-between items-center">
                        <div>
-                          <h4 className="font-black text-primary text-lg leading-tight">{comp.name}</h4>
+                          <h4 className="font-black text-[#470D67] text-lg leading-tight">{comp.name}</h4>
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">{CATEGORIES.find(c => c.id === comp.category)?.label}</p>
                        </div>
                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" className="rounded-xl bg-slate-50 text-slate-400 hover:text-primary size-10" onClick={() => { setSelectedComponent(comp); setActiveTab('code'); }}>
+                          <Button variant="ghost" size="icon" className="rounded-xl bg-slate-50 text-slate-400 hover:text-[#470D67] size-10" onClick={() => { setSelectedComponent(comp); setActiveTab('code'); }}>
                             <Code2 size={18}/>
                           </Button>
                           <Button variant="ghost" size="icon" className="rounded-xl bg-slate-50 text-slate-400 hover:text-accent size-10" onClick={() => { setSelectedComponent(comp); setActiveTab('css'); }}>
@@ -340,7 +328,7 @@ export default function IdentityPage() {
              <div className="relative z-10 flex items-center justify-between">
                 <div>
                    <DialogTitle className="text-white text-3xl font-black">{selectedComponent?.name}</DialogTitle>
-                   <DialogDescription className="text-accent font-black mt-2 uppercase text-[10px] tracking-widest">Global Component Metadata v4.2</DialogDescription>
+                   <DialogDescription className="text-accent font-black mt-2 uppercase text-[10px] tracking-widest">Global Component Metadata v5.2</DialogDescription>
                 </div>
              </div>
              <div className="absolute top-0 left-0 w-full h-full dm-wave-5 opacity-5 pointer-events-none" />
@@ -350,9 +338,8 @@ export default function IdentityPage() {
             {activeTab === 'code' ? (
               <Tabs defaultValue="react" className="w-full">
                 <TabsList className="bg-white/5 border-none p-1.5 rounded-[1.5rem] mb-8 h-14 w-fit">
-                  <TabsTrigger value="react" className="font-black h-11 px-8 rounded-xl data-[state=active]:bg-primary">React (TSX)</TabsTrigger>
+                  <TabsTrigger value="react" className="font-black h-11 px-8 rounded-xl data-[state=active]:bg-[#470D67]">React (TSX)</TabsTrigger>
                   <TabsTrigger value="html" className="font-black h-11 px-8 rounded-xl data-[state=active]:bg-accent data-[state=active]:text-slate-900">HTML</TabsTrigger>
-                  <TabsTrigger value="dotnet" className="font-black h-11 px-8 rounded-xl data-[state=active]:bg-indigo-600">.NET</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="react" className="relative group">
@@ -366,12 +353,6 @@ export default function IdentityPage() {
                      <code>{selectedComponent?.codeHtml || '<!-- HTML code not available -->'}</code>
                    </pre>
                    <Button onClick={() => handleCopy(selectedComponent?.codeHtml)} className="absolute top-6 right-6 bg-white/10 text-white rounded-xl size-12 p-0"><Copy size={20}/></Button>
-                </TabsContent>
-                <TabsContent value="dotnet" className="relative group">
-                   <pre className="p-8 bg-black rounded-[2rem] text-blue-400 font-mono text-sm leading-relaxed overflow-x-auto">
-                     <code>{selectedComponent?.codeDotNet || '// .NET model not available'}</code>
-                   </pre>
-                   <Button onClick={() => handleCopy(selectedComponent?.codeDotNet)} className="absolute top-6 right-6 bg-white/10 text-white rounded-xl size-12 p-0"><Copy size={20}/></Button>
                 </TabsContent>
               </Tabs>
             ) : (

@@ -1,4 +1,3 @@
-
 'use client';
 
 import './globals.css';
@@ -36,26 +35,27 @@ export default function RootLayout({
         <meta name="description" content={currentLang === 'ar' ? 'البوابة الرسمية للخدمات الإلكترونية لبلدية ظفار - سلطنة عمان' : 'Official Electronic Services Portal for Dhofar Municipality - Sultanate of Oman'} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@200;400;700&display=swap" rel="stylesheet" />
         <style>{`
+          :root {
+            --font-readex: 'Readex Pro', sans-serif;
+          }
+          body {
+            font-family: var(--font-readex) !important;
+          }
           .reduced-motion * {
             animation-duration: 0.001ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.001ms !important;
             scroll-behavior: auto !important;
           }
-          .dyslexia-font {
-            font-family: 'OpenDyslexic', sans-serif !important;
-          }
         `}</style>
       </head>
       <body className={cn(
         "antialiased transition-all duration-300 min-h-screen bg-background text-foreground",
-        currentLang === 'ar' ? 'font-arabic' : 'font-sans',
         mounted && fontSize === 'lg' && 'text-lg',
         mounted && fontSize === 'xl' && 'text-xl',
-        mounted && spacing === 'wide' && 'tracking-wider leading-loose',
-        mounted && dyslexiaFont && 'dyslexia-font'
+        mounted && spacing === 'wide' && 'tracking-wider leading-loose'
       )}>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[999] focus:bg-accent focus:text-white focus:p-4">
           {currentLang === 'ar' ? 'تخطي إلى المحتوى الرئيسي' : 'Skip to main content'}

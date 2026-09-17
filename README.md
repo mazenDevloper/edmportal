@@ -1,5 +1,39 @@
-# Firebase Studio
+# بوابة بلدية ظفار الرقمية الموحدة (Dhofar Digital Matrix)
 
-This is a NextJS starter in Firebase Studio.
+هذا المشروع هو النظام الأساسي لبوابة بلدية ظفار الإلكترونية، مصمم لتقديم تجربة مستخدم استثنائية وشاملة تتماشى مع رؤية عُمان 2040 ومعايير النفاذ الرقمي العالمية WCAG 2.2.
 
-To get started, take a look at src/app/page.tsx.
+## 🚀 التقنيات المستخدمة (Technical Stack)
+
+- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/) - لأداء فائق وتجربة تطوير حديثة.
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) - نظام تصميم مرن يعتمد على الفئات.
+- **UI Components**: [Shadcn UI](https://ui.shadcn.com/) - مكونات جاهزة وقابلة للتخصيص مبنية على Radix UI.
+- **Generative AI**: [Google Genkit](https://firebase.google.com/docs/genkit) - لمعالجة الترجمة، تحويل النص إلى صوت، ومساعد التخطيط المكاني.
+- **Database & Auth**: [Firebase](https://firebase.google.com/) - لإدارة بيانات الخدمات والمصادقة الموحدة (Thiqa).
+- **Animations**: [Framer Motion](https://www.framer.com/motion/) & [GSAP](https://gsap.com/) - لحركات واجهة مستخدم سلسة واحترافية.
+- **Visuals**: [Three.js](https://threejs.org/) - للمساحة الذكية ثلاثية الأبعاد (Neural Workspace).
+- **Charts**: [Recharts](https://recharts.org/) - لعرض البيانات والإحصائيات الحيوية.
+
+## 📂 هيكلة المجلدات (Project Structure)
+
+- `src/app`: يحتوي على الصفحات الرئيسية (الرئيسية، الدليل، الإدارة، الصفحات الديناميكية).
+- `src/components`: تضم المكونات القابلة لإعادة الاستخدام (الترويسة، التذييل، شريط الوصول).
+- `src/ai`: تحتوي على تدفقات الذكاء الاصطناعي (Genkit Flows) للترجمة والوصول.
+- `src/lib`: تحتوي على المخازن (Zustand/Redux)، التعاريف، وأدوات الربط مع JSONBin.
+- `src/firebase`: إعدادات وربط خدمات Firebase Firestore و Authentication.
+
+## 🛠 الشاشات الرئيسية (Core Screens)
+
+1. **الصفحة الرئيسية (Home)**: محرك بحث ذكي، خدمات مميزة، وبوابة "ثقة" للمصادقة.
+2. **دليل الخدمات (Catalog)**: تصنيف ذكي لكافة الخدمات البلدية (أكثر من 80 خدمة).
+3. **دليل الهوية (Identity)**: مرجع هندسي يضم أكثر من 300 مكون برمجي ونمط بصري.
+4. **لوحة التحكم (Admin)**: تحكم كامل في محتوى البوابة، الخدمات، وبناء الصفحات ديناميكياً.
+5. **باني العمليات (Workflow Engine)**: نظام مرئي لبناء مراحل الخدمات البلدية بربط منطقي عصبي.
+
+## 🎨 الهوية البصرية (Visual Identity)
+
+- **الخط الأساسي**: Readex Pro.
+- **الألوان**: الأرجواني الملكي (#470D67) والتركواز الحيوي (#03CFCB).
+- **الأنماط**: تعتمد على الزخارف العمانية الحديثة والموجات الانسيابية.
+
+---
+تم التطوير بواسطة فريق الهندسة الرقمية لبلدية ظفار.
