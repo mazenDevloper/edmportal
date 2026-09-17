@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { fetchBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
@@ -151,7 +152,8 @@ export default function DhofarPortal() {
                </motion.div>
 
                <motion.div initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} transition={{duration:1}} className="lg:col-span-5 relative group">
-                 <div className="absolute -inset-10 dm-pattern-polygon opacity-20 pointer-events-none scale-125 group-hover:scale-150 transition-transform duration-1000" />
+                 {/* Master Pattern All Background - Scaled for immersion */}
+                 <div className="absolute -inset-20 dm-pattern-matrix-all opacity-15 pointer-events-none scale-110 group-hover:scale-125 transition-transform duration-1000" />
                  
                  <div className="border-none shadow-[0_30px_100px_rgba(0,0,0,0.1)] rounded-[4rem] bg-white relative overflow-hidden flex flex-col border-t-[14px] border-primary">
                    <div className="p-12 space-y-10 relative z-10">
@@ -191,7 +193,7 @@ export default function DhofarPortal() {
            </div>
         </section>
 
-        {/* Dynamic Survey Section - FIXED DISPLAY */}
+        {/* Dynamic Survey Section */}
         {activeSurvey && (
           <section className="py-24 bg-white relative overflow-hidden border-y border-slate-100">
              <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-24 items-center">
@@ -240,7 +242,7 @@ export default function DhofarPortal() {
                        {isAr ? "إرسال التصويت" : "Submit Poll"}
                     </Button>
                   </div>
-                  <div className="absolute top-0 right-0 size-80 dm-wave opacity-5 -rotate-45 translate-x-32 -translate-y-32 pointer-events-none" />
+                  <div className="absolute top-0 right-0 size-80 dm-pattern-matrix-all opacity-5 -rotate-45 translate-x-32 -translate-y-32 pointer-events-none" />
                 </div>
              </div>
           </section>
@@ -267,7 +269,7 @@ export default function DhofarPortal() {
                 ))}
              </div>
            </div>
-           <div className="absolute inset-0 dm-wave opacity-10 bg-repeat-x scale-150 translate-y-20 pointer-events-none" />
+           <div className="absolute inset-0 dm-pattern-wave-pro opacity-10 bg-repeat-x scale-150 translate-y-20 pointer-events-none" />
         </section>
       </main>
 

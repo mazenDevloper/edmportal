@@ -101,7 +101,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                </div>
                <div className="flex flex-col">
                  <span className="text-3xl font-black text-[#470D67] leading-none tracking-tighter uppercase">بلدية ظفار</span>
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-2">{isAr ? 'بوابة الخدمات الرقمية الموحدة' : 'Unified Digital Portal'}</span>
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{isAr ? 'بوابة الخدمات الرقمية الموحدة' : 'Unified Digital Portal'}</span>
                </div>
             </Link>
 
@@ -114,9 +114,9 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           </div>
           
           <div className="hidden lg:flex items-center gap-8">
-            <Link href="/" className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-[0.1em]", pathname === '/' ? "text-primary border-b-4 border-[#470D67] pb-1" : "text-slate-600")}>{isAr ? 'الرئيسية' : 'Home'}</Link>
-            <Link href="/catalog" className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-[0.1em]", pathname === '/catalog' ? "text-primary border-b-4 border-[#470D67] pb-1" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
-            <Link href="/identity" className={cn("text-sm font-black text-[#03CFCB] bg-[#03CFCB]/5 px-6 py-2 rounded-2xl hover:bg-[#03CFCB] hover:text-slate-900 transition-all uppercase tracking-[0.1em]", pathname === '/identity' && "bg-[#03CFCB] text-slate-900 shadow-lg")}>{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
+            <Link href="/" className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/' ? "text-primary border-b-4 border-[#470D67] pb-1" : "text-slate-600")}>{isAr ? 'الرئيسية' : 'Home'}</Link>
+            <Link href="/catalog" className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/catalog' ? "text-primary border-b-4 border-[#470D67] pb-1" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
+            <Link href="/identity" className={cn("text-sm font-black text-[#03CFCB] bg-[#03CFCB]/5 px-6 py-2 rounded-2xl hover:bg-[#03CFCB] hover:text-slate-900 transition-all uppercase tracking-widest", pathname === '/identity' && "bg-[#03CFCB] text-slate-900 shadow-lg")}>{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
             
             <Button variant="outline" size="sm" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="rounded-full border-slate-200 font-black h-10 px-6 text-slate-700 hover:border-primary">
               <Languages size={16} className="ml-2" /> {isAr ? 'English' : 'العربية'}
@@ -132,7 +132,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-14 rounded-2xl bg-slate-50 border shadow-sm"><Menu size={32}/></Button>
               </SheetTrigger>
-              <SheetContent side={isAr ? "right" : "left"} className="rounded-l-[3.5rem] border-none shadow-[0_50px_100px_rgba(0,0,0,0.5)]">
+              <SheetContent side={isAr ? "right" : "left"} className="rounded-l-[3.5rem] border-none shadow-2xl">
                 <SheetTitle className="text-[#470D67] font-black text-4xl mb-12 uppercase tracking-tighter">{isAr ? "قائمة البوابة" : "Digital Menu"}</SheetTitle>
                 <nav className="flex flex-col gap-8">
                   <Link href="/" className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? 'الرئيسية' : 'Portal Home'}</Link>
