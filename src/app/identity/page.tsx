@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -9,7 +10,8 @@ import {
   Palette, Code2, Braces, LayoutPanelTop, Copy, Check,
   Grid, Landmark, CreditCard, ListChecks, BarChart3, Table2, LayoutTemplate,
   Fingerprint, Globe, User2, Calendar as CalendarIcon, PieChart, ShieldCheck,
-  TrendingUp, Layers3, Zap, Timer, Map, Database
+  TrendingUp, Layers3, Zap, Timer, Map, Database, Type, MousePointer2,
+  FileText, ExternalLink, Activity, LayoutGrid, CheckCircle2, AlertTriangle, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,7 +24,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
+import Image from 'next/image';
 
 export default function IdentityPage() {
   const { language } = useSettingsStore();
@@ -31,7 +33,7 @@ export default function IdentityPage() {
   const [selectedComponent, setSelectedComponent] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'code' | 'css'>('code');
   const [copied, setCopied] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('brand');
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -40,9 +42,9 @@ export default function IdentityPage() {
   };
 
   const CATEGORIES = [
-    { id: 'all', label: isAr ? 'الكل' : 'All', icon: <Grid size={14}/> },
-    { id: 'gov', label: isAr ? 'هوية عُمان' : 'Gov.om', icon: <Landmark size={14}/> },
-    { id: 'patterns', label: isAr ? 'الأنماط' : 'Patterns', icon: <Palette size={14}/> },
+    { id: 'brand', label: isAr ? 'هوية البلدية' : 'Municipality Identity', icon: <Palette size={14}/> },
+    { id: 'gov', label: isAr ? 'هوية عُمان' : 'Gov.om Components', icon: <Landmark size={14}/> },
+    { id: 'patterns', label: isAr ? 'الأنماط' : 'Patterns', icon: <Grid size={14}/> },
     { id: 'cards', label: isAr ? 'البطاقات' : 'Cards', icon: <CreditCard size={14}/> },
     { id: 'forms', label: isAr ? 'النماذج' : 'Forms', icon: <ListChecks size={14}/> },
     { id: 'charts', label: isAr ? 'الإحصائيات' : 'Charts', icon: <BarChart3 size={14}/> },
@@ -50,24 +52,55 @@ export default function IdentityPage() {
   ];
 
   const LIBRARY = useMemo(() => [
-    // PATTERNS
+    // BRAND IDENTITY (First Tab)
     {
-      id: 'pattern-polygon', category: 'patterns', name: isAr ? 'النمط المضلع الرسمي' : 'Official Polygon Pattern',
-      render: <div className="w-full h-48 rounded-[2rem] border dm-pattern-polygon-card relative overflow-hidden flex flex-col justify-end p-6"><Badge className="bg-white/80 backdrop-blur-md text-primary w-fit">SVG Data Path</Badge></div>,
-      codeReact: `<div className="dm-pattern-polygon-card" />`,
-      codeHtml: `<div class="dm-pattern-polygon-card"></div>`,
-      codeDotNet: `public string BgClass = "dm-pattern-polygon-card";`,
-      codeCss: `.dm-pattern-polygon-card { background-image: url("data:image/svg+xml,..."); }`
+      id: 'brand-colors', category: 'brand', name: isAr ? 'لوحة الألوان' : 'Color Palette',
+      render: (
+        <div className="grid grid-cols-2 gap-3 w-full">
+           <div className="h-16 rounded-xl bg-primary flex items-end p-2"><span className="text-[8px] text-white font-black">PRIMARY (TEAL)</span></div>
+           <div className="h-16 rounded-xl bg-accent flex items-end p-2"><span className="text-[8px] text-slate-900 font-black">ACCENT (TURQUOISE)</span></div>
+           <div className="h-16 rounded-xl bg-secondary flex items-end p-2"><span className="text-[8px] text-white font-black">SECONDARY (PURPLE)</span></div>
+           <div className="h-16 rounded-xl bg-slate-900 flex items-end p-2"><span className="text-[8px] text-white font-black">NEUTRAL (DARK)</span></div>
+        </div>
+      ),
+      codeReact: `// globals.css variables\n--primary: 181 100% 23%;\n--accent: 179 97% 41%;\n--secondary: 278 78% 20%;`,
+      codeCss: `.bg-primary { background: hsl(var(--primary)); }`
     },
     {
-      id: 'pattern-wave-pro', category: 'patterns', name: isAr ? 'نمط الموجة الاحترافي' : 'Pro Wave Asset',
-      render: <div className="w-full h-48 rounded-[2rem] border dm-pattern-wave-pro bg-slate-50 flex items-center justify-center"><Badge className="bg-white/80 backdrop-blur-md text-primary">Master Wave</Badge></div>,
-      codeReact: `<div className="dm-pattern-wave-pro" />`,
-      codeHtml: `<div class="dm-pattern-wave-pro"></div>`,
-      codeDotNet: `public string Asset = "WavePro";`,
-      codeCss: `.dm-pattern-wave-pro { background-image: url("data:image/svg+xml,..."); }`
+      id: 'brand-typography', category: 'brand', name: isAr ? 'الخطوط الرسمية' : 'Official Typography',
+      render: (
+        <div className="space-y-4 w-full">
+           <div className="space-y-1">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Arabic Headline</p>
+              <h4 className="font-arabic font-black text-xl text-primary">بلدية ظفار الرقمية</h4>
+           </div>
+           <div className="space-y-1">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">English Headline</p>
+              <h4 className="font-sans font-black text-xl text-primary">Dhofar Digital Matrix</h4>
+           </div>
+        </div>
+      ),
+      codeReact: `<h1 className="font-arabic font-black">...</h1>`,
+      codeCss: `.font-arabic { font-family: 'Noto Kufi Arabic', sans-serif; }`
     },
-    // GOV
+    // GOV COMPONENTS (Including Tajawoob Card)
+    {
+      id: 'tajawoob-card', category: 'gov', name: isAr ? 'كرت منصة تجاوب' : 'Tajawoob Card',
+      render: (
+        <div className="p-8 bg-white border-2 border-emerald-100 rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 w-full relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-full h-full bg-emerald-50/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+           <div className="relative z-10 w-48 h-12">
+              <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" fill className="object-contain" />
+           </div>
+           <p className="text-center text-xs font-bold text-slate-600 relative z-10 leading-relaxed">
+             {isAr ? 'المنصة الوطنية الموحدة للمقترحات والشكاوى في سلطنة عُمان.' : 'The unified national platform for suggestions and complaints in Oman.'}
+           </p>
+           <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 font-black relative z-10">إرسال مقترح</Button>
+        </div>
+      ),
+      codeReact: `<TajawoobCard />`,
+      codeCss: `.card-tajawoob { border: 2px solid #ecfdf5; }`
+    },
     {
       id: 'thiqa-block', category: 'gov', name: isAr ? 'كتلة توثيق ثقة' : 'Thiqa Auth Matrix',
       render: (
@@ -82,22 +115,18 @@ export default function IdentityPage() {
         </div>
       ),
       codeReact: `<ThiqaAuth />`,
-      codeHtml: `<div class="thiqa-auth">...</div>`,
-      codeDotNet: `[Authorize]`,
       codeCss: `.thiqa-auth { border-radius: 2.5rem; }`
     },
-    // FORMS
+    // PATTERNS
     {
-      id: 'calendar-standard', category: 'forms', name: isAr ? 'التقويم الموحد' : 'Standard Calendar',
-      render: <div className="p-4 bg-white border rounded-[2rem] shadow-xl"><Calendar mode="single" className="rounded-xl" /></div>,
-      codeReact: `<Calendar mode="single" />`,
-      codeHtml: `<div class="calendar-ui">...</div>`,
-      codeDotNet: `public DateTime SelectedDate { get; set; }`,
-      codeCss: `.calendar-ui { border-radius: 2rem; }`
+      id: 'pattern-matrix-all', category: 'patterns', name: isAr ? 'النمط الشامل للبلدية' : 'Matrix All-in-One Pattern',
+      render: <div className="w-full h-48 rounded-[2.5rem] border dm-pattern-matrix-all relative overflow-hidden flex flex-col justify-end p-6"><Badge className="bg-white/80 backdrop-blur-md text-primary w-fit">Master Pattern Asset</Badge></div>,
+      codeReact: `<div className="dm-pattern-matrix-all" />`,
+      codeCss: `.dm-pattern-matrix-all { background-image: url("data:image/svg+xml,..."); }`
     },
-    // CARDS
+    // CARDS (More variants)
     {
-      id: 'citizen-card', category: 'cards', name: isAr ? 'بطاقة المواطن' : 'Citizen Digital ID',
+      id: 'citizen-card', category: 'cards', name: isAr ? 'بطاقة المواطن الرقمية' : 'Citizen Digital ID',
       render: (
         <div className="p-8 bg-slate-900 text-white rounded-[3rem] shadow-2xl w-full relative overflow-hidden">
            <div className="absolute top-0 right-0 w-full h-full dm-pattern-polygon-card opacity-20" />
@@ -110,14 +139,85 @@ export default function IdentityPage() {
         </div>
       ),
       codeReact: `<IDCard />`,
-      codeHtml: `<div class="id-card">...</div>`,
-      codeDotNet: `public string CID { get; set; }`,
       codeCss: `.id-card { background: #0f172a; }`
     },
+    {
+      id: 'stats-card-v1', category: 'cards', name: isAr ? 'بطاقة إحصائيات دائرية' : 'Radial Stats Card',
+      render: (
+        <Card className="rounded-[2rem] border-none shadow-lg bg-white overflow-hidden w-full">
+           <CardContent className="p-8 flex items-center gap-6">
+              <div className="size-20 rounded-full border-8 border-accent border-r-transparent animate-spin-slow flex items-center justify-center font-black text-sm">77%</div>
+              <div>
+                 <h4 className="font-black text-primary">تحويل الخدمات</h4>
+                 <p className="text-[10px] text-slate-400 font-bold uppercase">Digital Maturity</p>
+              </div>
+           </CardContent>
+        </Card>
+      ),
+      codeReact: `<StatsCard progress={77} />`,
+      codeCss: `.stats-card { border-radius: 2rem; }`
+    },
+    // FORMS (More variants, NO CALENDAR)
+    {
+      id: 'smart-search', category: 'forms', name: isAr ? 'حقل البحث الذكي' : 'Neural Search Field',
+      render: (
+        <div className="relative w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input className="w-full h-14 bg-slate-50 border-none rounded-2xl px-12 font-bold shadow-inner outline-none focus:ring-2 focus:ring-accent/20" placeholder="Search Matrix..." />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2"><Badge className="bg-primary text-white text-[9px]">ENTER</Badge></div>
+        </div>
+      ),
+      codeReact: `<SmartSearch />`,
+      codeCss: `.search-input { border-radius: 1rem; }`
+    },
+    {
+      id: 'upload-dropzone', category: 'forms', name: isAr ? 'منطقة رفع المرفقات' : 'Smart Upload Dropzone',
+      render: (
+        <div className="w-full p-10 border-4 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 flex flex-col items-center gap-4 group hover:bg-white hover:border-primary/20 transition-all cursor-pointer">
+           <div className="size-16 rounded-full bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform"><FileText size={32}/></div>
+           <span className="text-sm font-black text-slate-500">Drop official files here</span>
+        </div>
+      ),
+      codeReact: `<Dropzone />`,
+      codeCss: `.dropzone { border: 4px dashed #f1f5f9; }`
+    },
+    // CHARTS
+    {
+      id: 'kpi-linear', category: 'charts', name: isAr ? 'مؤشر أداء خطي' : 'Linear KPI Tracker',
+      render: (
+        <div className="w-full space-y-3">
+           <div className="flex justify-between items-end"><span className="text-xs font-black text-primary">Transaction Speed</span><span className="text-[10px] font-bold text-accent">92%</span></div>
+           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden"><div className="w-[92%] h-full bg-accent rounded-full shadow-lg" /></div>
+        </div>
+      ),
+      codeReact: `<LinearKPI value={92} />`,
+      codeCss: `.kpi-bar { height: 12px; }`
+    },
+    // TABLES
+    {
+      id: 'data-table-v1', category: 'tables', name: isAr ? 'جدول المتابعة الفني' : 'Technical Tracking Table',
+      render: (
+        <Card className="rounded-[2rem] border-none shadow-lg overflow-hidden bg-white w-full">
+           <div className="bg-slate-900 text-white p-4 font-black text-[10px] uppercase tracking-widest">Active Requests</div>
+           <div className="p-4 space-y-3">
+              {[1, 2].map(i => (
+                <div key={i} className="flex justify-between items-center p-3 border-b border-slate-50 last:border-none">
+                  <div className="flex items-center gap-3">
+                    <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center text-[10px] font-black">#82{i}</div>
+                    <span className="text-xs font-bold">Building Permit</span>
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-600 text-[8px] font-black border-none">APPROVED</Badge>
+                </div>
+              ))}
+           </div>
+        </Card>
+      ),
+      codeReact: `<StatusTable />`,
+      codeCss: `.table-card { border-radius: 2rem; }`
+    }
   ], [isAr]);
 
   const filteredLibrary = useMemo(() => {
-    if (activeFilter === 'all') return LIBRARY;
     return LIBRARY.filter(item => item.category === activeFilter);
   }, [activeFilter, LIBRARY]);
 
@@ -142,7 +242,7 @@ export default function IdentityPage() {
             <div className="relative z-10 size-48 rounded-[3.5rem] bg-accent text-slate-900 flex items-center justify-center shadow-[0_30px_60px_rgba(3,207,203,0.3)] rotate-6 group hover:rotate-0 transition-transform duration-700">
               <Palette size={80} className="group-hover:scale-110 transition-transform" />
             </div>
-            <div className="absolute top-0 right-0 w-1/3 h-full dm-pattern-wave-pro opacity-5 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-1/3 h-full dm-pattern-matrix-all opacity-5 pointer-events-none" />
           </div>
         </div>
 
@@ -214,7 +314,7 @@ export default function IdentityPage() {
                     ))}
                 </div>
              </div>
-             <div className="absolute top-0 right-0 w-1/2 h-full dm-pattern-wave-pro opacity-10 pointer-events-none" />
+             <div className="absolute top-0 right-0 w-1/2 h-full dm-pattern-matrix-all opacity-10 pointer-events-none" />
           </div>
         </div>
       </main>
@@ -246,7 +346,18 @@ export default function IdentityPage() {
                    </pre>
                    <Button onClick={() => handleCopy(selectedComponent?.codeReact)} className="absolute top-6 right-6 bg-white/10 text-white rounded-xl size-12 p-0"><Copy size={20}/></Button>
                 </TabsContent>
-                {/* Other tab contents similar... */}
+                <TabsContent value="html" className="relative group">
+                   <pre className="p-8 bg-black rounded-[2rem] text-orange-400 font-mono text-sm leading-relaxed overflow-x-auto">
+                     <code>{selectedComponent?.codeHtml || '<!-- HTML code not available -->'}</code>
+                   </pre>
+                   <Button onClick={() => handleCopy(selectedComponent?.codeHtml)} className="absolute top-6 right-6 bg-white/10 text-white rounded-xl size-12 p-0"><Copy size={20}/></Button>
+                </TabsContent>
+                <TabsContent value="dotnet" className="relative group">
+                   <pre className="p-8 bg-black rounded-[2rem] text-blue-400 font-mono text-sm leading-relaxed overflow-x-auto">
+                     <code>{selectedComponent?.codeDotNet || '// .NET model not available'}</code>
+                   </pre>
+                   <Button onClick={() => handleCopy(selectedComponent?.codeDotNet)} className="absolute top-6 right-6 bg-white/10 text-white rounded-xl size-12 p-0"><Copy size={20}/></Button>
+                </TabsContent>
               </Tabs>
             ) : (
               <div className="relative group h-full">
@@ -264,3 +375,4 @@ export default function IdentityPage() {
     </div>
   );
 }
+
