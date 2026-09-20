@@ -51,7 +51,7 @@ export default function ServiceCatalogPage() {
         setSiteConfig(data.siteConfig || null);
       }
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const filteredServices = useMemo(() => {
@@ -148,8 +148,13 @@ export default function ServiceCatalogPage() {
               <Accordion type="single" collapsible className="w-full">
                 {filteredServices.length > 0 ? (
                   filteredServices.map((service) => {
+                    // Logic to ensure requirements are always treated as a list
                     const rawReqs = (isAr ? service.reqsAr : (service.reqsEn || service.reqsAr)) || [];
-                    const reqs = Array.isArray(rawReqs) ? rawReqs : [];
+                    const reqs = Array.isArray(rawReqs) ? rawReqs : (typeof rawReqs === 'string' ? [rawReqs] : []);
+                    
+                    const conditions = isAr ? service.conditionsAr : (service.conditionsEn || service.conditionsAr);
+                    const fees = isAr ? service.fees : (service.feesEn || service.fees);
+                    const duration = isAr ? service.durationAr : (service.durationEn || service.durationAr);
                     
                     return (
                       <AccordionItem key={service.id} value={service.id} className="border-slate-50 last:border-none">
@@ -185,13 +190,13 @@ export default function ServiceCatalogPage() {
                                     <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest">
                                       <Clock size={14}/> {isAr ? 'المدة' : 'Duration'}
                                     </div>
-                                    <p className="font-bold text-slate-700">{isAr ? service.durationAr || 'فوري' : service.durationEn || 'Instant'}</p>
+                                    <p className="font-bold text-slate-700">{duration || (isAr ? 'فوري' : 'Instant')}</p>
                                  </div>
                                  <div className="p-5 rounded-2xl bg-emerald-50 space-y-2">
                                     <div className="flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest">
                                       <BadgeCent size={14}/> {isAr ? 'الرسوم' : 'Fees'}
                                     </div>
-                                    <p className="font-black text-emerald-700 text-lg">{isAr ? service.fees : service.feesEn || service.fees}</p>
+                                    <p className="font-black text-emerald-700 text-lg">{fees || (isAr ? '10 ر.ع' : '10 OMR')}</p>
                                  </div>
                               </div>
                             </div>
@@ -220,7 +225,7 @@ export default function ServiceCatalogPage() {
                                    <ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات' : 'Conditions'}
                                  </h5>
                                  <div className="p-5 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm font-bold leading-relaxed">
-                                    {isAr ? service.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.' : service.conditionsEn || 'Applicant must be an Omani citizen or legal resident.'}
+                                    {conditions || (isAr ? 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.' : 'Applicant must be an Omani citizen or legal resident.')}
                                  </div>
                               </div>
 

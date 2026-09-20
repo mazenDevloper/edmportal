@@ -90,7 +90,7 @@ export default function ServiceApplicationPage() {
 
   const dynamicRequirements = useMemo(() => {
     const rawBaseReqs = (isAr ? service?.reqsAr : (service?.reqsEn || service?.reqsAr)) || [];
-    const baseReqs = Array.isArray(rawBaseReqs) ? rawBaseReqs : [];
+    const baseReqs = Array.isArray(rawBaseReqs) ? rawBaseReqs : (typeof rawBaseReqs === 'string' ? [rawBaseReqs] : []);
     const reqs = new Set(baseReqs);
     flow?.steps.forEach(step => {
       step.fields.forEach(field => {
@@ -187,7 +187,7 @@ export default function ServiceApplicationPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-10">
           
-          {/* Sidebar - Service Intel (Always Expanded) */}
+          {/* Sidebar - Service Intel (ALWAYS OPEN & DETAILED) */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
                 <CardHeader className="bg-slate-900 text-white p-8">
@@ -195,7 +195,7 @@ export default function ServiceApplicationPage() {
                       <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg backdrop-blur-md">
                         <IconComponent size={28} />
                       </div>
-                      <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em]">{isAr ? 'معلومات الخدمة' : 'Service Intel'}</Badge>
+                      <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em]">{isAr ? 'بيانات الخدمة' : 'Service Intel'}</Badge>
                    </div>
                    <h1 className="text-2xl font-black leading-tight tracking-tight">
                     {isAr ? service?.title : aiContent?.title || service?.titleEn || service?.title}
@@ -203,7 +203,7 @@ export default function ServiceApplicationPage() {
                 </CardHeader>
 
                 <CardContent className="p-8 space-y-10">
-                  {/* Always Open Content Sections */}
+                  {/* Each section is explicit and open by default */}
                   <div className="space-y-4">
                     <h5 className="flex items-center gap-3 text-primary font-black text-lg">
                       <Info size={20} className="text-accent"/> {isAr ? 'نبذة عن الخدمة' : 'About Service'}
@@ -237,7 +237,7 @@ export default function ServiceApplicationPage() {
                     </h5>
                     <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{isAr ? 'الإجمالي التقديري' : 'ESTIMATED TOTAL'}</span>
-                       <span className="text-lg font-black text-emerald-700">{isAr ? service?.fees : service?.feesEn || service?.fees}</span>
+                       <span className="text-lg font-black text-emerald-700">{isAr ? service?.fees : service?.feesEn || service?.fees || '10 OMR'}</span>
                     </div>
                   </div>
 
@@ -247,7 +247,7 @@ export default function ServiceApplicationPage() {
                     </h5>
                     <p className="text-xs font-black text-slate-600 flex items-center gap-2">
                        <div className="size-2 bg-primary rounded-full animate-pulse" />
-                       {isAr ? (service?.durationAr || 'فوري') : (service?.durationEn || 'Instant Processing')}
+                       {isAr ? (service?.durationAr || 'فوري') : (service?.durationEn || service?.durationAr || 'Instant Processing')}
                     </p>
                   </div>
 
@@ -256,7 +256,7 @@ export default function ServiceApplicationPage() {
                       <ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات العامة' : 'Eligibility & Conditions'}
                     </h5>
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed">
-                       {isAr ? (service?.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.') : (service?.conditionsEn || 'Applicant must be an Omani citizen or legal resident.')}
+                       {isAr ? (service?.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.') : (service?.conditionsEn || service?.conditionsAr || 'Applicant must be an Omani citizen or legal resident.')}
                     </div>
                   </div>
                 </CardContent>
