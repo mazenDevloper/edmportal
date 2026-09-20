@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -76,7 +75,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
         <div className="flex items-center gap-6 px-6 animate-marquee whitespace-nowrap relative z-10">
            <div className="flex items-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] bg-white text-primary px-4 py-1.5 rounded-full shrink-0 shadow-xl">
              <Megaphone size={14} />
-             {isAr ? "آخر الأخبار" : "Breaking News"}
+             {isAr ? "آخر الأخبار" : "Latest News"}
            </div>
            <p className="text-base font-black opacity-95 tracking-tight">
              {(!isAr && translatedTicker) ? translatedTicker : tickerText || (isAr 
@@ -109,7 +108,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center gap-6 group">
                <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="Dhofar Logo" width={95} height={65} className="object-contain" priority unoptimized />
-               <span className="text-3xl font-black text-secondary leading-none tracking-tighter uppercase">بلدية ظفار</span>
+               <span className="text-3xl font-black text-secondary leading-none tracking-tighter uppercase">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
             </Link>
             <div className="hidden xl:flex items-center gap-5 pl-10 border-l border-slate-100">
               <a href="https://tajawob.om" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">

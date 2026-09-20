@@ -120,10 +120,10 @@ export default function DhofarPortal() {
              <div className="grid lg:grid-cols-12 gap-16 items-center">
                <motion.div initial={{opacity:0, x:-50}} animate={{opacity:1, x:0}} className="lg:col-span-7">
                  <h1 className="text-6xl md:text-8xl font-black text-primary tracking-tighter mb-8 leading-[0.9]">
-                   {siteConfig?.heroTitle || (isAr ? "خدماتنا رقمية، أسرع، وأسهل" : "Digital Services")}
+                   {isAr ? (siteConfig?.heroTitle || "خدماتنا رقمية، أسرع، وأسهل") : (siteConfig?.meta?.titleEn || "Digital Services, Faster & Easier")}
                  </h1>
                  <p className="text-2xl text-slate-500 font-bold mb-12 max-w-xl leading-relaxed">
-                   {siteConfig?.heroSubtitle || (isAr ? "بوابة بلدية ظفار الموحدة لخدمة المواطن والمقيم وفق رؤية عُمان 2040." : "Unified Portal Serving Dhofar.")}
+                   {isAr ? (siteConfig?.heroSubtitle || "بوابة بلدية ظفار الموحدة لخدمة المواطن والمقيم وفق رؤية عُمان 2040.") : (siteConfig?.meta?.descriptionEn || "Dhofar Municipality unified portal serving citizens and residents under Oman Vision 2040.")}
                  </p>
                  
                  <div className="space-y-8 max-w-2xl">
@@ -131,7 +131,7 @@ export default function DhofarPortal() {
                      <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors", isAr ? "right-6" : "left-6")} size={24} />
                      <input 
                        type="text" 
-                       placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search services..."} 
+                       placeholder={isAr ? "ابحث عن خدمة بلدية..." : "Search municipal services..."} 
                        className={cn("w-full h-20 rounded-[2.5rem] border-2 font-black text-xl focus:border-primary px-16 shadow-2xl bg-white outline-none border-slate-100 transition-all")} 
                        value={searchQuery} 
                        onChange={(e) => setSearchQuery(e.target.value)} 
@@ -164,12 +164,12 @@ export default function DhofarPortal() {
                        <div className="flex items-center gap-5">
                          <div className="p-5 rounded-3xl bg-primary text-white shadow-2xl"><Fingerprint size={40}/></div>
                          <div>
-                           <h4 className="font-black text-2xl text-slate-800">{isAr ? "الهوية الرقمية (ثقة)" : "Neural ID (Theqa)"}</h4>
-                           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{isAr ? "نظام المصادقة الوطنية" : "National Auth"}</p>
+                           <h4 className="font-black text-2xl text-slate-800">{isAr ? "الهوية الرقمية (ثقة)" : "Neural ID (Thiqa)"}</h4>
+                           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{isAr ? "نظام المصادقة الوطنية" : "National Auth System"}</p>
                          </div>
                        </div>
                        <Badge className={cn("rounded-full border-none px-6 py-2 font-black text-[10px]", pkiStatus === 'connected' ? "bg-emerald-600 text-white" : "bg-amber-600 text-white")}>
-                         {pkiStatus === 'connected' ? (isAr ? "نشط وآمن" : "Active") : (isAr ? "غير مفعل" : "Inactive")}
+                         {pkiStatus === 'connected' ? (isAr ? "نشط وآمن" : "Active & Secure") : (isAr ? "غير مفعل" : "Inactive")}
                        </Badge>
                     </div>
                     <Button onClick={() => setPkiStatus(pkiStatus === 'connected' ? 'disconnected' : 'connected')} className="w-full h-20 dm-gradient-primary rounded-[2rem] font-black shadow-2xl gap-5 text-xl">
@@ -232,7 +232,7 @@ export default function DhofarPortal() {
               <div className="relative rounded-[4.5rem] overflow-hidden min-h-[650px] shadow-2xl border-t-[12px] border-primary group">
                 <Carousel className="w-full h-full" opts={{ loop: true }}>
                   <CarouselContent className="h-full -ml-0">
-                    {(news.length > 0 ? news : [{ id: '1', titleAr: 'بوابة بلدية ظفار الموحدة', contentAr: 'نرحب بكم في النظام الرقمي المطور.', imageUrl: 'https://picsum.photos/seed/oman1/1200/800' }]).map((item) => (
+                    {(news.length > 0 ? news : [{ id: '1', titleAr: 'بوابة بلدية ظفار الموحدة', titleEn: 'Unified Dhofar Municipality Portal', contentAr: 'نرحب بكم في النظام الرقمي المطور.', contentEn: 'Welcome to the enhanced digital system.', imageUrl: 'https://picsum.photos/seed/oman1/1200/800' }]).map((item) => (
                       <CarouselItemUI key={item.id} className="h-full pl-0 relative">
                         <div className="relative w-full h-[650px]">
                            {item.imageUrl ? (
@@ -243,9 +243,9 @@ export default function DhofarPortal() {
                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
                            <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 pointer-events-none mix-blend-overlay" />
                            <div className="absolute inset-x-0 bottom-0 p-16 space-y-6">
-                              <Badge className="bg-primary text-white font-black px-6 py-1.5 rounded-full uppercase text-[10px] tracking-widest shadow-2xl">MATRIX NEWS</Badge>
-                              <h4 className="text-5xl font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl">{isAr ? item.titleAr : item.titleEn}</h4>
-                              <p className="text-white/70 font-bold text-xl max-w-lg line-clamp-3 leading-relaxed">{isAr ? item.contentAr : item.contentEn}</p>
+                              <Badge className="bg-primary text-white font-black px-6 py-1.5 rounded-full uppercase text-[10px] tracking-widest shadow-2xl">{isAr ? 'أخبار المصفوفة' : 'MATRIX NEWS'}</Badge>
+                              <h4 className="text-5xl font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl">{isAr ? item.titleAr : (item.titleEn || item.titleAr)}</h4>
+                              <p className="text-white/70 font-bold text-xl max-w-lg line-clamp-3 leading-relaxed">{isAr ? item.contentAr : (item.contentEn || item.contentAr)}</p>
                               <Button className="bg-white text-slate-900 font-black rounded-2xl px-10 h-14 shadow-2xl hover:bg-primary hover:text-white transition-all text-lg group/btn">
                                 {isAr ? "التفاصيل" : "Details"} <ChevronRight size={20} className={cn("inline ml-2 transition-transform group-hover/btn:translate-x-2", isAr && "rotate-180")} />
                               </Button>

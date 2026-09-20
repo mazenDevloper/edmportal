@@ -148,10 +148,7 @@ export default function ServiceCatalogPage() {
               <Accordion type="single" collapsible className="w-full">
                 {filteredServices.length > 0 ? (
                   filteredServices.map((service) => {
-                    // Logic to ensure requirements are always treated as a list
-                    const rawReqs = (isAr ? service.reqsAr : (service.reqsEn || service.reqsAr)) || [];
-                    const reqs = Array.isArray(rawReqs) ? rawReqs : (typeof rawReqs === 'string' ? [rawReqs] : []);
-                    
+                    const reqs = (isAr ? service.reqsAr : (service.reqsEn || service.reqsAr)) || [];
                     const conditions = isAr ? service.conditionsAr : (service.conditionsEn || service.conditionsAr);
                     const fees = isAr ? service.fees : (service.feesEn || service.fees);
                     const duration = isAr ? service.durationAr : (service.durationEn || service.durationAr);
