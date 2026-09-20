@@ -33,7 +33,7 @@ import Image from 'next/image';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart as RechartsLine, Line, RadialBarChart, RadialBar, Legend,
-  ComposedChart, Scatter, Bubble
+  ComposedChart, Scatter
 } from 'recharts';
 
 export default function IdentityGuide() {
@@ -54,15 +54,6 @@ export default function IdentityGuide() {
     { id: 'templates', label: isAr ? 'القوالب' : '100+ Templates', icon: <LayoutTemplate size={14}/> },
   ];
 
-  const CHART_DATA = [
-    { name: 'Jan', value: 400 }, { name: 'Feb', value: 300 }, { name: 'Mar', value: 600 },
-    { name: 'Apr', value: 800 }, { name: 'May', value: 500 }, { name: 'Jun', value: 900 }
-  ];
-
-  const PIE_DATA = [
-    { name: 'Engineering', value: 400 }, { name: 'Health', value: 300 }, { name: 'Admin', value: 300 }
-  ];
-
   const RADIAL_DATA = [
     { name: 'Completed', value: 80, fill: '#03CFCB' },
     { name: 'Pending', value: 45, fill: '#470D67' },
@@ -81,16 +72,6 @@ export default function IdentityGuide() {
            <div className="h-28 rounded-[2rem] bg-[#005751] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-white font-black uppercase tracking-widest">Teal Shade 2</span><span className="text-[10px] text-white/50 font-mono">#005751</span></div>
            <div className="h-28 rounded-[2rem] bg-[#A187B2] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-slate-900 font-black uppercase tracking-widest">Purple Shade 1</span><span className="text-[10px] text-slate-900/50 font-mono">#A187B2</span></div>
            <div className="h-28 rounded-[2rem] bg-[#BCA3CC] flex flex-col justify-end p-5 border border-white/10 shadow-xl group hover:scale-105 transition-transform"><span className="text-[9px] text-slate-900 font-black uppercase tracking-widest">Purple Shade 2</span><span className="text-[10px] text-slate-900/50 font-mono">#BCA3CC</span></div>
-        </div>
-      )
-    },
-    {
-      id: 'typography-readex', category: 'municipality', name: isAr ? 'خط Readex Pro' : 'Readex Pro Typography',
-      render: (
-        <div className="p-8 bg-white rounded-3xl w-full border border-slate-100 space-y-6">
-           <h1 className="text-4xl font-black text-primary leading-tight">العنوان الرئيسي الموحد</h1>
-           <p className="text-xl font-bold text-slate-600">The unified digital experience for Dhofar.</p>
-           <p className="text-sm text-slate-400 leading-relaxed font-medium">هذا الخط يجمع بين الحداثة الرقمية وسهولة القراءة في المستندات الحكومية الرسمية.</p>
         </div>
       )
     },
@@ -142,6 +123,22 @@ export default function IdentityGuide() {
         </div>
       )
     },
+    {
+      id: 'thiqa-white-card', category: 'gov', name: isAr ? 'كرت ثقة (الأبيض)' : 'Thiqa White Node',
+      render: (
+        <div className="p-8 bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-xl flex flex-col items-center gap-6 w-full relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-full h-full dm-pattern-matrix-all opacity-5 pointer-events-none" />
+           <div className="size-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-sm relative z-10">
+              <Fingerprint size={32}/>
+           </div>
+           <div className="text-center relative z-10">
+              <h4 className="text-lg font-black text-slate-800 tracking-tight">Identity Authentication</h4>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Unified Digital Gateway</p>
+           </div>
+           <Button variant="outline" className="w-full rounded-xl border-slate-200 font-black h-12 relative z-10">Sign In with Thiqa</Button>
+        </div>
+      )
+    },
 
     // 3. BASIC COMPONENTS
     {
@@ -156,7 +153,7 @@ export default function IdentityGuide() {
       )
     },
 
-    // 4. CHARTS & COUNTERS
+    // 4. CHARTS & KPI
     {
       id: 'counter-modern-trans', category: 'charts', name: isAr ? 'عداد معاملات عصري' : 'Smart KPI Counter',
       render: (
@@ -182,40 +179,13 @@ export default function IdentityGuide() {
         )
     },
 
-    // 5. FORMS
+    // 5. SMART CARDS (ALL PATTERNS)
     {
-      id: 'form-ready-input', category: 'forms', name: isAr ? 'حقل بحث ذكي' : 'Neural Search Bar',
-      render: (
-        <div className="space-y-6 w-full">
-           <div className="relative group">
-              <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={20} />
-              <input className="w-full h-16 bg-slate-50 border-none rounded-[1.5rem] px-14 font-black shadow-inner focus:ring-4 focus:ring-primary/10 outline-none transition-all" placeholder="Search Data Matrix..." />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
-                 <Badge className="bg-slate-200 text-slate-500 font-mono text-[8px] px-2 py-0.5 rounded">CTRL</Badge>
-                 <Badge className="bg-slate-200 text-slate-500 font-mono text-[8px] px-2 py-0.5 rounded">K</Badge>
-              </div>
-           </div>
-        </div>
-      )
-    },
-    {
-        id: 'form-upload-zone', category: 'forms', name: isAr ? 'منطقة رفع ملفات' : 'Smart Upload Dropzone',
-        render: (
-          <div className="w-full p-10 border-4 border-dashed border-slate-100 bg-white rounded-[3rem] text-center space-y-4 hover:border-primary/20 transition-all cursor-pointer group">
-             <div className="size-16 rounded-full bg-primary/5 text-primary mx-auto flex items-center justify-center group-hover:scale-110 transition-transform"><Upload size={32}/></div>
-             <p className="text-sm font-black text-slate-600">Drag & Drop Documents</p>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PDF, JPG up to 20MB</p>
-          </div>
-        )
-    },
-
-    // 6. CARDS (PATTERN BASED ID CARDS)
-    {
-      id: 'user-id-card-matrix', category: 'cards', name: isAr ? 'بطاقة المواطن (مصفوفة)' : 'Digital ID Card (Matrix)',
+      id: 'user-id-card-matrix', category: 'cards', name: isAr ? 'بطاقة المواطن (مصفوفة)' : 'Digital ID (Matrix)',
       render: (
         <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
            <div className="flex justify-between items-start mb-16 relative z-10">
-              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/oman/400/400" /><AvatarFallback>AM</AvatarFallback></Avatar>
+              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarFallback className="bg-slate-100 font-black">AM</AvatarFallback></Avatar>
               <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
            </div>
            <div className="space-y-2 relative z-10">
@@ -227,11 +197,11 @@ export default function IdentityGuide() {
       )
     },
     {
-      id: 'user-id-card-landmark', category: 'cards', name: isAr ? 'بطاقة المواطن (معالم)' : 'Digital ID Card (Landmark)',
+      id: 'user-id-card-landmark', category: 'cards', name: isAr ? 'بطاقة المواطن (معالم)' : 'Digital ID (Landmark)',
       render: (
         <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
            <div className="flex justify-between items-start mb-16 relative z-10">
-              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/landmark/400/400" /><AvatarFallback>LM</AvatarFallback></Avatar>
+              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarFallback className="bg-slate-100 font-black">AM</AvatarFallback></Avatar>
               <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
            </div>
            <div className="space-y-2 relative z-10">
@@ -243,11 +213,11 @@ export default function IdentityGuide() {
       )
     },
     {
-      id: 'user-id-card-wave', category: 'cards', name: isAr ? 'بطاقة المواطن (أمواج)' : 'Digital ID Card (Wave)',
+      id: 'user-id-card-wave', category: 'cards', name: isAr ? 'بطاقة المواطن (أمواج)' : 'Digital ID (Wave)',
       render: (
         <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
            <div className="flex justify-between items-start mb-16 relative z-10">
-              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/wave/400/400" /><AvatarFallback>WV</AvatarFallback></Avatar>
+              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarFallback className="bg-slate-100 font-black">AM</AvatarFallback></Avatar>
               <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
            </div>
            <div className="space-y-2 relative z-10">
@@ -258,56 +228,8 @@ export default function IdentityGuide() {
         </div>
       )
     },
-    {
-      id: 'user-id-card-tree', category: 'cards', name: isAr ? 'بطاقة المواطن (شجرة)' : 'Digital ID Card (Tree)',
-      render: (
-        <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
-           <div className="flex justify-between items-start mb-16 relative z-10">
-              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/tree/400/400" /><AvatarFallback>TR</AvatarFallback></Avatar>
-              <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
-           </div>
-           <div className="space-y-2 relative z-10">
-              <h4 className="text-2xl font-black text-slate-800 tracking-tight">Ahmed Salim Al-Maashani</h4>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">National Resident Matrix: #12345678</p>
-           </div>
-           <div className="absolute top-0 right-0 w-full h-full dm-pattern-tree-pro opacity-15 pointer-events-none" />
-        </div>
-      )
-    },
-    {
-      id: 'user-id-card-circle', category: 'cards', name: isAr ? 'بطاقة المواطن (دوائر)' : 'Digital ID Card (Circle)',
-      render: (
-        <div className="p-10 bg-white border-2 border-slate-100 rounded-[4rem] shadow-2xl w-full relative overflow-hidden group">
-           <div className="flex justify-between items-start mb-16 relative z-10">
-              <Avatar className="size-20 border-8 border-slate-50 shadow-2xl ring-4 ring-primary/10"><AvatarImage src="https://picsum.photos/seed/circle/400/400" /><AvatarFallback>CR</AvatarFallback></Avatar>
-              <Badge className="bg-secondary text-white rounded-full font-black px-4 py-1 uppercase text-[9px] tracking-widest">CITIZEN NODE</Badge>
-           </div>
-           <div className="space-y-2 relative z-10">
-              <h4 className="text-2xl font-black text-slate-800 tracking-tight">Ahmed Salim Al-Maashani</h4>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">National Resident Matrix: #12345678</p>
-           </div>
-           <div className="absolute top-0 right-0 w-full h-full dm-pattern-circle-pro opacity-15 pointer-events-none" />
-        </div>
-      )
-    },
-    {
-        id: 'balance-card-royal', category: 'cards', name: isAr ? 'محفظة الخدمات الملكية' : 'Digital Wallet Hub',
-        render: (
-          <div className="p-10 bg-secondary rounded-[3.5rem] text-white w-full relative overflow-hidden border-b-[12px] border-primary shadow-2xl">
-             <div className="absolute top-0 right-0 w-full h-full dm-pattern-wave-pro opacity-10" />
-             <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mb-6">Current Portal Credit</p>
-             <h3 className="text-5xl font-black text-primary tracking-tighter">4,290.00 OMR</h3>
-             <div className="mt-12 flex justify-between items-center relative z-10">
-                <div className="flex -space-x-4">
-                   {[1,2,3].map(i => <Avatar key={i} className="size-10 border-4 border-secondary"><AvatarImage src={`https://picsum.photos/seed/${i}/100/100`} /></Avatar>)}
-                </div>
-                <Button size="icon" variant="ghost" className="size-12 rounded-2xl bg-white/5 text-white hover:bg-primary hover:text-slate-900 transition-all shadow-xl"><ArrowUpRight size={24}/></Button>
-             </div>
-          </div>
-        )
-    },
 
-    // 7. TEMPLATES
+    // 6. TEMPLATES (LEDGERS & REPORTS)
     {
       id: 'table-report-matrix', category: 'templates', name: isAr ? 'جدول التقارير المفلتر' : 'Data Ledger Template',
       render: (
@@ -336,6 +258,7 @@ export default function IdentityGuide() {
   ], [isAr]);
 
   const filteredLibrary = useMemo(() => {
+    if (activeFilter === 'all') return LIBRARY;
     return LIBRARY.filter(item => item.category === activeFilter);
   }, [activeFilter, LIBRARY]);
 
@@ -389,7 +312,6 @@ export default function IdentityGuide() {
                   <div className="p-12 flex-1 flex items-center justify-center bg-slate-50/30 relative overflow-hidden min-h-[220px]">
                      {comp.render}
                   </div>
-                  
                   <CardContent className="p-10 space-y-8">
                     <div className="flex justify-between items-center">
                        <div className="space-y-1">
@@ -399,15 +321,14 @@ export default function IdentityGuide() {
                           </p>
                        </div>
                        <div className="flex gap-2">
-                          <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 text-slate-400 hover:text-secondary size-12 shadow-sm" onClick={() => { setSelectedComponent(comp); setActiveTab('code'); }}>
+                          <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 text-slate-400 hover:text-secondary size-12 shadow-sm">
                             <Code2 size={22}/>
                           </Button>
-                          <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 text-slate-400 hover:text-primary size-12 shadow-sm" onClick={() => { setSelectedComponent(comp); setActiveTab('css'); }}>
+                          <Button variant="ghost" size="icon" className="rounded-2xl bg-slate-50 text-slate-400 hover:text-primary size-12 shadow-sm">
                             <Braces size={22}/>
                           </Button>
                        </div>
                     </div>
-                    
                     <Button className="w-full rounded-2xl h-14 font-black text-[11px] tracking-widest uppercase border-2 border-slate-100 bg-white text-slate-500 hover:bg-secondary hover:text-white transition-all duration-500 shadow-sm">
                        {isAr ? 'نسخ الكود الموحد' : 'Copy Hub Stack'}
                     </Button>
@@ -418,34 +339,6 @@ export default function IdentityGuide() {
           </div>
         </div>
       </main>
-
-      <Dialog open={!!selectedComponent} onOpenChange={() => setSelectedComponent(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 rounded-[4rem] border-none shadow-2xl flex flex-col bg-slate-950">
-          <DialogHeader className="p-12 bg-slate-900 border-b border-white/5 relative overflow-hidden">
-             <div className="relative z-10">
-                <DialogTitle className="text-white text-4xl font-black uppercase tracking-tighter">{selectedComponent?.name}</DialogTitle>
-                <DialogDescription className="text-primary font-black mt-3 uppercase text-[11px] tracking-widest flex items-center gap-2">
-                   <ShieldCheck size={14}/> Enterprise Component Architecture v12.2
-                </DialogDescription>
-             </div>
-             <div className="absolute top-0 right-0 w-full h-full dm-pattern-matrix-all opacity-5 pointer-events-none" />
-          </DialogHeader>
-
-          <div className="flex-1 overflow-auto p-12 custom-scrollbar">
-            <Tabs defaultValue="react" className="w-full">
-              <TabsList className="bg-white/5 border-none p-2 rounded-[2rem] mb-10 h-16 w-fit ring-1 ring-white/10">
-                <TabsTrigger value="react" className="font-black h-12 px-10 rounded-[1.5rem] data-[state=active]:bg-secondary data-[state=active]:text-white">React TSX</TabsTrigger>
-                <TabsTrigger value="html" className="font-black h-12 px-10 rounded-[1.5rem] data-[state=active]:bg-primary data-[state=active]:text-slate-900">Tailwind HTML</TabsTrigger>
-              </TabsList>
-              <TabsContent value="react">
-                 <pre className="p-10 bg-black rounded-[3rem] text-emerald-400 font-mono text-sm overflow-x-auto border border-white/5 shadow-inner leading-loose">
-                   <code>{`/**\n * Dhofar Municipality Component Hub\n * Component: ${selectedComponent?.id}\n */\n\nexport const Component = () => (\n  <div className="p-12 bg-primary rounded-[3rem] shadow-2xl relative overflow-hidden">\n    <div className="dm-pattern-matrix-all opacity-10" />\n    {/* Content Architecture */}\n  </div>\n);`}</code>
-                 </pre>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <PortalFooter siteConfig={null} />
     </div>
