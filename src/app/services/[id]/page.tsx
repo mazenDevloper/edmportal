@@ -13,6 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { 
+  Accordion, 
+  AccordionContent, 
+  AccordionItem, 
+  AccordionTrigger 
+} from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { 
@@ -28,7 +34,11 @@ import {
   ChevronRight,
   MapPin,
   Info,
-  X
+  X,
+  Clock,
+  BadgeCent,
+  ShieldAlert,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -109,7 +119,6 @@ export default function ServiceApplicationPage() {
 
     const currentStep = flow.steps[currentStepIndex];
     
-    // Neural logic routing - jumping steps based on data
     let nextStepId = currentStep.defaultNextStepId;
     (currentStep.logic || []).forEach(rule => {
       if (formData[rule.fieldId] === rule.value) nextStepId = rule.targetStepId;
@@ -176,56 +185,141 @@ export default function ServiceApplicationPage() {
       <header className="bg-white border-b py-6 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
            <Link href="/" className="flex items-center gap-3">
-             <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={40} height={40} />
+             <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="Logo" width={60} height={40} className="object-contain" unoptimized />
              <span className="font-black text-xl text-primary">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
            </Link>
            <Button variant="ghost" onClick={() => router.push('/')} className="font-bold rounded-xl">{isAr ? 'إلغاء' : 'Cancel'}</Button>
         </div>
       </header>
+
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid lg:grid-cols-12 gap-8">
+        <div className="grid lg:grid-cols-12 gap-10">
+          
+          {/* Sidebar - Service Intel Dropdowns */}
           <div className="lg:col-span-4 space-y-6">
-            <Card className="rounded-[2rem] shadow-xl p-8 space-y-6 border-t-[8px] border-primary bg-white">
-                <div className="size-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary">
-                  <IconComponent size={32} />
-                </div>
-                <h1 className="text-2xl font-black text-slate-800 leading-tight">
-                  {isAr ? service?.title : aiContent?.title || service?.titleEn || service?.title}
-                </h1>
-                <p className="text-sm text-slate-500 font-bold leading-relaxed">
-                  {isAr ? service?.description : aiContent?.description || service?.descriptionEn || service?.description}
-                </p>
-                <div className="pt-6 border-t flex justify-between items-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isAr ? 'الرسوم المقررة' : 'ESTIMATED FEES'}</span>
-                  <span className="text-xl font-black text-emerald-600">{service?.fees || '10 OMR'}</span>
-                </div>
+            <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
+                <CardHeader className="bg-slate-900 text-white p-8">
+                   <div className="flex items-center gap-4 mb-4">
+                      <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg backdrop-blur-md">
+                        <IconComponent size={28} />
+                      </div>
+                      <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em]">{isAr ? 'معلومات الخدمة' : 'Service Intel'}</Badge>
+                   </div>
+                   <h1 className="text-2xl font-black leading-tight tracking-tight">
+                    {isAr ? service?.title : aiContent?.title || service?.titleEn || service?.title}
+                   </h1>
+                </CardHeader>
+
+                <CardContent className="p-0">
+                  <Accordion type="single" collapsible className="w-full">
+                    
+                    {/* 1. About Service */}
+                    <AccordionItem value="about" className="border-b-0">
+                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group">
+                         <div className="flex items-center gap-4">
+                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
+                              <Info size={16} />
+                            </div>
+                            <span className="font-black text-sm text-slate-700">{isAr ? 'نبذة عن الخدمة' : 'About Service'}</span>
+                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-8 pb-8 pt-2">
+                         <p className="text-xs font-bold text-slate-500 leading-loose">
+                           {isAr ? service?.description : aiContent?.description || service?.descriptionEn || service?.description}
+                         </p>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* 2. Requirements */}
+                    <AccordionItem value="reqs" className="border-b-0">
+                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
+                         <div className="flex items-center gap-4">
+                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
+                              <ListChecks size={16} />
+                            </div>
+                            <span className="font-black text-sm text-slate-700">{isAr ? 'المستندات المطلوبة' : 'Requirements'}</span>
+                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-8 pb-8 pt-2">
+                        <ul className="space-y-3">
+                          {dynamicRequirements.map((r, i) => (
+                            <li key={i} className="text-xs font-bold text-slate-600 flex items-start gap-3">
+                              <div className="size-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                              <span>{r}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* 3. Fees */}
+                    <AccordionItem value="fees" className="border-b-0">
+                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
+                         <div className="flex items-center gap-4">
+                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
+                              <BadgeCent size={16} />
+                            </div>
+                            <span className="font-black text-sm text-slate-700">{isAr ? 'الرسوم المقررة' : 'Fees & Costs'}</span>
+                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-8 pb-8 pt-2">
+                        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                           <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{isAr ? 'الإجمالي التقديري' : 'ESTIMATED TOTAL'}</span>
+                           <span className="text-lg font-black text-emerald-700">{isAr ? service?.fees : service?.feesEn || service?.fees}</span>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* 4. Duration */}
+                    <AccordionItem value="duration" className="border-b-0">
+                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
+                         <div className="flex items-center gap-4">
+                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
+                              <Clock size={16} />
+                            </div>
+                            <span className="font-black text-sm text-slate-700">{isAr ? 'مدة الإنجاز' : 'Processing Time'}</span>
+                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-8 pb-8 pt-2">
+                         <p className="text-xs font-black text-slate-600 flex items-center gap-2">
+                            <div className="size-2 bg-primary rounded-full animate-pulse" />
+                            {isAr ? (service?.durationAr || 'فوري') : (service?.durationEn || 'Instant Processing')}
+                         </p>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* 5. Conditions */}
+                    <AccordionItem value="conditions" className="border-b-0">
+                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
+                         <div className="flex items-center gap-4">
+                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
+                              <ShieldAlert size={16} />
+                            </div>
+                            <span className="font-black text-sm text-slate-700">{isAr ? 'الاشتراطات العامة' : 'Eligibility & Conditions'}</span>
+                         </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-8 pb-8 pt-2">
+                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed">
+                            {isAr ? (service?.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.') : (service?.conditionsEn || 'Applicant must be an Omani citizen or legal resident.')}
+                         </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                  </Accordion>
+                </CardContent>
             </Card>
             
-            <Card className="rounded-[2rem] p-8 space-y-6 bg-white shadow-sm border border-slate-100">
-              <h4 className="text-xs font-black uppercase text-slate-400 flex items-center gap-2 tracking-widest">
-                <ListChecks size={16} className="text-accent" /> {isAr ? 'المستندات المطلوبة' : 'Requirements'}
-              </h4>
-              <ul className="space-y-4">
-                {dynamicRequirements.map((r, i) => (
-                  <li key={i} className="text-sm font-bold text-slate-600 flex items-start gap-3">
-                    <div className="size-2 rounded-full bg-accent mt-1.5 shrink-0" />
-                    <span>{r}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-
             {similarServices.length > 0 && (
-              <Card className="rounded-[2rem] p-8 bg-slate-900 text-white space-y-6 shadow-2xl overflow-hidden relative">
+              <Card className="rounded-[2rem] p-8 bg-slate-900 text-white space-y-6 shadow-xl overflow-hidden relative">
                 <div className="absolute top-0 right-0 size-32 dm-wave-5 opacity-10 pointer-events-none" />
                 <h4 className="text-xs font-black uppercase text-accent tracking-[0.2em] relative z-10 flex items-center gap-2">
-                  <Layers size={14}/> {isAr ? 'خدمات مشابهة' : 'Related Services'}
+                  <Layers size={14}/> {isAr ? 'خدمات مشابهة' : 'Related Nodes'}
                 </h4>
                 <div className="space-y-3 relative z-10">
                   {similarServices.map(s => (
                     <Link key={s.id} href={`/services/${s.id}`} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                      <p className="text-xs font-black text-white/80 group-hover:text-white truncate max-w-[200px]">{isAr ? s.title : s.titleEn || s.title}</p>
-                      <ChevronRight size={14} className="text-accent group-hover:translate-x-1 transition-transform" />
+                      <p className="text-[10px] font-black text-white/80 group-hover:text-white truncate max-w-[180px]">{isAr ? s.title : s.titleEn || s.title}</p>
+                      <ChevronRight size={14} className={cn("text-accent group-hover:translate-x-1 transition-transform", isAr && "rotate-180")} />
                     </Link>
                   ))}
                 </div>
@@ -233,18 +327,19 @@ export default function ServiceApplicationPage() {
             )}
           </div>
 
+          {/* Main Application Area */}
           <div className="lg:col-span-8">
-            <Card className="rounded-[3rem] shadow-2xl overflow-hidden min-h-[600px] flex flex-col bg-white border-none">
+            <Card className="rounded-[3rem] shadow-2xl overflow-hidden min-h-[650px] flex flex-col bg-white border-none ring-1 ring-slate-100">
               <CardHeader className="bg-slate-950 text-white p-10 relative">
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
-                    <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg uppercase text-[10px] tracking-widest">
+                    <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg uppercase text-[9px] tracking-widest">
                       {isAr ? `المرحلة ${currentStepIndex + 1}` : `Phase ${currentStepIndex + 1}`}
                     </Badge>
-                    <span className="text-white/40 font-black text-xs uppercase">/ {flow?.steps.length} Phases</span>
+                    <span className="text-white/30 font-black text-[10px] uppercase tracking-widest">/ {flow?.steps.length} Global Phases</span>
                   </div>
-                  <CardTitle className="text-3xl font-black flex items-center gap-4">
-                    <FileText className="text-accent" size={32} /> 
+                  <CardTitle className="text-4xl font-black flex items-center gap-5 tracking-tighter">
+                    <FileText className="text-accent" size={40} /> 
                     {isAr ? currentStep?.titleAr : currentStep?.titleEn}
                   </CardTitle>
                 </div>
@@ -252,9 +347,9 @@ export default function ServiceApplicationPage() {
               </CardHeader>
               
               <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-                <CardContent className="p-12 space-y-10 flex-1">
+                <CardContent className="p-12 space-y-12 flex-1">
                    {currentStep?.fields.map((field) => (
-                      <div key={field.id} className="space-y-4">
+                      <div key={field.id} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                         <Label className="text-lg font-black text-slate-700 flex items-center gap-2">
                           {isAr ? field.labelAr : field.labelEn}
                           {field.required && <span className="text-red-500">*</span>}
@@ -304,15 +399,21 @@ export default function ServiceApplicationPage() {
                         )}
                       </div>
                    ))}
+                   {(!currentStep?.fields || currentStep.fields.length === 0) && (
+                     <div className="py-20 text-center space-y-4">
+                        <HelpCircle className="mx-auto text-slate-200" size={64} />
+                        <p className="text-slate-400 font-black italic">{isAr ? 'لا توجد حقول في هذه المرحلة، اضغط للتالي.' : 'No fields in this phase, proceed to next.'}</p>
+                     </div>
+                   )}
                 </CardContent>
 
                 <CardFooter className="bg-slate-50 p-10 flex justify-between items-center border-t rounded-b-[3rem]">
-                   <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black h-16 rounded-2xl px-8 hover:bg-slate-100 text-slate-400">
-                     {isAr ? 'إعادة البدء' : 'Restart'}
+                   <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black h-16 rounded-2xl px-8 hover:bg-slate-100 text-slate-400 transition-all">
+                     {isAr ? 'إعادة البدء' : 'Restart Flow'}
                    </Button>
-                   <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-[1.5rem] px-12 h-16 font-black shadow-2xl gap-4 text-xl">
-                     {submitting ? <Loader2 className="animate-spin" /> : <ArrowRight />} 
-                     {currentStepIndex === (flow?.steps.length || 0) - 1 ? (isAr ? "إرسال الطلب النهائي" : "Submit Final Request") : (isAr ? "المرحلة التالية" : "Next Phase")}
+                   <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-[1.5rem] px-14 h-16 font-black shadow-2xl gap-4 text-xl transition-transform active:scale-95">
+                     {submitting ? <Loader2 className="animate-spin" /> : <ArrowRight className={cn(isAr && "rotate-180")} />} 
+                     {currentStepIndex === (flow?.steps.length || 0) - 1 ? (isAr ? "إرسال الطلب النهائي" : "Submit Final Matrix") : (isAr ? "المرحلة التالية" : "Next Phase")}
                    </Button>
                 </CardFooter>
               </form>
