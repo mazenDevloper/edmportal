@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { fetchBin } from '@/lib/jsonbin';
+import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
   Search as SearchIcon, 
@@ -16,7 +16,8 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Megaphone,
-  ChevronRight
+  ChevronRight,
+  Send
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, CarouselItem, Survey, PopupMessage, NewsItem } from '@/lib/types';
@@ -34,13 +35,17 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
+  const { toast } = useToast();
   const isAr = language === 'ar';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [submittingSurvey, setSubmittingSurvey] = useState(false);
   const [pkiStatus, setPkiStatus] = useState<'connected' | 'disconnected'>('connected');
   const [services, setServices] = useState<Service[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
@@ -84,6 +89,22 @@ export default function DhofarPortal() {
       (isAr ? s.title : (s.titleEn || s.title)).toLowerCase().includes(searchQuery.toLowerCase())
     ).slice(0, 6);
   }, [services, searchQuery, isAr, featuredServices]);
+
+  const handleSurveySubmit = async () => {
+    if (!activeSurvey) return;
+    setSubmittingSurvey(true);
+    try {
+      // Simulate submission
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      toast({
+        title: isAr ? "تم استلام رأيك بنجاح" : "Sentiment Received",
+        description: isAr ? "شكراً لمساهمتك في تطوير خدمات بلدية ظفار." : "Thank you for helping us improve Dhofar Municipality services."
+      });
+      setSurveyResponse({});
+    } finally {
+      setSubmittingSurvey(false);
+    }
+  };
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
@@ -177,14 +198,30 @@ export default function DhofarPortal() {
                               <h5 className="text-xl font-black text-secondary">{qIdx + 1}. {isAr ? q.questionAr : q.questionEn}</h5>
                               <div className="grid grid-cols-1 gap-3">
                                 {q.type === 'mcq' && q.options?.map((opt, i) => (
-                                  <Button key={i} variant={surveyResponse[q.id] === opt.textEn ? "default" : "outline"} className={cn("h-14 rounded-2xl justify-between px-6 font-bold border-2 transition-all", surveyResponse[q.id] === opt.textEn ? "bg-primary text-white border-primary shadow-xl" : "bg-white hover:border-primary/30")} onClick={() => setSurveyResponse({...surveyResponse, [q.id]: opt.textEn})}>
+                                  <Button key={i} variant={surveyResponse[q.id] === (opt.textEn || opt.textAr) ? "default" : "outline"} className={cn("h-14 rounded-2xl justify-between px-6 font-bold border-2 transition-all", surveyResponse[q.id] === (opt.textEn || opt.textAr) ? "bg-primary text-white border-primary shadow-xl" : "bg-white hover:border-primary/30")} onClick={() => setSurveyResponse({...surveyResponse, [q.id]: opt.textEn || opt.textAr})}>
                                     {isAr ? opt.textAr : opt.textEn}
-                                    {surveyResponse[q.id] === opt.textEn ? <CheckCircle2 size={20} /> : <div className="size-5 rounded-full border-2 border-slate-200" />}
+                                    {surveyResponse[q.id] === (opt.textEn || opt.textAr) ? <CheckCircle2 size={20} /> : <div className="size-5 rounded-full border-2 border-slate-200" />}
                                   </Button>
                                 ))}
+                                {q.type === 'text' && (
+                                  <Textarea 
+                                    placeholder={isAr ? "اكتب رأيك هنا..." : "Type your feedback here..."}
+                                    className="bg-white rounded-2xl min-h-[120px] font-bold border-2 focus:border-primary p-4"
+                                    value={surveyResponse[q.id] || ''}
+                                    onChange={(e) => setSurveyResponse({...surveyResponse, [q.id]: e.target.value})}
+                                  />
+                                )}
                               </div>
                             </div>
                           ))}
+                          <Button 
+                            onClick={handleSurveySubmit} 
+                            disabled={submittingSurvey || Object.keys(surveyResponse).length === 0} 
+                            className="w-full h-16 dm-gradient-primary rounded-2xl font-black shadow-xl gap-3 text-lg mt-4"
+                          >
+                            {submittingSurvey ? <Loader2 className="animate-spin" /> : <Send size={20} />}
+                            {isAr ? "إرسال رأيي للمجلس" : "Submit My Sentiment"}
+                          </Button>
                         </div>
                         <div className="absolute top-0 right-0 size-80 dm-pattern-matrix-all opacity-5 -rotate-45 pointer-events-none" />
                      </div>
@@ -198,7 +235,11 @@ export default function DhofarPortal() {
                     {(news.length > 0 ? news : [{ id: '1', titleAr: 'بوابة بلدية ظفار الموحدة', contentAr: 'نرحب بكم في النظام الرقمي المطور.', imageUrl: 'https://picsum.photos/seed/oman1/1200/800' }]).map((item) => (
                       <CarouselItemUI key={item.id} className="h-full pl-0 relative">
                         <div className="relative w-full h-[650px]">
-                           <img src={item.imageUrl} alt="" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                           {item.imageUrl ? (
+                             <img src={item.imageUrl} alt="" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                           ) : (
+                             <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300"><FileText size={64} /></div>
+                           )}
                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
                            <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 pointer-events-none mix-blend-overlay" />
                            <div className="absolute inset-x-0 bottom-0 p-16 space-y-6">
@@ -227,7 +268,11 @@ export default function DhofarPortal() {
                     <CarouselContent className="h-full -ml-0">
                       {carouselItems.map(banner => (
                         <CarouselItemUI key={banner.id} className="h-full pl-0 relative">
-                           <img src={banner.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
+                           {banner.imageUrl ? (
+                             <img src={banner.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
+                           ) : (
+                             <div className="w-full h-full bg-slate-100" />
+                           )}
                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-20 text-center">
                               <div className="space-y-6">
                                 <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter drop-shadow-xl">{isAr ? banner.titleAr : banner.titleEn}</h2>
