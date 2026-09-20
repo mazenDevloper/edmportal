@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -22,14 +21,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { 
-  ArrowLeft, 
   Loader2, 
   CheckCircle2, 
   FileText, 
   ArrowRight, 
   Upload, 
   ListChecks, 
-  Sparkles,
   Layers,
   ChevronRight,
   MapPin,
@@ -195,7 +192,7 @@ export default function ServiceApplicationPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-10">
           
-          {/* Sidebar - Service Intel Dropdowns */}
+          {/* Sidebar - Service Intel (Always Open) */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
                 <CardHeader className="bg-slate-900 text-white p-8">
@@ -211,7 +208,8 @@ export default function ServiceApplicationPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                  <Accordion type="single" collapsible className="w-full">
+                  {/* Accordion set to 'multiple' and all items open by default */}
+                  <Accordion type="multiple" defaultValue={['about', 'reqs', 'fees', 'duration', 'conditions']} className="w-full">
                     
                     {/* 1. About Service */}
                     <AccordionItem value="about" className="border-b-0">
