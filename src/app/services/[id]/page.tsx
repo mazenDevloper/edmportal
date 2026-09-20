@@ -28,7 +28,8 @@ import {
   Clock,
   BadgeCent,
   ShieldAlert,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -57,7 +58,7 @@ export default function ServiceApplicationPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [success, setSuccess] = useState(false);
   const [appId, setAppId] = useState('');
-  const [aiContent, setAiContent] = useState<{ title?: string; description?: string; } | null>(null);
+  const [aiContent, setAiContent] = useState<any>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -75,14 +76,24 @@ export default function ServiceApplicationPage() {
     load();
   }, [id]);
 
+  // AI Fallback Logic for missing English fields
   useEffect(() => {
     if (!isAr && service && !aiContent && !translating) {
-      if (!service.titleEn || !service.descriptionEn) {
+      const needsTrans = !service.titleEn || !service.descriptionEn || !service.conditionsEn;
+      if (needsTrans) {
         setTranslating(true);
-        translateToEnglish({ text: `Title: ${service.title} | Description: ${service.description}` })
+        translateToEnglish({ 
+          text: `Title: ${service.title} | Desc: ${service.description} | Fees: ${service.fees} | Dur: ${service.durationAr} | Cond: ${service.conditionsAr}` 
+        })
           .then(({ translatedText }) => {
             const parts = translatedText.split('|');
-            setAiContent({ title: parts[0]?.replace('Title:', '').trim(), description: parts[1]?.replace('Description:', '').trim() });
+            setAiContent({ 
+              title: parts[0]?.replace('Title:', '').trim(), 
+              description: parts[1]?.replace('Desc:', '').trim(),
+              fees: parts[2]?.replace('Fees:', '').trim(),
+              duration: parts[3]?.replace('Dur:', '').trim(),
+              conditions: parts[4]?.replace('Cond:', '').trim()
+            });
           }).finally(() => setTranslating(false));
       }
     }
@@ -172,6 +183,12 @@ export default function ServiceApplicationPage() {
   const currentStep = flow?.steps[currentStepIndex];
   const IconComponent = (Icons as any)[service?.iconName || 'FileText'] || Icons.FileText;
 
+  const title = isAr ? service?.title : (aiContent?.title || service?.titleEn || service?.title);
+  const description = isAr ? service?.description : (aiContent?.description || service?.descriptionEn || service?.description);
+  const fees = isAr ? service?.fees : (aiContent?.fees || service?.feesEn || service?.fees || '10 OMR');
+  const duration = isAr ? (service?.durationAr || 'فوري') : (aiContent?.duration || service?.durationEn || service?.durationAr || 'Instant');
+  const conditions = isAr ? (service?.conditionsAr || 'عماني الجنسية') : (aiContent?.conditions || service?.conditionsEn || service?.conditionsAr || 'Omani Citizen');
+
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
       <header className="bg-white border-b py-6 sticky top-0 z-50 shadow-sm">
@@ -187,7 +204,6 @@ export default function ServiceApplicationPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-10">
           
-          {/* Sidebar - Service Intel (ALWAYS OPEN & DETAILED) */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
                 <CardHeader className="bg-slate-900 text-white p-8">
@@ -195,21 +211,23 @@ export default function ServiceApplicationPage() {
                       <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg backdrop-blur-md">
                         <IconComponent size={28} />
                       </div>
-                      <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em]">{isAr ? 'بيانات الخدمة' : 'Service Intel'}</Badge>
+                      <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em] flex items-center gap-1">
+                        {isAr ? 'بيانات الخدمة' : 'Service Intel'}
+                        {aiContent && <Sparkles size={10} />}
+                      </Badge>
                    </div>
                    <h1 className="text-2xl font-black leading-tight tracking-tight">
-                    {isAr ? service?.title : aiContent?.title || service?.titleEn || service?.title}
+                    {title}
                    </h1>
                 </CardHeader>
 
                 <CardContent className="p-8 space-y-10">
-                  {/* Each section is explicit and open by default */}
                   <div className="space-y-4">
                     <h5 className="flex items-center gap-3 text-primary font-black text-lg">
                       <Info size={20} className="text-accent"/> {isAr ? 'نبذة عن الخدمة' : 'About Service'}
                     </h5>
                     <p className="text-xs font-bold text-slate-500 leading-loose">
-                      {isAr ? service?.description : aiContent?.description || service?.descriptionEn || service?.description}
+                      {description}
                     </p>
                   </div>
 
@@ -237,7 +255,7 @@ export default function ServiceApplicationPage() {
                     </h5>
                     <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{isAr ? 'الإجمالي التقديري' : 'ESTIMATED TOTAL'}</span>
-                       <span className="text-lg font-black text-emerald-700">{isAr ? service?.fees : service?.feesEn || service?.fees || '10 OMR'}</span>
+                       <span className="text-lg font-black text-emerald-700">{fees}</span>
                     </div>
                   </div>
 
@@ -247,7 +265,7 @@ export default function ServiceApplicationPage() {
                     </h5>
                     <p className="text-xs font-black text-slate-600 flex items-center gap-2">
                        <div className="size-2 bg-primary rounded-full animate-pulse" />
-                       {isAr ? (service?.durationAr || 'فوري') : (service?.durationEn || service?.durationAr || 'Instant Processing')}
+                       {duration}
                     </p>
                   </div>
 
@@ -256,31 +274,13 @@ export default function ServiceApplicationPage() {
                       <ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات العامة' : 'Eligibility & Conditions'}
                     </h5>
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed">
-                       {isAr ? (service?.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.') : (service?.conditionsEn || service?.conditionsAr || 'Applicant must be an Omani citizen or legal resident.')}
+                       {conditions}
                     </div>
                   </div>
                 </CardContent>
             </Card>
-            
-            {similarServices.length > 0 && (
-              <Card className="rounded-[2rem] p-8 bg-slate-900 text-white space-y-6 shadow-xl overflow-hidden relative">
-                <div className="absolute top-0 right-0 size-32 dm-wave-5 opacity-10 pointer-events-none" />
-                <h4 className="text-xs font-black uppercase text-accent tracking-[0.2em] relative z-10 flex items-center gap-2">
-                  <Layers size={14}/> {isAr ? 'خدمات مشابهة' : 'Related Nodes'}
-                </h4>
-                <div className="space-y-3 relative z-10">
-                  {similarServices.map(s => (
-                    <Link key={s.id} href={`/services/${s.id}`} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/10 group">
-                      <p className="text-[10px] font-black text-white/80 group-hover:text-white truncate max-w-[180px]">{isAr ? s.title : s.titleEn || s.title}</p>
-                      <ChevronRight size={14} className={cn("text-accent group-hover:translate-x-1 transition-transform", isAr && "rotate-180")} />
-                    </Link>
-                  ))}
-                </div>
-              </Card>
-            )}
           </div>
 
-          {/* Main Application Area */}
           <div className="lg:col-span-8">
             <Card className="rounded-[3rem] shadow-2xl overflow-hidden min-h-[650px] flex flex-col bg-white border-none ring-1 ring-slate-100">
               <CardHeader className="bg-slate-950 text-white p-10 relative">
@@ -289,7 +289,6 @@ export default function ServiceApplicationPage() {
                     <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg uppercase text-[9px] tracking-widest">
                       {isAr ? `المرحلة ${currentStepIndex + 1}` : `Phase ${currentStepIndex + 1}`}
                     </Badge>
-                    <span className="text-white/30 font-black text-[10px] uppercase tracking-widest">/ {flow?.steps.length} Global Phases</span>
                   </div>
                   <CardTitle className="text-4xl font-black flex items-center gap-5 tracking-tighter">
                     <FileText className="text-accent" size={40} /> 
@@ -314,7 +313,6 @@ export default function ServiceApplicationPage() {
                               <Upload size={32} />
                             </div>
                             <p className="text-md font-black text-slate-500 mb-1">{isAr ? 'اضغط هنا لرفع المستند' : 'Click or Drag to Upload'}</p>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">PDF, PNG, JPG (MAX 10MB)</p>
                             <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'Document Attached'})} required={field.required} />
                             {formData[field.id] && (
                               <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 font-black text-sm">
@@ -324,7 +322,7 @@ export default function ServiceApplicationPage() {
                           </div>
                         ) : field.type === 'select' ? (
                           <Select onValueChange={v => setFormData({...formData, [field.id]: v})} required={field.required}>
-                            <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none shadow-sm text-lg font-bold focus:ring-accent/20">
+                            <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none shadow-sm text-lg font-bold">
                               <SelectValue placeholder={isAr ? 'اختر خياراً...' : 'Choose option...'} />
                             </SelectTrigger>
                             <SelectContent className="rounded-2xl border-none shadow-2xl">
@@ -333,38 +331,24 @@ export default function ServiceApplicationPage() {
                               ))}
                             </SelectContent>
                           </Select>
-                        ) : field.type === 'map' ? (
-                          <div className="h-72 bg-slate-100 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-400 border-2 border-dashed relative overflow-hidden group hover:border-primary/20 transition-all">
-                             <div className="size-14 rounded-full bg-white shadow-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform mb-3">
-                               <MapPin size={24}/>
-                             </div>
-                             <p className="font-black text-slate-500 uppercase tracking-widest">{isAr ? 'تحديد الموقع على الخريطة' : 'Locate on Smart Map'}</p>
-                             <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
                         ) : (
                           <Input 
                             type={field.type === 'number' ? 'number' : 'text'}
                             required={field.required} 
                             placeholder={isAr ? 'أدخل البيانات هنا...' : 'Enter data here...'}
-                            className="h-16 rounded-2xl bg-slate-50 border-none shadow-sm text-lg font-bold focus:ring-accent/20 px-6" 
+                            className="h-16 rounded-2xl bg-slate-50 border-none shadow-sm text-lg font-bold px-6" 
                             onChange={e => setFormData({...formData, [field.id]: e.target.value})} 
                           />
                         )}
                       </div>
                    ))}
-                   {(!currentStep?.fields || currentStep.fields.length === 0) && (
-                     <div className="py-20 text-center space-y-4">
-                        <HelpCircle className="mx-auto text-slate-200" size={64} />
-                        <p className="text-slate-400 font-black italic">{isAr ? 'لا توجد حقول في هذه المرحلة، اضغط للتالي.' : 'No fields in this phase, proceed to next.'}</p>
-                     </div>
-                   )}
                 </CardContent>
 
                 <CardFooter className="bg-slate-50 p-10 flex justify-between items-center border-t rounded-b-[3rem]">
                    <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black h-16 rounded-2xl px-8 hover:bg-slate-100 text-slate-400 transition-all">
                      {isAr ? 'إعادة البدء' : 'Restart Flow'}
                    </Button>
-                   <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-[1.5rem] px-14 h-16 font-black shadow-2xl gap-4 text-xl transition-transform active:scale-95">
+                   <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-[1.5rem] px-14 h-16 font-black shadow-2xl gap-4 text-xl">
                      {submitting ? <Loader2 className="animate-spin" /> : <ArrowRight className={cn(isAr && "rotate-180")} />} 
                      {currentStepIndex === (flow?.steps.length || 0) - 1 ? (isAr ? "إرسال الطلب النهائي" : "Submit Final Matrix") : (isAr ? "المرحلة التالية" : "Next Phase")}
                    </Button>

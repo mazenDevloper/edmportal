@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles, Languages } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
   const [editLink, setEditLink] = useState<string | null>(null);
   const [tickerText, setTickerText] = useState('');
   const [translatedTicker, setTranslatedTicker] = useState<string | null>(null);
+  const [aiName, setAiName] = useState<string | null>(null);
 
   useEffect(() => {
     const determineEditLink = async () => {
@@ -39,10 +40,13 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
         if (data) {
           const rawTicker = data.newsTickerText || '';
           setTickerText(rawTicker);
-          // Auto-translate ticker if in English mode
           if (!isAr && rawTicker) {
             const { translatedText } = await translateToEnglish({ text: rawTicker });
             setTranslatedTicker(translatedText);
+          }
+          if (!isAr && !aiName) {
+            const { translatedText } = await translateToEnglish({ text: "بلدية ظفار" });
+            setAiName(translatedText);
           }
         }
         if (pathname === '/') { setEditLink('/admin'); return; }
@@ -61,7 +65,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
       } catch (err) { setEditLink(null); }
     };
     determineEditLink();
-  }, [pathname, isAr]);
+  }, [pathname, isAr, aiName]);
 
   const handleLanguageToggle = () => {
     setLanguage(isAr ? 'en' : 'ar');
@@ -108,13 +112,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center gap-6 group">
                <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="Dhofar Logo" width={95} height={65} className="object-contain" priority unoptimized />
-               <span className="text-3xl font-black text-secondary leading-none tracking-tighter uppercase">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+               <span className="text-3xl font-black text-secondary leading-none tracking-tighter uppercase">
+                 {isAr ? 'بلدية ظفار' : (aiName || 'Dhofar Municipality')}
+               </span>
             </Link>
-            <div className="hidden xl:flex items-center gap-5 pl-10 border-l border-slate-100">
-              <a href="https://tajawob.om" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-                <Image src="https://tajawob.om/img/NSCP_AppSpecifc_UI$Images$Tajawob_logo.png?639247653587397355" alt="Tajawoob" width={120} height={45} className="object-contain" unoptimized />
-              </a>
-            </div>
           </div>
           
           <div className="hidden lg:flex items-center gap-8">

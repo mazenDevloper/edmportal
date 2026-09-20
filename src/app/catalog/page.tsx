@@ -10,6 +10,7 @@ import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
+import { translateToEnglish } from '@/ai/flows/translate-flow';
 import { 
   Search, 
   Filter,
@@ -20,7 +21,8 @@ import {
   ListChecks,
   ShieldAlert,
   ArrowRight,
-  Info
+  Info,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +45,7 @@ export default function ServiceCatalogPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [userType, setUserType] = useState('all');
+  const [aiTranslations, setAiTranslations] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchBin().then(data => {
@@ -54,13 +57,42 @@ export default function ServiceCatalogPage() {
     }).catch(() => setLoading(false));
   }, []);
 
+  // AI Translation Fallback Logic
+  useEffect(() => {
+    if (!isAr && services.length > 0) {
+      services.forEach(async (s) => {
+        if (!s.titleEn || !s.descriptionEn) {
+          try {
+            const { translatedText } = await translateToEnglish({ 
+              text: `Title: ${s.title} | Desc: ${s.description} | Fees: ${s.fees} | Duration: ${s.durationAr} | Cond: ${s.conditionsAr}` 
+            });
+            const parts = translatedText.split('|');
+            setAiTranslations(prev => ({
+              ...prev,
+              [s.id]: {
+                title: parts[0]?.replace('Title:', '').trim(),
+                description: parts[1]?.replace('Desc:', '').trim(),
+                fees: parts[2]?.replace('Fees:', '').trim(),
+                duration: parts[3]?.replace('Duration:', '').trim(),
+                conditions: parts[4]?.replace('Cond:', '').trim(),
+              }
+            }));
+          } catch (e) {
+            console.error("AI Trans Error", e);
+          }
+        }
+      });
+    }
+  }, [isAr, services]);
+
   const filteredServices = useMemo(() => {
     return services.filter(s => {
       const matchesCat = activeCategory === 'all' || s.category === activeCategory;
-      const matchesSearch = (isAr ? s.title : s.titleEn || s.title).toLowerCase().includes(searchQuery.toLowerCase());
+      const t = isAr ? s.title : (aiTranslations[s.id]?.title || s.titleEn || s.title);
+      const matchesSearch = t.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCat && matchesSearch;
     });
-  }, [services, activeCategory, searchQuery, isAr]);
+  }, [services, activeCategory, searchQuery, isAr, aiTranslations]);
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
@@ -71,7 +103,6 @@ export default function ServiceCatalogPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-4 gap-10">
           
-          {/* Sidebar - Filtration */}
           <aside className="lg:col-span-1 space-y-8">
             <div className="space-y-6">
               <h3 className="text-xl font-black text-primary flex items-center gap-2 border-b pb-4">
@@ -126,7 +157,6 @@ export default function ServiceCatalogPage() {
             </div>
           </aside>
 
-          {/* Main Content - Services List (Accordion Style) */}
           <div className="lg:col-span-3 space-y-8">
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm flex flex-col md:flex-row gap-6 justify-between items-center border border-slate-100">
                <div>
@@ -148,21 +178,25 @@ export default function ServiceCatalogPage() {
               <Accordion type="single" collapsible className="w-full">
                 {filteredServices.length > 0 ? (
                   filteredServices.map((service) => {
+                    const hasAiTrans = !isAr && aiTranslations[service.id];
+                    const title = isAr ? service.title : (service.titleEn || aiTranslations[service.id]?.title || service.title);
+                    const description = isAr ? service.description : (service.descriptionEn || aiTranslations[service.id]?.description || service.description);
+                    const fees = isAr ? service.fees : (service.feesEn || aiTranslations[service.id]?.fees || service.fees || '10 OMR');
+                    const duration = isAr ? service.durationAr : (service.durationEn || aiTranslations[service.id]?.duration || service.durationAr || 'Instant');
+                    const conditions = isAr ? service.conditionsAr : (service.conditionsEn || aiTranslations[service.id]?.conditions || service.conditionsAr);
                     const reqs = (isAr ? service.reqsAr : (service.reqsEn || service.reqsAr)) || [];
-                    const conditions = isAr ? service.conditionsAr : (service.conditionsEn || service.conditionsAr);
-                    const fees = isAr ? service.fees : (service.feesEn || service.fees);
-                    const duration = isAr ? service.durationAr : (service.durationEn || service.durationAr);
                     
                     return (
                       <AccordionItem key={service.id} value={service.id} className="border-slate-50 last:border-none">
                         <AccordionTrigger className="px-6 py-8 hover:no-underline group">
                           <div className="flex items-center gap-6 text-right">
                             <div className="size-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-all shadow-sm">
-                              <LayoutGrid size={28} />
+                              {React.createElement((Icons as any)[service.iconName] || Icons.LayoutGrid, { size: 28 })}
                             </div>
                             <div className="text-right">
-                              <h4 className="text-xl font-black text-slate-800 group-hover:text-primary transition-colors">
-                                {isAr ? service.title : (service.titleEn || service.title)}
+                              <h4 className="text-xl font-black text-slate-800 group-hover:text-primary transition-colors flex items-center gap-2">
+                                {title}
+                                {hasAiTrans && <Sparkles size={14} className="text-accent animate-pulse" />}
                               </h4>
                               <Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-500 font-black text-[10px] mt-2">
                                 {isAr ? CAT_CONFIG[service.category as CategoryId]?.labelAr : CAT_CONFIG[service.category as CategoryId]?.labelEn}
@@ -178,7 +212,7 @@ export default function ServiceCatalogPage() {
                                   <Info size={20} className="text-accent"/> {isAr ? 'عن الخدمة' : 'About Service'}
                                 </h5>
                                 <p className="text-slate-500 font-bold leading-loose">
-                                  {isAr ? service.description : service.descriptionEn || service.description}
+                                  {description}
                                 </p>
                               </div>
 
@@ -187,13 +221,13 @@ export default function ServiceCatalogPage() {
                                     <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest">
                                       <Clock size={14}/> {isAr ? 'المدة' : 'Duration'}
                                     </div>
-                                    <p className="font-bold text-slate-700">{duration || (isAr ? 'فوري' : 'Instant')}</p>
+                                    <p className="font-bold text-slate-700">{duration}</p>
                                  </div>
                                  <div className="p-5 rounded-2xl bg-emerald-50 space-y-2">
                                     <div className="flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest">
                                       <BadgeCent size={14}/> {isAr ? 'الرسوم' : 'Fees'}
                                     </div>
-                                    <p className="font-black text-emerald-700 text-lg">{fees || (isAr ? '10 ر.ع' : '10 OMR')}</p>
+                                    <p className="font-black text-emerald-700 text-lg">{fees}</p>
                                  </div>
                               </div>
                             </div>
@@ -247,11 +281,11 @@ export default function ServiceCatalogPage() {
               </Accordion>
             </div>
           </div>
-
         </div>
       </main>
-
       <PortalFooter siteConfig={siteConfig} />
     </div>
   );
 }
+
+import * as Icons from 'lucide-react';
