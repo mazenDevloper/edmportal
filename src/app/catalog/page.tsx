@@ -149,86 +149,94 @@ export default function ServiceCatalogPage() {
             <div className="bg-white rounded-[3rem] shadow-xl overflow-hidden border border-slate-100 p-4">
               <Accordion type="single" collapsible className="w-full">
                 {filteredServices.length > 0 ? (
-                  filteredServices.map((service, idx) => (
-                    <AccordionItem key={service.id} value={service.id} className="border-slate-50 last:border-none">
-                      <AccordionTrigger className="px-6 py-8 hover:no-underline group">
-                        <div className="flex items-center gap-6 text-right">
-                          <div className="size-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-all shadow-sm">
-                            <LayoutGrid size={28} />
-                          </div>
-                          <div className="text-right">
-                            <h4 className="text-xl font-black text-slate-800 group-hover:text-primary transition-colors">
-                              {isAr ? service.title : (service.titleEn || service.title)}
-                            </h4>
-                            <Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-500 font-black text-[10px] mt-2">
-                              {isAr ? CAT_CONFIG[service.category as CategoryId]?.labelAr : CAT_CONFIG[service.category as CategoryId]?.labelEn}
-                            </Badge>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-10 pb-10">
-                        <div className="grid md:grid-cols-2 gap-10 pt-6 border-t border-slate-100">
-                          <div className="space-y-8">
-                            <div className="space-y-4">
-                              <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                                <Info size={20} className="text-accent"/> {isAr ? 'عن الخدمة' : 'About Service'}
-                              </h5>
-                              <p className="text-slate-500 font-bold leading-loose">
-                                {isAr ? service.description : service.descriptionEn || service.description}
-                              </p>
+                  filteredServices.map((service) => {
+                    const reqs = (isAr ? service.reqsAr : (service.reqsEn || service.reqsAr)) || [];
+                    
+                    return (
+                      <AccordionItem key={service.id} value={service.id} className="border-slate-50 last:border-none">
+                        <AccordionTrigger className="px-6 py-8 hover:no-underline group">
+                          <div className="flex items-center gap-6 text-right">
+                            <div className="size-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-all shadow-sm">
+                              <LayoutGrid size={28} />
                             </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                               <div className="p-5 rounded-2xl bg-slate-50 space-y-2">
-                                  <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest">
-                                    <Clock size={14}/> {isAr ? 'المدة' : 'Duration'}
-                                  </div>
-                                  <p className="font-bold text-slate-700">{isAr ? service.durationAr || 'فوري' : service.durationEn || 'Instant'}</p>
-                               </div>
-                               <div className="p-5 rounded-2xl bg-emerald-50 space-y-2">
-                                  <div className="flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest">
-                                    <BadgeCent size={14}/> {isAr ? 'الرسوم' : 'Fees'}
-                                  </div>
-                                  <p className="font-black text-emerald-700 text-lg">{isAr ? service.fees : service.feesEn || service.fees}</p>
-                               </div>
+                            <div className="text-right">
+                              <h4 className="text-xl font-black text-slate-800 group-hover:text-primary transition-colors">
+                                {isAr ? service.title : (service.titleEn || service.title)}
+                              </h4>
+                              <Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-500 font-black text-[10px] mt-2">
+                                {isAr ? CAT_CONFIG[service.category as CategoryId]?.labelAr : CAT_CONFIG[service.category as CategoryId]?.labelEn}
+                              </Badge>
                             </div>
                           </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-10 pb-10">
+                          <div className="grid md:grid-cols-2 gap-10 pt-6 border-t border-slate-100">
+                            <div className="space-y-8">
+                              <div className="space-y-4">
+                                <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                                  <Info size={20} className="text-accent"/> {isAr ? 'عن الخدمة' : 'About Service'}
+                                </h5>
+                                <p className="text-slate-500 font-bold leading-loose">
+                                  {isAr ? service.description : service.descriptionEn || service.description}
+                                </p>
+                              </div>
 
-                          <div className="space-y-8">
-                            <div className="space-y-4">
-                               <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                                 <ListChecks size={20} className="text-accent"/> {isAr ? 'المستندات المطلوبة' : 'Required Documents'}
-                               </h5>
-                               <ul className="space-y-3">
-                                 {(isAr ? service.reqsAr : service.reqsEn || service.reqsAr).map((req, i) => (
-                                   <li key={i} className="flex items-start gap-3 text-slate-600 font-bold text-sm">
-                                      <div className="size-2 rounded-full bg-accent mt-2 shrink-0" />
-                                      {req}
-                                   </li>
-                                 ))}
-                               </ul>
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className="p-5 rounded-2xl bg-slate-50 space-y-2">
+                                    <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest">
+                                      <Clock size={14}/> {isAr ? 'المدة' : 'Duration'}
+                                    </div>
+                                    <p className="font-bold text-slate-700">{isAr ? service.durationAr || 'فوري' : service.durationEn || 'Instant'}</p>
+                                 </div>
+                                 <div className="p-5 rounded-2xl bg-emerald-50 space-y-2">
+                                    <div className="flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest">
+                                      <BadgeCent size={14}/> {isAr ? 'الرسوم' : 'Fees'}
+                                    </div>
+                                    <p className="font-black text-emerald-700 text-lg">{isAr ? service.fees : service.feesEn || service.fees}</p>
+                                 </div>
+                              </div>
                             </div>
 
-                            <div className="space-y-4">
-                               <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                                 <ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات' : 'Conditions'}
-                               </h5>
-                               <div className="p-5 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm font-bold leading-relaxed">
-                                  {isAr ? service.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.' : service.conditionsEn || 'Applicant must be an Omani citizen or legal resident.'}
-                               </div>
-                            </div>
+                            <div className="space-y-8">
+                              <div className="space-y-4">
+                                 <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                                   <ListChecks size={20} className="text-accent"/> {isAr ? 'المستندات المطلوبة' : 'Required Documents'}
+                                 </h5>
+                                 {reqs.length > 0 ? (
+                                   <ul className="space-y-3">
+                                     {reqs.map((req, i) => (
+                                       <li key={i} className="flex items-start gap-3 text-slate-600 font-bold text-sm">
+                                          <div className="size-2 rounded-full bg-accent mt-2 shrink-0" />
+                                          {req}
+                                       </li>
+                                     ))}
+                                   </ul>
+                                 ) : (
+                                   <p className="text-slate-400 font-bold text-xs italic">{isAr ? 'لا توجد مستندات مطلوبة' : 'No documents required'}</p>
+                                 )}
+                              </div>
 
-                            <Button asChild className="w-full h-16 dm-gradient-primary rounded-2xl font-black text-xl shadow-xl gap-4">
-                              <Link href={`/services/${service.id}`}>
-                                {isAr ? 'بدء الخدمة الرقمية' : 'Start Digital Service'}
-                                <ArrowRight className={cn("size-6", isAr && "rotate-180")} />
-                              </Link>
-                            </Button>
+                              <div className="space-y-4">
+                                 <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                                   <ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات' : 'Conditions'}
+                                 </h5>
+                                 <div className="p-5 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm font-bold leading-relaxed">
+                                    {isAr ? service.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.' : service.conditionsEn || 'Applicant must be an Omani citizen or legal resident.'}
+                                 </div>
+                              </div>
+
+                              <Button asChild className="w-full h-16 dm-gradient-primary rounded-2xl font-black text-xl shadow-xl gap-4">
+                                <Link href={`/services/${service.id}`}>
+                                  {isAr ? 'بدء الخدمة الرقمية' : 'Start Digital Service'}
+                                  <ArrowRight className={cn("size-6", isAr && "rotate-180")} />
+                                </Link>
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })
                 ) : (
                   <div className="py-24 text-center space-y-4">
                      <div className="size-20 rounded-full bg-slate-50 flex items-center justify-center mx-auto text-slate-200"><Search size={40}/></div>

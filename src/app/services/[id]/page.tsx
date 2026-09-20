@@ -12,12 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { 
@@ -96,7 +90,8 @@ export default function ServiceApplicationPage() {
   }, [isAr, service, aiContent, translating]);
 
   const dynamicRequirements = useMemo(() => {
-    const reqs = new Set(service?.reqsAr || []);
+    const baseReqs = (isAr ? service?.reqsAr : (service?.reqsEn || service?.reqsAr)) || [];
+    const reqs = new Set(baseReqs);
     flow?.steps.forEach(step => {
       step.fields.forEach(field => {
         if (field.type === 'upload') reqs.add(isAr ? field.labelAr : field.labelEn);
@@ -192,7 +187,7 @@ export default function ServiceApplicationPage() {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-10">
           
-          {/* Sidebar - Service Intel (Always Open) */}
+          {/* Sidebar - Service Intel (Always Expanded) */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
                 <CardHeader className="bg-slate-900 text-white p-8">
@@ -207,103 +202,63 @@ export default function ServiceApplicationPage() {
                    </h1>
                 </CardHeader>
 
-                <CardContent className="p-0">
-                  {/* Accordion set to 'multiple' and all items open by default */}
-                  <Accordion type="multiple" defaultValue={['about', 'reqs', 'fees', 'duration', 'conditions']} className="w-full">
-                    
-                    {/* 1. About Service */}
-                    <AccordionItem value="about" className="border-b-0">
-                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group">
-                         <div className="flex items-center gap-4">
-                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
-                              <Info size={16} />
-                            </div>
-                            <span className="font-black text-sm text-slate-700">{isAr ? 'نبذة عن الخدمة' : 'About Service'}</span>
-                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-8 pb-8 pt-2">
-                         <p className="text-xs font-bold text-slate-500 leading-loose">
-                           {isAr ? service?.description : aiContent?.description || service?.descriptionEn || service?.description}
-                         </p>
-                      </AccordionContent>
-                    </AccordionItem>
+                <CardContent className="p-8 space-y-10">
+                  {/* Always Open Content */}
+                  <div className="space-y-4">
+                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                      <Info size={20} className="text-accent"/> {isAr ? 'نبذة عن الخدمة' : 'About Service'}
+                    </h5>
+                    <p className="text-xs font-bold text-slate-500 leading-loose">
+                      {isAr ? service?.description : aiContent?.description || service?.descriptionEn || service?.description}
+                    </p>
+                  </div>
 
-                    {/* 2. Requirements */}
-                    <AccordionItem value="reqs" className="border-b-0">
-                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
-                         <div className="flex items-center gap-4">
-                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
-                              <ListChecks size={16} />
-                            </div>
-                            <span className="font-black text-sm text-slate-700">{isAr ? 'المستندات المطلوبة' : 'Requirements'}</span>
-                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-8 pb-8 pt-2">
-                        <ul className="space-y-3">
-                          {dynamicRequirements.map((r, i) => (
-                            <li key={i} className="text-xs font-bold text-slate-600 flex items-start gap-3">
-                              <div className="size-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
-                              <span>{r}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
+                  <div className="space-y-4 border-t pt-8">
+                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                      <ListChecks size={20} className="text-accent"/> {isAr ? 'المستندات المطلوبة' : 'Requirements'}
+                    </h5>
+                    {dynamicRequirements.length > 0 ? (
+                      <ul className="space-y-3">
+                        {dynamicRequirements.map((r, i) => (
+                          <li key={i} className="text-xs font-bold text-slate-600 flex items-start gap-3">
+                            <div className="size-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                            <span>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-slate-400 font-bold text-xs italic">{isAr ? 'لا توجد مستندات مطلوبة' : 'No documents required'}</p>
+                    )}
+                  </div>
 
-                    {/* 3. Fees */}
-                    <AccordionItem value="fees" className="border-b-0">
-                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
-                         <div className="flex items-center gap-4">
-                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
-                              <BadgeCent size={16} />
-                            </div>
-                            <span className="font-black text-sm text-slate-700">{isAr ? 'الرسوم المقررة' : 'Fees & Costs'}</span>
-                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-8 pb-8 pt-2">
-                        <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
-                           <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{isAr ? 'الإجمالي التقديري' : 'ESTIMATED TOTAL'}</span>
-                           <span className="text-lg font-black text-emerald-700">{isAr ? service?.fees : service?.feesEn || service?.fees}</span>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
+                  <div className="space-y-4 border-t pt-8">
+                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                      <BadgeCent size={20} className="text-accent"/> {isAr ? 'الرسوم المقررة' : 'Fees & Costs'}
+                    </h5>
+                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                       <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{isAr ? 'الإجمالي التقديري' : 'ESTIMATED TOTAL'}</span>
+                       <span className="text-lg font-black text-emerald-700">{isAr ? service?.fees : service?.feesEn || service?.fees}</span>
+                    </div>
+                  </div>
 
-                    {/* 4. Duration */}
-                    <AccordionItem value="duration" className="border-b-0">
-                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
-                         <div className="flex items-center gap-4">
-                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
-                              <Clock size={16} />
-                            </div>
-                            <span className="font-black text-sm text-slate-700">{isAr ? 'مدة الإنجاز' : 'Processing Time'}</span>
-                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-8 pb-8 pt-2">
-                         <p className="text-xs font-black text-slate-600 flex items-center gap-2">
-                            <div className="size-2 bg-primary rounded-full animate-pulse" />
-                            {isAr ? (service?.durationAr || 'فوري') : (service?.durationEn || 'Instant Processing')}
-                         </p>
-                      </AccordionContent>
-                    </AccordionItem>
+                  <div className="space-y-4 border-t pt-8">
+                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                      <Clock size={20} className="text-accent"/> {isAr ? 'مدة الإنجاز' : 'Processing Time'}
+                    </h5>
+                    <p className="text-xs font-black text-slate-600 flex items-center gap-2">
+                       <div className="size-2 bg-primary rounded-full animate-pulse" />
+                       {isAr ? (service?.durationAr || 'فوري') : (service?.durationEn || 'Instant Processing')}
+                    </p>
+                  </div>
 
-                    {/* 5. Conditions */}
-                    <AccordionItem value="conditions" className="border-b-0">
-                      <AccordionTrigger className="px-8 py-5 hover:bg-slate-50 hover:no-underline transition-all group border-t">
-                         <div className="flex items-center gap-4">
-                            <div className="size-8 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-colors">
-                              <ShieldAlert size={16} />
-                            </div>
-                            <span className="font-black text-sm text-slate-700">{isAr ? 'الاشتراطات العامة' : 'Eligibility & Conditions'}</span>
-                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-8 pb-8 pt-2">
-                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed">
-                            {isAr ? (service?.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.') : (service?.conditionsEn || 'Applicant must be an Omani citizen or legal resident.')}
-                         </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                  </Accordion>
+                  <div className="space-y-4 border-t pt-8">
+                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
+                      <ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات العامة' : 'Eligibility & Conditions'}
+                    </h5>
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed">
+                       {isAr ? (service?.conditionsAr || 'يجب أن يكون المتقدم مواطناً عمانياً أو مقيماً بصفة قانونية.') : (service?.conditionsEn || 'Applicant must be an Omani citizen or legal resident.')}
+                    </div>
+                  </div>
                 </CardContent>
             </Card>
             
