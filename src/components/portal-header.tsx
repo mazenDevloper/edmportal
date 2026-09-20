@@ -1,15 +1,17 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Languages } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles, Languages } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { fetchBin } from '@/lib/jsonbin';
+import { Badge } from '@/components/ui/badge';
 import {
   Sheet,
   SheetContent,
@@ -51,6 +53,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
     };
     determineEditLink();
   }, [pathname]);
+
+  const handleLanguageToggle = () => {
+    setLanguage(isAr ? 'en' : 'ar');
+  };
 
   return (
     <header className="w-full">
@@ -107,8 +113,14 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
             <Link href="/catalog" className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/catalog' ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
             <Link href="/identity" className={cn("text-sm font-black text-primary bg-primary/5 px-6 py-2 rounded-2xl hover:bg-primary hover:text-slate-900 transition-all uppercase tracking-widest", pathname === '/identity' && "bg-primary text-slate-900 shadow-lg")}>{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
             
-            <Button variant="outline" size="sm" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="rounded-full border-slate-200 font-black h-10 px-6 text-slate-700 hover:border-primary">
-              <Languages size={16} className="ml-2" /> {isAr ? 'English' : 'العربية'}
+            <Button 
+              variant="outline" 
+              onClick={handleLanguageToggle}
+              className="rounded-full border-slate-200 font-black h-10 px-6 text-slate-700 hover:border-primary flex items-center gap-2 group"
+            >
+              <Sparkles size={16} className="text-accent group-hover:animate-pulse" />
+              <span>{isAr ? 'English' : 'العربية'}</span>
+              <Badge variant="outline" className="text-[9px] font-black ml-1 bg-slate-50">AI</Badge>
             </Button>
 
             <Button asChild className="dm-gradient-royal rounded-full px-10 h-10 font-black shadow-2xl text-white uppercase text-[11px] tracking-widest">
