@@ -12,8 +12,6 @@ import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
 import { 
   Search, 
-  ChevronRight, 
-  ChevronLeft, 
   Filter,
   Loader2,
   LayoutGrid,
@@ -150,7 +148,8 @@ export default function ServiceCatalogPage() {
               <Accordion type="single" collapsible className="w-full">
                 {filteredServices.length > 0 ? (
                   filteredServices.map((service) => {
-                    const reqs = (isAr ? service.reqsAr : (service.reqsEn || service.reqsAr)) || [];
+                    const rawReqs = (isAr ? service.reqsAr : (service.reqsEn || service.reqsAr)) || [];
+                    const reqs = Array.isArray(rawReqs) ? rawReqs : [];
                     
                     return (
                       <AccordionItem key={service.id} value={service.id} className="border-slate-50 last:border-none">

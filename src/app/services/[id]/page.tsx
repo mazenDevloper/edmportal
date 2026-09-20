@@ -25,7 +25,6 @@ import {
   ChevronRight,
   MapPin,
   Info,
-  X,
   Clock,
   BadgeCent,
   ShieldAlert,
@@ -90,7 +89,8 @@ export default function ServiceApplicationPage() {
   }, [isAr, service, aiContent, translating]);
 
   const dynamicRequirements = useMemo(() => {
-    const baseReqs = (isAr ? service?.reqsAr : (service?.reqsEn || service?.reqsAr)) || [];
+    const rawBaseReqs = (isAr ? service?.reqsAr : (service?.reqsEn || service?.reqsAr)) || [];
+    const baseReqs = Array.isArray(rawBaseReqs) ? rawBaseReqs : [];
     const reqs = new Set(baseReqs);
     flow?.steps.forEach(step => {
       step.fields.forEach(field => {
@@ -203,7 +203,7 @@ export default function ServiceApplicationPage() {
                 </CardHeader>
 
                 <CardContent className="p-8 space-y-10">
-                  {/* Always Open Content */}
+                  {/* Always Open Content Sections */}
                   <div className="space-y-4">
                     <h5 className="flex items-center gap-3 text-primary font-black text-lg">
                       <Info size={20} className="text-accent"/> {isAr ? 'نبذة عن الخدمة' : 'About Service'}
