@@ -75,11 +75,11 @@ function PageBuilderContent() {
       heading: { level: 'h2', textAr: 'عنوان قسم جديد', textEn: 'New Section Heading' },
       text: { bodyAr: 'اكتب المحتوى الخاص بك هنا ببلدية ظفار...', bodyEn: 'Enter your custom content here for Dhofar Municipality...' },
       info: { bodyAr: 'هذه بطاقة معلومات مميزة تتبع الهوية البصرية الرسمية.', bodyEn: 'This is a premium information card following the official visual identity.' },
-      stats: { v1: '25,000+', t1: 'معاملة رقمية', v2: '150,000+', t2: 'مستخدم نشط' },
+      stats: { v1: '25,000+', t1Ar: 'معاملة رقمية', t1En: 'Digital Transactions', v2: '150,000+', t2Ar: 'مستخدم نشط', t2En: 'Active Users' },
       pdf: { labelAr: 'تحميل دليل الخدمات الرقمي', labelEn: 'Download Digital Service Guide', url: '#' },
       avatar: { nameAr: 'معالي محافظ ظفار', nameEn: 'HE Governor of Dhofar', src: 'https://picsum.photos/seed/gov/200/200' },
       badge: { textAr: 'خدمة معتمدة', textEn: 'Certified Service' },
-      table: { headers: ['الخدمة البلديّة', 'الرسوم'], rows: [{ c1: 'تجديد عقود الإيجار', c2: '15 OMR' }, { c1: 'ترخيص البناء', c2: '50 OMR' }] },
+      table: { headersAr: ['الخدمة البلديّة', 'الرسوم'], headersEn: ['Municipal Service', 'Fees'], rows: [{ c1Ar: 'تجديد عقود الإيجار', c1En: 'Lease Contract Renewal', c2: '15 OMR' }, { c1Ar: 'ترخيص البناء', c1En: 'Building Permit', c2: '50 OMR' }] },
       accordion: { items: [{ titleAr: 'كيف يمكنني الدخول للنظام؟', titleEn: 'How to access the system?', contentAr: 'عبر نظام ثقة الموحد للهوية الرقمية.', contentEn: 'Via the Unified Thiqa Digital ID System.' }] },
       tabs: { items: [{ titleAr: 'المتطلبات', titleEn: 'Requirements', contentAr: 'البطاقة الشخصية سارية المفعول.', contentEn: 'Valid Resident ID Card.' }] },
       html: { code: '<div class="p-12 border-4 border-dashed rounded-[3rem] text-center bg-slate-50 text-slate-400 font-black text-xl uppercase tracking-widest">Neural HTML Container</div>' },
@@ -113,13 +113,12 @@ function PageBuilderContent() {
     setComponents(nc);
   };
 
-  const handleAiTranslate = async (text: string, compIdx: number) => {
+  const handleAiTranslate = async (text: string, compIdx: number, targetField: string) => {
     if (!text) return;
     try {
       const { translatedText } = await translateToEnglish({ text });
       const comp = components[compIdx];
-      const fieldKey = comp.content.bodyAr !== undefined ? 'bodyEn' : comp.content.textAr !== undefined ? 'textEn' : 'labelEn';
-      const newContent = { ...comp.content, [fieldKey]: translatedText };
+      const newContent = { ...comp.content, [targetField]: translatedText };
       updateComp(compIdx, { content: newContent });
       toast({ title: "AI Translation Done" });
     } catch (e) {
@@ -268,13 +267,6 @@ function PageBuilderContent() {
                                        <SelectItem value="custom" className="text-accent font-bold">CUSTOM HEIGHT</SelectItem>
                                     </SelectContent>
                                  </Select>
-
-                                 {c.gridSpan === 0 && (
-                                   <Input value={c.customWidth || ''} onChange={e => updateComp(i, { customWidth: e.target.value })} className="h-7 w-20 bg-white/10 border-none text-white text-[10px] rounded-lg" placeholder="e.g. 200px" />
-                                 )}
-                                 {c.gridHeight === 'custom' && (
-                                   <Input value={c.customHeight || ''} onChange={e => updateComp(i, { customHeight: e.target.value })} className="h-7 w-20 bg-white/10 border-none text-white text-[10px] rounded-lg" placeholder="e.g. 50vh" />
-                                 )}
                               </div>
                               <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
                                  <CompModeBtn active={compModes[c.id] === 'preview'} onClick={() => setCompModes({...compModes, [c.id]: 'preview'})} icon={<Eye size={12}/>} label="Preview" />
@@ -292,14 +284,31 @@ function PageBuilderContent() {
                               ) : compModes[c.id] === 'settings' ? (
                                 <div className="p-10 bg-slate-50 space-y-6 animate-in fade-in zoom-in-95 flex-1 overflow-auto">
                                    <div className="grid md:grid-cols-2 gap-8">
-                                      {c.type === 'style' || c.type === 'html' ? (
-                                        <div className="col-span-2 space-y-4">
-                                          <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Raw Component Editor</Label>
-                                          <Textarea 
-                                            value={c.content.code} 
-                                            onChange={e => updateComp(i, { content: { ...c.content, code: e.target.value } })} 
-                                            className="font-mono text-sm h-96 bg-slate-950 text-emerald-400 rounded-[2.5rem] border-none shadow-2xl p-10 leading-relaxed resize-none focus:ring-0" 
-                                          />
+                                      {c.type === 'stats' ? (
+                                        <div className="col-span-2 space-y-6">
+                                          <Label className="text-xs font-black uppercase text-primary">Neural Stats Tuning</Label>
+                                          <div className="grid grid-cols-2 gap-8">
+                                            <div className="space-y-4 p-6 bg-white rounded-3xl border">
+                                              <div className="flex items-center justify-between"><span className="text-[10px] font-black text-slate-400">VALUE 1</span><Input value={c.content.v1} onChange={e => updateComp(i, {content: {...c.content, v1: e.target.value}})} className="h-8 w-24 text-right font-black" /></div>
+                                              <div className="space-y-2">
+                                                <Label className="text-[9px] font-black opacity-50">ARABIC LABEL</Label>
+                                                <Input value={c.content.t1Ar} onChange={e => updateComp(i, {content: {...c.content, t1Ar: e.target.value}})} className="h-10 font-bold" />
+                                                <Button size="xs" variant="ghost" className="h-6 text-accent font-black gap-1 text-[8px]" onClick={() => handleAiTranslate(c.content.t1Ar, i, 't1En')}><Sparkles size={10}/> AI TRANS</Button>
+                                                <Label className="text-[9px] font-black opacity-50">ENGLISH LABEL</Label>
+                                                <Input value={c.content.t1En} onChange={e => updateComp(i, {content: {...c.content, t1En: e.target.value}})} className="h-10 font-bold" />
+                                              </div>
+                                            </div>
+                                            <div className="space-y-4 p-6 bg-white rounded-3xl border">
+                                              <div className="flex items-center justify-between"><span className="text-[10px] font-black text-slate-400">VALUE 2</span><Input value={c.content.v2} onChange={e => updateComp(i, {content: {...c.content, v2: e.target.value}})} className="h-8 w-24 text-right font-black" /></div>
+                                              <div className="space-y-2">
+                                                <Label className="text-[9px] font-black opacity-50">ARABIC LABEL</Label>
+                                                <Input value={c.content.t2Ar} onChange={e => updateComp(i, {content: {...c.content, t2Ar: e.target.value}})} className="h-10 font-bold" />
+                                                <Button size="xs" variant="ghost" className="h-6 text-accent font-black gap-1 text-[8px]" onClick={() => handleAiTranslate(c.content.t2Ar, i, 't2En')}><Sparkles size={10}/> AI TRANS</Button>
+                                                <Label className="text-[9px] font-black opacity-50">ENGLISH LABEL</Label>
+                                                <Input value={c.content.t2En} onChange={e => updateComp(i, {content: {...c.content, t2En: e.target.value}})} className="h-10 font-bold" />
+                                              </div>
+                                            </div>
+                                          </div>
                                         </div>
                                       ) : ['accordion', 'tabs', 'avatar'].includes(c.type) ? (
                                         <div className="col-span-2 space-y-6">
@@ -313,8 +322,8 @@ function PageBuilderContent() {
                                             {c.type === 'avatar' ? (
                                                 <div className="p-6 bg-white border rounded-2xl shadow-sm space-y-4">
                                                     <div className="grid grid-cols-2 gap-4">
-                                                        <Input value={c.content.nameAr} onChange={e => updateComp(i, { content: {...c.content, nameAr: e.target.value} })} placeholder="Name AR" />
-                                                        <Input value={c.content.nameEn} onChange={e => updateComp(i, { content: {...c.content, nameEn: e.target.value} })} placeholder="Name EN" />
+                                                        <div className="space-y-1"><Label className="text-[10px]">Name AR</Label><Input value={c.content.nameAr} onChange={e => updateComp(i, { content: {...c.content, nameAr: e.target.value} })} /></div>
+                                                        <div className="space-y-1"><Label className="text-[10px]">Name EN</Label><Input value={c.content.nameEn} onChange={e => updateComp(i, { content: {...c.content, nameEn: e.target.value} })} /></div>
                                                         <Input value={c.content.src} onChange={e => updateComp(i, { content: {...c.content, src: e.target.value} })} placeholder="Image URL" className="col-span-2" />
                                                     </div>
                                                 </div>
@@ -347,17 +356,17 @@ function PageBuilderContent() {
                                       ) : (
                                         <>
                                           <div className="space-y-4">
-                                             <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Arabic Meta Content</Label>
+                                             <Label className="text-[10px] font-black uppercase text-primary tracking-widest">Arabic Content</Label>
                                              {['bodyAr', 'textAr', 'labelAr'].some(k => c.content[k] !== undefined) ? (
                                                <Textarea value={c.content.bodyAr || c.content.textAr || c.content.labelAr} onChange={e => updateComp(i, { content: { ...c.content, [c.content.bodyAr !== undefined ? 'bodyAr' : c.content.textAr !== undefined ? 'textAr' : 'labelAr']: e.target.value } })} className="bg-white font-black min-h-[140px] rounded-2xl border-slate-200" />
-                                             ) : <p className="text-xs font-bold text-slate-400 italic">Static element (No text fields).</p>}
+                                             ) : <p className="text-xs font-bold text-slate-400 italic">Static element.</p>}
                                           </div>
                                           
                                           <div className="space-y-4">
                                              <div className="flex items-center justify-between">
-                                                <Label className="text-[10px] font-black uppercase text-accent tracking-widest">English Meta Content</Label>
-                                                <Button variant="ghost" className="h-6 text-accent font-black gap-1 text-[9px]" onClick={() => handleAiTranslate(c.content.bodyAr || c.content.textAr || c.content.labelAr, i)}>
-                                                  <Sparkles size={10}/> NEURAL TRANSLATE
+                                                <Label className="text-[10px] font-black uppercase text-accent tracking-widest">English Content</Label>
+                                                <Button variant="ghost" className="h-6 text-accent font-black gap-1 text-[9px]" onClick={() => handleAiTranslate(c.content.bodyAr || c.content.textAr || c.content.labelAr, i, c.content.bodyEn !== undefined ? 'bodyEn' : c.content.textEn !== undefined ? 'textEn' : 'labelEn')}>
+                                                  <Sparkles size={10}/> AI TRANS
                                                 </Button>
                                              </div>
                                              {['bodyEn', 'textEn', 'labelEn'].some(k => c.content[k] !== undefined) ? (
@@ -372,37 +381,25 @@ function PageBuilderContent() {
                                 <div className="flex-1 bg-slate-950 flex flex-col h-full">
                                    <div className="p-4 bg-slate-900 border-b border-white/5 flex items-center justify-between">
                                       <Label className="text-[10px] font-black uppercase text-accent tracking-widest">Custom Component CSS</Label>
-                                      <p className="text-[8px] text-white/30 uppercase">Scoped Styles</p>
                                    </div>
                                    <Textarea 
                                       value={c.customCss || ''} 
                                       onChange={e => updateComp(i, { customCss: e.target.value })} 
                                       className="flex-1 font-mono text-sm bg-transparent text-blue-300 border-none p-10 leading-relaxed resize-none focus:ring-0 min-h-[300px]" 
-                                      placeholder="/* Write custom CSS for this widget here... */"
+                                      placeholder="/* Write custom CSS... */"
                                    />
                                 </div>
                               ) : (
                                 <div className="flex-1 bg-slate-950 flex flex-col">
                                    <div className="p-4 bg-slate-900 border-b border-white/5 flex items-center justify-between">
-                                      <div className="flex gap-2">
-                                         {['html', 'react', 'dotnet'].map(stack => (
-                                           <Button key={stack} variant="ghost" size="xs" onClick={() => updateComp(i, { codeType: stack as any })} className={cn("h-7 px-4 rounded-lg font-black text-[9px] uppercase", c.codeType === stack ? "bg-accent text-slate-900" : "text-white/40 hover:text-white")}>
-                                              {stack.toUpperCase()}
-                                           </Button>
-                                         ))}
-                                      </div>
                                       <Label className="text-[10px] font-black uppercase text-accent tracking-widest">PRO Code Stack</Label>
                                    </div>
                                    <Textarea 
                                      value={typeof c.content === 'object' ? JSON.stringify(c.content, null, 2) : c.content} 
                                      onChange={e => {
                                         try {
-                                          if (['react', 'dotnet', 'html'].includes(c.codeType || '')) {
-                                            updateComp(i, { content: e.target.value });
-                                          } else {
-                                            const parsed = JSON.parse(e.target.value);
-                                            updateComp(i, { content: parsed });
-                                          }
+                                          const parsed = JSON.parse(e.target.value);
+                                          updateComp(i, { content: parsed });
                                         } catch (err) {
                                           updateComp(i, { content: e.target.value });
                                         }
@@ -448,23 +445,22 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
   
   const RenderContent = () => {
     switch (type) {
-      case 'style': return <div className="p-8 border-2 border-dashed rounded-3xl bg-slate-50 text-center"><Brush className="mx-auto mb-2 text-accent" /><p className="text-[10px] font-black text-slate-400 uppercase">Neural Style Injector Active</p></div>;
-      case 'heading': return <h2 className={cn("font-black text-primary tracking-tighter text-center", content.level === 'h1' ? "text-6xl md:text-8xl" : "text-4xl md:text-5xl")}>{isAr ? content.textAr : content.textEn}</h2>;
-      case 'text': return <p className="text-slate-600 leading-loose text-2xl text-center font-medium max-w-4xl mx-auto whitespace-pre-wrap">{isAr ? content.bodyAr : content.bodyEn}</p>;
+      case 'heading': return <h2 className={cn("font-black text-primary tracking-tighter text-center", content.level === 'h1' ? "text-6xl md:text-8xl" : "text-4xl md:text-5xl")}>{isAr ? content.textAr : (content.textEn || content.textAr)}</h2>;
+      case 'text': return <p className="text-slate-600 leading-loose text-2xl text-center font-medium max-w-4xl mx-auto whitespace-pre-wrap">{isAr ? content.bodyAr : (content.bodyEn || content.bodyAr)}</p>;
       case 'info': return (
         <Card className="rounded-[3rem] border-none shadow-2xl bg-white max-w-4xl mx-auto overflow-hidden border-t-8 border-primary">
-          <CardContent className="p-16 text-center text-3xl font-black text-slate-800 italic leading-relaxed">"{isAr ? content.bodyAr : content.bodyEn}"</CardContent>
+          <CardContent className="p-16 text-center text-3xl font-black text-slate-800 italic leading-relaxed">"{isAr ? content.bodyAr : (content.bodyEn || content.bodyAr)}"</CardContent>
         </Card>
       );
       case 'stats': return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
            <div className="p-10 bg-primary text-white rounded-[2.5rem] shadow-2xl space-y-2">
               <h3 className="text-5xl font-black text-accent">{content.v1}</h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{content.t1}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{isAr ? content.t1Ar : (content.t1En || content.t1Ar)}</p>
            </div>
            <div className="p-10 bg-slate-900 text-white rounded-[2.5rem] shadow-2xl space-y-2 border-t-4 border-accent">
               <h3 className="text-5xl font-black text-accent">{content.v2}</h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{content.t2}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">{isAr ? content.t2Ar : (content.t2En || content.t2Ar)}</p>
            </div>
         </div>
       );
@@ -473,68 +469,35 @@ function ComponentRenderer({ type, content, lang, customCss }: any) {
           <Accordion type="single" collapsible className="w-full">
             {content.items?.map((item: any, idx: number) => (
               <AccordionItem key={idx} value={`i-${idx}`} className="border-slate-100 py-4">
-                <AccordionTrigger className="text-2xl font-black text-primary hover:text-accent no-underline">{isAr ? item.titleAr : item.titleEn}</AccordionTrigger>
-                <AccordionContent className="text-xl text-slate-500 font-bold leading-loose pt-6">{isAr ? item.contentAr : item.contentEn}</AccordionContent>
+                <AccordionTrigger className="text-2xl font-black text-primary hover:text-accent no-underline">{isAr ? item.titleAr : (item.titleEn || item.titleAr)}</AccordionTrigger>
+                <AccordionContent className="text-xl text-slate-500 font-bold leading-loose pt-6">{isAr ? item.contentAr : (item.contentEn || item.contentAr)}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
         </Card>
       );
-      case 'tabs': return (
-        <Card className="w-full rounded-[3.5rem] border-none shadow-2xl bg-white overflow-hidden">
-          <Tabs defaultValue="tab-0" className="w-full">
-            <TabsList className="w-full h-24 bg-slate-950 rounded-none p-0 flex">
-              {content.items?.map((item: any, idx: number) => (
-                <TabsTrigger key={idx} value={`tab-${idx}`} className="flex-1 rounded-none text-white/40 data-[state=active]:bg-accent data-[state=active]:text-slate-900 font-black text-xl h-full border-x border-white/5 transition-all">
-                  {isAr ? item.titleAr : item.titleEn}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {content.items?.map((item: any, idx: number) => (
-              <TabsContent key={idx} value={`tab-${idx}`} className="p-20 text-center animate-in fade-in zoom-in-95">
-                <div className="text-3xl text-slate-700 font-medium leading-loose">{isAr ? item.contentAr : item.contentEn}</div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </Card>
-      );
-      case 'html': return <div className="rounded-[2rem] overflow-hidden w-full" dangerouslySetInnerHTML={{ __html: content.code || '' }} />;
       case 'avatar': return (
         <div className="flex flex-col items-center gap-6">
            <Avatar className="size-48 border-[12px] border-white shadow-2xl">
               <AvatarImage src={content.src} />
-              <AvatarFallback className="bg-primary text-white text-6xl font-black">{isAr ? content.nameAr?.[0] : content.nameEn?.[0]}</AvatarFallback>
+              <AvatarFallback className="bg-primary text-white text-6xl font-black">{isAr ? content.nameAr?.[0] : (content.nameEn?.[0] || content.nameAr?.[0])}</AvatarFallback>
            </Avatar>
            <div className="text-center">
-              <h4 className="text-3xl font-black text-primary tracking-tighter">{isAr ? content.nameAr : content.nameEn}</h4>
-              <Badge className="bg-accent text-slate-900 font-black mt-2 px-6 py-1 rounded-full uppercase tracking-widest text-[10px]">Neural Identity Active</Badge>
+              <h4 className="text-3xl font-black text-primary tracking-tighter">{isAr ? content.nameAr : (content.nameEn || content.nameAr)}</h4>
            </div>
         </div>
       );
       case 'pdf': return (
         <div className="flex justify-center w-full">
            <a href={content.url} target="_blank" className="group flex items-center gap-10 p-12 rounded-[3.5rem] bg-white shadow-2xl border-4 border-transparent hover:border-primary transition-all">
-                <div className="size-24 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all">
-                  <FileText size={48} />
-                </div>
+                <div className="size-24 rounded-3xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all"><FileText size={48} /></div>
                 <div className="space-y-1">
-                  <p className="text-3xl font-black text-slate-800">{isAr ? content.labelAr : content.labelEn}</p>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">Official Document Hub <ExternalLink size={12}/></p>
+                  <p className="text-3xl font-black text-slate-800">{isAr ? content.labelAr : (content.labelEn || content.labelAr)}</p>
                 </div>
            </a>
         </div>
       );
-      case 'badge': return <div className="flex justify-center w-full"><Badge className="bg-accent text-slate-900 font-black text-xl px-10 py-3 rounded-2xl shadow-lg animate-pulse">{isAr ? content.textAr : content.textEn}</Badge></div>;
-      case 'table': return (
-        <Card className="w-full rounded-[2rem] border-none shadow-xl overflow-hidden bg-white">
-          <Table>
-            <TableHeader className="bg-slate-900"><TableRow>{content.headers?.map((h: string, idx: number) => (<TableHead key={idx} className="font-black p-6 text-white text-lg">{h}</TableHead>))}</TableRow></TableHeader>
-            <TableBody>{content.rows?.map((row: any, idx: number) => (<TableRow key={idx} className="hover:bg-slate-50 transition-colors"><TableCell className="font-bold p-6 text-lg">{row.c1}</TableCell><TableCell className="font-black text-emerald-600 p-6 text-lg">{row.c2}</TableCell></TableRow>))}</TableBody>
-          </Table>
-        </Card>
-      );
-      case 'separator': return <Separator className="w-full h-px bg-slate-200 my-16" />;
-      default: return <div className="p-16 border-4 border-dashed rounded-[3rem] bg-slate-50 text-slate-300 font-black text-center text-2xl uppercase">Component: {type}</div>;
+      default: return null;
     }
   };
 

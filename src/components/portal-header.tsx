@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { fetchBin } from '@/lib/jsonbin';
 import { Badge } from '@/components/ui/badge';
+import { translateToEnglish } from '@/ai/flows/translate-flow';
 import {
   Sheet,
   SheetContent,
@@ -30,12 +31,21 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
   
   const [editLink, setEditLink] = useState<string | null>(null);
   const [tickerText, setTickerText] = useState('');
+  const [translatedTicker, setTranslatedTicker] = useState<string | null>(null);
 
   useEffect(() => {
     const determineEditLink = async () => {
       try {
         const data = await fetchBin();
-        if (data) setTickerText(data.newsTickerText || '');
+        if (data) {
+          const rawTicker = data.newsTickerText || '';
+          setTickerText(rawTicker);
+          // Auto-translate ticker if in English mode
+          if (!isAr && rawTicker) {
+            const { translatedText } = await translateToEnglish({ text: rawTicker });
+            setTranslatedTicker(translatedText);
+          }
+        }
         if (pathname === '/') { setEditLink('/admin'); return; }
         if (!data) return;
         if (pathname.startsWith('/p/')) {
@@ -52,7 +62,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
       } catch (err) { setEditLink(null); }
     };
     determineEditLink();
-  }, [pathname]);
+  }, [pathname, isAr]);
 
   const handleLanguageToggle = () => {
     setLanguage(isAr ? 'en' : 'ar');
@@ -69,7 +79,7 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
              {isAr ? "آخر الأخبار" : "Breaking News"}
            </div>
            <p className="text-base font-black opacity-95 tracking-tight">
-             {tickerText || (isAr 
+             {(!isAr && translatedTicker) ? translatedTicker : tickerText || (isAr 
                ? "بدء العمل في مشروع رصف الطرق الداخلية بمنطقة المزيونة - بلدية ظفار تدعو المواطنين لتحديث بياناتهم عبر البوابة الموحدة."
                : "New road paving projects launched in Al-Mazyuna - Dhofar Municipality invites citizens to update data via the portal.")}
            </p>
