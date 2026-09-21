@@ -40,7 +40,8 @@ import {
   Zap, FileText, Search, Globe, Volume2, Video, 
   MousePointer2, ArrowUpRight, Megaphone, ListChecks,
   RefreshCw, Layers, History, ShieldCheck, Mail, Phone, ExternalLink,
-  LayoutDashboard, Newspaper, List, Grid, CheckCircle2, AlertTriangle, Info, Clock, Lock
+  LayoutDashboard, Newspaper, List, Grid, CheckCircle2, AlertTriangle, Info, Clock, Lock,
+  FlaskConical, Bone, CarFront, Ticket, BadgeCent
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -80,6 +81,12 @@ const MASTER_SERVICES_CATALOG = [
   { id: 'svc_127', title: 'تدريب طلاب مؤسسات التعليم العالي', titleEn: 'Training Higher Education Institution Students', icon: 'GraduationCap', cat: 'admin' },
   { id: 'svc_128', title: 'طلب توفيق ومصالحة', titleEn: 'Reconciliation and Settlement Request', icon: 'Gavel', cat: 'admin' },
   { id: 'svc_119', title: 'شهادة إتلاف مواد', titleEn: 'Material Destruction Certificate', icon: 'Trash', cat: 'health' },
+  // User Requested Services
+  { id: 'svc_126', title: 'طلب فحص عينة مخبرية (أغذية / مياه)', titleEn: 'Laboratory Sample Testing (Food/Water)', icon: 'FlaskConical', cat: 'health' },
+  { id: 'svc_118', title: 'طلب ذبح حيوانات بالمسلخ المركزي', titleEn: 'Request Animal Slaughter at Central Slaughterhouse', icon: 'Bone', cat: 'health' },
+  { id: 'svc_117', title: 'طلب تقييم أضرار مادية (حوادث مرورية)', titleEn: 'Material Damage Evaluation Request (Traffic Accidents)', icon: 'CarFront', cat: 'tech' },
+  { id: 'svc_ticket_stamp', title: 'ختم تذاكر محلات التسلية ودور السينما والحفلات والتصديق عليها', titleEn: 'Stamping and Authenticating Tickets', icon: 'Ticket', cat: 'invest' },
+  { id: 'svc_pay_fines', title: 'دفع الغرامات والضرائب والرسوم البلدية', titleEn: 'Pay Municipal Fines, Taxes and Fees', icon: 'BadgeCent', cat: 'admin' },
 ];
 
 export default function AdminDashboard() {
@@ -167,6 +174,51 @@ export default function AdminDashboard() {
       const newServices: Service[] = [...services];
       const newFlows: ServiceFlow[] = [...flows];
 
+      // Custom Detailed Flows Map
+      const CUSTOM_FLOWS: Record<string, ServiceFlow> = {
+        'svc_126': {
+          id: 'svc_126', serviceId: 'svc_126', titleAr: 'طلب فحص عينة مخبرية (أغذية / مياه)', titleEn: 'Laboratory Sample Testing (Food/Water)', isActive: true,
+          steps: [{ id: 'step_submit_126', titleAr: 'تقديم الطلب', titleEn: 'Submit Application', actionType: 'submit', fields: [
+            { id: 'field_product_details', type: 'text', labelAr: 'تفاصيل المنتج الغذائي المطلوب', labelEn: 'Food Product Details', required: true },
+            { id: 'field_req_docs', type: 'upload', labelAr: 'المستندات المطلوبة للخدمة', labelEn: 'Required Documents', required: true }
+          ]}]
+        },
+        'svc_118': {
+          id: 'svc_118', serviceId: 'svc_118', titleAr: 'طلب ذبح حيوانات بالمسلخ المركزي', titleEn: 'Request Animal Slaughter at Central Slaughterhouse', isActive: true,
+          steps: [{ id: 'step_submit_118', titleAr: 'تقديم الطلب', titleEn: 'Submit Application', actionType: 'submit', fields: [
+            { id: 'field_animal_details', type: 'text', labelAr: 'تفاصيل الحيوان', labelEn: 'Animal Details', required: true },
+            { id: 'field_agri_approval', type: 'upload', labelAr: 'موافقات وزارة الثروة الزراعية', labelEn: 'Ministry of Agriculture Approvals', required: true }
+          ]}]
+        },
+        'svc_117': {
+          id: 'svc_117', serviceId: 'svc_117', titleAr: 'طلب تقييم أضرار مادية (حوادث مرورية)', titleEn: 'Material Damage Evaluation Request (Traffic Accidents)', isActive: true,
+          steps: [{ id: 'step_submit_117', titleAr: 'تقديم الطلب', titleEn: 'Submit Application', actionType: 'submit', fields: [
+            { id: 'field_accident_location', type: 'map', labelAr: 'تحديد موقع الحادث', labelEn: 'Accident Location', required: true },
+            { id: 'field_police_report', type: 'upload', labelAr: 'تقرير أو خطاب من شرطة عمان السلطانية', labelEn: 'ROP Report', required: true },
+            { id: 'field_damage_details', type: 'text', labelAr: 'إدخال التفاصيل (نموذج طلب الخدمة)', labelEn: 'Request Details', required: true }
+          ]}]
+        },
+        'svc_ticket_stamp': {
+          id: 'svc_ticket_stamp', serviceId: 'svc_ticket_stamp', titleAr: 'ختم تذاكر محلات التسلية ودور السينما والحفلات والتصديق عليها', titleEn: 'Stamping and Authenticating Tickets', isActive: true,
+          steps: [
+            { id: 'step_submit_ticket', titleAr: 'تقديم الطلب', titleEn: 'Submit Request', actionType: 'submit', defaultNextStepId: 'step_pay_ticket', fields: [
+              { id: 'field_event_details', type: 'text', labelAr: 'التفاصيل المتعلقة بالفعالية', labelEn: 'Event Details', required: true },
+              { id: 'field_authorities_approval', type: 'upload', labelAr: 'موافقة الجهة المعنية', labelEn: 'Relevant Authority Approval', required: true }
+            ]},
+            { id: 'step_pay_ticket', titleAr: 'دفع الغرامات والضرائب والرسوم', titleEn: 'Pay Fines, Taxes and Fees', actionType: 'payment', fields: [] }
+          ]
+        },
+        'svc_pay_fines': {
+          id: 'svc_pay_fines', serviceId: 'svc_pay_fines', titleAr: 'دفع الغرامات والضرائب والرسوم البلدية', titleEn: 'Pay Municipal Fines, Taxes and Fees', isActive: true,
+          steps: [
+            { id: 'step_select_fines', titleAr: 'تحديد الغرامات أو الرسوم', titleEn: 'Select Fines or Fees', actionType: 'submit', defaultNextStepId: 'step_pay_fines', fields: [
+              { id: 'field_fines_selection', type: 'select', labelAr: 'تحديد الغرامات أو الضرائب أو المستحقات', labelEn: 'Select Fines, Taxes or Dues', required: true, options: ["غرامات (مخالفات صحية، مواقف، حوادث)", "ضرائب بلدية (فنون، ترفيه، سينما)", "رسوم بلدية (فنادق، مطاعم، عقود استثمار)"] }
+            ]},
+            { id: 'step_pay_fines', titleAr: 'الدفع الإلكتروني', titleEn: 'Online Payment', actionType: 'payment', fields: [] }
+          ]
+        }
+      };
+
       MASTER_SERVICES_CATALOG.forEach(master => {
         if (!existingIds.has(master.id)) {
           newServices.push({
@@ -187,24 +239,29 @@ export default function AdminDashboard() {
             conditionsEn: 'Oman Citizen'
           });
 
-          newFlows.push({
-            id: master.id,
-            serviceId: master.id,
-            titleAr: master.title,
-            titleEn: master.titleEn,
-            isActive: true,
-            steps: [
-              {
-                id: `step_${master.id}_1`,
-                titleAr: 'المستندات المطلوبة',
-                titleEn: 'Required Documents',
-                fields: [
-                  { id: `f_${master.id}_1`, type: 'upload', labelAr: 'مرفق المستند الأول', labelEn: 'Doc Attachment 1', required: true }
-                ],
-                actionType: 'submit'
-              }
-            ]
-          });
+          // Apply Custom Flow if exists, else Default
+          if (CUSTOM_FLOWS[master.id]) {
+            newFlows.push(CUSTOM_FLOWS[master.id]);
+          } else {
+            newFlows.push({
+              id: master.id,
+              serviceId: master.id,
+              titleAr: master.title,
+              titleEn: master.titleEn,
+              isActive: true,
+              steps: [
+                {
+                  id: `step_${master.id}_1`,
+                  titleAr: 'المستندات المطلوبة',
+                  titleEn: 'Required Documents',
+                  fields: [
+                    { id: `f_${master.id}_1`, type: 'upload', labelAr: 'مرفق المستند الأول', labelEn: 'Doc Attachment 1', required: true }
+                  ],
+                  actionType: 'submit'
+                }
+              ]
+            });
+          }
         }
       });
 
