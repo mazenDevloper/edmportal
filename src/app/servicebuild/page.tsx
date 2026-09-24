@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
@@ -22,6 +21,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
+import { PortalFooter } from '@/components/portal-footer';
 import { ServiceStep, FormField, Service, ServiceFlow, StepLogic } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
