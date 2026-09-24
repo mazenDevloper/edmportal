@@ -84,7 +84,7 @@ const MASTER_SERVICES_CATALOG = [
   { id: 'svc_119', title: 'شهادة إتلاف مواد', titleEn: 'Material Destruction Certificate', icon: 'Trash', cat: 'health' },
   { id: 'svc_126', title: 'طلب فحص عينة مخبرية (أغذية / مياه)', titleEn: 'Laboratory Sample Testing (Food/Water)', icon: 'FlaskConical', cat: 'health' },
   { id: 'svc_118', title: 'طلب ذبح حيوانات بالمسلخ المركزي', titleEn: 'Request Animal Slaughter at Central Slaughterhouse', icon: 'Bone', cat: 'health' },
-  { id: 'svc_117', title: 'طلب تقييم أضرار مادية (حوادث مرورية)', titleEn: 'Material Damage Assessment Request (Traffic Accidents)', icon: 'CarFront', cat: 'tech' },
+  { id: 'svc_117', title: 'طلب تقييم أضرار مادية (حوادث مرورية)', titleEn: 'Material Damage Evaluation Request (Traffic Accidents)', icon: 'CarFront', cat: 'tech' },
   { id: 'svc_ticket_stamp', title: 'ختم تذاكر محلات التسلية ودور السينما والحفلات والتصديق عليها', titleEn: 'Stamping and Authenticating Tickets', icon: 'Ticket', cat: 'invest' },
   { id: 'svc_pay_fines', title: 'دفع الغرامات والضرائب والرسوم البلدية', titleEn: 'Pay Municipal Fines, Taxes and Fees', icon: 'BadgeCent', cat: 'admin' },
 ];
@@ -168,12 +168,12 @@ export default function AdminDashboard() {
     try {
       const db = await fetchBin();
       
-      const newServices: Service[] = [...services];
-      const newFlows: ServiceFlow[] = [...flows];
+      const newServices: Service[] = [...(db.services || [])];
+      const newFlows: ServiceFlow[] = [...(db.serviceFlows || [])];
 
       const SPECIAL_FLOWS: Record<string, ServiceFlow> = {
         'svc_117': {
-          id: "svc_117", serviceId: "svc_117", titleAr: "طلب تقييم أضرار مادية (حوادث مرورية)", titleEn: "Material Damage Assessment Request (Traffic Accidents)", isActive: true,
+          id: "svc_117", serviceId: "svc_117", titleAr: "طلب تقييم أضرار مادية (حوادث مرورية)", titleEn: "Material Damage Evaluation Request (Traffic Accidents)", isActive: true,
           steps: [
             {
               id: "step_7e7ad952", titleAr: "بيانات الطلب", titleEn: "Application Details", actionType: "submit", defaultNextStepId: "step_79f1ce0d",
@@ -247,39 +247,30 @@ export default function AdminDashboard() {
         }
       };
 
-      // Force update for SPECIAL_FLOWS and new ones
       MASTER_SERVICES_CATALOG.forEach(master => {
-          // Remove existing to overwrite
-          const filteredServices = newServices.filter(s => s.id !== master.id);
-          const filteredFlows = newFlows.filter(f => f.serviceId !== master.id);
-          
-          filteredServices.push({
+          const sIdx = newServices.findIndex(s => s.id === master.id);
+          const serviceData = {
             id: master.id, title: master.title, titleEn: master.titleEn,
             description: `خدمة رقمية من بلدية ظفار: ${master.title}`, descriptionEn: `Digital Service: ${master.titleEn}`,
             iconName: master.icon, category: master.cat, isActive: true,
             reqsAr: ['البطاقة الشخصية', 'السجل التجاري (إن وجد)'], reqsEn: ['ID Card', 'Commercial Register'],
             fees: '10 OMR', durationAr: 'فوري', durationEn: 'Instant',
             conditionsAr: 'سلطنة عمان', conditionsEn: 'Oman Citizen'
-          });
+          };
+          if (sIdx > -1) newServices[sIdx] = serviceData; else newServices.push(serviceData);
 
-          if (SPECIAL_FLOWS[master.id]) {
-            filteredFlows.push(SPECIAL_FLOWS[master.id]);
-          } else {
-            filteredFlows.push({
-              id: master.id, serviceId: master.id, titleAr: master.title, titleEn: master.titleEn, isActive: true,
-              steps: [{ id: `step_${master.id}_1`, titleAr: 'المستندات المطلوبة', titleEn: 'Required Documents', fields: [{ id: `f_${master.id}_1`, type: 'upload', labelAr: 'مرفق المستند الأول', labelEn: 'Doc Attachment 1', required: true }], actionType: 'submit' }]
-            });
-          }
-
-          // Update pointers
-          newServices.splice(0, newServices.length, ...filteredServices);
-          newFlows.splice(0, newFlows.length, ...filteredFlows);
+          const fIdx = newFlows.findIndex(f => f.serviceId === master.id);
+          const flowData = SPECIAL_FLOWS[master.id] || {
+            id: master.id, serviceId: master.id, titleAr: master.title, titleEn: master.titleEn, isActive: true,
+            steps: [{ id: `step_${master.id}_1`, titleAr: 'المستندات المطلوبة', titleEn: 'Required Documents', fields: [{ id: `f_${master.id}_1`, type: 'upload', labelAr: 'مرفق المستند الأول', labelEn: 'Doc Attachment 1', required: true }], actionType: 'submit' }]
+          };
+          if (fIdx > -1) newFlows[fIdx] = flowData; else newFlows.push(flowData);
       });
 
       await updateBin({ ...db, services: newServices, serviceFlows: newFlows });
       setServices(newServices);
       setFlows(newFlows);
-      toast({ title: "Master Seeding Complete - Flows Updated" });
+      toast({ title: "Master Seeding Complete - All Flows Updated" });
     } catch (e) {
       toast({ variant: "destructive", title: "Seed Failed" });
     } finally {

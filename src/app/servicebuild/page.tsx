@@ -16,13 +16,12 @@ import {
   Maximize, Edit2, Hash, List, MapPin, FileText, Image as ImageIcon,
   ChevronUp, ChevronDown, Sparkles, Network, MousePointer2,
   Building2, User2, Landmark, HelpCircle, LayoutGrid,
-  RefreshCw, Database, ShieldCheck, Search, GripVertical
+  RefreshCw, Database, ShieldCheck, Search, GripVertical, Info
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
-import { PortalFooter } from '@/components/portal-footer';
 import { ServiceStep, FormField, Service, ServiceFlow, StepLogic } from '@/lib/types';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
@@ -107,12 +106,10 @@ function WorkflowEngineContent() {
       setLoading(true);
       fetchBin().then(data => {
         if (data) {
-          // Robust fetching: try both serviceId and id matches
           const flow = (data.serviceFlows || []).find((f: any) => f.id === editId || f.serviceId === editId);
           const svc = (data.services || []).find((s: any) => s.id === editId);
           if (flow) {
             setSteps(flow.steps || []);
-            console.log("Loaded Flow:", flow);
           }
           if (svc) setServiceInfo(svc);
         }
@@ -247,7 +244,7 @@ function WorkflowEngineContent() {
       }
       (step.logic || []).forEach((rule, idx) => {
         if (rule.targetStepId) {
-          const id = `e-${rule.targetStepId}-${idx}`; // Simplified unique ID
+          const id = `e-${rule.targetStepId}-${idx}`; 
           const isActive = hoveredEdgeId === id;
           
           e.push({
@@ -319,7 +316,6 @@ function WorkflowEngineContent() {
         </header>
 
         <div className="grid lg:grid-cols-4 gap-8">
-           {/* Global Settings Sidebar */}
            <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden h-fit sticky top-24 ring-1 ring-slate-100">
               <CardHeader className="bg-slate-900 text-white p-8">
                 <div className="flex items-center gap-3">

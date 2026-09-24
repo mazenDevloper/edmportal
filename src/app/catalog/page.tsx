@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -24,6 +25,7 @@ import {
   Info,
   Sparkles
 } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -57,7 +59,6 @@ export default function ServiceCatalogPage() {
     }).catch(() => setLoading(false));
   }, []);
 
-  // AI Translation Fallback Logic
   useEffect(() => {
     if (!isAr && services.length > 0) {
       services.forEach(async (s) => {
@@ -287,5 +288,3 @@ export default function ServiceCatalogPage() {
     </div>
   );
 }
-
-import * as Icons from 'lucide-react';
