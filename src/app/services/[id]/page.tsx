@@ -25,7 +25,8 @@ import {
   Info,
   BadgeCent,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
@@ -146,7 +147,7 @@ export default function ServiceApplicationPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-10">
-          {/* Sidebar - Open Always as requested */}
+          {/* Sidebar - Open Always */}
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
                 <CardHeader className="bg-slate-900 text-white p-8">
