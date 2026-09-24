@@ -50,11 +50,8 @@ export default function ServiceApplicationPage() {
 
   const [service, setService] = useState<Service | null>(null);
   const [flow, setFlow] = useState<ServiceFlow | null>(null);
-  const [allServices, setAllServices] = useState<Service[]>([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [translating, setTranslating] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [success, setSuccess] = useState(false);
   const [appId, setAppId] = useState('');
@@ -69,52 +66,11 @@ export default function ServiceApplicationPage() {
           const foundFlow = (data.serviceFlows || []).find((f: ServiceFlow) => f.serviceId === id || f.id === id) || null;
           setService(foundSvc);
           setFlow(foundFlow);
-          setAllServices(data.services || []);
         }
       } finally { setLoading(false); }
     };
     load();
   }, [id]);
-
-  // AI Fallback Logic for missing English fields
-  useEffect(() => {
-    if (!isAr && service && !aiContent && !translating) {
-      const needsTrans = !service.titleEn || !service.descriptionEn || !service.conditionsEn;
-      if (needsTrans) {
-        setTranslating(true);
-        translateToEnglish({ 
-          text: `Title: ${service.title} | Desc: ${service.description} | Fees: ${service.fees} | Dur: ${service.durationAr} | Cond: ${service.conditionsAr}` 
-        })
-          .then(({ translatedText }) => {
-            const parts = translatedText.split('|');
-            setAiContent({ 
-              title: parts[0]?.replace('Title:', '').trim(), 
-              description: parts[1]?.replace('Desc:', '').trim(),
-              fees: parts[2]?.replace('Fees:', '').trim(),
-              duration: parts[3]?.replace('Dur:', '').trim(),
-              conditions: parts[4]?.replace('Cond:', '').trim()
-            });
-          }).finally(() => setTranslating(false));
-      }
-    }
-  }, [isAr, service, aiContent, translating]);
-
-  const dynamicRequirements = useMemo(() => {
-    const rawBaseReqs = (isAr ? service?.reqsAr : (service?.reqsEn || service?.reqsAr)) || [];
-    const baseReqs = Array.isArray(rawBaseReqs) ? rawBaseReqs : (typeof rawBaseReqs === 'string' ? [rawBaseReqs] : []);
-    const reqs = new Set(baseReqs);
-    flow?.steps.forEach(step => {
-      step.fields.forEach(field => {
-        if (field.type === 'upload') reqs.add(isAr ? field.labelAr : field.labelEn);
-      });
-    });
-    return Array.from(reqs);
-  }, [service, flow, isAr]);
-
-  const similarServices = useMemo(() => {
-    if (!service) return [];
-    return allServices.filter(s => s.category === service.category && s.id !== service.id).slice(0, 3);
-  }, [service, allServices]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +117,8 @@ export default function ServiceApplicationPage() {
     } finally { setSubmitting(false); }
   };
 
+  const [submitting, setSubmitting] = useState(false);
+
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   if (success) return (
@@ -173,21 +131,13 @@ export default function ServiceApplicationPage() {
            <QRCode value={appId} size={150} />
            <p className="text-2xl font-black text-primary font-mono tracking-tighter">{appId}</p>
         </div>
-        <Button onClick={() => router.push('/')} className="w-full h-16 rounded-2xl dm-gradient-primary font-black shadow-xl">
-          {isAr ? "العودة للرئيسية" : "Back to Portal"}
-        </Button>
+        <Button onClick={() => router.push('/')} className="w-full h-16 rounded-2xl dm-gradient-primary font-black shadow-xl">{isAr ? "العودة للرئيسية" : "Back to Portal"}</Button>
       </Card>
     </div>
   );
 
   const currentStep = flow?.steps[currentStepIndex];
   const IconComponent = (Icons as any)[service?.iconName || 'FileText'] || Icons.FileText;
-
-  const title = isAr ? service?.title : (aiContent?.title || service?.titleEn || service?.title);
-  const description = isAr ? service?.description : (aiContent?.description || service?.descriptionEn || service?.description);
-  const fees = isAr ? service?.fees : (aiContent?.fees || service?.feesEn || service?.fees || '10 OMR');
-  const duration = isAr ? (service?.durationAr || 'فوري') : (aiContent?.duration || service?.durationEn || service?.durationAr || 'Instant');
-  const conditions = isAr ? (service?.conditionsAr || 'عماني الجنسية') : (aiContent?.conditions || service?.conditionsEn || service?.conditionsAr || 'Omani Citizen');
 
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
@@ -203,80 +153,28 @@ export default function ServiceApplicationPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-10">
-          
           <div className="lg:col-span-4 space-y-6">
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
                 <CardHeader className="bg-slate-900 text-white p-8">
                    <div className="flex items-center gap-4 mb-4">
-                      <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg backdrop-blur-md">
-                        <IconComponent size={28} />
-                      </div>
-                      <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em] flex items-center gap-1">
-                        {isAr ? 'بيانات الخدمة' : 'Service Intel'}
-                        {aiContent && <Sparkles size={10} />}
-                      </Badge>
+                      <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg"><IconComponent size={28} /></div>
+                      <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em]">{isAr ? 'بيانات الخدمة' : 'Service Intel'}</Badge>
                    </div>
-                   <h1 className="text-2xl font-black leading-tight tracking-tight">
-                    {title}
-                   </h1>
+                   <h1 className="text-2xl font-black leading-tight tracking-tight">{isAr ? service?.title : (service?.titleEn || service?.title)}</h1>
                 </CardHeader>
-
-                <CardContent className="p-8 space-y-10">
-                  <div className="space-y-4">
-                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                      <Info size={20} className="text-accent"/> {isAr ? 'نبذة عن الخدمة' : 'About Service'}
-                    </h5>
-                    <p className="text-xs font-bold text-slate-500 leading-loose">
-                      {description}
-                    </p>
-                  </div>
-
-                  <div className="space-y-4 border-t pt-8">
-                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                      <ListChecks size={20} className="text-accent"/> {isAr ? 'المستندات المطلوبة' : 'Requirements'}
-                    </h5>
-                    {dynamicRequirements.length > 0 ? (
-                      <ul className="space-y-3">
-                        {dynamicRequirements.map((r, i) => (
-                          <li key={i} className="text-xs font-bold text-slate-600 flex items-start gap-3">
-                            <div className="size-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
-                            <span>{r}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-slate-400 font-bold text-xs italic">{isAr ? 'لا توجد مستندات مطلوبة' : 'No documents required'}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-4 border-t pt-8">
-                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                      <BadgeCent size={20} className="text-accent"/> {isAr ? 'الرسوم المقررة' : 'Fees & Costs'}
-                    </h5>
-                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
-                       <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{isAr ? 'الإجمالي التقديري' : 'ESTIMATED TOTAL'}</span>
-                       <span className="text-lg font-black text-emerald-700">{fees}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 border-t pt-8">
-                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                      <Clock size={20} className="text-accent"/> {isAr ? 'مدة الإنجاز' : 'Processing Time'}
-                    </h5>
-                    <p className="text-xs font-black text-slate-600 flex items-center gap-2">
-                       <div className="size-2 bg-primary rounded-full animate-pulse" />
-                       {duration}
-                    </p>
-                  </div>
-
-                  <div className="space-y-4 border-t pt-8">
-                    <h5 className="flex items-center gap-3 text-primary font-black text-lg">
-                      <ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات العامة' : 'Eligibility & Conditions'}
-                    </h5>
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed">
-                       {conditions}
-                    </div>
-                  </div>
+                <CardContent className="p-8 space-y-8">
+                   <div className="space-y-4">
+                     <h5 className="flex items-center gap-3 text-primary font-black text-lg"><Info size={20} className="text-accent"/> {isAr ? 'المستندات المطلوبة' : 'Requirements'}</h5>
+                     <ul className="space-y-2">{ (isAr ? service?.reqsAr : service?.reqsEn)?.map((r, i) => (<li key={i} className="text-xs font-bold text-slate-600 flex items-start gap-3"><div className="size-1.5 rounded-full bg-accent mt-1.5 shrink-0" /><span>{r}</span></li>)) }</ul>
+                   </div>
+                   <div className="space-y-4 border-t pt-8">
+                     <h5 className="flex items-center gap-3 text-primary font-black text-lg"><BadgeCent size={20} className="text-accent"/> {isAr ? 'الرسوم المقررة' : 'Fees'}</h5>
+                     <div className="p-4 bg-emerald-50 rounded-2xl text-lg font-black text-emerald-700">{isAr ? service?.fees : (service?.feesEn || service?.fees)}</div>
+                   </div>
+                   <div className="space-y-4 border-t pt-8">
+                     <h5 className="flex items-center gap-3 text-primary font-black text-lg"><ShieldAlert size={20} className="text-accent"/> {isAr ? 'الاشتراطات' : 'Conditions'}</h5>
+                     <p className="text-xs font-bold text-slate-500 leading-loose">{isAr ? service?.conditionsAr : (service?.conditionsEn || service?.conditionsAr)}</p>
+                   </div>
                 </CardContent>
             </Card>
           </div>
@@ -285,73 +183,47 @@ export default function ServiceApplicationPage() {
             <Card className="rounded-[3rem] shadow-2xl overflow-hidden min-h-[650px] flex flex-col bg-white border-none ring-1 ring-slate-100">
               <CardHeader className="bg-slate-950 text-white p-10 relative">
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg uppercase text-[9px] tracking-widest">
-                      {isAr ? `المرحلة ${currentStepIndex + 1}` : `Phase ${currentStepIndex + 1}`}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-4xl font-black flex items-center gap-5 tracking-tighter">
-                    <FileText className="text-accent" size={40} /> 
-                    {isAr ? currentStep?.titleAr : currentStep?.titleEn}
-                  </CardTitle>
+                  <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg uppercase text-[9px] mb-4">{isAr ? `المرحلة ${currentStepIndex + 1}` : `Phase ${currentStepIndex + 1}`}</Badge>
+                  <CardTitle className="text-4xl font-black flex items-center gap-5 tracking-tighter"><FileText className="text-accent" size={40} /> {isAr ? currentStep?.titleAr : currentStep?.titleEn}</CardTitle>
                 </div>
                 <div className="absolute top-0 right-0 w-full h-full dm-wave-5 opacity-10 pointer-events-none" />
               </CardHeader>
-              
               <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
                 <CardContent className="p-12 space-y-12 flex-1">
                    {currentStep?.fields.map((field) => (
-                      <div key={field.id} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                        <Label className="text-lg font-black text-slate-700 flex items-center gap-2">
-                          {isAr ? field.labelAr : field.labelEn}
-                          {field.required && <span className="text-red-500">*</span>}
-                        </Label>
-                        
+                      <div key={field.id} className="space-y-4">
+                        <Label className="text-lg font-black text-slate-700 flex items-center gap-2">{isAr ? field.labelAr : field.labelEn}{field.required && <span className="text-red-500">*</span>}</Label>
                         {field.type === 'upload' ? (
-                          <div className="border-4 border-dashed rounded-[2.5rem] p-16 text-center bg-slate-50 cursor-pointer hover:bg-white hover:border-primary/20 transition-all relative group shadow-inner">
-                            <div className="size-16 rounded-full bg-primary/5 text-primary mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Upload size={32} />
-                            </div>
-                            <p className="text-md font-black text-slate-500 mb-1">{isAr ? 'اضغط هنا لرفع المستند' : 'Click or Drag to Upload'}</p>
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'Document Attached'})} required={field.required} />
-                            {formData[field.id] && (
-                              <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 font-black text-sm">
-                                <CheckCircle2 size={16} /> {isAr ? 'تم إرفاق المستند' : 'Document Attached'}
-                              </div>
-                            )}
+                          <div className="border-4 border-dashed rounded-[2.5rem] p-16 text-center bg-slate-50 cursor-pointer hover:bg-white transition-all relative">
+                            <Upload size={32} className="mx-auto mb-4 text-primary" />
+                            <p className="font-black text-slate-500">{isAr ? 'اضغط هنا لرفع المستند' : 'Click to Upload'}</p>
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'Attached'})} required={field.required} />
                           </div>
                         ) : field.type === 'select' ? (
                           <Select onValueChange={v => setFormData({...formData, [field.id]: v})} required={field.required}>
-                            <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none shadow-sm text-lg font-bold">
-                              <SelectValue placeholder={isAr ? 'اختر خياراً...' : 'Choose option...'} />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-2xl border-none shadow-2xl">
-                              {field.options?.map((o, idx) => (
-                                <SelectItem key={idx} value={o} className="font-bold py-3">{o}</SelectItem>
-                              ))}
-                            </SelectContent>
+                            <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold"><SelectValue placeholder={isAr ? 'اختر خياراً...' : 'Choose option...'} /></SelectTrigger>
+                            <SelectContent className="rounded-2xl border-none shadow-2xl">{field.options?.map((o, idx) => (<SelectItem key={idx} value={o} className="font-bold py-3">{o}</SelectItem>))}</SelectContent>
                           </Select>
+                        ) : field.type === 'info' as any ? (
+                          <Card className="rounded-[2rem] border-none shadow-xl bg-primary/5 p-8 border-l-8 border-primary">
+                             <ul className="space-y-4">
+                               { (isAr ? field.options : field.options)?.map((line, lIdx) => (
+                                 <li key={lIdx} className="flex items-start gap-3 font-bold text-slate-700 text-sm">
+                                    <div className="size-2 rounded-full bg-primary mt-2 shrink-0" />
+                                    {line}
+                                 </li>
+                               )) }
+                             </ul>
+                          </Card>
                         ) : (
-                          <Input 
-                            type={field.type === 'number' ? 'number' : 'text'}
-                            required={field.required} 
-                            placeholder={isAr ? 'أدخل البيانات هنا...' : 'Enter data here...'}
-                            className="h-16 rounded-2xl bg-slate-50 border-none shadow-sm text-lg font-bold px-6" 
-                            onChange={e => setFormData({...formData, [field.id]: e.target.value})} 
-                          />
+                          <Input type={field.type === 'number' ? 'number' : 'text'} required={field.required} className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold px-6" onChange={e => setFormData({...formData, [field.id]: e.target.value})} />
                         )}
                       </div>
                    ))}
                 </CardContent>
-
                 <CardFooter className="bg-slate-50 p-10 flex justify-between items-center border-t rounded-b-[3rem]">
-                   <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black h-16 rounded-2xl px-8 hover:bg-slate-100 text-slate-400 transition-all">
-                     {isAr ? 'إعادة البدء' : 'Restart Flow'}
-                   </Button>
-                   <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-[1.5rem] px-14 h-16 font-black shadow-2xl gap-4 text-xl">
-                     {submitting ? <Loader2 className="animate-spin" /> : <ArrowRight className={cn(isAr && "rotate-180")} />} 
-                     {currentStepIndex === (flow?.steps.length || 0) - 1 ? (isAr ? "إرسال الطلب النهائي" : "Submit Final Matrix") : (isAr ? "المرحلة التالية" : "Next Phase")}
-                   </Button>
+                   <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black h-16 rounded-2xl px-8">إعادة البدء</Button>
+                   <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-2xl px-14 h-16 font-black shadow-xl gap-4 text-xl">{submitting ? <Loader2 className="animate-spin" /> : <ArrowRight className={cn(isAr && "rotate-180")} />}{currentStepIndex === (flow?.steps.length || 0) - 1 ? (isAr ? "إرسال الطلب النهائي" : "Submit Final") : (isAr ? "المرحلة التالية" : "Next Phase")}</Button>
                 </CardFooter>
               </form>
             </Card>
