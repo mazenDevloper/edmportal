@@ -128,7 +128,7 @@ export interface CustomPage {
 
 export interface FormField {
   id: string;
-  type: 'text' | 'number' | 'email' | 'upload' | 'date' | 'select' | 'multichoice' | 'map' | 'visual_choice';
+  type: 'text' | 'number' | 'email' | 'upload' | 'date' | 'select' | 'multichoice' | 'map' | 'visual_choice' | 'info';
   labelAr: string;
   labelEn: string;
   required: boolean;

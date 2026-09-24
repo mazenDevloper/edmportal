@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -68,17 +69,17 @@ const ANALYTICS_DATA = [
 ];
 
 const MASTER_SERVICES_CATALOG = [
-  { id: 'svc_100', title: 'ترخيص إقامة عرض ترويجي للسيارات', titleEn: 'Get a Permit for Organizing a Promotional Car Event', icon: 'Car', cat: 'invest' },
-  { id: 'svc_101', title: 'تصديق مسارات تمديدات الكهرباء', titleEn: 'Get the Municipality\'s Approval for the Paths of Electrical Service Installations (Household Connections)', icon: 'Zap', cat: 'tech' },
-  { id: 'svc_102', title: 'إصدار تصاريح صهاريج مياة الصرف الصحي', titleEn: 'Get a Permit for a Sewage Tanker', icon: 'Truck', cat: 'health' },
-  { id: 'svc_103', title: 'اعتماد إعلانات المطبوعات والمنشورات', titleEn: 'Get Approval of Print Advertisements, Posters, and Publications Service', icon: 'Megaphone', cat: 'admin' },
-  { id: 'svc_104', title: 'طلب إقامة منشط أو فعالية في الخريف', titleEn: 'Request to Hold an Activity, Event or Exhibition During the Fall Season', icon: 'Landmark', cat: 'invest' },
-  { id: 'svc_105', title: 'تواصل معنا', titleEn: 'Contact Us / Support Support', icon: 'Phone', cat: 'admin' },
-  { id: 'svc_106', title: 'تصديق تمديدات الصرف الصحي', titleEn: 'Get Municipal Approval for Sanitary Sewer Service Extensions (Household Connections)', icon: 'Droplets', cat: 'tech' },
-  { id: 'svc_107', title: 'تصديق رصف البلاط المتشابك', titleEn: 'Application for obtaining the Municipality\'s approval for paving with interlocking tiles in front of houses.', icon: 'Construction', cat: 'tech' },
-  { id: 'svc_108', title: 'ترقيم المنازل', titleEn: 'Get House Numbering', icon: 'MapPin', cat: 'admin' },
+  { id: 'svc_100', title: 'ترخيص إقامة عرض ترويجي للسيارات', titleEn: 'Permit for Organizing a Promotional Car Event', icon: 'Car', cat: 'invest' },
+  { id: 'svc_101', title: 'تصديق مسارات تمديدات الكهرباء', titleEn: 'Approval for Paths of Electrical Service Installations', icon: 'Zap', cat: 'tech' },
+  { id: 'svc_102', title: 'إصدار تصاريح صهاريج مياة الصرف الصحي', titleEn: 'Permit for a Sewage Tanker', icon: 'Truck', cat: 'health' },
+  { id: 'svc_103', title: 'اعتماد إعلانات المطبوعات والمنشورات', titleEn: 'Approval of Print Advertisements & Publications', icon: 'Megaphone', cat: 'admin' },
+  { id: 'svc_104', title: 'طلب إقامة منشط أو فعالية في الخريف', titleEn: 'Request to Hold an Activity or Exhibition During Khareef', icon: 'Landmark', cat: 'invest' },
+  { id: 'svc_105', title: 'تواصل معنا', titleEn: 'Contact Us / Support', icon: 'Phone', cat: 'admin' },
+  { id: 'svc_106', title: 'تصديق تمديدات الصرف الصحي', titleEn: 'Approval for Sanitary Sewer Service Extensions', icon: 'Droplets', cat: 'tech' },
+  { id: 'svc_107', title: 'تصديق رصف البلاط المتشابك', titleEn: 'Approval for paving with interlocking tiles', icon: 'Construction', cat: 'tech' },
+  { id: 'svc_108', title: 'ترقيم المنازل', titleEn: 'House Numbering Service', icon: 'MapPin', cat: 'admin' },
   { id: 'svc_109', title: 'ترخيص تسمية المباني', titleEn: 'Building Naming License', icon: 'Landmark', cat: 'invest' },
-  { id: 'svc_127', title: 'تدريب طلاب مؤسسات التعليم العالي', titleEn: 'Training Higher Education Institution Students', icon: 'GraduationCap', cat: 'admin' },
+  { id: 'svc_127', title: 'تدريب طلاب مؤسسات التعليم العالي', titleEn: 'Training Higher Education Students', icon: 'GraduationCap', cat: 'admin' },
   { id: 'svc_128', title: 'طلب توفيق ومصالحة', titleEn: 'Reconciliation and Settlement Request', icon: 'Gavel', cat: 'admin' },
   { id: 'svc_119', title: 'شهادة إتلاف مواد', titleEn: 'Material Destruction Certificate', icon: 'Trash', cat: 'health' },
   { id: 'svc_126', title: 'طلب فحص عينة مخبرية (أغذية / مياه)', titleEn: 'Laboratory Sample Testing (Food/Water)', icon: 'FlaskConical', cat: 'health' },
@@ -166,7 +167,6 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const db = await fetchBin();
-      const existingIds = new Set(services.map(s => s.id));
       
       const newServices: Service[] = [...services];
       const newFlows: ServiceFlow[] = [...flows];
@@ -195,7 +195,7 @@ export default function AdminDashboard() {
               id: "step_9baf85d1", titleAr: "المراجعة وتقديم الطلب", titleEn: "Review & Submit", actionType: "submit",
               fields: [
                 { 
-                  id: "field_c5bd6ce1", type: "info" as any, labelAr: "مسار معالجة الطلب", labelEn: "Processing Path", required: false,
+                  id: "field_c5bd6ce1", type: "info", labelAr: "مسار معالجة الطلب", labelEn: "Processing Path", required: false,
                   options: [
                     "1. التحقق من موقع الحادث وتحديد اختصاص البلدية وإنشاء مهمة تلقائياً",
                     "2. مراجعة بيانات الطلب والخرائط وطلب معلومات إضافية عند الحاجة",
@@ -247,9 +247,13 @@ export default function AdminDashboard() {
         }
       };
 
+      // Force update for SPECIAL_FLOWS and new ones
       MASTER_SERVICES_CATALOG.forEach(master => {
-        if (!existingIds.has(master.id)) {
-          newServices.push({
+          // Remove existing to overwrite
+          const filteredServices = newServices.filter(s => s.id !== master.id);
+          const filteredFlows = newFlows.filter(f => f.serviceId !== master.id);
+          
+          filteredServices.push({
             id: master.id, title: master.title, titleEn: master.titleEn,
             description: `خدمة رقمية من بلدية ظفار: ${master.title}`, descriptionEn: `Digital Service: ${master.titleEn}`,
             iconName: master.icon, category: master.cat, isActive: true,
@@ -259,20 +263,23 @@ export default function AdminDashboard() {
           });
 
           if (SPECIAL_FLOWS[master.id]) {
-            newFlows.push(SPECIAL_FLOWS[master.id]);
+            filteredFlows.push(SPECIAL_FLOWS[master.id]);
           } else {
-            newFlows.push({
+            filteredFlows.push({
               id: master.id, serviceId: master.id, titleAr: master.title, titleEn: master.titleEn, isActive: true,
               steps: [{ id: `step_${master.id}_1`, titleAr: 'المستندات المطلوبة', titleEn: 'Required Documents', fields: [{ id: `f_${master.id}_1`, type: 'upload', labelAr: 'مرفق المستند الأول', labelEn: 'Doc Attachment 1', required: true }], actionType: 'submit' }]
             });
           }
-        }
+
+          // Update pointers
+          newServices.splice(0, newServices.length, ...filteredServices);
+          newFlows.splice(0, newFlows.length, ...filteredFlows);
       });
 
       await updateBin({ ...db, services: newServices, serviceFlows: newFlows });
       setServices(newServices);
       setFlows(newFlows);
-      toast({ title: "Master Seeding Complete" });
+      toast({ title: "Master Seeding Complete - Flows Updated" });
     } catch (e) {
       toast({ variant: "destructive", title: "Seed Failed" });
     } finally {
@@ -407,7 +414,6 @@ export default function AdminDashboard() {
                </div>
             )}
 
-            {/* Other tabs follow same structure as before... */}
             {activeTab === 'system' && (
               <div className="grid md:grid-cols-2 gap-8">
                  <Card className="rounded-[3rem] border-none shadow-xl bg-slate-950 text-white p-10 space-y-10 relative overflow-hidden">

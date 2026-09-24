@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -55,7 +56,7 @@ export default function ServiceApplicationPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [success, setSuccess] = useState(false);
   const [appId, setAppId] = useState('');
-  const [aiContent, setAiContent] = useState<any>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -78,6 +79,7 @@ export default function ServiceApplicationPage() {
 
     const currentStep = flow.steps[currentStepIndex];
     
+    // Neural logic routing
     let nextStepId = currentStep.defaultNextStepId;
     (currentStep.logic || []).forEach(rule => {
       if (formData[rule.fieldId] === rule.value) nextStepId = rule.targetStepId;
@@ -103,7 +105,7 @@ export default function ServiceApplicationPage() {
           { 
             id: newId, 
             serviceId: service?.id || '', 
-            serviceName: isAr ? service?.title || '' : aiContent?.title || service?.titleEn || service?.title || '', 
+            serviceName: isAr ? service?.title || '' : service?.titleEn || service?.title || '', 
             citizenName: user?.displayName || 'PKI User', 
             status: 'pending', 
             data: formData, 
@@ -116,8 +118,6 @@ export default function ServiceApplicationPage() {
       setSuccess(true);
     } finally { setSubmitting(false); }
   };
-
-  const [submitting, setSubmitting] = useState(false);
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
@@ -204,7 +204,7 @@ export default function ServiceApplicationPage() {
                             <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold"><SelectValue placeholder={isAr ? 'اختر خياراً...' : 'Choose option...'} /></SelectTrigger>
                             <SelectContent className="rounded-2xl border-none shadow-2xl">{field.options?.map((o, idx) => (<SelectItem key={idx} value={o} className="font-bold py-3">{o}</SelectItem>))}</SelectContent>
                           </Select>
-                        ) : field.type === 'info' as any ? (
+                        ) : field.type === 'info' ? (
                           <Card className="rounded-[2rem] border-none shadow-xl bg-primary/5 p-8 border-l-8 border-primary">
                              <ul className="space-y-4">
                                { (isAr ? field.options : field.options)?.map((line, lIdx) => (

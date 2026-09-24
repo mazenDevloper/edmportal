@@ -107,9 +107,13 @@ function WorkflowEngineContent() {
       setLoading(true);
       fetchBin().then(data => {
         if (data) {
+          // Robust fetching: try both serviceId and id matches
           const flow = (data.serviceFlows || []).find((f: any) => f.id === editId || f.serviceId === editId);
           const svc = (data.services || []).find((s: any) => s.id === editId);
-          if (flow) setSteps(flow.steps || []);
+          if (flow) {
+            setSteps(flow.steps || []);
+            console.log("Loaded Flow:", flow);
+          }
           if (svc) setServiceInfo(svc);
         }
       }).finally(() => setLoading(false));
@@ -152,7 +156,7 @@ function WorkflowEngineContent() {
   };
 
   const handleAddOption = (sIdx: number, fIdx: number) => {
-    const val = prompt(isAr ? "أدخل قيمة الخيار:" : "Enter option value:");
+    const val = prompt(isAr ? "أدخل قيمة الخيار (أو سطر المعلومات):" : "Enter option value (or info line):");
     if (!val) return;
     const ns = [...steps];
     const field = ns[sIdx].fields[fIdx];
@@ -243,14 +247,14 @@ function WorkflowEngineContent() {
       }
       (step.logic || []).forEach((rule, idx) => {
         if (rule.targetStepId) {
-          const id = `e-${step.id}-${rule.targetStepId}-${idx}`;
+          const id = `e-${rule.targetStepId}-${idx}`; // Simplified unique ID
           const isActive = hoveredEdgeId === id;
           
           e.push({
             id, source: step.id, target: rule.targetStepId, type: 'smoothstep', animated: true,
             label: isActive ? rule.value : '',
             style: { 
-              stroke: isActive ? '#470D67' : '#470D67', 
+              stroke: '#470D67', 
               strokeWidth: isActive ? 10 : 3, 
               opacity: hoveredEdgeId ? (isActive ? 1 : 0.05) : 1 
             },
@@ -275,7 +279,7 @@ function WorkflowEngineContent() {
         onEdit: () => { setActiveTab('logic'); document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' }); },
         onRemove: () => setSteps(prev => prev.filter(s => s.id !== step.id))
       },
-      position: { x: (idx % 2) * 400, y: Math.floor(idx / 2) * 300 },
+      position: step.position || { x: (idx % 2) * 400, y: Math.floor(idx / 2) * 300 },
     }));
   }, [steps, isAr, hoveredEdgeId, pathData]);
 
@@ -288,7 +292,7 @@ function WorkflowEngineContent() {
       await updateBin({
         ...db,
         services: [...(db.services || []).filter((s: any) => s.id !== id), { ...serviceInfo, id, isActive: true }],
-        serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id), { id, serviceId: id, steps, isActive: true }]
+        serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id || f.serviceId !== id), { id, serviceId: id, steps, isActive: true }]
       });
       toast({ title: "Saved Successfully" });
       router.push('/admin');
@@ -399,7 +403,8 @@ function WorkflowEngineContent() {
                                     { id: 'upload', icon: <Upload size={12}/> },
                                     { id: 'date', icon: <Calendar size={12}/> },
                                     { id: 'select', icon: <List size={12}/> },
-                                    { id: 'map', icon: <MapPin size={12}/> }
+                                    { id: 'map', icon: <MapPin size={12}/> },
+                                    { id: 'info', icon: <Info size={12}/> }
                                   ].map(fType => (
                                     <Button key={fType.id} size="sm" variant="outline" className="h-10 px-4 rounded-xl gap-2 font-black border-slate-200 hover:border-primary transition-all" onClick={() => handleAddFieldToStep(step.id, fType.id as any)}>
                                       {fType.icon} {fType.id.toUpperCase()}
@@ -419,21 +424,21 @@ function WorkflowEngineContent() {
                                           <Button variant="ghost" size="icon" onClick={() => { const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf}); }} className="text-red-400 hover:bg-red-50 rounded-lg"><X size={16}/></Button>
                                        </div>
                                        
-                                       {f.type === 'select' && (
+                                       {(f.type === 'select' || f.type === 'info') && (
                                          <div className="space-y-3 pt-4 border-t border-slate-100">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options Management</p>
-                                            <div className="flex flex-wrap gap-2">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{f.type === 'info' ? 'Content Lines' : 'Options Management'}</p>
+                                            <div className="flex flex-col gap-2">
                                                {f.options?.map((opt, oIdx) => (
-                                                 <Badge key={oIdx} className="h-8 gap-2 bg-white text-slate-700 border-slate-200 rounded-xl font-bold shadow-sm">
-                                                   {opt} 
-                                                   <X size={12} className="cursor-pointer text-red-400" onClick={() => {
+                                                 <div key={oIdx} className="flex gap-2 items-center bg-white p-2 border-slate-200 rounded-xl font-bold shadow-sm">
+                                                   <span className="flex-1 text-xs">{opt}</span> 
+                                                   <X size={14} className="cursor-pointer text-red-400" onClick={() => {
                                                      const nf = [...step.fields];
                                                      nf[fIdx].options = nf[fIdx].options?.filter((_, i) => i !== oIdx);
                                                      updateStep(sIdx, {fields: nf});
                                                    }}/>
-                                                 </Badge>
+                                                 </div>
                                                ))}
-                                               <Button size="xs" variant="ghost" className="h-8 border-dashed border-2 rounded-xl text-[9px] font-black text-accent" onClick={() => handleAddOption(sIdx, fIdx)}>+ ADD OPTION</Button>
+                                               <Button size="xs" variant="ghost" className="h-10 border-dashed border-2 rounded-xl text-[9px] font-black text-accent" onClick={() => handleAddOption(sIdx, fIdx)}>+ ADD {f.type === 'info' ? 'LINE' : 'OPTION'}</Button>
                                             </div>
                                          </div>
                                        )}
