@@ -87,6 +87,56 @@
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
+    "StaffUser": {
+      "title": "Staff User",
+      "description": "Municipality employee identified by employee number (الرقم الوظيفي).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeNumber": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "email": { "type": "string" },
+        "department": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "isSuperAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "employeeNumber", "nameAr", "isActive"]
+    },
+    "ServiceRole": {
+      "title": "Service Role",
+      "description": "A role scoped to a single service (e.g. Engineer in signage licensing) with its permissions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "code": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["view", "review", "request_info", "field_visit", "report", "approve", "reject", "assign"] }
+        },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "serviceId", "nameAr", "permissions"]
+    },
+    "UserRoleAssignment": {
+      "title": "User Role Assignment",
+      "description": "Many-to-many link between staff users and service roles; a user may hold several roles across services.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "roleId": { "type": "string" },
+        "serviceId": { "type": "string" },
+        "assignedAt": { "type": "string", "format": "date-time" },
+        "assignedBy": { "type": "string" }
+      },
+      "required": ["userId", "roleId", "serviceId"]
+    },
     "UserProfile": {
       "title": "User Profile",
       "description": "Extended user data including roles.",
@@ -121,6 +171,18 @@
     "/applications/{appId}": {
       "schema": "Application",
       "description": "Citizen submissions."
+    },
+    "/staff_users/{userId}": {
+      "schema": "StaffUser",
+      "description": "Municipality staff (JSONBin key: staffUsers)."
+    },
+    "/service_roles/{roleId}": {
+      "schema": "ServiceRole",
+      "description": "Roles defined per service (JSONBin key: serviceRoles)."
+    },
+    "/user_role_assignments/{assignmentId}": {
+      "schema": "UserRoleAssignment",
+      "description": "User ↔ role links (JSONBin key: userRoleAssignments)."
     },
     "/users/{userId}": {
       "schema": "UserProfile",

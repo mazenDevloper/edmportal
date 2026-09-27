@@ -28,8 +28,10 @@ import {
 } from '@/components/ui/table';
 import { 
   Service, SiteConfig, MenuItem, CarouselItem, 
-  Survey, CustomPage, PopupMessage, ServiceFlow, ServiceApplication, NewsItem 
+  Survey, CustomPage, PopupMessage, ServiceFlow, ServiceApplication, NewsItem,
+  StaffUser, ServiceRole, UserRoleAssignment
 } from '@/lib/types';
+import { AccessControlCenter } from '@/components/admin/access-control-center';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
@@ -42,7 +44,7 @@ import {
   MousePointer2, ArrowUpRight, Megaphone, ListChecks,
   RefreshCw, Layers, History, ShieldCheck, Mail, Phone, ExternalLink,
   LayoutDashboard, Newspaper, List, Grid, CheckCircle2, AlertTriangle, Info, Clock, Lock,
-  FlaskConical, Bone, CarFront, Ticket, BadgeCent
+  FlaskConical, Bone, CarFront, Ticket, BadgeCent, UserCog
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -110,6 +112,9 @@ export default function AdminDashboard() {
   const [popups, setPopups] = useState<PopupMessage[]>([]);
   const [applications, setApplications] = useState<ServiceApplication[]>([]);
   const [tickerText, setTickerText] = useState('');
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [serviceRoles, setServiceRoles] = useState<ServiceRole[]>([]);
+  const [roleAssignments, setRoleAssignments] = useState<UserRoleAssignment[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -127,6 +132,9 @@ export default function AdminDashboard() {
           setPopups(data.popups || []);
           setApplications(data.applications || []);
           setTickerText(data.newsTickerText || '');
+          setStaffUsers(data.staffUsers || []);
+          setServiceRoles(data.serviceRoles || []);
+          setRoleAssignments(data.userRoleAssignments || []);
         }
       } catch (e) {
         toast({ title: "Error Loading Data", variant: "destructive" });
@@ -153,7 +161,10 @@ export default function AdminDashboard() {
         customPages, 
         popups,
         applications,
-        newsTickerText: tickerText
+        newsTickerText: tickerText,
+        staffUsers,
+        serviceRoles,
+        userRoleAssignments: roleAssignments
       });
       toast({ title: isAr ? "تم حفظ كافة التغييرات بنجاح" : "All changes saved successfully" });
     } catch (e) {
@@ -289,6 +300,7 @@ export default function AdminDashboard() {
     { id: 'overview', label: isAr ? 'الإحصائيات' : 'Overview', icon: <BarChart3 size={18}/> },
     { id: 'services', label: isAr ? 'الخدمات' : 'Services', icon: <Zap size={18}/> },
     { id: 'news', label: isAr ? 'الأخبار' : 'News Matrix', icon: <Newspaper size={18}/> },
+    { id: 'access', label: isAr ? 'المستخدمون والصلاحيات' : 'Users & Roles', icon: <UserCog size={18}/> },
     { id: 'apps', label: isAr ? 'الطلبات' : 'Applications', icon: <History size={18}/> },
     { id: 'pages', label: isAr ? 'الصفحات' : 'Pages', icon: <Layout size={18}/> },
     { id: 'menu', label: isAr ? 'الملاحة' : 'Navigation', icon: <Menu size={18}/> },
@@ -403,6 +415,19 @@ export default function AdminDashboard() {
                   </div>
                   <div className="bg-white border rounded-[2.5rem] overflow-hidden shadow-xl"><Table><TableHeader className="bg-slate-50"><TableRow><TableHead className="p-6 font-black">{isAr ? "الخدمة" : "Service"}</TableHead><TableHead className="p-6 font-black">{isAr ? "الفئة" : "Category"}</TableHead><TableHead className="p-6 font-black text-center">{isAr ? "مميزة" : "Featured"}</TableHead><TableHead className="p-6 font-black">{isAr ? "إجراء" : "Action"}</TableHead></TableRow></TableHeader><TableBody>{filteredServices.map(s => (<TableRow key={s.id} className="hover:bg-slate-50 transition-colors"><TableCell className="p-6 font-bold"><div className="flex items-center gap-4"><div className="size-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center">{React.createElement((Icons as any)[s.iconName] || Icons.FileText, { size: 20 })}</div><div><p className="text-sm">{isAr ? s.title : (s.titleEn || s.title)}</p><p className="text-[9px] text-slate-400 uppercase font-mono tracking-tighter">{s.id}</p></div></div></TableCell><TableCell className="p-6"><Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-500">{s.category}</Badge></TableCell><TableCell className="p-6 text-center"><Switch checked={s.isFeatured || false} onCheckedChange={(val) => setServices(prev => prev.map(item => item.id === s.id ? {...item, isFeatured: val} : item))} className="mx-auto data-[state=checked]:bg-accent" /></TableCell><TableCell className="p-6"><div className="flex gap-2"><Button variant="ghost" size="icon" asChild className="text-primary hover:bg-primary/5 rounded-xl"><Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link></Button><Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={16}/></Button></div></TableCell></TableRow>))}</TableBody></Table></div>
                </div>
+            )}
+
+            {activeTab === 'access' && (
+              <AccessControlCenter
+                isAr={isAr}
+                services={services}
+                staffUsers={staffUsers}
+                setStaffUsers={setStaffUsers}
+                serviceRoles={serviceRoles}
+                setServiceRoles={setServiceRoles}
+                roleAssignments={roleAssignments}
+                setRoleAssignments={setRoleAssignments}
+              />
             )}
 
             {activeTab === 'system' && (

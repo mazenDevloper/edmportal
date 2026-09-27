@@ -182,6 +182,53 @@ export interface Survey {
   responsesCount: number;
 }
 
+// ─── Access control (RBAC per service) ───────────────────────────────
+
+export type RolePermission =
+  | 'view'          // عرض الطلبات
+  | 'review'        // مراجعة الطلب
+  | 'request_info'  // طلب معلومات إضافية
+  | 'field_visit'   // زيارة / معاينة ميدانية
+  | 'report'        // إعداد التقرير الفني
+  | 'approve'       // اعتماد / موافقة
+  | 'reject'        // رفض الطلب
+  | 'assign';       // إعادة إسناد المهام
+
+/** A role defined inside a single service, e.g. "مهندس" in ترخيص اللوحات الإرشادية */
+export interface ServiceRole {
+  id: string;
+  serviceId: string;
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  permissions: RolePermission[];
+  isActive: boolean;
+  createdAt: string;
+}
+
+/** Municipality staff member, identified by employee number (الرقم الوظيفي) */
+export interface StaffUser {
+  id: string;
+  employeeNumber: string;
+  nameAr: string;
+  nameEn?: string;
+  email?: string;
+  department?: string;
+  isActive: boolean;
+  isSuperAdmin?: boolean;
+  createdAt: string;
+}
+
+/** Many-to-many link: one user can hold many roles across many services */
+export interface UserRoleAssignment {
+  id: string;
+  userId: string;
+  roleId: string;
+  serviceId: string;
+  assignedAt: string;
+  assignedBy?: string;
+}
+
 export interface PopupMessage {
   id: string;
   type: 'text' | 'image' | 'video';
