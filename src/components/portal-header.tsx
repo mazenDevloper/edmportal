@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
-import { MenuItem, CustomPage, Service } from '@/lib/types';
+import { MenuItem, CustomPage, Service, HeaderVariant } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
@@ -21,9 +21,14 @@ import {
 
 interface PortalHeaderProps {
   menuItems: MenuItem[];
+  /** full = ticker + top bar + nav (default); compact = nav only; minimal = logo + language; none = hidden */
+  variant?: HeaderVariant;
+  showTicker?: boolean;
+  showTopBar?: boolean;
+  sticky?: boolean;
 }
 
-export function PortalHeader({ menuItems }: PortalHeaderProps) {
+export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopBar, sticky = true }: PortalHeaderProps) {
   const pathname = usePathname();
   const { language, setLanguage } = useSettingsStore();
   const isAr = language === 'ar';
@@ -71,12 +76,33 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
     setLanguage(isAr ? 'en' : 'ar');
   };
 
+  if (variant === 'none') return null;
+
+  const tickerOn = showTicker ?? variant === 'full';
+  const topBarOn = showTopBar ?? variant === 'full';
+  const orderedMenu = [...(menuItems || [])].sort((a, b) => a.order - b.order);
+
+  if (variant === 'minimal') {
+    return (
+      <header className={cn('w-full bg-white border-b z-[50]', sticky && 'sticky top-0')}>
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 focus-visible:outline focus-visible:outline-4 focus-visible:outline-[#03CFCB] rounded-lg">
+            <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={56} height={38} className="object-contain" priority unoptimized />
+            <span className="text-xl font-black text-secondary">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+          </Link>
+          <Button variant="outline" onClick={handleLanguageToggle} lang={isAr ? 'en' : 'ar'} className="rounded-full font-black h-9 px-5">{isAr ? 'English' : 'العربية'}</Button>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="w-full">
-      {/* Dynamic News Ticker - Teal Theme */}
-      <div className="dm-gradient-primary text-white py-3.5 overflow-hidden border-b border-white/10 shadow-lg relative">
+      {/* Dynamic News Ticker - Teal Theme (pauses on hover/focus; stops with reduced motion) */}
+      {tickerOn && (
+      <div className="dm-gradient-primary text-white py-3.5 overflow-hidden border-b border-white/10 shadow-lg relative group/ticker" role="region" aria-label={isAr ? 'آخر الأخبار' : 'Latest news'} tabIndex={0}>
         <div className="absolute inset-0 dm-pattern-wave-pro opacity-10 pointer-events-none" />
-        <div className="flex items-center gap-6 px-6 animate-marquee whitespace-nowrap relative z-10">
+        <div className="flex items-center gap-6 px-6 animate-marquee group-hover/ticker:[animation-play-state:paused] group-focus/ticker:[animation-play-state:paused] whitespace-nowrap relative z-10">
            <div className="flex items-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] bg-white text-primary px-4 py-1.5 rounded-full shrink-0 shadow-xl">
              <Megaphone size={14} />
              {isAr ? "آخر الأخبار" : "Latest News"}
@@ -88,8 +114,10 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
            </p>
         </div>
       </div>
+      )}
 
-      <nav className="bg-slate-900 text-white py-3 text-[10px] font-bold tracking-[0.2em] border-b border-white/5 uppercase">
+      {topBarOn && (
+      <nav aria-label={isAr ? 'روابط عامة' : 'Utility links'} className="bg-slate-900 text-white py-3 text-[10px] font-bold tracking-[0.2em] border-b border-white/5 uppercase">
         <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
           <span className="flex items-center gap-3 opacity-80">
             <Globe size={16} className="text-primary" /> {isAr ? 'بوابة حكومة سلطنة عُمان الموحدة' : 'Oman Government Unified Portal'}
@@ -106,21 +134,25 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
           </div>
         </div>
       </nav>
+      )}
 
-      <nav className="bg-white border-b py-8 sticky top-0 z-[50] shadow-sm">
+      <nav aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'} className={cn('bg-white border-b z-[50] shadow-sm', variant === 'compact' ? 'py-4' : 'py-8', sticky && 'sticky top-0')}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-10">
             <Link href="/" className="flex items-center gap-6 group">
-               <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="Dhofar Logo" width={95} height={65} className="object-contain" priority unoptimized />
-               <span className="text-3xl font-black text-secondary leading-none tracking-tighter uppercase">
+               <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={variant === 'compact' ? 70 : 95} height={variant === 'compact' ? 48 : 65} className="object-contain" priority unoptimized />
+               <span className={cn('font-black text-secondary leading-none tracking-tighter uppercase', variant === 'compact' ? 'text-2xl' : 'text-3xl')}>
                  {isAr ? 'بلدية ظفار' : (aiName || 'Dhofar Municipality')}
                </span>
             </Link>
           </div>
           
           <div className="hidden lg:flex items-center gap-8">
-            <Link href="/" className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/' ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? 'الرئيسية' : 'Home'}</Link>
-            <Link href="/catalog" className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/catalog' ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
+            <Link href="/" aria-current={pathname === '/' ? 'page' : undefined} className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/' ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? 'الرئيسية' : 'Home'}</Link>
+            <Link href="/catalog" aria-current={pathname === '/catalog' ? 'page' : undefined} className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/catalog' ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
+            {orderedMenu.map(m => (
+              <Link key={m.id} href={m.link} aria-current={pathname === m.link ? 'page' : undefined} className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === m.link ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? m.labelAr : m.labelEn || m.labelAr}</Link>
+            ))}
             <Link href="/identity" className={cn("text-sm font-black text-primary bg-primary/5 px-6 py-2 rounded-2xl hover:bg-primary hover:text-slate-900 transition-all uppercase tracking-widest", pathname === '/identity' && "bg-primary text-slate-900 shadow-lg")}>{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
             
             <Button 
@@ -149,6 +181,8 @@ export function PortalHeader({ menuItems }: PortalHeaderProps) {
                   <Link href="/" className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? 'الرئيسية' : 'Portal Home'}</Link>
                   <Link href="/catalog" className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? 'دليل الخدمات' : 'Service Catalog'}</Link>
                   <Link href="/identity" className="text-3xl font-black text-primary hover:text-primary transition-colors">{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
+                  {orderedMenu.map(m => <Link key={m.id} href={m.link} className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? m.labelAr : m.labelEn || m.labelAr}</Link>)}
+                  <Button variant="outline" onClick={handleLanguageToggle} className="rounded-full font-black h-12 w-fit px-8">{isAr ? 'English' : 'العربية'}</Button>
                   <a href="https://tajawob.om" target="_blank" className="text-3xl font-black text-secondary">{isAr ? 'منصة تجاوب' : 'Tajawoob'}</a>
                 </nav>
               </SheetContent>

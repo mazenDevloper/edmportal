@@ -12,6 +12,8 @@ export interface SiteConfig {
   };
   categories: string[];
   isMaintenanceMode: boolean;
+  /** Sitewide header/footer defaults; pages can override */
+  template?: PageTemplateSettings;
   footerLinks?: {
     id: string;
     labelAr: string;
@@ -105,16 +107,52 @@ export interface SpatialWindow {
   scale: Vec3;
 }
 
+export type BlockType =
+  | 'hero' | 'heading' | 'text' | 'info' | 'stats' | 'features' | 'steps' | 'cta' | 'quote'
+  | 'image' | 'video' | 'pdf' | 'table' | 'accordion' | 'tabs' | 'avatar' | 'team' | 'badge'
+  | 'contact' | 'links' | 'separator' | 'spacer' | 'html' | 'style'
+  // legacy types kept so older pages keep loading
+  | 'services' | 'progress' | 'stepper' | 'cards_scroller';
+
+/** Visual wrapper options every block can take (identity-bound, no free colors) */
+export interface BlockStyle {
+  background?: 'none' | 'white' | 'soft' | 'teal' | 'purple' | 'dark' | 'gradient';
+  pattern?: 'none' | 'landmark' | 'wave' | 'tree' | 'circle' | 'matrix';
+  padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  align?: 'start' | 'center';
+  radius?: 'none' | 'md' | 'xl';
+  shadow?: boolean;
+  animate?: boolean;
+  hideOnMobile?: boolean;
+  anchor?: string;
+}
+
 export interface BuilderComponent {
   id: string;
-  type: 'hero' | 'stats' | 'services' | 'text' | 'image' | 'info' | 'heading' | 'video' | 'pdf' | 'accordion' | 'separator' | 'table' | 'progress' | 'avatar' | 'badge' | 'html' | 'stepper' | 'tabs' | 'cards_scroller' | 'style';
+  type: BlockType;
   content: any;
+  style?: BlockStyle;
   customCss?: string;
-  gridSpan?: number; 
+  gridSpan?: number;
   gridHeight?: string; // 'auto' | 'sm' | 'md' | 'lg' | 'full' | 'custom'
-  customWidth?: string; 
+  customWidth?: string;
   customHeight?: string;
   codeType?: 'html' | 'react' | 'dotnet';
+}
+
+export type HeaderVariant = 'full' | 'compact' | 'minimal' | 'none';
+export type FooterVariant = 'full' | 'compact' | 'none';
+
+/** Header/footer/page-shell options; set per page, with sitewide defaults in siteConfig.template */
+export interface PageTemplateSettings {
+  header?: HeaderVariant;
+  showTicker?: boolean;
+  showTopBar?: boolean;
+  stickyHeader?: boolean;
+  footer?: FooterVariant;
+  titleBand?: 'none' | 'simple' | 'pattern' | 'dark';
+  width?: 'narrow' | 'normal' | 'wide' | 'full';
+  showBreadcrumb?: boolean;
 }
 
 export interface CustomPage {
@@ -122,8 +160,13 @@ export interface CustomPage {
   slug: string;
   titleAr: string;
   titleEn: string;
+  descriptionAr?: string;
+  descriptionEn?: string;
+  status?: 'draft' | 'published';
+  template?: PageTemplateSettings;
   components: BuilderComponent[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface FormField {
@@ -133,6 +176,8 @@ export interface FormField {
   labelEn: string;
   required: boolean;
   options?: string[];
+  optionsEn?: string[];
+  content?: { bodyAr?: string; bodyEn?: string };
 }
 
 export interface StepLogic {
@@ -158,15 +203,83 @@ export interface ServiceFlow {
   titleAr: string;
   titleEn: string;
   steps: ServiceStep[];
+  /** Back-office processing path after submission; staff stages are handled by a service role */
+  processStages?: ProcessStage[];
+  /** Full swimlane diagram as drawn in the service's process PDF (lanes, positioned boxes, arrows, notes) */
+  blueprint?: FlowBlueprint;
   isActive: boolean;
+}
+
+export interface BlueprintLane {
+  id: string;
+  labelAr: string;
+  labelEn: string;
+  kind: 'applicant' | 'system' | 'staff';
+  /** Staff lanes: matches ProcessStage.actorEn so the lane maps to the same service role */
+  actorEn?: string;
+  roleId?: string;
+}
+
+export interface BlueprintNode {
+  id: string;
+  lane: string;
+  /** Horizontal grid position (left → right, as in the PDF) */
+  col: number;
+  kind: 'start' | 'end' | 'task' | 'decision' | 'subprocess' | 'connector';
+  num?: string;
+  labelAr: string;
+  labelEn: string;
+  /** Vertical placement inside the lane when two shapes share a column */
+  offset?: 'top' | 'bottom';
+  /** Staff tasks: named assignee among the lane role's holders */
+  assigneeUserId?: string;
+}
+
+export interface BlueprintEdge {
+  from: string;
+  to: string;
+  labelAr?: string;
+  labelEn?: string;
+  dashed?: boolean;
+}
+
+export interface BlueprintNote {
+  num: number;
+  textAr: string;
+  textEn: string;
+}
+
+export interface FlowBlueprint {
+  /** Source process document */
+  source?: string;
+  lanes: BlueprintLane[];
+  nodes: BlueprintNode[];
+  edges: BlueprintEdge[];
+  notes: BlueprintNote[];
+}
+
+export interface ProcessStage {
+  order: number;
+  actorAr: string;
+  actorEn: string;
+  titleAr: string;
+  titleEn: string;
+  /** ServiceRole.id that handles this stage (staff stages only) */
+  roleId?: string;
+  /** Optional named assignee among the role holders; empty = any holder of the role */
+  assigneeUserId?: string;
 }
 
 export interface SurveyQuestion {
   id: string;
-  type: 'mcq' | 'text' | 'rating';
+  /** mcq = single choice, multi = several choices, text = short, longtext = paragraph */
+  type: 'mcq' | 'multi' | 'dropdown' | 'yesno' | 'rating' | 'nps' | 'text' | 'longtext';
   iconName?: string;
   questionAr: string;
   questionEn: string;
+  helpAr?: string;
+  helpEn?: string;
+  required?: boolean;
   options?: { id: string; textAr: string; textEn: string; icon?: string }[];
 }
 
@@ -176,9 +289,14 @@ export interface Survey {
   titleEn: string;
   descriptionAr?: string;
   descriptionEn?: string;
+  thanksAr?: string;
+  thanksEn?: string;
   questions: SurveyQuestion[];
   isActive: boolean;
   isPublicPoll?: boolean;
+  anonymous?: boolean;
+  startsAt?: string;
+  endsAt?: string;
   responsesCount: number;
 }
 
@@ -192,7 +310,8 @@ export type RolePermission =
   | 'report'        // إعداد التقرير الفني
   | 'approve'       // اعتماد / موافقة
   | 'reject'        // رفض الطلب
-  | 'assign';       // إعادة إسناد المهام
+  | 'assign'        // إعادة إسناد المهام
+  | 'complete';     // تنفيذ الخدمة وإغلاق الطلب
 
 /** A role defined inside a single service, e.g. "مهندس" in ترخيص اللوحات الإرشادية */
 export interface ServiceRole {

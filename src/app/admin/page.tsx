@@ -32,6 +32,11 @@ import {
   StaffUser, ServiceRole, UserRoleAssignment
 } from '@/lib/types';
 import { AccessControlCenter } from '@/components/admin/access-control-center';
+import { ServiceFlowsPanel } from '@/components/admin/service-flows-panel';
+import {
+  NewsTab, ApplicationsTab, PagesTab, MenuTab, BrandingTab, CarouselTab, PopupsTab,
+  SurveysTab, TickerTab, FooterTab, AiTab, JsonTab, TickerItem
+} from '@/components/admin/content-tabs';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useSettingsStore } from '@/lib/settings-store';
 import { 
@@ -44,7 +49,7 @@ import {
   MousePointer2, ArrowUpRight, Megaphone, ListChecks,
   RefreshCw, Layers, History, ShieldCheck, Mail, Phone, ExternalLink,
   LayoutDashboard, Newspaper, List, Grid, CheckCircle2, AlertTriangle, Info, Clock, Lock,
-  FlaskConical, Bone, CarFront, Ticket, BadgeCent, UserCog
+  FlaskConical, Bone, CarFront, Ticket, BadgeCent, UserCog, GitBranch, Braces
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -115,57 +120,70 @@ export default function AdminDashboard() {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [serviceRoles, setServiceRoles] = useState<ServiceRole[]>([]);
   const [roleAssignments, setRoleAssignments] = useState<UserRoleAssignment[]>([]);
+  const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
+  // Keys the admin has no editor for (e.g. courses), kept so the JSON tab can edit them too
+  const [otherKeys, setOtherKeys] = useState<Record<string, unknown>>({});
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await fetchBin();
-        if (data) {
-          setServices(data.services || []);
-          setNews(data.news || []);
-          setFlows(data.serviceFlows || []);
-          setSiteConfig(data.siteConfig || null);
-          setMenuItems(data.menuItems || []);
-          setCarouselItems(data.carouselItems || []);
-          setSurveys(data.surveys || []);
-          setCustomPages(data.customPages || []);
-          setPopups(data.popups || []);
-          setApplications(data.applications || []);
-          setTickerText(data.newsTickerText || '');
-          setStaffUsers(data.staffUsers || []);
-          setServiceRoles(data.serviceRoles || []);
-          setRoleAssignments(data.userRoleAssignments || []);
-        }
-      } catch (e) {
-        toast({ title: "Error Loading Data", variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, [toast]);
+  const applyDb = (data: any) => {
+    const {
+      services, news, serviceFlows, siteConfig, menuItems, carouselItems, surveys, customPages, popups,
+      applications, newsTickerText, newsItems, staffUsers, serviceRoles, userRoleAssignments, ...rest
+    } = data || {};
+    setServices(services || []);
+    setNews(news || []);
+    setFlows(serviceFlows || []);
+    setSiteConfig(siteConfig || null);
+    setMenuItems(menuItems || []);
+    setCarouselItems(carouselItems || []);
+    setSurveys(surveys || []);
+    setCustomPages(customPages || []);
+    setPopups(popups || []);
+    setApplications(applications || []);
+    setTickerText(newsTickerText || '');
+    setTickerItems(newsItems || []);
+    setStaffUsers(staffUsers || []);
+    setServiceRoles(serviceRoles || []);
+    setRoleAssignments(userRoleAssignments || []);
+    setOtherKeys(rest);
+  };
+
+  const loadData = async () => {
+    try {
+      applyDb(await fetchBin());
+    } catch (e) {
+      toast({ title: "Error Loading Data", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadData(); }, []);
+
+  const currentDb = () => ({
+    ...otherKeys,
+    services,
+    news,
+    serviceFlows: flows,
+    siteConfig,
+    menuItems,
+    carouselItems,
+    surveys,
+    customPages,
+    popups,
+    applications,
+    newsTickerText: tickerText,
+    newsItems: tickerItems,
+    staffUsers,
+    serviceRoles,
+    userRoleAssignments: roleAssignments
+  });
 
   const handleGlobalSave = async () => {
     setSaving(true);
     try {
-      const currentDb = await fetchBin();
-      await updateBin({
-        ...currentDb,
-        services,
-        news,
-        serviceFlows: flows,
-        siteConfig, 
-        menuItems, 
-        carouselItems, 
-        surveys, 
-        customPages, 
-        popups,
-        applications,
-        newsTickerText: tickerText,
-        staffUsers,
-        serviceRoles,
-        userRoleAssignments: roleAssignments
-      });
+      const remoteDb = await fetchBin();
+      await updateBin({ ...remoteDb, ...currentDb() });
       toast({ title: isAr ? "تم حفظ كافة التغييرات بنجاح" : "All changes saved successfully" });
     } catch (e) {
       toast({ title: "Save Failed", variant: "destructive" });
@@ -275,7 +293,8 @@ export default function AdminDashboard() {
             id: master.id, serviceId: master.id, titleAr: master.title, titleEn: master.titleEn, isActive: true,
             steps: [{ id: `step_${master.id}_1`, titleAr: 'المستندات المطلوبة', titleEn: 'Required Documents', fields: [{ id: `f_${master.id}_1`, type: 'upload', labelAr: 'مرفق المستند الأول', labelEn: 'Doc Attachment 1', required: true }], actionType: 'submit' }]
           };
-          if (fIdx > -1) newFlows[fIdx] = flowData; else newFlows.push(flowData);
+          // Keep the back-office processing stages (and their role links) when re-seeding
+          if (fIdx > -1) newFlows[fIdx] = { ...flowData, processStages: newFlows[fIdx].processStages }; else newFlows.push(flowData);
       });
 
       await updateBin({ ...db, services: newServices, serviceFlows: newFlows });
@@ -300,6 +319,7 @@ export default function AdminDashboard() {
     { id: 'overview', label: isAr ? 'الإحصائيات' : 'Overview', icon: <BarChart3 size={18}/> },
     { id: 'services', label: isAr ? 'الخدمات' : 'Services', icon: <Zap size={18}/> },
     { id: 'news', label: isAr ? 'الأخبار' : 'News Matrix', icon: <Newspaper size={18}/> },
+    { id: 'flows', label: isAr ? 'مسارات الخدمات' : 'Service Flows', icon: <GitBranch size={18}/> },
     { id: 'access', label: isAr ? 'المستخدمون والصلاحيات' : 'Users & Roles', icon: <UserCog size={18}/> },
     { id: 'apps', label: isAr ? 'الطلبات' : 'Applications', icon: <History size={18}/> },
     { id: 'pages', label: isAr ? 'الصفحات' : 'Pages', icon: <Layout size={18}/> },
@@ -311,6 +331,7 @@ export default function AdminDashboard() {
     { id: 'ticker', label: isAr ? 'شريط الأخبار' : 'Ticker', icon: <Megaphone size={18}/> },
     { id: 'footer', label: isAr ? 'التذييل' : 'Footer', icon: <Layers size={18}/> },
     { id: 'ai', label: isAr ? 'AI Brain' : 'AI Brain', icon: <Sparkles size={18}/> },
+    { id: 'json', label: isAr ? 'قاعدة البيانات JSON' : 'JSON Database', icon: <Braces size={18}/> },
     { id: 'system', label: isAr ? 'النظام' : 'System', icon: <Wrench size={18}/> },
   ];
 
@@ -360,17 +381,33 @@ export default function AdminDashboard() {
          </div>
       </aside>
 
-      <main className="flex-1 p-8 overflow-y-auto">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
+      <main className="flex-1 min-w-0 p-4 md:p-8 overflow-y-auto">
+        {/* The sidebar is hidden below lg — this keeps every tab reachable on narrow screens */}
+        <nav className="lg:hidden flex gap-2 overflow-x-auto pb-3 mb-4 -mx-4 px-4 custom-scrollbar">
+          {navItems.map(item => (
+            <Button
+              key={item.id}
+              variant="ghost"
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                "shrink-0 gap-2 h-10 rounded-full font-black text-xs",
+                activeTab === item.id ? "bg-slate-900 text-accent" : "bg-white text-slate-500 shadow-sm"
+              )}
+            >
+              {item.icon} {item.label}
+            </Button>
+          ))}
+        </nav>
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6 bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-full dm-pattern-wave-pro opacity-[0.02] pointer-events-none" />
           <div className="relative z-10">
-            <h1 className="text-4xl font-black text-primary tracking-tighter flex items-center gap-4">
+            <h1 className="text-2xl md:text-4xl font-black text-primary tracking-tighter flex flex-wrap items-center gap-4">
               {isAr ? "لوحة الإدارة المركزية" : "Central Portal Admin"}
               <Badge variant="outline" className="text-[9px] rounded-lg bg-slate-50 border-slate-200">PRO MODE</Badge>
             </h1>
             <p className="text-slate-400 font-bold mt-1 uppercase text-xs tracking-widest">{isAr ? "تحكم كامل بهوية البوابة والخدمات والذكاء الاصطناعي" : "End-to-end portal orchestration"}</p>
           </div>
-          <div className="flex gap-4 relative z-10">
+          <div className="flex flex-wrap gap-4 relative z-10">
             <Button variant="outline" asChild className="rounded-full font-black px-8 border-slate-200 h-12 shadow-sm hover:bg-slate-50">
               <Link href="/">{isAr ? "معاينة البوابة" : "Live Preview"}</Link>
             </Button>
@@ -409,12 +446,26 @@ export default function AdminDashboard() {
 
             {activeTab === 'services' && (
                <div className="space-y-6">
-                  <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm">
-                     <div className="relative w-96"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} /><Input placeholder={isAr ? "ابحث عن خدمة..." : "Search services..."} className="pl-10 rounded-xl h-11" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+                  <div className="flex flex-wrap gap-4 justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm">
+                     <div className="relative w-full sm:w-96"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} /><Input placeholder={isAr ? "ابحث عن خدمة..." : "Search services..."} className="pl-10 rounded-xl h-11" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                      <div className="flex gap-3"><Button variant="outline" onClick={handleExecuteMasterSeed} className="rounded-full px-6 font-black border-slate-200">MASTER SEED</Button><Button asChild className="dm-gradient-primary rounded-full px-8 font-black"><Link href="/servicebuild">+ {isAr ? "إضافة خدمة" : "Add Service"}</Link></Button></div>
                   </div>
                   <div className="bg-white border rounded-[2.5rem] overflow-hidden shadow-xl"><Table><TableHeader className="bg-slate-50"><TableRow><TableHead className="p-6 font-black">{isAr ? "الخدمة" : "Service"}</TableHead><TableHead className="p-6 font-black">{isAr ? "الفئة" : "Category"}</TableHead><TableHead className="p-6 font-black text-center">{isAr ? "مميزة" : "Featured"}</TableHead><TableHead className="p-6 font-black">{isAr ? "إجراء" : "Action"}</TableHead></TableRow></TableHeader><TableBody>{filteredServices.map(s => (<TableRow key={s.id} className="hover:bg-slate-50 transition-colors"><TableCell className="p-6 font-bold"><div className="flex items-center gap-4"><div className="size-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center">{React.createElement((Icons as any)[s.iconName] || Icons.FileText, { size: 20 })}</div><div><p className="text-sm">{isAr ? s.title : (s.titleEn || s.title)}</p><p className="text-[9px] text-slate-400 uppercase font-mono tracking-tighter">{s.id}</p></div></div></TableCell><TableCell className="p-6"><Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-500">{s.category}</Badge></TableCell><TableCell className="p-6 text-center"><Switch checked={s.isFeatured || false} onCheckedChange={(val) => setServices(prev => prev.map(item => item.id === s.id ? {...item, isFeatured: val} : item))} className="mx-auto data-[state=checked]:bg-accent" /></TableCell><TableCell className="p-6"><div className="flex gap-2"><Button variant="ghost" size="icon" asChild className="text-primary hover:bg-primary/5 rounded-xl"><Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link></Button><Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={16}/></Button></div></TableCell></TableRow>))}</TableBody></Table></div>
                </div>
+            )}
+
+            {activeTab === 'flows' && (
+              <ServiceFlowsPanel
+                isAr={isAr}
+                services={services}
+                flows={flows}
+                setFlows={setFlows}
+                serviceRoles={serviceRoles}
+                setServiceRoles={setServiceRoles}
+                staffUsers={staffUsers}
+                roleAssignments={roleAssignments}
+                setRoleAssignments={setRoleAssignments}
+              />
             )}
 
             {activeTab === 'access' && (
@@ -427,6 +478,33 @@ export default function AdminDashboard() {
                 setServiceRoles={setServiceRoles}
                 roleAssignments={roleAssignments}
                 setRoleAssignments={setRoleAssignments}
+                flows={flows}
+                setFlows={setFlows}
+              />
+            )}
+
+            {activeTab === 'news' && <NewsTab isAr={isAr} news={news} setNews={setNews} />}
+            {activeTab === 'apps' && (
+              <ApplicationsTab
+                isAr={isAr} applications={applications} setApplications={setApplications}
+                flows={flows} staffUsers={staffUsers} serviceRoles={serviceRoles} roleAssignments={roleAssignments}
+              />
+            )}
+            {activeTab === 'pages' && <PagesTab isAr={isAr} pages={customPages} setPages={setCustomPages} />}
+            {activeTab === 'menu' && <MenuTab isAr={isAr} items={menuItems} setItems={setMenuItems} />}
+            {activeTab === 'branding' && <BrandingTab isAr={isAr} siteConfig={siteConfig} setSiteConfig={setSiteConfig} />}
+            {activeTab === 'carousel' && <CarouselTab isAr={isAr} items={carouselItems} setItems={setCarouselItems} />}
+            {activeTab === 'popups' && <PopupsTab isAr={isAr} items={popups} setItems={setPopups} />}
+            {activeTab === 'surveys' && <SurveysTab isAr={isAr} surveys={surveys} setSurveys={setSurveys} />}
+            {activeTab === 'ticker' && <TickerTab isAr={isAr} tickerText={tickerText} setTickerText={setTickerText} items={tickerItems} setItems={setTickerItems} />}
+            {activeTab === 'footer' && <FooterTab isAr={isAr} siteConfig={siteConfig} setSiteConfig={setSiteConfig} />}
+            {activeTab === 'ai' && <AiTab isAr={isAr} services={services} setServices={setServices} />}
+            {activeTab === 'json' && (
+              <JsonTab
+                isAr={isAr}
+                db={currentDb()}
+                onApply={applyDb}
+                onReload={() => { setLoading(true); loadData(); }}
               />
             )}
 

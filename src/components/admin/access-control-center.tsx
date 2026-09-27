@@ -11,13 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Service, ServiceRole, StaffUser, UserRoleAssignment, RolePermission } from '@/lib/types';
+import { Service, ServiceFlow, ServiceRole, StaffUser, UserRoleAssignment, RolePermission } from '@/lib/types';
 import {
-  ALL_PERMISSIONS, buildSeedRoles, buildSeedUsers, mergeById,
-  findUserByEmployeeNumber, getUserRoles, SERVICE_ROLE_MAP,
+  ALL_PERMISSIONS, deriveRolesFromFlows, buildSeedUsers, mergeById,
+  findUserByEmployeeNumber, getUserRoles, getUserStages,
 } from '@/lib/rbac';
 import { Users, ShieldCheck, KeyRound, Plus, Trash2, Search, Database, UserCog, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { attachPdfBlueprints } from '@/lib/flow-blueprints';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -29,12 +30,14 @@ interface Props {
   setServiceRoles: React.Dispatch<React.SetStateAction<ServiceRole[]>>;
   roleAssignments: UserRoleAssignment[];
   setRoleAssignments: React.Dispatch<React.SetStateAction<UserRoleAssignment[]>>;
+  flows: ServiceFlow[];
+  setFlows: React.Dispatch<React.SetStateAction<ServiceFlow[]>>;
 }
 
 const EMPTY_USER = { employeeNumber: '', nameAr: '', nameEn: '', email: '', department: '', isSuperAdmin: false };
 
 export function AccessControlCenter({
-  isAr, services, staffUsers, setStaffUsers, serviceRoles, setServiceRoles, roleAssignments, setRoleAssignments,
+  isAr, services, staffUsers, setStaffUsers, serviceRoles, setServiceRoles, roleAssignments, setRoleAssignments, flows, setFlows,
 }: Props) {
   const { toast } = useToast();
   const [newUser, setNewUser] = useState(EMPTY_USER);
@@ -138,6 +141,9 @@ export function AccessControlCenter({
   const handleDeleteRole = (id: string) => {
     setServiceRoles(prev => prev.filter(r => r.id !== id));
     setRoleAssignments(prev => prev.filter(a => a.roleId !== id));
+    setFlows(prev => prev.map(f => f.processStages?.some(s => s.roleId === id)
+      ? { ...f, processStages: f.processStages.map(s => s.roleId === id ? { ...s, roleId: undefined } : s) }
+      : f));
   };
 
   const handleSeed = () => {
@@ -148,12 +154,16 @@ export function AccessControlCenter({
       const userId = idMap.get(a.userId) ?? a.userId;
       return { ...a, userId, id: `asg_${userId}_${a.roleId}` };
     });
-    setServiceRoles(prev => mergeById(prev, buildSeedRoles()));
+    // Attach the PDF swimlane diagrams, then derive roles from stages + diagram lanes
+    const derived = deriveRolesFromFlows(attachPdfBlueprints(flows));
+    setServiceRoles(prev => mergeById(prev, derived.roles));
+    setFlows(derived.flows);
     setStaffUsers(prev => mergeById(prev, seed.users.filter(u => !prev.some(p => p.employeeNumber === u.employeeNumber))));
     setRoleAssignments(prev => mergeById(prev, assignments.filter(a => !prev.some(p => p.userId === a.userId && p.roleId === a.roleId))));
+    const serviceCount = new Set(derived.roles.map(r => r.serviceId)).size;
     toast({
-      title: isAr ? 'تم تحميل أدوار المسارات' : 'Workflow roles loaded',
-      description: isAr ? `${Object.keys(SERVICE_ROLE_MAP).length} خدمة — اضغط "حفظ ومزامنة النظام" للحفظ في قاعدة البيانات` : `${Object.keys(SERVICE_ROLE_MAP).length} services — press "Sync Matrix" to persist`,
+      title: isAr ? `تم توليد ${derived.roles.length} دوراً من مراحل المعالجة` : `Generated ${derived.roles.length} roles from process stages`,
+      description: isAr ? `${serviceCount} خدمة — اضغط "حفظ ومزامنة النظام" للحفظ في قاعدة البيانات` : `${serviceCount} services — press "Sync Matrix" to persist`,
     });
   };
 
@@ -196,7 +206,7 @@ export function AccessControlCenter({
             <TabsTrigger value="check" className="font-black gap-2"><KeyRound size={16} />{isAr ? 'فحص الصلاحيات' : 'Check access'}</TabsTrigger>
           </TabsList>
           <Button variant="outline" onClick={handleSeed} className="rounded-full px-6 font-black border-slate-200 gap-2">
-            <Database size={16} /> {isAr ? 'تحميل أدوار المسارات' : 'Seed workflow roles'}
+            <Database size={16} /> {isAr ? 'توليد الأدوار من مراحل المعالجة' : 'Generate roles from stages'}
           </Button>
         </div>
 
@@ -280,6 +290,23 @@ export function AccessControlCenter({
                       ))}
                     </div>
                   </div>
+                  {(() => {
+                    const assigned = flows.map(f => ({ flow: f, stages: getUserStages(accessData, selectedUser.id, f) })).filter(x => x.stages.length);
+                    return (
+                      <div className="p-4 rounded-2xl bg-accent/5 border border-accent/20 space-y-2">
+                        <p className="text-xs font-black text-primary">{isAr ? `المراحل المسندة (${assigned.reduce((n, x) => n + x.stages.length, 0)})` : `Assigned stages (${assigned.reduce((n, x) => n + x.stages.length, 0)})`}</p>
+                        {assigned.length === 0 && <p className="text-xs text-slate-400">{isAr ? 'لا توجد مراحل مسندة لهذا المستخدم' : 'No stages assigned to this user'}</p>}
+                        {assigned.map(({ flow, stages }) => (
+                          <div key={flow.serviceId} className="text-xs">
+                            <span className="font-black">{serviceName(flow.serviceId)}</span>
+                            <ul className="mt-1 space-y-0.5">
+                              {stages.map(s => <li key={s.order} className="text-slate-600"><span className="font-black text-accent">{s.order}.</span> {isAr ? s.titleAr : s.titleEn}</li>)}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   <div className="relative">
                     <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                     <Input value={assignSearch} onChange={e => setAssignSearch(e.target.value)} placeholder={isAr ? 'ابحث عن خدمة...' : 'Search services...'} className="ps-10 rounded-xl" />

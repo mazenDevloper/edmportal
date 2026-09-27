@@ -1,4 +1,4 @@
-import { RolePermission, ServiceRole, StaffUser, UserRoleAssignment } from './types';
+import { BlueprintLane, ProcessStage, RolePermission, ServiceFlow, ServiceRole, StaffUser, UserRoleAssignment } from './types';
 
 export const ALL_PERMISSIONS: { id: RolePermission; labelAr: string; labelEn: string }[] = [
   { id: 'view', labelAr: 'عرض الطلبات', labelEn: 'View applications' },
@@ -8,64 +8,103 @@ export const ALL_PERMISSIONS: { id: RolePermission; labelAr: string; labelEn: st
   { id: 'report', labelAr: 'إعداد التقرير', labelEn: 'Prepare report' },
   { id: 'approve', labelAr: 'اعتماد / موافقة', labelEn: 'Approve' },
   { id: 'reject', labelAr: 'رفض الطلب', labelEn: 'Reject' },
-  { id: 'assign', labelAr: 'إعادة إسناد المهام', labelEn: 'Reassign tasks' },
+  { id: 'assign', labelAr: 'إحالة / إسناد', labelEn: 'Refer / assign' },
+  { id: 'complete', labelAr: 'تنفيذ وإغلاق', labelEn: 'Complete' },
 ];
-
-// Role templates reused across services (names follow the swimlanes in the workflow PDFs)
-const ROLE_TEMPLATES = {
-  engineer: { nameAr: 'المهندس / المفتش', nameEn: 'Engineer / Inspector', permissions: ['view', 'review', 'request_info', 'field_visit', 'report'] },
-  head: { nameAr: 'رئيس القسم / رئيس الإدارة', nameEn: 'Head of Section / Department', permissions: ['view', 'review', 'approve', 'reject', 'assign'] },
-  specialist: { nameAr: 'الموظف المختص', nameEn: 'Specialist Employee', permissions: ['view', 'review', 'request_info', 'report'] },
-  technician: { nameAr: 'فني ميداني', nameEn: 'Field Technician', permissions: ['view', 'field_visit', 'report'] },
-  coordinator: { nameAr: 'منسق البلدية', nameEn: 'Municipality Coordinator', permissions: ['view', 'review', 'request_info'] },
-  gis_coordinator: { nameAr: 'منسق نظم المعلومات الجغرافية', nameEn: 'GIS Coordinator', permissions: ['view', 'review', 'request_info', 'approve'] },
-  events_reviewer: { nameAr: 'مراجع الفعاليات', nameEn: 'Events Reviewer', permissions: ['view', 'review', 'request_info', 'field_visit'] },
-  food_inspector: { nameAr: 'مفتش الأغذية / قسم الأغذية والمختبرات', nameEn: 'Food Inspector', permissions: ['view', 'review', 'request_info', 'field_visit', 'report'] },
-  health_dg: { nameAr: 'المدير العام لشؤون الصحة', nameEn: 'Director General of Health Affairs', permissions: ['view', 'approve', 'reject', 'assign'] },
-  veterinarian: { nameAr: 'الطبيب البيطري', nameEn: 'Veterinarian', permissions: ['view', 'review', 'report', 'approve', 'reject'] },
-  lab_technician: { nameAr: 'فني المختبر', nameEn: 'Lab Technician', permissions: ['view', 'review', 'report'] },
-  finance_officer: { nameAr: 'الموظف المالي المختص', nameEn: 'Finance Officer', permissions: ['view', 'review', 'approve', 'reject'] },
-} as const satisfies Record<string, { nameAr: string; nameEn: string; permissions: RolePermission[] }>;
-
-type RoleCode = keyof typeof ROLE_TEMPLATES;
-
-/** Roles per service, extracted from the process swimlanes in "المسارات" PDFs */
-export const SERVICE_ROLE_MAP: Record<string, RoleCode[]> = {
-  svc_121: ['specialist', 'events_reviewer', 'head'],           // الموافقة على تنظيم الأسواق التخصصية المؤقتة
-  svc_125: ['specialist'],                                       // تجديد تصريح قطع أو ثقب
-  svc_130: ['finance_officer'],                                  // تحصيل مبالغ التأمينات وإعادتها
-  svc_110: ['engineer', 'head'],                                 // ترخيص اللوحات الإرشادية
-  svc_108: ['gis_coordinator'],                                  // ترقيم المنازل
-  svc_109: ['coordinator', 'engineer', 'head'],                  // تسمية مبنى
-  svc_102: ['specialist', 'technician', 'head'],                 // تصاريح ناقلات صهاريج مياه الصرف الصحي
-  svc_131: ['specialist', 'head'],                               // ختم تذاكر محلات التسلية ودور السينما
-  svc_129: ['finance_officer'],                                  // دفع الغرامات والضرائب والرسوم البلدية
-  svc_115: ['engineer', 'head'],                                 // التصديق على مخططات إنارة الطرق والمجمعات
-  svc_107: ['engineer', 'technician', 'head'],                   // الرصف بالبلاط المتشابك
-  svc_119: ['food_inspector', 'health_dg'],                      // إتلاف مواد غذائية
-  svc_132: ['engineer', 'head'],                                 // إنارة مجمع سكني
-  svc_127: ['specialist', 'head'],                               // تدريب طلاب مؤسسات التعليم العالي
-  svc_113: ['engineer', 'head'],                                 // تصريح قطع أو ثقب الطريق
-  svc_117: ['engineer', 'head'],                                 // تقييم أضرار مادية للحوادث المرورية
-  svc_118: ['specialist', 'veterinarian'],                       // ذبح حيوانات بالمسلخ المركزي
-  svc_126: ['specialist', 'lab_technician'],                     // فحص عينة مخبرية (أغذية - مياه)
-};
 
 export const roleId = (serviceId: string, code: string) => `role_${serviceId}_${code}`;
 
-export function buildSeedRoles(now = new Date().toISOString()): ServiceRole[] {
-  return Object.entries(SERVICE_ROLE_MAP).flatMap(([serviceId, codes]) =>
-    codes.map(code => ({
-      id: roleId(serviceId, code),
-      serviceId,
+// ─── Stage actors ─────────────────────────────────────────────────────
+
+export type ActorType = 'system' | 'applicant' | 'staff';
+
+export function classifyActor(stage: Pick<ProcessStage, 'actorAr' | 'actorEn'>): ActorType {
+  const en = (stage.actorEn || '').toLowerCase();
+  if (en.includes('automated') || stage.actorAr?.includes('النظام الآلي')) return 'system';
+  if (en === 'applicant' || stage.actorAr === 'المتقدم') return 'applicant';
+  return 'staff';
+}
+
+/** "Engineer / Inspector" → "engineer_inspector" */
+export const actorCode = (stage: Pick<ProcessStage, 'actorAr' | 'actorEn'>) =>
+  (stage.actorEn || stage.actorAr).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'staff';
+
+// Permissions inferred from the Arabic wording of the stages an actor performs
+const PERMISSION_HINTS: [RegExp, RolePermission[]][] = [
+  [/مراجعة|التحقق/, ['review']],
+  [/معلومات إضافية|توضيح|الاستكمال/, ['request_info']],
+  [/زيارة|معاينة/, ['field_visit']],
+  [/تقرير|التقدير/, ['report']],
+  [/القرار|قرار|الموافقة|قبول|مراجعة الميزانية/, ['approve', 'reject']],
+  [/إحالة|تحديد الدائرة/, ['assign']],
+  [/تنفيذ|مكتملة|تقديم رقم/, ['complete']],
+];
+
+// "مراجعة ملاحظات المهندس وتقرير الزيارة" reviews someone else's work, it isn't a visit/report itself
+const REVIEWED_WORK = /ملاحظات \S+( وتقرير الزيارة)?|التحقق من تقرير الزيارة/g;
+
+export function inferPermissions(stages: ProcessStage[]): RolePermission[] {
+  const perms = new Set<RolePermission>(['view']);
+  stages.forEach(s => {
+    const text = s.titleAr.replace(REVIEWED_WORK, '');
+    PERMISSION_HINTS.forEach(([re, ps]) => { if (re.test(text)) ps.forEach(p => perms.add(p)); });
+  });
+  return ALL_PERMISSIONS.map(p => p.id).filter(p => perms.has(p));
+}
+
+/**
+ * Builds one role per distinct staff actor in each flow's processStages and
+ * links every staff stage to its role (stage.roleId). Existing roleIds are kept.
+ */
+export function deriveRolesFromFlows(flows: ServiceFlow[], now = new Date().toISOString()) {
+  const roles: ServiceRole[] = [];
+  const linkedFlows = flows.map(flow => {
+    if (!flow.processStages?.length) return flow;
+    const staffStages = flow.processStages.filter(s => classifyActor(s) === 'staff');
+    const byCode = new Map<string, ProcessStage[]>();
+    staffStages.forEach(s => byCode.set(actorCode(s), [...(byCode.get(actorCode(s)) || []), s]));
+    byCode.forEach((stages, code) => roles.push({
+      id: roleId(flow.serviceId, code),
+      serviceId: flow.serviceId,
       code,
-      nameAr: ROLE_TEMPLATES[code].nameAr,
-      nameEn: ROLE_TEMPLATES[code].nameEn,
-      permissions: [...ROLE_TEMPLATES[code].permissions],
+      nameAr: stages[0].actorAr,
+      nameEn: stages[0].actorEn,
+      permissions: inferPermissions(stages),
       isActive: true,
       createdAt: now,
-    }))
-  );
+    }));
+    return {
+      ...flow,
+      processStages: flow.processStages.map(s =>
+        classifyActor(s) === 'staff' && !s.roleId ? { ...s, roleId: roleId(flow.serviceId, actorCode(s)) } : s
+      ),
+    };
+  }).map(flow => linkBlueprintLanes(flow, roles, now));
+  return { roles, flows: linkedFlows };
+}
+
+/** Role id a blueprint staff lane maps to (same code as the matching ProcessStage actor) */
+export const laneRoleId = (serviceId: string, lane: BlueprintLane) =>
+  lane.kind === 'staff' ? roleId(serviceId, actorCode({ actorAr: lane.labelAr, actorEn: lane.actorEn || lane.labelEn })) : undefined;
+
+/** Sets roleId on the blueprint's staff lanes and adds a role for any lane no stage covered */
+function linkBlueprintLanes(flow: ServiceFlow, roles: ServiceRole[], now: string): ServiceFlow {
+  if (!flow.blueprint) return flow;
+  const lanes = flow.blueprint.lanes.map(lane => {
+    const id = lane.roleId || laneRoleId(flow.serviceId, lane);
+    if (!id) return lane;
+    if (!roles.some(r => r.id === id)) {
+      const tasks = flow.blueprint!.nodes.filter(n => n.lane === lane.id && n.kind !== 'connector');
+      roles.push({
+        id, serviceId: flow.serviceId, code: id.replace(`role_${flow.serviceId}_`, ''),
+        nameAr: lane.labelAr, nameEn: lane.labelEn,
+        permissions: inferPermissions(tasks.map((n, i) => ({ order: i, actorAr: lane.labelAr, actorEn: lane.labelEn, titleAr: n.labelAr, titleEn: n.labelEn }))),
+        isActive: true, createdAt: now,
+      });
+    }
+    return { ...lane, roleId: id };
+  });
+  return { ...flow, blueprint: { ...flow.blueprint, lanes } };
 }
 
 /** Example from the requirement: employee 14105 is an engineer in signage licensing (svc_110) */
@@ -74,20 +113,15 @@ export function buildSeedUsers(now = new Date().toISOString()): { users: StaffUs
     id: 'usr_14105',
     employeeNumber: '14105',
     nameAr: 'موظف 14105',
+    nameEn: 'Employee 14105',
     department: 'دائرة الطرق والإنارة',
     isActive: true,
     createdAt: now,
   };
+  const rid = roleId('svc_110', 'engineer_inspector');
   return {
     users: [user],
-    assignments: [{
-      id: `asg_${user.id}_${roleId('svc_110', 'engineer')}`,
-      userId: user.id,
-      roleId: roleId('svc_110', 'engineer'),
-      serviceId: 'svc_110',
-      assignedAt: now,
-      assignedBy: 'seed',
-    }],
+    assignments: [{ id: `asg_${user.id}_${rid}`, userId: user.id, roleId: rid, serviceId: 'svc_110', assignedAt: now, assignedBy: 'seed' }],
   };
 }
 
@@ -126,4 +160,25 @@ export function hasServicePermission(data: AccessData, userId: string, serviceId
   if (!user || !user.isActive) return false;
   if (user.isSuperAdmin) return true;
   return getUserRoles(data, userId, serviceId).some(r => r.permissions.includes(permission));
+}
+
+/** Active users who hold the role that handles a stage */
+export function getStageAssignees(data: AccessData, stage: ProcessStage): StaffUser[] {
+  if (!stage.roleId) return [];
+  const role = data.serviceRoles.find(r => r.id === stage.roleId && r.isActive);
+  if (!role) return [];
+  const userIds = new Set(data.roleAssignments.filter(a => a.roleId === role.id).map(a => a.userId));
+  return data.staffUsers.filter(u => u.isActive && userIds.has(u.id));
+}
+
+/** Who actually handles a stage: the named assignee if still valid, otherwise every holder of its role */
+export function getStageHandlers(data: AccessData, stage: ProcessStage): StaffUser[] {
+  const holders = getStageAssignees(data, stage);
+  const named = holders.find(u => u.id === stage.assigneeUserId);
+  return named ? [named] : holders;
+}
+
+/** Stages of a flow the user handles (named assignee, or role holder when no one is named) */
+export function getUserStages(data: AccessData, userId: string, flow: ServiceFlow): ProcessStage[] {
+  return (flow.processStages || []).filter(s => getStageHandlers(data, s).some(u => u.id === userId));
 }

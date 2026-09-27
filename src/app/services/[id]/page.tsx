@@ -13,6 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
 import { 
@@ -26,8 +29,13 @@ import {
   BadgeCent,
   ShieldAlert,
   Sparkles,
-  MapPin
+  MapPin,
+  FolderSync,
+  Check,
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
+import { FormField } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
 import Confetti from 'react-confetti';
@@ -51,6 +59,24 @@ export default function ServiceApplicationPage() {
   const [success, setSuccess] = useState(false);
   const [appId, setAppId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Progressive wizard: eligibility conditions → required documents → the service's form steps
+  const [phase, setPhase] = useState<'conditions' | 'documents' | 'form'>('conditions');
+  const [acceptedConditions, setAcceptedConditions] = useState(false);
+  const [docStatus, setDocStatus] = useState<Record<string, 'pending' | 'fetching' | 'fetched' | 'manual'>>({});
+  const [docsConfirmed, setDocsConfirmed] = useState(false);
+  // Visited form steps, so "Back" follows the branch the applicant actually took
+  const [stepHistory, setStepHistory] = useState<number[]>([]);
+
+  const goToStep = (idx: number) => {
+    setStepHistory(h => [...h, currentStepIndex]);
+    setCurrentStepIndex(idx);
+  };
+
+  const goBack = () => {
+    if (!stepHistory.length) { setPhase('documents'); return; }
+    setCurrentStepIndex(stepHistory[stepHistory.length - 1]);
+    setStepHistory(h => h.slice(0, -1));
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -81,11 +107,11 @@ export default function ServiceApplicationPage() {
 
     if (nextStepId) {
       const nextIdx = flow.steps.findIndex(s => s.id === nextStepId);
-      if (nextIdx !== -1) { setCurrentStepIndex(nextIdx); return; }
+      if (nextIdx !== -1) { goToStep(nextIdx); return; }
     }
 
     if (currentStepIndex < flow.steps.length - 1) {
-      setCurrentStepIndex(currentStepIndex + 1);
+      goToStep(currentStepIndex + 1);
       return;
     }
 
@@ -132,6 +158,52 @@ export default function ServiceApplicationPage() {
 
   const currentStep = flow?.steps[currentStepIndex];
   const IconComponent = (Icons as any)[service?.iconName || 'FileText'] || Icons.FileText;
+
+  // ─── Wizard data ───
+  const allFields = flow?.steps.flatMap(s => s.fields) || [];
+  const isEligibilityField = (f: FormField) => f.type === 'info' && (f.labelEn === 'Eligibility' || f.labelAr === 'شروط الاستفادة');
+
+  // Conditions: eligibility notes from the flow + the service's own conditions
+  const conditions: string[] = [
+    ...allFields.filter(isEligibilityField).map(f => (isAr ? f.content?.bodyAr : f.content?.bodyEn || f.content?.bodyAr) || ''),
+    (isAr ? service?.conditionsAr : service?.conditionsEn || service?.conditionsAr) || '',
+  ].map(s => s.trim()).filter(Boolean);
+
+  // Documents: the flow's upload fields (bilingual, fillable), else the service requirement list
+  const uploadFields = allFields.filter(f => f.type === 'upload');
+  const documents: { id: string; label: string; required: boolean }[] = uploadFields.length
+    ? uploadFields.map(f => ({ id: f.id, label: isAr ? f.labelAr : f.labelEn || f.labelAr, required: f.required }))
+    : ((isAr ? service?.reqsAr : service?.reqsEn?.length ? service?.reqsEn : service?.reqsAr) || []).map((r, i) => ({ id: `req_${i}`, label: r, required: true }));
+
+  const fetchedCount = documents.filter(d => docStatus[d.id] === 'fetched').length;
+  const fetchDone = documents.length > 0 && documents.every(d => docStatus[d.id] === 'fetched' || docStatus[d.id] === 'manual');
+  const fetching = documents.some(d => docStatus[d.id] === 'fetching');
+
+  // Simulated fetch from the applicant's digital vault (no vault API yet): each document is marked
+  // fetched and its upload field pre-filled; the applicant can still replace it in the form.
+  const fetchDocuments = async () => {
+    for (const doc of documents) {
+      setDocStatus(prev => ({ ...prev, [doc.id]: 'fetching' }));
+      await new Promise(r => setTimeout(r, 400));
+      setDocStatus(prev => ({ ...prev, [doc.id]: 'fetched' }));
+      if (uploadFields.some(f => f.id === doc.id)) setFormData(prev => ({ ...prev, [doc.id]: 'vault' }));
+    }
+  };
+
+  // Or skip the vault: every document is uploaded manually in the form steps
+  const uploadManually = () => {
+    setDocStatus(Object.fromEntries(documents.map(d => [d.id, 'manual' as const])));
+    setFormData(prev => Object.fromEntries(Object.entries(prev).filter(([, v]) => v !== 'vault')));
+  };
+
+  const wizardSteps = [
+    { key: 'conditions', label: isAr ? 'الشروط' : 'Conditions' },
+    { key: 'documents', label: isAr ? 'المستندات' : 'Documents' },
+    ...(flow?.steps || []).map(s => ({ key: s.id, label: isAr ? s.titleAr : s.titleEn || s.titleAr })),
+  ];
+  const activeWizardIndex = phase === 'conditions' ? 0 : phase === 'documents' ? 1 : 2 + currentStepIndex;
+  const progress = Math.round(((activeWizardIndex + 1) / wizardSteps.length) * 100);
+  const optionLabel = (f: FormField, o: string, idx: number) => (!isAr && f.optionsEn?.[idx]) || o;
 
   return (
     <div className={cn("min-h-screen bg-slate-50", isAr ? "font-arabic" : "font-sans")} dir={isAr ? 'rtl' : 'ltr'}>
@@ -180,7 +252,129 @@ export default function ServiceApplicationPage() {
             </Card>
           </div>
 
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8 space-y-6 min-w-0">
+            {/* Progress stepper */}
+            <Card className="rounded-[2rem] shadow-xl border-none bg-white ring-1 ring-slate-100 p-6 space-y-4">
+              <div className="flex items-center justify-between text-sm font-black">
+                <span className="text-primary">{isAr ? `الخطوة ${activeWizardIndex + 1} من ${wizardSteps.length}` : `Step ${activeWizardIndex + 1} of ${wizardSteps.length}`}</span>
+                <span className="text-slate-400">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" aria-label={isAr ? 'نسبة الإنجاز' : 'Progress'} />
+              <ol className="flex gap-2 overflow-x-auto pb-1">
+                {wizardSteps.map((s, i) => {
+                  const done = i < activeWizardIndex, active = i === activeWizardIndex;
+                  return (
+                    <li key={s.key} aria-current={active ? 'step' : undefined}
+                      className={cn('flex items-center gap-2 shrink-0 rounded-full px-3 py-1.5 text-xs font-black border',
+                        active ? 'bg-primary text-white border-primary' : done ? 'bg-accent/10 text-primary border-accent/30' : 'bg-slate-50 text-slate-400 border-slate-100')}>
+                      <span className={cn('size-5 rounded-full flex items-center justify-center text-[10px]', active ? 'bg-white/20' : done ? 'bg-accent text-white' : 'bg-slate-200')}>
+                        {done ? <Check size={12} /> : i + 1}
+                      </span>
+                      {s.label}
+                    </li>
+                  );
+                })}
+              </ol>
+            </Card>
+
+            {phase === 'conditions' && (
+              <Card className="rounded-[3rem] shadow-2xl overflow-hidden bg-white border-none ring-1 ring-slate-100">
+                <CardHeader className="bg-slate-950 text-white p-10">
+                  <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg text-[10px] mb-4 w-fit">{isAr ? 'قبل البدء' : 'Before you start'}</Badge>
+                  <CardTitle className="text-3xl font-black flex items-center gap-4"><ShieldAlert className="text-accent" size={34} />{isAr ? 'شروط الاستفادة من الخدمة' : 'Service eligibility conditions'}</CardTitle>
+                  <p className="text-white/60 font-bold text-sm mt-2">{isAr ? 'يرجى قراءة الشروط التالية والتأكد من استيفائها قبل تقديم الطلب.' : 'Please read the conditions below and make sure you meet them before applying.'}</p>
+                </CardHeader>
+                <CardContent className="p-10 space-y-6">
+                  {conditions.length ? (
+                    <ul className="space-y-4">
+                      {conditions.map((c, i) => (
+                        <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-amber-50 border border-amber-100 text-amber-900 font-bold leading-loose">
+                          <span className="size-7 rounded-full bg-amber-500 text-white text-xs font-black flex items-center justify-center shrink-0">{i + 1}</span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="p-5 rounded-2xl bg-slate-50 text-slate-500 font-bold">{isAr ? 'لا توجد شروط خاصة لهذه الخدمة.' : 'This service has no special conditions.'}</p>
+                  )}
+                  <label className="flex items-start gap-4 p-5 rounded-2xl border-2 border-primary/15 bg-primary/5 cursor-pointer">
+                    <Checkbox checked={acceptedConditions} onCheckedChange={v => setAcceptedConditions(v === true)} className="mt-1 size-5" />
+                    <span className="font-black text-slate-700 leading-relaxed">{isAr ? 'أقر بأنني اطّلعت على الشروط وأستوفيها، وأتحمل مسؤولية صحة البيانات المقدمة.' : 'I confirm I have read and meet these conditions and am responsible for the accuracy of my data.'}</span>
+                  </label>
+                </CardContent>
+                <CardFooter className="bg-slate-50 p-8 flex justify-end border-t">
+                  <Button disabled={!acceptedConditions} onClick={() => setPhase('documents')} className="dm-gradient-primary rounded-2xl px-12 h-14 font-black shadow-xl gap-3 text-lg">
+                    {isAr ? 'متابعة إلى المستندات' : 'Continue to documents'}<ArrowRight className={cn('size-5', isAr && 'rotate-180')} />
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
+
+            {phase === 'documents' && (
+              <Card className="rounded-[3rem] shadow-2xl overflow-hidden bg-white border-none ring-1 ring-slate-100">
+                <CardHeader className="bg-slate-950 text-white p-10">
+                  <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg text-[10px] mb-4 w-fit">{isAr ? 'التحقق من المستندات' : 'Document check'}</Badge>
+                  <CardTitle className="text-3xl font-black flex items-center gap-4"><ListChecks className="text-accent" size={34} />{isAr ? 'المستندات المطلوبة' : 'Required documents'}</CardTitle>
+                  <p className="text-white/60 font-bold text-sm mt-2">{isAr ? 'اجلب مستنداتك من الخزانة الرقمية، أو ارفعها يدوياً في خطوات النموذج.' : 'Fetch your documents from your digital vault, or upload them yourself in the form steps.'}</p>
+                </CardHeader>
+                <CardContent className="p-10 space-y-6">
+                  {documents.length === 0 ? (
+                    <p className="p-5 rounded-2xl bg-slate-50 text-slate-500 font-bold">{isAr ? 'لا تتطلب هذه الخدمة مستندات.' : 'This service needs no documents.'}</p>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap gap-3">
+                        <Button type="button" onClick={fetchDocuments} disabled={fetching} className="rounded-2xl h-12 px-6 font-black gap-2 dm-gradient-primary">
+                          {fetching ? <Loader2 className="animate-spin" size={18} /> : <FolderSync size={18} />}
+                          {isAr ? 'جلب المستندات من الخزانة الرقمية' : 'Fetch documents from my digital vault'}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={uploadManually} disabled={fetching} className="rounded-2xl h-12 px-6 font-black gap-2">
+                          <Upload size={18} />{isAr ? 'سأرفعها يدوياً' : "I'll upload them myself"}
+                        </Button>
+                      </div>
+                      <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-100 overflow-hidden" aria-live="polite">
+                        {documents.map(doc => {
+                          const st = docStatus[doc.id] || 'pending';
+                          return (
+                            <li key={doc.id} className="flex items-center gap-4 p-4 bg-white">
+                              <div className={cn('size-10 rounded-xl flex items-center justify-center shrink-0',
+                                st === 'fetched' ? 'bg-emerald-50 text-emerald-600' : st === 'manual' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400')}>
+                                {st === 'fetching' ? <Loader2 className="animate-spin" size={18} /> : st === 'fetched' ? <CheckCircle2 size={18} /> : st === 'manual' ? <Upload size={18} /> : <FileText size={18} />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-slate-700 text-sm">{doc.label}{doc.required && <span className="text-red-500"> *</span>}</p>
+                                <p className="text-xs font-bold text-slate-400">
+                                  {st === 'fetching' ? (isAr ? 'جاري الجلب...' : 'Fetching...')
+                                    : st === 'fetched' ? (isAr ? 'تم الجلب من الخزانة الرقمية' : 'Fetched from your digital vault')
+                                    : st === 'manual' ? (isAr ? 'سيُرفع يدوياً في النموذج' : 'To be uploaded in the form')
+                                    : (isAr ? 'بانتظار الجلب' : 'Waiting')}
+                                </p>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {fetchedCount > 0 && (
+                        <p className="text-xs font-bold text-slate-500 flex items-center gap-2"><AlertCircle size={14} />{isAr ? `تم جلب ${fetchedCount} من ${documents.length} مستند. يمكنك استبدال أي مستند في خطوات النموذج.` : `${fetchedCount} of ${documents.length} documents fetched. You can replace any of them in the form.`}</p>
+                      )}
+                    </>
+                  )}
+                  <label className={cn('flex items-start gap-4 p-5 rounded-2xl border-2 border-primary/15 bg-primary/5', (documents.length && !fetchDone) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer')}>
+                    <Checkbox checked={docsConfirmed} disabled={documents.length > 0 && !fetchDone} onCheckedChange={v => setDocsConfirmed(v === true)} className="mt-1 size-5" />
+                    <span className="font-black text-slate-700 leading-relaxed">{isAr ? 'أؤكد أن المستندات المطلوبة صحيحة وسارية المفعول وتخصني.' : 'I confirm the required documents are correct, valid and mine.'}</span>
+                  </label>
+                </CardContent>
+                <CardFooter className="bg-slate-50 p-8 flex justify-between border-t gap-3">
+                  <Button variant="ghost" onClick={() => setPhase('conditions')} className="font-black h-14 rounded-2xl px-6 gap-2 text-slate-500">
+                    <ArrowLeft className={cn('size-5', isAr && 'rotate-180')} />{isAr ? 'السابق' : 'Back'}
+                  </Button>
+                  <Button disabled={!docsConfirmed || (documents.length > 0 && !fetchDone)} onClick={() => { setPhase('form'); setCurrentStepIndex(0); }} className="dm-gradient-primary rounded-2xl px-12 h-14 font-black shadow-xl gap-3 text-lg">
+                    {isAr ? 'بدء تعبئة الطلب' : 'Start the application'}<ArrowRight className={cn('size-5', isAr && 'rotate-180')} />
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
+
+            {phase === 'form' && (
             <Card className="rounded-[3rem] shadow-2xl overflow-hidden min-h-[650px] flex flex-col bg-white border-none ring-1 ring-slate-100">
               <CardHeader className="bg-slate-950 text-white p-10 relative">
                 <div className="relative z-10">
@@ -191,25 +385,31 @@ export default function ServiceApplicationPage() {
               </CardHeader>
               <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
                 <CardContent className="p-12 space-y-12 flex-1">
-                   {currentStep?.fields.map((field) => (
+                   {currentStep?.fields.filter(f => !isEligibilityField(f)).map((field) => (
                       <div key={field.id} className="space-y-4">
-                        <Label className="text-lg font-black text-slate-700 flex items-center gap-2">{isAr ? field.labelAr : field.labelEn}{field.required && <span className="text-red-500">*</span>}</Label>
+                        <Label className="text-lg font-black text-slate-700 flex items-center gap-2">{isAr ? field.labelAr : field.labelEn}{field.required && field.type !== 'info' && <span className="text-red-500">*</span>}</Label>
                         {field.type === 'upload' ? (
-                          <div className="border-4 border-dashed rounded-[2.5rem] p-16 text-center bg-slate-50 cursor-pointer hover:bg-white transition-all relative group/upload">
-                            <Upload size={32} className="mx-auto mb-4 text-primary group-hover/upload:scale-110 transition-transform" />
-                            <p className="font-black text-slate-500">{isAr ? 'اضغط هنا لرفع المستند' : 'Click to Upload'}</p>
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'Attached'})} required={field.required} />
+                          <div className={cn('border-4 border-dashed rounded-[2.5rem] p-12 text-center cursor-pointer hover:bg-white transition-all relative group/upload',
+                            formData[field.id] ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50')}>
+                            {formData[field.id] ? <CheckCircle2 size={32} className="mx-auto mb-4 text-emerald-600" /> : <Upload size={32} className="mx-auto mb-4 text-primary group-hover/upload:scale-110 transition-transform" />}
+                            <p className="font-black text-slate-500">
+                              {formData[field.id] === 'vault' ? (isAr ? 'تم الجلب من الخزانة الرقمية — اضغط للاستبدال' : 'Fetched from your digital vault — click to replace')
+                                : formData[field.id] ? (isAr ? 'تم إرفاق المستند — اضغط للاستبدال' : 'Document attached — click to replace')
+                                : (isAr ? 'اضغط هنا لرفع المستند' : 'Click to Upload')}
+                            </p>
+                            <input type="file" aria-label={isAr ? field.labelAr : field.labelEn} className="absolute inset-0 opacity-0 cursor-pointer" onChange={() => setFormData({...formData, [field.id]: 'Attached'})} required={field.required && !formData[field.id]} />
                           </div>
                         ) : field.type === 'select' ? (
-                          <Select onValueChange={v => setFormData({...formData, [field.id]: v})} required={field.required}>
+                          <Select value={formData[field.id] || ''} onValueChange={v => setFormData({...formData, [field.id]: v})} required={field.required}>
                             <SelectTrigger className="h-16 rounded-2xl bg-slate-50 border-none text-lg font-bold"><SelectValue placeholder={isAr ? 'اختر خياراً...' : 'Choose option...'} /></SelectTrigger>
-                            <SelectContent className="rounded-2xl border-none shadow-2xl">{field.options?.map((o, idx) => (<SelectItem key={idx} value={o} className="font-bold py-3">{o}</SelectItem>))}</SelectContent>
+                            {/* Values stay Arabic so the flow's branching rules keep matching */}
+                            <SelectContent className="rounded-2xl border-none shadow-2xl">{field.options?.map((o, idx) => (<SelectItem key={idx} value={o} className="font-bold py-3">{optionLabel(field, o, idx)}</SelectItem>))}</SelectContent>
                           </Select>
                         ) : field.type === 'info' ? (
-                          <Card className="rounded-[2rem] border-none shadow-xl bg-primary/5 p-10 border-l-8 border-primary relative overflow-hidden">
+                          <Card className="rounded-[2rem] border-none shadow-xl bg-primary/5 p-10 border-s-8 border-primary relative overflow-hidden">
                              <div className="absolute top-0 right-0 size-32 dm-pattern-matrix-all opacity-5 -rotate-12" />
                              <ul className="space-y-6 relative z-10">
-                               { (field.options || [])?.map((line, lIdx) => (
+                               { [...(field.options || []), ...(((isAr ? field.content?.bodyAr : field.content?.bodyEn || field.content?.bodyAr) || '').split('\n'))].filter(l => l.trim()).map((line, lIdx) => (
                                  <li key={lIdx} className="flex items-start gap-4 font-bold text-slate-700 text-base leading-relaxed">
                                     <div className="size-2.5 rounded-full bg-primary mt-2 shrink-0 shadow-sm" />
                                     {line}
@@ -230,7 +430,9 @@ export default function ServiceApplicationPage() {
                    ))}
                 </CardContent>
                 <CardFooter className="bg-slate-50 p-10 flex justify-between items-center border-t rounded-b-[3rem]">
-                   <Button type="button" variant="ghost" disabled={currentStepIndex === 0} onClick={() => setCurrentStepIndex(0)} className="font-black h-16 rounded-2xl px-8 hover:bg-white transition-colors text-slate-500">{isAr ? 'إعادة البدء' : 'Reset'}</Button>
+                   <Button type="button" variant="ghost" onClick={goBack} className="font-black h-16 rounded-2xl px-8 gap-2 hover:bg-white transition-colors text-slate-500">
+                     <ArrowLeft className={cn('size-5', isAr && 'rotate-180')} />{isAr ? 'السابق' : 'Back'}
+                   </Button>
                    <Button type="submit" disabled={submitting} className="dm-gradient-primary rounded-2xl px-14 h-16 font-black shadow-xl gap-4 text-xl transition-transform active:scale-95">
                       {submitting ? <Loader2 className="animate-spin" /> : <ArrowRight className={cn("size-6", isAr && "rotate-180")} />}
                       {currentStepIndex === (flow?.steps.length || 0) - 1 ? (isAr ? "إرسال الطلب النهائي" : "Submit Final Application") : (isAr ? "المرحلة التالية" : "Next Phase")}
@@ -238,6 +440,7 @@ export default function ServiceApplicationPage() {
                 </CardFooter>
               </form>
             </Card>
+            )}
           </div>
         </div>
       </main>

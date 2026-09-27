@@ -23,7 +23,12 @@ import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
-import { ServiceStep, FormField, Service, ServiceFlow, StepLogic } from '@/lib/types';
+import { ServiceStep, FormField, Service, ServiceFlow, StepLogic, ProcessStage, StaffUser, ServiceRole, UserRoleAssignment, FlowBlueprint } from '@/lib/types';
+import { SwimlaneBlueprint } from '@/components/flow/swimlane-blueprint';
+import { ProcessStagesEditor } from '@/components/flow/process-stages-editor';
+import { grantRole } from '@/components/admin/service-flows-panel';
+import { deriveRolesFromFlows, mergeById } from '@/lib/rbac';
+import { attachPdfBlueprints, assignBlueprintNode } from '@/lib/flow-blueprints';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CAT_CONFIG } from '@/lib/constants';
@@ -101,6 +106,31 @@ function WorkflowEngineContent() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [processStages, setProcessStages] = useState<ProcessStage[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [serviceRoles, setServiceRoles] = useState<ServiceRole[]>([]);
+  const [roleAssignments, setRoleAssignments] = useState<UserRoleAssignment[]>([]);
+  const [canvasMode, setCanvasMode] = useState<'lanes' | 'logic'>('lanes');
+  const access = useMemo(() => ({ staffUsers, serviceRoles, roleAssignments }), [staffUsers, serviceRoles, roleAssignments]);
+  const serviceId = editId || 'new';
+  const [blueprint, setBlueprint] = useState<FlowBlueprint | undefined>();
+  // Stored diagram, else the PDF transcription for this service (if any), else generated from stages
+  const blueprintFlow: ServiceFlow = attachPdfBlueprints([{
+    id: serviceId, serviceId, titleAr: serviceInfo.title || '', titleEn: serviceInfo.titleEn || '',
+    steps, processStages, blueprint, isActive: true
+  }])[0];
+
+  const applyFlow = (f: ServiceFlow) => {
+    setProcessStages(f.processStages || []);
+    setBlueprint(f.blueprint);
+  };
+
+  const autoLinkStages = () => {
+    const derived = deriveRolesFromFlows([blueprintFlow]);
+    setServiceRoles(prev => mergeById(prev, derived.roles));
+    applyFlow(derived.flows[0]);
+    toast({ title: isAr ? `تم ربط المراحل بـ ${derived.roles.length} دور` : `Linked stages to ${derived.roles.length} roles` });
+  };
 
   useEffect(() => {
     if (editId) {
@@ -111,7 +141,12 @@ function WorkflowEngineContent() {
           const svc = (data.services || []).find((s: any) => s.id === editId);
           if (flow) {
             setSteps(flow.steps || []);
+            setProcessStages(flow.processStages || []);
+            setBlueprint(flow.blueprint);
           }
+          setStaffUsers(data.staffUsers || []);
+          setServiceRoles(data.serviceRoles || []);
+          setRoleAssignments(data.userRoleAssignments || []);
           if (svc) setServiceInfo(svc);
         }
       }).finally(() => setLoading(false));
@@ -286,11 +321,21 @@ function WorkflowEngineContent() {
     try {
       const db = await fetchBin();
       const id = editId || `svc_${Date.now()}`;
-      
+      // Keep fields this editor doesn't manage (processStages + their role links, titles)
+      const existingFlow: Partial<ServiceFlow> = (db.serviceFlows || []).find((f: any) => f.id === id || f.serviceId === id) || {};
+
       await updateBin({
         ...db,
         services: [...(db.services || []).filter((s: any) => s.id !== id), { ...serviceInfo, id, isActive: true }],
-        serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id || f.serviceId !== id), { id, serviceId: id, steps, isActive: true }]
+        serviceFlows: [...(db.serviceFlows || []).filter((f: any) => f.id !== id && f.serviceId !== id), {
+          ...existingFlow,
+          id, serviceId: id, steps, processStages, blueprint: blueprintFlow.blueprint, isActive: existingFlow.isActive ?? true,
+          titleAr: serviceInfo.title || existingFlow.titleAr || '',
+          titleEn: serviceInfo.titleEn || existingFlow.titleEn || '',
+        }],
+        // Stage roles / assignees edited here (auto-link, blueprint select list)
+        serviceRoles,
+        userRoleAssignments: roleAssignments
       });
       toast({ title: "Saved Successfully" });
       router.push('/admin');
@@ -367,10 +412,24 @@ function WorkflowEngineContent() {
 
            <div className="lg:col-span-3">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                 <TabsList className="bg-white border rounded-[2rem] p-1.5 mb-10 shadow-sm inline-flex ring-1 ring-slate-100">
-                    <TabsTrigger value="logic" className="rounded-[1.5rem] font-black px-12 h-12 data-[state=active]:bg-primary data-[state=active]:text-white">Neural Logic Editor</TabsTrigger>
-                    <TabsTrigger value="canvas" className="rounded-[1.5rem] font-black px-12 h-12 data-[state=active]:bg-accent data-[state=active]:text-slate-900">Visual Blueprint</TabsTrigger>
+                 <TabsList className="bg-white border rounded-[2rem] p-1.5 mb-10 shadow-sm inline-flex flex-wrap h-auto ring-1 ring-slate-100">
+                    <TabsTrigger value="logic" className="rounded-[1.5rem] font-black px-8 h-12 data-[state=active]:bg-primary data-[state=active]:text-white">Neural Logic Editor</TabsTrigger>
+                    <TabsTrigger value="stages" className="rounded-[1.5rem] font-black px-8 h-12 data-[state=active]:bg-primary data-[state=active]:text-white">{isAr ? `مراحل المعالجة (${processStages.length})` : `Processing Stages (${processStages.length})`}</TabsTrigger>
+                    <TabsTrigger value="canvas" className="rounded-[1.5rem] font-black px-8 h-12 data-[state=active]:bg-accent data-[state=active]:text-slate-900">Visual Blueprint</TabsTrigger>
                  </TabsList>
+
+                 <TabsContent value="stages">
+                    <Card className="rounded-[3rem] shadow-2xl border-none bg-white ring-1 ring-slate-100 p-8">
+                       <ProcessStagesEditor
+                         isAr={isAr}
+                         stages={processStages}
+                         onChange={setProcessStages}
+                         rolesOfService={serviceRoles.filter(r => r.serviceId === serviceId)}
+                         access={access}
+                         onAutoLink={autoLinkStages}
+                       />
+                    </Card>
+                 </TabsContent>
 
                  <TabsContent value="logic" className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     {steps.map((step, sIdx) => (
@@ -500,7 +559,26 @@ function WorkflowEngineContent() {
                     ))}
                  </TabsContent>
 
-                 <TabsContent value="canvas">
+                 <TabsContent value="canvas" className="space-y-4">
+                    <div className="inline-flex rounded-full bg-white shadow-sm p-1 ring-1 ring-slate-100">
+                       {([
+                         ['lanes', isAr ? 'مخطط المسار (مثل PDF)' : 'Process swimlanes (PDF)'],
+                         ['logic', isAr ? 'منطق خطوات النموذج' : 'Form step logic'],
+                       ] as const).map(([v, label]) => (
+                         <button key={v} onClick={() => setCanvasMode(v)} className={cn('px-6 h-10 rounded-full text-xs font-black', canvasMode === v ? 'bg-primary text-white' : 'text-slate-500')}>{label}</button>
+                       ))}
+                    </div>
+                    {canvasMode === 'lanes' ? (
+                      <SwimlaneBlueprint
+                        isAr={isAr}
+                        flow={blueprintFlow}
+                        title={(isAr ? serviceInfo.title : serviceInfo.titleEn || serviceInfo.title) || ''}
+                        access={access}
+                        onAssign={(nodeId, userId) => applyFlow(assignBlueprintNode(blueprintFlow, nodeId, userId))}
+                        onGrantRole={(userId, roleId, sid) => setRoleAssignments(prev => grantRole(prev, userId, roleId, sid))}
+                        className="h-[850px] rounded-[2rem] border-4 border-white shadow-2xl"
+                      />
+                    ) : (
                     <Card className="rounded-[4rem] overflow-hidden h-[850px] border-[12px] border-white shadow-[0_50px_100px_rgba(0,0,0,0.15)] relative bg-slate-100 ring-1 ring-slate-200">
                        <ReactFlowProvider>
                           <ReactFlow 
@@ -519,6 +597,7 @@ function WorkflowEngineContent() {
                           </ReactFlow>
                        </ReactFlowProvider>
                     </Card>
+                    )}
                  </TabsContent>
               </Tabs>
            </div>

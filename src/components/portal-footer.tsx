@@ -5,22 +5,48 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSettingsStore } from '@/lib/settings-store';
-import { SiteConfig } from '@/lib/types';
+import { SiteConfig, FooterVariant } from '@/lib/types';
 import { ExternalLink, Mail, Phone, MapPin } from 'lucide-react';
 
 interface PortalFooterProps {
   siteConfig: SiteConfig | null;
+  /** full = four columns (default); compact = one row; none = hidden */
+  variant?: FooterVariant;
 }
 
-export function PortalFooter({ siteConfig }: PortalFooterProps) {
+export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps) {
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
 
   const footerLinks = siteConfig?.footerLinks || [];
-  
+
   const legalLinks = footerLinks.filter(l => l.category === 'legal');
   const serviceLinks = footerLinks.filter(l => l.category === 'services');
   const importantLinks = footerLinks.filter(l => l.category === 'important');
+
+  if (variant === 'none') return null;
+
+  if (variant === 'compact') {
+    const links = footerLinks.length ? footerLinks : [
+      { id: 'terms', labelAr: 'الشروط والأحكام', labelEn: 'Terms', link: '/p/terms' },
+      { id: 'privacy', labelAr: 'الخصوصية', labelEn: 'Privacy', link: '/privacy' },
+      { id: 'a11y', labelAr: 'بيان النفاذ الرقمي', labelEn: 'Accessibility statement', link: '/accessibility-statement' },
+    ];
+    return (
+      <footer className="bg-slate-950 text-white border-t-4 border-accent">
+        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="" width={36} height={36} className="brightness-0 invert" />
+            <span className="font-black">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+          </div>
+          <nav aria-label={isAr ? 'روابط التذييل' : 'Footer links'} className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            {links.map(l => <Link key={l.id} href={l.link} className="text-sm font-bold text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded">{isAr ? l.labelAr : l.labelEn}</Link>)}
+          </nav>
+          <p className="text-xs font-bold text-white/50">© {new Date().getFullYear()} {isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</p>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="bg-slate-950 text-white py-24 px-6 relative overflow-hidden border-t-8 border-accent">
