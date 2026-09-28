@@ -62,7 +62,8 @@ export default function DhofarPortal() {
       try {
         const data = await fetchBin();
         if (data) {
-          setServices(data.services || []);
+          // Services switched off in the control panel are hidden from the public
+          setServices((data.services || []).filter((s: Service) => s.isActive !== false));
           setSiteConfig(data.siteConfig || null);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);

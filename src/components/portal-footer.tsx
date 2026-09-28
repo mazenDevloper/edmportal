@@ -1,12 +1,14 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAdminSession } from '@/lib/admin-session';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSettingsStore } from '@/lib/settings-store';
 import { SiteConfig, FooterVariant } from '@/lib/types';
-import { ExternalLink, Mail, Phone, MapPin } from 'lucide-react';
+import { ExternalLink, Mail, Phone, MessageCircle } from 'lucide-react';
+import { CONTACT, FOOTER_GROUPS, SITE_LAST_UPDATED } from '@/lib/footer-pages';
 
 interface PortalFooterProps {
   siteConfig: SiteConfig | null;
@@ -17,20 +19,32 @@ interface PortalFooterProps {
 export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps) {
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  const adminExpires = useAdminSession(s => s.expiresAt);
+  const isAdmin = mounted && adminExpires > Date.now();
 
-  const footerLinks = siteConfig?.footerLinks || [];
-
-  const legalLinks = footerLinks.filter(l => l.category === 'legal');
-  const serviceLinks = footerLinks.filter(l => l.category === 'services');
-  const importantLinks = footerLinks.filter(l => l.category === 'important');
+  // The standard footer pages always show; links added in the database are appended to their group
+  const dbLinks = siteConfig?.footerLinks || [];
+  const known = new Set(FOOTER_GROUPS.flatMap(g => g.links.map(l => l.href)));
+  const groups = FOOTER_GROUPS.map(g => ({
+    ...g,
+    links: [
+      ...g.links.map(l => ({ id: l.href, labelAr: l.label.ar, labelEn: l.label.en, link: l.href })),
+      ...dbLinks.filter(l => l.category === g.id && !known.has(l.link) && !known.has(l.link.replace(/^\/p\//, '/'))),
+    ],
+  }));
+  const lastUpdated = new Date(SITE_LAST_UPDATED).toLocaleDateString(isAr ? 'ar-OM' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   if (variant === 'none') return null;
 
   if (variant === 'compact') {
-    const links = footerLinks.length ? footerLinks : [
-      { id: 'terms', labelAr: 'الشروط والأحكام', labelEn: 'Terms', link: '/p/terms' },
+    const links = [
+      { id: 'terms', labelAr: 'الشروط والأحكام', labelEn: 'Terms', link: '/terms' },
       { id: 'privacy', labelAr: 'الخصوصية', labelEn: 'Privacy', link: '/privacy' },
+      { id: 'faqs', labelAr: 'الأسئلة الشائعة', labelEn: 'FAQs', link: '/faqs' },
       { id: 'a11y', labelAr: 'بيان النفاذ الرقمي', labelEn: 'Accessibility statement', link: '/accessibility-statement' },
+      { id: 'sitemap', labelAr: 'خريطة الموقع', labelEn: 'Sitemap', link: '/sitemap' },
     ];
     return (
       <footer className="bg-slate-950 text-white border-t-4 border-accent">
@@ -73,66 +87,46 @@ export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps
                </div>
                <div className="flex items-center gap-3 text-white/80">
                  <Mail size={16} className="text-accent" />
-                 <span className="text-sm font-bold">{siteConfig?.contactEmail || 'care@dm.gov.om'}</span>
+                 <span className="text-sm font-bold">{siteConfig?.contactEmail || CONTACT.infoEmail}</span>
                </div>
+               <a href={`https://wa.me/968${CONTACT.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-white/80 hover:text-white">
+                 <MessageCircle size={16} className="text-accent" aria-hidden />
+                 <span className="text-sm font-bold" dir="ltr">{CONTACT.whatsapp}</span>
+                 <span className="sr-only">{isAr ? 'واتساب' : 'WhatsApp'}</span>
+               </a>
              </div>
           </div>
           
-          {/* Dynamic Footer Sections */}
-          <div className="flex flex-col gap-6">
-            <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? "المعلومات القانونية" : "Legal Information"}</h4>
-            <div className="flex flex-col gap-4">
-              {legalLinks.length > 0 ? legalLinks.map(l => (
-                <Link key={l.id} href={l.link} className="text-sm font-bold text-white/70 hover:text-white transition-colors">
-                  {isAr ? l.labelAr : l.labelEn}
-                </Link>
-              )) : (
-                <>
-                  <Link href="/p/terms" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link>
-                  <Link href="/p/privacy" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'السياسة والخصوصية' : 'Privacy Policy'}</Link>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? "سياسات الخدمة" : "Service Standards"}</h4>
-            <div className="flex flex-col gap-4">
-              {serviceLinks.length > 0 ? serviceLinks.map(l => (
-                <Link key={l.id} href={l.link} className="text-sm font-bold text-white/70 hover:text-white transition-colors">
-                  {isAr ? l.labelAr : l.labelEn}
-                </Link>
-              )) : (
-                <>
-                  <Link href="/p/faqs" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'الأسئلة الشائعة (FAQs)' : 'FAQs'}</Link>
-                  <Link href="/p/sla" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'اتفاقية مستوى الخدمة' : 'Service Level Agreement'}</Link>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? "روابط هامة" : "Important Links"}</h4>
-            <div className="flex flex-col gap-4">
-              {importantLinks.length > 0 ? importantLinks.map(l => (
-                <Link key={l.id} href={l.link} className="text-sm font-bold text-white/70 hover:text-white transition-colors flex items-center gap-2">
-                  {isAr ? l.labelAr : l.labelEn}
-                  {l.link.startsWith('http') && <ExternalLink size={12} />}
-                </Link>
-              )) : (
-                <>
-                  <Link href="/p/governor-portal" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'بوابة محافظ ظفار' : 'Dhofar Governor Portal'}</Link>
-                  <Link href="https://www.tajawoob.gov.om" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'منصة تجاوب' : 'Tajawoob Platform'}</Link>
-                </>
-              )}
-              <Link href="/staff" className="text-sm font-black text-white bg-white/10 w-fit px-4 py-2 rounded-lg hover:bg-white/15 mt-4">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link>
-              <Link href="/admin" className="text-sm font-black text-accent bg-white/5 w-fit px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
-            </div>
-          </div>
+          {groups.map(g => (
+            <nav key={g.id} aria-labelledby={`footer-${g.id}`} className="flex flex-col gap-6">
+              <h4 id={`footer-${g.id}`} className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? g.title.ar : g.title.en}</h4>
+              <ul className="flex flex-col gap-4">
+                {g.links.map(l => {
+                  const external = l.link.startsWith('http');
+                  return (
+                    <li key={l.id}>
+                      <Link href={l.link} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
+                        className="text-sm font-bold text-white/70 hover:text-white transition-colors inline-flex items-center gap-2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+                        {isAr ? l.labelAr : l.labelEn}
+                        {external && <ExternalLink size={12} aria-label={isAr ? 'رابط خارجي' : 'External link'} />}
+                      </Link>
+                    </li>
+                  );
+                })}
+                {g.id === 'important' && (
+                  <>
+                    <li className="mt-4"><Link href="/staff" className="text-sm font-black text-white bg-white/10 inline-block px-4 py-2 rounded-lg hover:bg-white/15">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link></li>
+                    {isAdmin && <li><Link href="/admin" className="text-sm font-black text-accent bg-white/5 inline-block px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link></li>}
+                  </>
+                )}
+              </ul>
+            </nav>
+          ))}
         </div>
 
-        <div className="mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-white/40 text-[10px] font-bold uppercase tracking-widest">
+        <div className="mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-white/50 text-xs font-bold">
           <p>{isAr ? `© ${new Date().getFullYear()} بلدية ظفار - جميع الحقوق محفوظة` : `© ${new Date().getFullYear()} Dhofar Municipality - All Rights Reserved`}</p>
+          <p className="text-accent">{isAr ? 'آخر تعديل:' : 'Last updated:'} <time dateTime={SITE_LAST_UPDATED}>{lastUpdated}</time></p>
           <p>{isAr ? 'سلطنة عمان - محافظة ظفار' : 'Sultanate of Oman - Dhofar Governorate'}</p>
         </div>
       </div>

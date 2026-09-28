@@ -48,12 +48,30 @@ export default function StaffPortalHome() {
   return (
     <StaffShell user={user} search={query} onSearch={setQuery}>
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+        <h1 className="sr-only">{t('بوابة موظفي بلدية ظفار', 'Dhofar Municipality staff portal')}</h1>
+        {/* Public platforms always come first on the page */}
+        <section id="platforms" aria-labelledby="platforms-title" className="scroll-mt-24 space-y-6">
+          <SectionTitle id="platforms-title">{t('منصات الموظفين', 'Staff platforms')}</SectionTitle>
+          {PLATFORM_CATEGORIES.filter(c => c.id !== 'guides').map(cat => {
+            const list = platforms.filter(p => p.category === cat.id);
+            if (!list.length) return null;
+            return (
+              <div key={cat.id} className="rounded-[2rem] bg-white ring-1 ring-slate-100 shadow-sm p-6 space-y-5">
+                <h3 className="flex items-center gap-2 font-black text-slate-700"><span className="w-1.5 h-5 rounded bg-red-500" aria-hidden />{isAr ? cat.labelAr : cat.labelEn}</h3>
+                <ul className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {list.map(p => <li key={p.id}><PlatformTile platform={p} isAr={isAr} /></li>)}
+                </ul>
+              </div>
+            );
+          })}
+        </section>
+
         {/* Welcome (signed in) or public intro */}
         {!user ? (
           <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0f9e9b] to-[#005751] text-white p-8 flex flex-wrap items-center justify-between gap-6">
             <div aria-hidden className="absolute inset-0 dm-pattern-landmark opacity-10" />
             <div className="relative space-y-2 max-w-2xl">
-              <h1 className="text-3xl font-black">{t('بوابة موظفي بلدية ظفار', 'Dhofar Municipality staff portal')}</h1>
+              <h2 className="text-3xl font-black">{t('خدماتك حسب صلاحياتك', 'Your services by permission')}</h2>
               <p className="font-medium text-white/80">{t('المنصات العامة وعروض الموظفين والأدلة متاحة للجميع. سجّل الدخول لعرض الخدمات المسندة إليك حسب صلاحياتك.', 'Platforms, staff offers and guides are open to everyone. Sign in to see the services assigned to you.')}</p>
             </div>
             <Link href="/staff/login?next=/staff" className="relative inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-white text-[#005751] font-black shadow-lg focus-visible:outline focus-visible:outline-4 focus-visible:outline-white/60">
@@ -65,7 +83,7 @@ export default function StaffPortalHome() {
           <div aria-hidden className="absolute inset-0 dm-pattern-wave-pro opacity-20" />
           <div className="relative space-y-1">
             <p className="text-sm font-bold text-slate-400">{t('مرحباً', 'Welcome')}</p>
-            <h1 className="text-3xl font-black text-secondary">{isAr ? user!.nameAr : user!.nameEn || user!.nameAr}</h1>
+            <h2 className="text-3xl font-black text-secondary">{isAr ? user!.nameAr : user!.nameEn || user!.nameAr}</h2>
             <p className="text-sm font-bold text-slate-500">
               {t('الرقم الوظيفي', 'Employee no.')} <span className="font-mono">{user!.employeeNumber}</span>{user!.department && ` · ${user!.department}`}
               {user!.isSuperAdmin && <Badge className="ms-2 bg-red-500">{t('مدير نظام', 'Super admin')}</Badge>}
@@ -116,23 +134,6 @@ export default function StaffPortalHome() {
           )}
         </section>
 
-        {/* Platforms for all staff, grouped like the previous portal */}
-        <section id="platforms" aria-labelledby="platforms-title" className="scroll-mt-24 space-y-6">
-          <SectionTitle id="platforms-title">{t('منصات الموظفين', 'Staff platforms')}</SectionTitle>
-          {PLATFORM_CATEGORIES.filter(c => c.id !== 'guides').map(cat => {
-            const list = platforms.filter(p => p.category === cat.id);
-            if (!list.length) return null;
-            return (
-              <div key={cat.id} className="rounded-[2rem] bg-white ring-1 ring-slate-100 shadow-sm p-6 space-y-5">
-                <h3 className="flex items-center gap-2 font-black text-slate-700"><span className="w-1.5 h-5 rounded bg-red-500" aria-hidden />{isAr ? cat.labelAr : cat.labelEn}</h3>
-                <ul className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                  {list.map(p => <li key={p.id}><PlatformTile platform={p} isAr={isAr} /></li>)}
-                </ul>
-              </div>
-            );
-          })}
-        </section>
-
         <section id="guides" aria-labelledby="guides-title" className="scroll-mt-24 space-y-4">
           <SectionTitle id="guides-title">{t('الأدلة والسياسات', 'Guides & policies')}</SectionTitle>
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -171,9 +172,11 @@ function RoleChips({ roles, isAr, superAdmin }: { roles: ServiceRole[]; isAr: bo
 function PlatformTile({ platform: p, isAr, row }: { platform: StaffPlatform; isAr: boolean; row?: boolean }) {
   const Icon = (p.icon && (Icons as any)[p.icon]) || Sparkles;
   const name = isAr ? p.nameAr : p.nameEn;
-  const logo = p.logoUrl
+  // External logos can be blocked or moved; fall back to the icon instead of a broken image
+  const [logoFailed, setLogoFailed] = React.useState(false);
+  const logo = p.logoUrl && !logoFailed
     // eslint-disable-next-line @next/next/no-img-element
-    ? <img src={p.logoUrl} alt="" className={cn('object-contain', row ? 'size-10' : 'size-16')} />
+    ? <img src={p.logoUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setLogoFailed(true)} className={cn('object-contain', row ? 'size-10' : 'size-16')} />
     : <span className={cn('rounded-2xl bg-gradient-to-br from-[#03CFCB]/15 to-[#470D67]/10 text-[#005751] flex items-center justify-center', row ? 'size-12' : 'size-16')}><Icon size={row ? 22 : 30} aria-hidden /></span>;
   const inner = (
     <>

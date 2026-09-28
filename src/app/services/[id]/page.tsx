@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
+import { useAdminSession } from '@/lib/admin-session';
 import { Service, ServiceApplication, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
@@ -86,7 +87,9 @@ export default function ServiceApplicationPage() {
       try {
         const data = await fetchBin();
         if (data) {
-          const foundSvc = (data.services || []).find((s: Service) => s.id === id) || null;
+          const svc = (data.services || []).find((s: Service) => s.id === id) || null;
+          // Services hidden in the control panel are only reachable by a signed-in admin (for preview)
+          const foundSvc = svc && svc.isActive === false && useAdminSession.getState().expiresAt <= Date.now() ? null : svc;
           const foundFlow = (data.serviceFlows || []).find((f: ServiceFlow) => f.serviceId === id || f.id === id) || null;
           setService(foundSvc);
           setFlow(foundFlow);

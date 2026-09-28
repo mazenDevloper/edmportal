@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles, Briefcase } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles, Briefcase, LogOut } from 'lucide-react';
+import { useAdminSession } from '@/lib/admin-session';
+import { useStaffSession } from '@/lib/staff-session';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service, HeaderVariant } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -37,6 +39,15 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
   const [tickerText, setTickerText] = useState('');
   const [translatedTicker, setTranslatedTicker] = useState<string | null>(null);
   const [aiName, setAiName] = useState<string | null>(null);
+  // Sessions live in sessionStorage, so read them only after mount to avoid hydration mismatches
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  const adminExpires = useAdminSession(s => s.expiresAt);
+  const adminSignOut = useAdminSession(s => s.signOut);
+  const staffExpires = useStaffSession(s => s.expiresAt);
+  const staffUser = useStaffSession(s => s.userId);
+  const isAdmin = mounted && adminExpires > Date.now();
+  const isStaff = mounted && !!staffUser && staffExpires > Date.now();
 
   useEffect(() => {
     const determineEditLink = async () => {
@@ -79,8 +90,10 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
   if (variant === 'none') return null;
 
   const tickerOn = showTicker ?? variant === 'full';
-  const topBarOn = showTopBar ?? variant === 'full';
-  const orderedMenu = [...(menuItems || [])].sort((a, b) => a.order - b.order);
+  const topBarOn = (showTopBar ?? variant === 'full') && (isAdmin || isStaff);
+  // Menu entries that point at admin-only pages are hidden from everyone but admins
+  const ADMIN_ONLY = /^\/(admin|pagebuild|servicebuild|surveybuild|identity\/board)(\/|\?|$)/;
+  const orderedMenu = [...(menuItems || [])].filter(m => isAdmin || !ADMIN_ONLY.test(m.link || '')).sort((a, b) => a.order - b.order);
 
   if (variant === 'minimal') {
     return (
@@ -97,7 +110,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
   }
 
   return (
-    <header className="w-full">
+    <header className="w-full overflow-x-clip">
       {/* Dynamic News Ticker - Teal Theme (pauses on hover/focus; stops with reduced motion) */}
       {tickerOn && (
       <div className="dm-gradient-primary text-white py-3.5 overflow-hidden border-b border-white/10 shadow-lg relative group/ticker" role="region" aria-label={isAr ? 'آخر الأخبار' : 'Latest news'} tabIndex={0}>
@@ -118,12 +131,12 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
 
       {topBarOn && (
       <nav aria-label={isAr ? 'روابط عامة' : 'Utility links'} className="bg-slate-900 text-white py-3 text-[10px] font-bold tracking-[0.2em] border-b border-white/5 uppercase">
-        <div className="mx-auto max-w-7xl px-6 flex justify-between items-center">
-          <span className="flex items-center gap-3 opacity-80">
+        <div className="mx-auto max-w-7xl px-4 md:px-6 flex justify-between items-center gap-4">
+          <span className="hidden sm:flex items-center gap-3 opacity-80">
             <Globe size={16} className="text-primary" /> {isAr ? 'بوابة حكومة سلطنة عُمان الموحدة' : 'Oman Government Unified Portal'}
           </span>
-          <div className="flex items-center gap-8">
-            {editLink && (
+          <div className="flex items-center gap-4 md:gap-8 ms-auto">
+            {isAdmin && editLink && (
               <Button variant="ghost" asChild className="text-primary hover:text-white h-auto py-1 px-4 font-black gap-2 bg-white/5 rounded-full">
                 <Link href={editLink}><Edit2 size={12} /> {isAr ? 'تعديل هذا القسم' : 'Edit Section'}</Link>
               </Button>
@@ -131,20 +144,27 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
             <Link href="/staff" className="text-white/90 hover:text-primary flex items-center gap-2 font-black">
               <Briefcase size={14} /> {isAr ? 'بوابة الموظف' : 'Staff portal'}
             </Link>
-            <Link href="/admin" className="text-primary hover:underline flex items-center gap-2 font-black">
-              <LayoutDashboard size={14} /> {isAr ? 'لوحة التحكم' : 'Admin'}
-            </Link>
+            {isAdmin && (
+              <>
+                <Link href="/admin" className="text-primary hover:underline flex items-center gap-2 font-black">
+                  <LayoutDashboard size={14} /> {isAr ? 'لوحة التحكم' : 'Admin'}
+                </Link>
+                <button type="button" onClick={adminSignOut} className="text-white/70 hover:text-white flex items-center gap-2 font-black">
+                  <LogOut size={14} className={cn(isAr && '-scale-x-100')} /> {isAr ? 'خروج' : 'Sign out'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </nav>
       )}
 
       <nav aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'} className={cn('bg-white border-b z-[50] shadow-sm', variant === 'compact' ? 'py-4' : 'py-8', sticky && 'sticky top-0')}>
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-10">
-            <Link href="/" className="flex items-center gap-6 group">
-               <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={variant === 'compact' ? 70 : 95} height={variant === 'compact' ? 48 : 65} className="object-contain" priority unoptimized />
-               <span className={cn('font-black text-secondary leading-none tracking-tighter uppercase', variant === 'compact' ? 'text-2xl' : 'text-3xl')}>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-10 min-w-0">
+            <Link href="/" className="flex items-center gap-3 md:gap-6 group min-w-0">
+               <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={variant === 'compact' ? 70 : 95} height={variant === 'compact' ? 48 : 65} className="object-contain w-14 md:w-auto shrink-0" priority unoptimized />
+               <span className={cn('font-black text-secondary leading-none tracking-tighter uppercase', variant === 'compact' ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl')}>
                  {isAr ? 'بلدية ظفار' : (aiName || 'Dhofar Municipality')}
                </span>
             </Link>
