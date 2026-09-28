@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 import { useSettingsStore } from '@/lib/settings-store';
 import { AccessibilityToolbar } from '@/components/accessibility-toolbar';
-import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
 export default function RootLayout({
@@ -14,9 +13,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { 
-    language, fontSize, highContrast, spacing, reducedMotion, dyslexiaFont 
-  } = useSettingsStore();
+  const language = useSettingsStore(s => s.language);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -27,10 +24,7 @@ export default function RootLayout({
   const currentDir = currentLang === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={currentLang} dir={currentDir} className={cn(
-      mounted && highContrast ? 'high-contrast' : '',
-      mounted && reducedMotion ? 'reduced-motion' : ''
-    )}>
+    <html lang={currentLang} dir={currentDir}>
       <head>
         <title>{currentLang === 'ar' ? 'بوابة بلدية ظفار الرقمية الموحدة' : 'Dhofar Municipality Unified Digital Portal'}</title>
         <meta name="description" content={currentLang === 'ar' ? 'البوابة الرسمية للخدمات الإلكترونية لبلدية ظفار - سلطنة عمان' : 'Official Electronic Services Portal for Dhofar Municipality - Sultanate of Oman'} />
@@ -44,20 +38,9 @@ export default function RootLayout({
           body {
             font-family: var(--font-readex) !important;
           }
-          .reduced-motion * {
-            animation-duration: 0.001ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.001ms !important;
-            scroll-behavior: auto !important;
-          }
         `}</style>
       </head>
-      <body className={cn(
-        "antialiased transition-all duration-300 min-h-screen bg-background text-foreground",
-        mounted && fontSize === 'lg' && 'text-lg',
-        mounted && fontSize === 'xl' && 'text-xl',
-        mounted && spacing === 'wide' && 'tracking-wider leading-loose'
-      )}>
+      <body className="antialiased min-h-screen bg-background text-foreground">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[999] focus:bg-accent focus:text-white focus:p-4">
           {currentLang === 'ar' ? 'تخطي إلى المحتوى الرئيسي' : 'Skip to main content'}
         </a>

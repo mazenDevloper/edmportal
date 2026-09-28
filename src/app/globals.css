@@ -96,3 +96,90 @@
 .animate-marquee {
   animation: marquee 40s linear infinite;
 }
+/* ------------------------------------------------------------------
+   Accessibility preferences — driven by data-a11y-* attributes that
+   <A11yEffects> sets on <html>. Kept outside Tailwind layers so they
+   win over component utilities.
+------------------------------------------------------------------- */
+
+/* Text size: every rem-based size scales with the root font size */
+html[data-a11y-scale] { font-size: calc(100% * var(--a11y-scale, 1)); }
+
+/* Line height */
+html[data-a11y-lh="1"] body :where(p, li, dd, dt, td, th, label, blockquote, span, a, h1, h2, h3, h4, h5, h6) { line-height: 1.8 !important; }
+html[data-a11y-lh="2"] body :where(p, li, dd, dt, td, th, label, blockquote, span, a, h1, h2, h3, h4, h5, h6) { line-height: 2.2 !important; }
+
+/* Letter / word spacing (WCAG 1.4.12 text spacing) */
+html[data-a11y-spacing="1"] body * { letter-spacing: 0.06em !important; word-spacing: 0.16em !important; }
+html[data-a11y-spacing="2"] body * { letter-spacing: 0.12em !important; word-spacing: 0.3em !important; }
+html[data-a11y-spacing] body p { margin-bottom: 1.5em; }
+
+/* Readable font */
+html[data-a11y-font="readable"] body *:not(svg):not(svg *):not(code):not(pre):not(.font-mono) {
+  font-family: 'Atkinson Hyperlegible', 'Noto Sans Arabic', Tahoma, Verdana, sans-serif !important;
+}
+
+/* Colour modes — filters on <html> keep fixed elements working */
+html[data-a11y-color="grayscale"] { filter: grayscale(1); }
+html[data-a11y-color="low-saturation"] { filter: saturate(0.4); }
+html[data-a11y-color="high-saturation"] { filter: saturate(1.8); }
+html[data-a11y-color="dark"] { filter: invert(1) hue-rotate(180deg); background: #fff; }
+html[data-a11y-color="dark"] :is(img, video, picture, canvas, iframe, [style*="background-image"], .a11y-aid) { filter: invert(1) hue-rotate(180deg); }
+
+/* High contrast: black background, white text, yellow links */
+html[data-a11y-color="high-contrast"] body,
+html[data-a11y-color="high-contrast"] body *:not(svg *):not(img) {
+  background-color: #000 !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-color: #fff !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html[data-a11y-color="high-contrast"] body :is(a, a *, [role="link"]) { color: #ffe600 !important; }
+html[data-a11y-color="high-contrast"] body :is(button, [role="button"], input, select, textarea) { outline: 1px solid #fff; }
+html[data-a11y-color="high-contrast"] body svg { color: currentColor !important; }
+
+/* Highlight links */
+html[data-a11y-links="on"] body a:not([data-a11y-ignore]) {
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+  outline: 2px dashed #f59e0b !important;
+  outline-offset: 2px;
+}
+
+/* Strong focus ring for keyboard users */
+html[data-a11y-focus="on"] *:focus-visible,
+html[data-a11y-focus="on"] *:focus {
+  outline: 4px solid #f59e0b !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 7px #111 !important;
+}
+
+/* Big cursor */
+html[data-a11y-cursor="big"], html[data-a11y-cursor="big"] * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath d='M4 2l15 11-6.5 1.2L16 21l-3 1.5-3.4-6.9L4 20z' fill='%23000' stroke='%23fff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 6 3, auto !important;
+}
+
+/* Hide images */
+html[data-a11y-images="hidden"] body :is(img, picture, video, iframe):not([data-a11y-keep]) { visibility: hidden !important; }
+html[data-a11y-images="hidden"] body [style*="background-image"] { background-image: none !important; }
+
+/* Align text to the reading start edge (no justified/centred paragraphs) */
+html[data-a11y-align="start"] body :where(p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th) { text-align: start !important; }
+
+/* Stop animations */
+html[data-a11y-motion="reduce"] *,
+html[data-a11y-motion="reduce"] *::before,
+html[data-a11y-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none; }
+}
