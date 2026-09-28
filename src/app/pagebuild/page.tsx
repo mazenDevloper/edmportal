@@ -46,7 +46,11 @@ const newId = () => `c_${Date.now().toString(36)}${Math.random().toString(36).sl
 
 function PageBuilderContent() {
   const router = useRouter();
-  const editId = useSearchParams().get('id');
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('id');
+  // Deep links from the identity board: /pagebuild?preset=service or ?block=hero
+  const presetParam = searchParams.get('preset');
+  const blockParam = searchParams.get('block');
   const { toast } = useToast();
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
@@ -166,6 +170,13 @@ function PageBuilderContent() {
     setShowPresets(false);
     setSelectedId(null);
   };
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (editId || loading || deepLinked.current) return;
+    deepLinked.current = true;
+    if (presetParam && PAGE_PRESETS.some(p => p.id === presetParam)) applyPreset(presetParam);
+    else if (blockParam && BLOCK_MAP[blockParam]) { addBlock(blockParam as BuilderComponent['type']); setShowPresets(false); }
+  }, [editId, loading]); // eslint-disable-line react-hooks/exhaustive-deps
   const setMeta = (patch: Partial<Meta>) => commit(d => ({ ...d, meta: { ...d.meta, ...patch } }), 'meta');
   const setTemplate = (patch: Partial<PageTemplateSettings>) => commit(d => ({ ...d, template: { ...d.template, ...patch } }));
 
