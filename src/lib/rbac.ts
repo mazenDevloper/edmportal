@@ -115,6 +115,8 @@ export function buildSeedUsers(now = new Date().toISOString()): { users: StaffUs
     nameAr: 'موظف 14105',
     nameEn: 'Employee 14105',
     department: 'دائرة الطرق والإنارة',
+    // Demo value for the employee-number + civil-number sign-in; replace with the real one
+    civilNumber: '90000001',
     isActive: true,
     createdAt: now,
   };

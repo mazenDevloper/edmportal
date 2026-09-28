@@ -33,9 +33,12 @@ import {
   FolderSync,
   Check,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  ExternalLink
 } from 'lucide-react';
 import { FormField } from '@/lib/types';
+import { ServiceIcon } from '@/components/service/service-icon';
+import { LINKED_INFO, LinkedKind, isValidCrNumber, linkedKind } from '@/lib/linked-data';
 import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
 import Confetti from 'react-confetti';
@@ -157,7 +160,7 @@ export default function ServiceApplicationPage() {
   );
 
   const currentStep = flow?.steps[currentStepIndex];
-  const IconComponent = (Icons as any)[service?.iconName || 'FileText'] || Icons.FileText;
+  const isExternal = service?.type === 'link' && !!service.linkUrl;
 
   // ─── Wizard data ───
   const allFields = flow?.steps.flatMap(s => s.fields) || [];
@@ -170,12 +173,21 @@ export default function ServiceApplicationPage() {
   ].map(s => s.trim()).filter(Boolean);
 
   // Documents: the flow's upload fields (bilingual, fillable), else the service requirement list
-  const uploadFields = allFields.filter(f => f.type === 'upload');
-  const documents: { id: string; label: string; required: boolean }[] = uploadFields.length
-    ? uploadFields.map(f => ({ id: f.id, label: isAr ? f.labelAr : f.labelEn || f.labelAr, required: f.required }))
-    : ((isAr ? service?.reqsAr : service?.reqsEn?.length ? service?.reqsEn : service?.reqsAr) || []).map((r, i) => ({ id: `req_${i}`, label: r, required: true }));
+  // ID card / CR documents are never requested: they come from Thiqa and the CR link
+  const fieldLinked = (f: FormField) => linkedKind(f.labelAr) || linkedKind(f.labelEn);
+  const uploadFields = allFields.filter(f => f.type === 'upload' && !fieldLinked(f));
+  const allDocs: { id: string; label: string; required: boolean; linked: LinkedKind | null }[] = allFields.some(f => f.type === 'upload')
+    ? allFields.filter(f => f.type === 'upload').map(f => ({ id: f.id, label: isAr ? f.labelAr : f.labelEn || f.labelAr, required: f.required, linked: fieldLinked(f) }))
+    : ((isAr ? service?.reqsAr : service?.reqsEn?.length ? service?.reqsEn : service?.reqsAr) || []).map((r, i) => ({ id: `req_${i}`, label: r, required: true, linked: linkedKind(r) || linkedKind(service?.reqsAr?.[i]) }));
+  const documents = allDocs.filter(d => !d.linked);
+  const linkedSources = Array.from(new Set([
+    ...allDocs.map(d => d.linked),
+    ...allFields.map(fieldLinked),
+  ].filter(Boolean))) as LinkedKind[];
 
   const fetchedCount = documents.filter(d => docStatus[d.id] === 'fetched').length;
+  // The CR number is the only thing asked for establishment data
+  const crOk = !linkedSources.includes('cr') || isValidCrNumber(formData.__crNumber || '');
   const fetchDone = documents.length > 0 && documents.every(d => docStatus[d.id] === 'fetched' || docStatus[d.id] === 'manual');
   const fetching = documents.some(d => docStatus[d.id] === 'fetching');
 
@@ -224,7 +236,7 @@ export default function ServiceApplicationPage() {
             <Card className="rounded-[2.5rem] shadow-2xl border-none overflow-hidden bg-white ring-1 ring-slate-100">
                 <CardHeader className="bg-slate-900 text-white p-8">
                    <div className="flex items-center gap-4 mb-4">
-                      <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg"><IconComponent size={28} /></div>
+                      <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-lg"><ServiceIcon service={service} size={28} /></div>
                       <Badge className="bg-accent text-slate-900 font-black uppercase text-[9px] tracking-[0.2em]">{isAr ? 'بيانات الخدمة' : 'Service Intel'}</Badge>
                    </div>
                    <h1 className="text-2xl font-black leading-tight tracking-tight">{isAr ? service?.title : (service?.titleEn || service?.title)}</h1>
@@ -253,6 +265,9 @@ export default function ServiceApplicationPage() {
           </div>
 
           <div className="lg:col-span-8 space-y-6 min-w-0">
+            {isExternal && service && <ExternalServiceCard service={service} isAr={isAr} />}
+
+            {!isExternal && (<>
             {/* Progress stepper */}
             <Card className="rounded-[2rem] shadow-xl border-none bg-white ring-1 ring-slate-100 p-6 space-y-4">
               <div className="flex items-center justify-between text-sm font-black">
@@ -318,8 +333,12 @@ export default function ServiceApplicationPage() {
                   <p className="text-white/60 font-bold text-sm mt-2">{isAr ? 'اجلب مستنداتك من الخزانة الرقمية، أو ارفعها يدوياً في خطوات النموذج.' : 'Fetch your documents from your digital vault, or upload them yourself in the form steps.'}</p>
                 </CardHeader>
                 <CardContent className="p-10 space-y-6">
+                  {linkedSources.length > 0 && (
+                    <LinkedDataPanel kinds={linkedSources} isAr={isAr} citizenName={user?.displayName || null}
+                      crNumber={formData.__crNumber || ''} onCrNumber={v => setFormData(prev => ({ ...prev, __crNumber: v }))} />
+                  )}
                   {documents.length === 0 ? (
-                    <p className="p-5 rounded-2xl bg-slate-50 text-slate-500 font-bold">{isAr ? 'لا تتطلب هذه الخدمة مستندات.' : 'This service needs no documents.'}</p>
+                    <p className="p-5 rounded-2xl bg-slate-50 text-slate-500 font-bold">{isAr ? 'لا تتطلب هذه الخدمة مستندات أخرى.' : 'This service needs no other documents.'}</p>
                   ) : (
                     <>
                       <div className="flex flex-wrap gap-3">
@@ -367,7 +386,7 @@ export default function ServiceApplicationPage() {
                   <Button variant="ghost" onClick={() => setPhase('conditions')} className="font-black h-14 rounded-2xl px-6 gap-2 text-slate-500">
                     <ArrowLeft className={cn('size-5', isAr && 'rotate-180')} />{isAr ? 'السابق' : 'Back'}
                   </Button>
-                  <Button disabled={!docsConfirmed || (documents.length > 0 && !fetchDone)} onClick={() => { setPhase('form'); setCurrentStepIndex(0); }} className="dm-gradient-primary rounded-2xl px-12 h-14 font-black shadow-xl gap-3 text-lg">
+                  <Button disabled={!docsConfirmed || !crOk || (documents.length > 0 && !fetchDone)} onClick={() => { setPhase('form'); setCurrentStepIndex(0); }} className="dm-gradient-primary rounded-2xl px-12 h-14 font-black shadow-xl gap-3 text-lg">
                     {isAr ? 'بدء تعبئة الطلب' : 'Start the application'}<ArrowRight className={cn('size-5', isAr && 'rotate-180')} />
                   </Button>
                 </CardFooter>
@@ -387,8 +406,10 @@ export default function ServiceApplicationPage() {
                 <CardContent className="p-12 space-y-12 flex-1">
                    {currentStep?.fields.filter(f => !isEligibilityField(f)).map((field) => (
                       <div key={field.id} className="space-y-4">
-                        <Label className="text-lg font-black text-slate-700 flex items-center gap-2">{isAr ? field.labelAr : field.labelEn}{field.required && field.type !== 'info' && <span className="text-red-500">*</span>}</Label>
-                        {field.type === 'upload' ? (
+                        <Label className="text-lg font-black text-slate-700 flex items-center gap-2">{isAr ? field.labelAr : field.labelEn}{field.required && field.type !== 'info' && !fieldLinked(field) && <span className="text-red-500">*</span>}</Label>
+                        {field.type !== 'info' && fieldLinked(field) ? (
+                          <LinkedFieldCard kind={fieldLinked(field)!} isAr={isAr} citizenName={user?.displayName || null} crNumber={formData.__crNumber || ''} />
+                        ) : field.type === 'upload' ? (
                           <div className={cn('border-4 border-dashed rounded-[2.5rem] p-12 text-center cursor-pointer hover:bg-white transition-all relative group/upload',
                             formData[field.id] ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50')}>
                             {formData[field.id] ? <CheckCircle2 size={32} className="mx-auto mb-4 text-emerald-600" /> : <Upload size={32} className="mx-auto mb-4 text-primary group-hover/upload:scale-110 transition-transform" />}
@@ -441,10 +462,94 @@ export default function ServiceApplicationPage() {
               </form>
             </Card>
             )}
+            </>)}
           </div>
         </div>
       </main>
       <PortalFooter siteConfig={null} />
     </div>
+  );
+}
+
+// ─── Linked data (never uploaded by the applicant) ───
+
+function LinkedDataPanel({ kinds, isAr, citizenName, crNumber, onCrNumber }: { kinds: LinkedKind[]; isAr: boolean; citizenName: string | null; crNumber: string; onCrNumber: (v: string) => void }) {
+  return (
+    <section aria-labelledby="linked-title" className="rounded-2xl border-2 border-emerald-100 bg-emerald-50/50 p-5 space-y-4">
+      <h3 id="linked-title" className="font-black text-emerald-800 flex items-center gap-2"><ShieldAlert size={18} />{isAr ? 'بيانات تُجلب تلقائياً — لا تحتاج إرفاقها' : 'Fetched automatically — nothing to upload'}</h3>
+      {kinds.map(kind => {
+        const info = LINKED_INFO[kind];
+        const crInvalid = kind === 'cr' && crNumber.length > 0 && !isValidCrNumber(crNumber);
+        return (
+          <div key={kind} className="rounded-xl bg-white border border-emerald-100 p-4 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-black text-slate-800">{isAr ? info.titleAr : info.titleEn}</p>
+              <Badge className="bg-emerald-600">{isAr ? `المصدر: ${info.sourceAr}` : `Source: ${info.sourceEn}`}</Badge>
+            </div>
+            <p className="text-xs font-bold text-slate-500 leading-relaxed">{isAr ? info.noteAr : info.noteEn}</p>
+            {kind === 'identity' && (
+              <p className="text-sm font-black text-emerald-700 flex items-center gap-2"><CheckCircle2 size={16} />
+                {citizenName ? (isAr ? `مرتبطة بحساب: ${citizenName}` : `Linked to: ${citizenName}`) : (isAr ? 'ستُجلب من ثقة عند تسجيل الدخول' : 'Will be fetched from Thiqa at sign-in')}
+              </p>
+            )}
+            {kind === 'cr' && (
+              <div className="space-y-1">
+                <Label htmlFor="cr-number" className="text-xs font-black text-slate-600">{isAr ? 'رقم السجل التجاري *' : 'CR number *'}</Label>
+                <Input id="cr-number" inputMode="numeric" dir="ltr" value={crNumber} onChange={e => onCrNumber(e.target.value.replace(/\D/g, ''))}
+                  aria-invalid={crInvalid} aria-describedby="cr-help" placeholder="1234567" className={cn('h-12 rounded-xl font-mono text-lg max-w-xs', crInvalid && 'border-red-400')} />
+                <p id="cr-help" className={cn('text-[11px] font-bold', crInvalid ? 'text-red-600' : 'text-slate-400')}>
+                  {crInvalid ? (isAr ? 'رقم السجل التجاري من 4 إلى 12 رقماً' : 'The CR number is 4–12 digits') : (isAr ? 'أرقام فقط — تُجلب البيانات من وزارة التجارة والصناعة وترويج الاستثمار.' : 'Digits only — data is fetched from the Ministry of Commerce.')}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function LinkedFieldCard({ kind, isAr, citizenName, crNumber }: { kind: LinkedKind; isAr: boolean; citizenName: string | null; crNumber: string }) {
+  const info = LINKED_INFO[kind];
+  const value = kind === 'cr'
+    ? (crNumber ? (isAr ? `رقم السجل: ${crNumber}` : `CR no. ${crNumber}`) : (isAr ? 'يُربط برقم السجل التجاري المُدخل' : 'Linked through the CR number you entered'))
+    : (citizenName || (isAr ? 'من حساب ثقة' : 'From your Thiqa account'));
+  return (
+    <div className="flex items-center gap-4 p-5 rounded-2xl border-2 border-emerald-100 bg-emerald-50/60">
+      <CheckCircle2 size={28} className="text-emerald-600 shrink-0" />
+      <div className="min-w-0">
+        <p className="font-black text-emerald-800">{value}</p>
+        <p className="text-xs font-bold text-slate-500">{isAr ? `تُجلب تلقائياً من ${info.sourceAr} — لا يلزم إرفاق مستند` : `Fetched automatically from ${info.sourceEn} — no upload needed`}</p>
+      </div>
+    </div>
+  );
+}
+
+function ExternalServiceCard({ service, isAr }: { service: Service; isAr: boolean }) {
+  let host = service.linkUrl || '';
+  try { host = new URL(service.linkUrl!).hostname; } catch { /* keep raw */ }
+  return (
+    <Card className="rounded-[3rem] shadow-2xl overflow-hidden bg-white border-none ring-1 ring-slate-100">
+      <CardHeader className="bg-slate-950 text-white p-10">
+        <Badge className="bg-accent text-slate-900 font-black px-4 rounded-lg text-[10px] mb-4 w-fit">{isAr ? 'خدمة على منصة خارجية' : 'Offered on an external platform'}</Badge>
+        <CardTitle className="text-3xl font-black">{isAr ? service.title : service.titleEn || service.title}</CardTitle>
+        <p className="text-white/60 font-bold text-sm mt-2">{isAr ? 'تُقدَّم هذه الخدمة عبر منصة شريكة. راجع الشروط والرسوم ثم انتقل لإكمال الطلب.' : 'This service is provided on a partner platform. Review the conditions and fees, then continue there.'}</p>
+      </CardHeader>
+      <CardContent className="p-10 space-y-6">
+        <div className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
+          <ExternalLink className="text-[#008E91] shrink-0" size={24} />
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-slate-400">{isAr ? 'ستنتقل إلى' : "You'll go to"}</p>
+            <p className="font-black text-slate-800 truncate" dir="ltr">{host}</p>
+          </div>
+        </div>
+        <Button asChild className="dm-gradient-primary rounded-2xl h-16 px-12 font-black shadow-xl gap-3 text-lg w-full sm:w-auto">
+          <a href={service.linkUrl} target="_blank" rel="noopener noreferrer">
+            {isAr ? 'الانتقال إلى الخدمة' : 'Go to the service'}<ExternalLink size={20} />
+            <span className="sr-only">{isAr ? '(تفتح في نافذة جديدة)' : '(opens in a new tab)'}</span>
+          </a>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

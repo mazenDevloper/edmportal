@@ -41,6 +41,7 @@ export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps
           </div>
           <nav aria-label={isAr ? 'روابط التذييل' : 'Footer links'} className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             {links.map(l => <Link key={l.id} href={l.link} className="text-sm font-bold text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded">{isAr ? l.labelAr : l.labelEn}</Link>)}
+            <Link href="/staff" className="text-sm font-bold text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link>
           </nav>
           <p className="text-xs font-bold text-white/50">© {new Date().getFullYear()} {isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</p>
         </div>
@@ -124,7 +125,8 @@ export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps
                   <Link href="https://www.tajawoob.gov.om" className="text-sm font-bold text-white/70 hover:text-white transition-colors">{isAr ? 'منصة تجاوب' : 'Tajawoob Platform'}</Link>
                 </>
               )}
-              <Link href="/admin" className="text-sm font-black text-accent bg-white/5 w-fit px-4 py-2 rounded-lg hover:bg-white/10 mt-4">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
+              <Link href="/staff" className="text-sm font-black text-white bg-white/10 w-fit px-4 py-2 rounded-lg hover:bg-white/15 mt-4">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link>
+              <Link href="/admin" className="text-sm font-black text-accent bg-white/5 w-fit px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link>
             </div>
           </div>
         </div>

@@ -26,6 +26,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
+import { ServiceIcon } from '@/components/service/service-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -192,7 +193,7 @@ export default function ServiceCatalogPage() {
                         <AccordionTrigger className="px-6 py-8 hover:no-underline group">
                           <div className="flex items-center gap-6 text-right">
                             <div className="size-14 rounded-2xl bg-primary/5 text-primary flex items-center justify-center group-data-[state=open]:bg-primary group-data-[state=open]:text-white transition-all shadow-sm">
-                              {React.createElement((Icons as any)[service.iconName] || Icons.LayoutGrid, { size: 28 })}
+                              <ServiceIcon service={service} size={28} />
                             </div>
                             <div className="text-right">
                               <h4 className="text-xl font-black text-slate-800 group-hover:text-primary transition-colors flex items-center gap-2">

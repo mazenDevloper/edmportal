@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles } from 'lucide-react';
+import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles, Briefcase } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { MenuItem, CustomPage, Service, HeaderVariant } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -128,6 +128,9 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
                 <Link href={editLink}><Edit2 size={12} /> {isAr ? 'تعديل هذا القسم' : 'Edit Section'}</Link>
               </Button>
             )}
+            <Link href="/staff" className="text-white/90 hover:text-primary flex items-center gap-2 font-black">
+              <Briefcase size={14} /> {isAr ? 'بوابة الموظف' : 'Staff portal'}
+            </Link>
             <Link href="/admin" className="text-primary hover:underline flex items-center gap-2 font-black">
               <LayoutDashboard size={14} /> {isAr ? 'لوحة التحكم' : 'Admin'}
             </Link>
@@ -182,6 +185,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
                   <Link href="/catalog" className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? 'دليل الخدمات' : 'Service Catalog'}</Link>
                   <Link href="/identity" className="text-3xl font-black text-primary hover:text-primary transition-colors">{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
                   {orderedMenu.map(m => <Link key={m.id} href={m.link} className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? m.labelAr : m.labelEn || m.labelAr}</Link>)}
+                  <Link href="/staff" className="text-2xl font-black text-secondary hover:text-primary transition-colors">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link>
                   <Button variant="outline" onClick={handleLanguageToggle} className="rounded-full font-black h-12 w-fit px-8">{isAr ? 'English' : 'العربية'}</Button>
                   <a href="https://tajawob.om" target="_blank" className="text-3xl font-black text-secondary">{isAr ? 'منصة تجاوب' : 'Tajawoob'}</a>
                 </nav>

@@ -28,6 +28,7 @@ import { PopupManager } from '@/components/popup-manager';
 import { motion, AnimatePresence } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 import * as Icons from 'lucide-react';
+import { ServiceIcon } from '@/components/service/service-icon';
 import {
   Carousel,
   CarouselContent,
@@ -140,11 +141,10 @@ export default function DhofarPortal() {
 
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {filteredQuickAccess.map((s) => {
-                        const IconComp = (Icons as any)[s.iconName] || Icons.FileText;
                         return (
                           <Link key={s.id} href={`/services/${s.id}`} className="group flex items-center gap-5 p-4 bg-white border-2 border-transparent rounded-[1.5rem] shadow-lg hover:border-primary/20 transition-all">
                             <div className="size-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
-                              <IconComp size={24} />
+                              <ServiceIcon service={s} size={24} />
                             </div>
                             <div className="flex-1 overflow-hidden">
                               <p className="text-sm font-black text-slate-800 truncate">{isAr ? s.title : (s.titleEn || s.title)}</p>

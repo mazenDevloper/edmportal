@@ -29,6 +29,8 @@ import { ProcessStagesEditor } from '@/components/flow/process-stages-editor';
 import { grantRole } from '@/components/admin/service-flows-panel';
 import { deriveRolesFromFlows, mergeById } from '@/lib/rbac';
 import { attachPdfBlueprints, assignBlueprintNode } from '@/lib/flow-blueprints';
+import { ServiceInfoEditor } from '@/components/service/service-info-editor';
+import { linkedKind, LINKED_INFO } from '@/lib/linked-data';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useToast } from '@/hooks/use-toast';
 import { CAT_CONFIG } from '@/lib/constants';
@@ -95,7 +97,7 @@ function WorkflowEngineContent() {
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
   
-  const [activeTab, setActiveTab] = useState('logic');
+  const [activeTab, setActiveTab] = useState('info');
   const [steps, setSteps] = useState<ServiceStep[]>([]);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const [serviceInfo, setServiceInfo] = useState<Partial<Service>>({
@@ -379,31 +381,6 @@ function WorkflowEngineContent() {
                     <Input value={serviceInfo.titleEn} onChange={e => setServiceInfo({...serviceInfo, titleEn: e.target.value})} placeholder="English Mapping..." className="rounded-xl h-11 border-slate-100" />
                  </div>
                  
-                 <div className="space-y-4 pt-6 border-t">
-                    <div className="flex items-center justify-between">
-                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Requirements</Label>
-                       <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 text-[8px]">{serviceInfo.reqsAr?.length} ACTIVE</Badge>
-                    </div>
-                    <div className="flex gap-2">
-                       <Input id="new-doc" placeholder="Add custom doc..." className="h-10 text-xs rounded-xl" onKeyDown={e => {
-                         if(e.key === 'Enter') {
-                           const val = (e.target as HTMLInputElement).value;
-                           if(val) {
-                             setServiceInfo({...serviceInfo, reqsAr: [...(serviceInfo.reqsAr || []), val]});
-                             (e.target as HTMLInputElement).value = '';
-                           }
-                         }
-                       }} />
-                    </div>
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                       {serviceInfo.reqsAr?.map((r, i) => (
-                         <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl text-[10px] font-bold border border-slate-100 group">
-                           <span className="truncate max-w-[150px]">{r}</span>
-                           <X size={14} className="cursor-pointer text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setServiceInfo({...serviceInfo, reqsAr: serviceInfo.reqsAr?.filter((_, idx) => idx !== i)})} />
-                         </div>
-                       ))}
-                    </div>
-                 </div>
                  <Button onClick={addStep} className="w-full dm-gradient-primary rounded-2xl font-black h-14 shadow-lg group">
                     <Plus className="mr-2 group-hover:rotate-90 transition-transform" /> {isAr ? "إضافة مرحلة جديدة" : "Add Phase"}
                  </Button>
@@ -413,10 +390,15 @@ function WorkflowEngineContent() {
            <div className="lg:col-span-3">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                  <TabsList className="bg-white border rounded-[2rem] p-1.5 mb-10 shadow-sm inline-flex flex-wrap h-auto ring-1 ring-slate-100">
+                    <TabsTrigger value="info" className="rounded-[1.5rem] font-black px-8 h-12 data-[state=active]:bg-primary data-[state=active]:text-white">{isAr ? 'بيانات الخدمة' : 'Service Info'}</TabsTrigger>
                     <TabsTrigger value="logic" className="rounded-[1.5rem] font-black px-8 h-12 data-[state=active]:bg-primary data-[state=active]:text-white">Neural Logic Editor</TabsTrigger>
                     <TabsTrigger value="stages" className="rounded-[1.5rem] font-black px-8 h-12 data-[state=active]:bg-primary data-[state=active]:text-white">{isAr ? `مراحل المعالجة (${processStages.length})` : `Processing Stages (${processStages.length})`}</TabsTrigger>
                     <TabsTrigger value="canvas" className="rounded-[1.5rem] font-black px-8 h-12 data-[state=active]:bg-accent data-[state=active]:text-slate-900">Visual Blueprint</TabsTrigger>
                  </TabsList>
+
+                 <TabsContent value="info">
+                    <ServiceInfoEditor isAr={isAr} value={serviceInfo} onChange={setServiceInfo} />
+                 </TabsContent>
 
                  <TabsContent value="stages">
                     <Card className="rounded-[3rem] shadow-2xl border-none bg-white ring-1 ring-slate-100 p-8">
@@ -479,6 +461,13 @@ function WorkflowEngineContent() {
                                           }} className="h-10 text-sm font-black rounded-xl bg-white" />
                                           <Button variant="ghost" size="icon" onClick={() => { const nf = step.fields.filter(fi => fi.id !== f.id); updateStep(sIdx, {fields: nf}); }} className="text-red-400 hover:bg-red-50 rounded-lg"><X size={16}/></Button>
                                        </div>
+                                       {f.type !== 'info' && (linkedKind(f.labelAr) || linkedKind(f.labelEn)) && (
+                                         <p role="note" className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-800">
+                                           {isAr
+                                             ? `هذا الحقل لن يظهر للمتقدم: يُجلب تلقائياً من ${LINKED_INFO[(linkedKind(f.labelAr) || linkedKind(f.labelEn))!].sourceAr}. يُفضّل حذفه.`
+                                             : `Applicants won't see this field: it is fetched from ${LINKED_INFO[(linkedKind(f.labelAr) || linkedKind(f.labelEn))!].sourceEn}. Consider removing it.`}
+                                         </p>
+                                       )}
                                        
                                        {(f.type === 'select' || f.type === 'info') && (
                                          <div className="space-y-3 pt-4 border-t border-slate-100">

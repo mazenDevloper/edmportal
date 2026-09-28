@@ -95,6 +95,28 @@ export interface ServiceApplication {
   status: 'pending' | 'in-review' | 'approved' | 'rejected';
   data: Record<string, any>;
   createdAt: string;
+  /** Staff actions taken on the request, newest last */
+  history?: ApplicationEvent[];
+}
+
+export interface ApplicationEvent {
+  at: string;
+  byUserId: string;
+  byEmployeeNumber: string;
+  action: 'review' | 'request_info' | 'approve' | 'reject' | 'note';
+  note?: string;
+}
+
+/** Internal platforms listed on the staff portal (available to every employee) */
+export interface StaffPlatform {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  url: string;
+  icon?: string;
+  logoUrl?: string;
+  category: 'systems' | 'finance' | 'hr' | 'gov' | 'guides' | 'productivity';
+  isNew?: boolean;
 }
 
 export type Vec3 = { x: number; y: number; z: number };
@@ -333,6 +355,8 @@ export interface StaffUser {
   nameEn?: string;
   email?: string;
   department?: string;
+  /** Civil (national ID) number — used with the employee number to sign in, or matched from Thiqa */
+  civilNumber?: string;
   isActive: boolean;
   isSuperAdmin?: boolean;
   createdAt: string;
