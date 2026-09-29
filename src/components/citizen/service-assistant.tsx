@@ -8,14 +8,15 @@ import { fetchBin } from '@/lib/jsonbin';
 import { Service, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { isPublicService } from '@/lib/service-visibility';
-import { AssistantAnswer, Intent, answer } from '@/lib/assistant-engine';
+import { AssistantAnswer, Intent, answer, retrieve } from '@/lib/assistant-engine';
+import { askAssistant, assistantAvailable, type AiReply } from '@/ai/flows/assistant-flow';
 import { CONTACT } from '@/lib/footer-pages';
 import { maskPhone, requireCitizen, useCitizen, useCitizenSession } from '@/lib/citizen-session';
 import { useAssistant } from './assistant-store';
 import { TrackLookup } from './track-lookup';
 import { cn } from '@/lib/utils';
 
-type Message = { id: number; role: 'user' | 'bot'; text?: string; answer?: AssistantAnswer };
+type Message = { id: number; role: 'user' | 'bot'; text?: string; answer?: AssistantAnswer; ai?: AiReply & { ok: true }; thinking?: boolean };
 
 // Staff and admin areas have their own tools
 const HIDDEN_ON = /^\/(edmPortal|edmEmp|staff|pagebuild|servicebuild|surveybuild|identity\/board)(\/|$)/;
@@ -52,13 +53,33 @@ export function ServiceAssistant() {
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 50); }, [open]);
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' }); }, [messages]);
 
-  const send = (text: string) => {
+  // Is an open-source model configured on the server? (checked once)
+  const [aiOn, setAiOn] = useState<boolean | null>(null);
+  useEffect(() => { if (open && aiOn === null) assistantAvailable().then(setAiOn).catch(() => setAiOn(false)); }, [open, aiOn]);
+
+  const send = async (text: string) => {
     const q = text.trim();
     if (!q || !services) return;
-    const a = answer(q, { services, flows, isAr, lastServiceId });
-    if (a.kind === 'service') setLastServiceId(a.service.id);
-    setMessages(m => [...m, { id: nextId.current++, role: 'user', text: q }, { id: nextId.current++, role: 'bot', answer: a }]);
+    const ctx = { services, flows, isAr, lastServiceId };
+    const rule = answer(q, ctx);
     setInput('');
+    const userId = nextId.current++, botId = nextId.current++;
+    // Tracking and greetings stay local: request numbers never go to the model
+    if (!aiOn || rule.kind === 'track' || rule.kind === 'greeting') {
+      if (rule.kind === 'service') setLastServiceId(rule.service.id);
+      setMessages(m => [...m, { id: userId, role: 'user', text: q }, { id: botId, role: 'bot', answer: rule }]);
+      return;
+    }
+    setMessages(m => [...m, { id: userId, role: 'user', text: q }, { id: botId, role: 'bot', thinking: true }]);
+    const history = messages.slice(-6).map(m => ({ role: m.role === 'user' ? 'user' as const : 'assistant' as const, content: m.text || m.ai?.answer || '' })).filter(m => m.content);
+    const reply = await askAssistant({ question: q, isAr, history, facts: retrieve(q, ctx) }).catch(() => ({ ok: false as const, reason: 'error' as const }));
+    if (reply.ok) {
+      if (reply.analysis.serviceId) setLastServiceId(reply.analysis.serviceId);
+      setMessages(m => m.map(x => (x.id === botId ? { id: botId, role: 'bot', ai: reply } : x)));
+    } else {
+      if (rule.kind === 'service') setLastServiceId(rule.service.id);
+      setMessages(m => m.map(x => (x.id === botId ? { id: botId, role: 'bot', answer: rule } : x)));
+    }
   };
 
   // A question asked from a page ("Ask the assistant") is sent once the data is ready
@@ -123,7 +144,11 @@ export function ServiceAssistant() {
             </Bubble>
             {messages.map(m => m.role === 'user'
               ? <Bubble key={m.id} role="user"><p className="font-bold">{m.text}</p></Bubble>
-              : <Bubble key={m.id} role="bot"><AnswerView a={m.answer!} isAr={isAr} onAsk={send} onStart={id => requireCitizen(`/services/${id}/apply`, p => router.push(p))} /></Bubble>)}
+              : <Bubble key={m.id} role="bot">
+                  {m.thinking ? <Thinking isAr={isAr} />
+                    : m.ai ? <AiAnswerView reply={m.ai} services={services || []} isAr={isAr} onStart={id => requireCitizen(`/services/${id}/apply`, p => router.push(p))} />
+                    : <AnswerView a={m.answer!} isAr={isAr} onAsk={send} onStart={id => requireCitizen(`/services/${id}/apply`, p => router.push(p))} />}
+                </Bubble>)}
             {!services && <p role="status" className="flex items-center gap-2 text-xs font-bold text-slate-400"><Loader2 size={14} className="animate-spin" aria-hidden />{t('جارٍ تحميل دليل الخدمات…', 'Loading the service guide…')}</p>}
           </div>
 
@@ -155,6 +180,50 @@ function AiMark({ small = false }: { small?: boolean }) {
       AI
       <Sparkles className={cn('absolute text-[#03CFCB]', small ? '-top-1.5 -right-2.5 size-2.5' : '-top-2 -right-3 size-3')} />
     </span>
+  );
+}
+
+/** Shown while the model analyses the question, then answers */
+function Thinking({ isAr }: { isAr: boolean }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => { const id = setTimeout(() => setStep(1), 1800); return () => clearTimeout(id); }, []);
+  return (
+    <p role="status" className="flex items-center gap-2 font-bold text-slate-500">
+      <Loader2 size={14} className="animate-spin" aria-hidden />
+      {step === 0 ? (isAr ? 'يحلّل سؤالك…' : 'Analysing your question…') : (isAr ? 'يصوغ الإجابة من دليل الخدمات…' : 'Writing the answer from the service guide…')}
+    </p>
+  );
+}
+
+const INTENT_LABEL: Record<string, [string, string]> = {
+  documents: ['المستندات', 'Documents'], fees: ['الرسوم', 'Fees'], duration: ['المدة', 'Duration'], conditions: ['الاشتراطات', 'Conditions'],
+  apply: ['طريقة التقديم', 'How to apply'], general: ['استفسار عام', 'General'], other: ['أخرى', 'Other'],
+};
+
+/** Model answer: the analysis it made first, the grounded answer, and actions for the service it identified */
+function AiAnswerView({ reply, services, isAr, onStart }: { reply: AiReply & { ok: true }; services: Service[]; isAr: boolean; onStart: (id: string) => void }) {
+  const t = (ar: string, en: string) => (isAr ? ar : en);
+  const svc = services.find(s => s.id === reply.analysis.serviceId);
+  const intent = INTENT_LABEL[reply.analysis.intent] || INTENT_LABEL.general;
+  return (
+    <div className="space-y-2">
+      <p className="flex flex-wrap items-center gap-1 text-[11px] font-black text-slate-500">
+        <Sparkles size={12} className="text-[#470D67]" aria-hidden />{t('التحليل:', 'Analysis:')}
+        <span className="px-2 py-0.5 rounded-full bg-[#470D67]/10 text-[#470D67]">{isAr ? intent[0] : intent[1]}</span>
+        {svc && <span className="px-2 py-0.5 rounded-full bg-[#03CFCB]/15 text-[#005751] truncate max-w-[180px]">{isAr ? svc.title : svc.titleEn || svc.title}</span>}
+        {reply.analysis.needsClarification && <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{t('يحتاج توضيحاً', 'Needs clarifying')}</span>}
+      </p>
+      <p className="font-medium whitespace-pre-line">{reply.answer}</p>
+      {svc && (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          <Link href={`/services/${svc.id}`} className="h-8 px-3 rounded-lg bg-slate-100 text-xs font-black text-slate-700 flex items-center">{t('دليل الخدمة', 'Service guide')}</Link>
+          {svc.type === 'link' && svc.linkUrl
+            ? <a href={svc.linkUrl} target="_blank" rel="noopener noreferrer" className="h-8 px-3 rounded-lg bg-[#005751] text-white text-xs font-black flex items-center gap-1">{t('الانتقال للخدمة', 'Open service')}<ExternalLink size={12} aria-hidden /></a>
+            : <button type="button" onClick={() => onStart(svc.id)} className="h-8 px-3 rounded-lg bg-[#005751] text-white text-xs font-black flex items-center gap-1"><Fingerprint size={13} aria-hidden />{t('ابدأ الخدمة', 'Start service')}</button>}
+        </div>
+      )}
+      <p className="text-[10px] font-bold text-slate-400">{t('إجابة مولّدة من دليل الخدمات؛ تحقّق من التفاصيل في صفحة الخدمة.', 'Generated from the service guide; check details on the service page.')}</p>
+    </div>
   );
 }
 

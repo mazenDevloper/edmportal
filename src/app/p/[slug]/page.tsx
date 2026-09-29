@@ -59,7 +59,7 @@ export default function DynamicCustomPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col" dir={isAr ? 'rtl' : 'ltr'}>
       <PortalHeader menuItems={menuItems} variant={template.header} showTicker={template.showTicker} showTopBar={template.showTopBar} sticky={template.stickyHeader ?? true} />
       <PageShell page={page} template={template} isAr={isAr} />
-      <PortalFooter siteConfig={siteConfig} variant={template.footer} />
+      <PortalFooter siteConfig={siteConfig} variant={template.footer} lastUpdated={page.updatedAt} />
     </div>
   );
 }

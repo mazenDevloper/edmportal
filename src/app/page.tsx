@@ -20,7 +20,7 @@ import {
   Send
 } from 'lucide-react';
 import Link from 'next/link';
-import { Orbit } from 'lucide-react';
+import { VrHeadsetIcon } from '@/components/vr-headset-icon';
 import { Service, SiteConfig, CarouselItem, Survey, PopupMessage, NewsItem } from '@/lib/types';
 import { isPublicService } from '@/lib/service-visibility';
 import { cn } from '@/lib/utils';
@@ -43,6 +43,78 @@ import { useToast } from '@/hooks/use-toast';
 import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session';
 import { TrackLookup } from '@/components/citizen/track-lookup';
 
+/** Counts up once when the figures scroll into view (instant for reduced motion) */
+function CountUp({ value, isAr }: { value: number; isAr: boolean }) {
+  const ref = React.useRef<HTMLSpanElement>(null);
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setShown(value); return; }
+    let raf = 0;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const k = Math.min(1, (now - t0) / 1400);
+        setShown(Math.round(value * (1 - Math.pow(1 - k, 3))));
+        if (k < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }, { threshold: 0.3 });
+    io.observe(el);
+    return () => { io.disconnect(); cancelAnimationFrame(raf); };
+  }, [value]);
+  return <span ref={ref} aria-hidden>{shown.toLocaleString(isAr ? 'ar-OM' : 'en-US')}</span>;
+}
+
+function TransactionStats({ isAr, stats, portalRequests }: { isAr: boolean; stats?: SiteConfig['stats']; portalRequests: number }) {
+  const items = [
+    { label: isAr ? 'إجمالي المعاملات' : 'Transactions', value: stats?.transactions, icon: FileText },
+    { label: isAr ? 'التصاريح والتراخيص' : 'Permits & licences', value: stats?.permits, icon: ShieldCheck },
+    { label: isAr ? 'العقود الموثقة' : 'Registered contracts', value: stats?.contracts, icon: Users },
+    { label: isAr ? 'البلاغات المعالجة' : 'Reports handled', value: stats?.tickets, icon: CheckCircle2 },
+    { label: isAr ? 'طلبات عبر البوابة' : 'Portal requests', value: portalRequests, icon: TrendingUp, live: true },
+  ].filter(i => typeof i.value === 'number' && i.value > 0);
+  if (!items.length) return null;
+  return (
+    <section aria-labelledby="stats-title" className="relative overflow-hidden bg-gradient-to-br from-[#005751] to-[#003b37] text-white py-14">
+      <div aria-hidden className="absolute inset-0 dm-pattern-wave-pro opacity-10" />
+      <div className="relative max-w-7xl mx-auto px-6 space-y-8">
+        <h2 id="stats-title" className="text-2xl md:text-3xl font-black">{isAr ? 'أرقام المعاملات' : 'Transactions in numbers'}</h2>
+        <dl className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {items.map(i => (
+            <div key={i.label} className="rounded-3xl bg-white/10 ring-1 ring-white/15 p-5 space-y-2">
+              <dt className="flex items-center gap-2 text-sm font-bold text-white/75"><i.icon size={16} className="text-[#03CFCB]" aria-hidden />{i.label}
+                {i.live && <span className="ms-auto flex items-center gap-1 text-[10px] font-black text-[#03CFCB]"><span className="size-1.5 rounded-full bg-[#03CFCB] animate-pulse" aria-hidden />{isAr ? 'مباشر' : 'Live'}</span>}
+              </dt>
+              <dd className="text-3xl md:text-4xl font-black tabular-nums">
+                <CountUp value={i.value!} isAr={isAr} />
+                <span className="sr-only">{i.value!.toLocaleString(isAr ? 'ar-OM' : 'en-US')}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+/** News photo with a branded fallback when there is no image or it fails to load */
+function NewsImage({ src }: { src?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-[#005751] via-[#008E91] to-[#470D67] relative">
+        <div aria-hidden className="absolute inset-0 dm-pattern-landmark opacity-20" />
+        <img src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="" className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 opacity-30 brightness-0 invert" />
+      </div>
+    );
+  }
+  return <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />;
+}
+
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
   const { toast } = useToast();
@@ -52,6 +124,7 @@ export default function DhofarPortal() {
   const [loading, setLoading] = useState(true);
   const [submittingSurvey, setSubmittingSurvey] = useState(false);
   const citizen = useCitizen();
+  const [portalRequests, setPortalRequests] = useState(0);
   const [services, setServices] = useState<Service[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [menuItems, setMenuItems] = useState([]);
@@ -69,6 +142,7 @@ export default function DhofarPortal() {
           // Services switched off in the control panel are hidden from the public
           setServices((data.services || []).filter(isPublicService));
           setSiteConfig(data.siteConfig || null);
+          setPortalRequests((data.applications || []).length);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
           setNews(data.news || []);
@@ -144,7 +218,7 @@ export default function DhofarPortal() {
                      />
                    </div>
 
-                   <Link href="/virtual" className="inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-gradient-to-r from-[#0b4f86] to-[#020d1c] text-white font-black shadow-xl hover:shadow-[0_0_30px_rgba(3,207,203,0.4)] transition-shadow"><Orbit size={18} aria-hidden />{isAr ? 'عرض الخدمات في بيئة افتراضية' : 'View services in a virtual space'}</Link>
+                   <Link href="/virtual" className="inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-gradient-to-r from-[#0b4f86] to-[#020d1c] text-white font-black shadow-xl hover:shadow-[0_0_30px_rgba(3,207,203,0.4)] transition-shadow"><VrHeadsetIcon size={22} />{isAr ? 'العرض الافتراضي' : 'Virtual view'}</Link>
 
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {filteredQuickAccess.map((s) => {
@@ -199,6 +273,9 @@ export default function DhofarPortal() {
            </div>
         </section>
 
+        {/* Transaction figures: set in the control panel (Identity → home statistics), plus live portal requests */}
+        <TransactionStats isAr={isAr} stats={siteConfig?.stats} portalRequests={portalRequests} />
+
         {/* 50/50 Survey & News Matrix */}
         <section className="py-24 bg-white border-y border-slate-100">
            <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-stretch">
@@ -248,22 +325,18 @@ export default function DhofarPortal() {
               </div>
 
               <div className="relative rounded-[4.5rem] overflow-hidden min-h-[650px] shadow-2xl border-t-[12px] border-primary group">
-                <Carousel className="w-full h-full" opts={{ loop: true }}>
+                <Carousel className="w-full h-full" opts={{ loop: true, direction: isAr ? 'rtl' : 'ltr' }}>
                   <CarouselContent className="h-full -ml-0">
                     {(news.length > 0 ? news : [{ id: '1', titleAr: 'بوابة بلدية ظفار الموحدة', titleEn: 'Unified Dhofar Municipality Portal', contentAr: 'نرحب بكم في النظام الرقمي المطور.', contentEn: 'Welcome to the enhanced digital system.', imageUrl: 'https://picsum.photos/seed/oman1/1200/800' }]).map((item) => (
                       <CarouselItemUI key={item.id} className="h-full pl-0 relative">
                         <div className="relative w-full h-[650px]">
-                           {item.imageUrl ? (
-                             <img src={item.imageUrl} alt="" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                           ) : (
-                             <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300"><FileText size={64} /></div>
-                           )}
-                           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
-                           <div className="absolute inset-0 dm-pattern-matrix-all opacity-20 pointer-events-none mix-blend-overlay" />
-                           <div className="absolute inset-x-0 bottom-0 p-16 space-y-6">
-                              <Badge className="bg-primary text-white font-black px-6 py-1.5 rounded-full uppercase text-[10px] tracking-widest shadow-2xl">{isAr ? 'أخبار المصفوفة' : 'MATRIX NEWS'}</Badge>
-                              <h4 className="text-5xl font-black text-white leading-[0.9] tracking-tighter drop-shadow-2xl">{isAr ? item.titleAr : (item.titleEn || item.titleAr)}</h4>
-                              <p className="text-white/70 font-bold text-xl max-w-lg line-clamp-3 leading-relaxed">{isAr ? item.contentAr : (item.contentEn || item.contentAr)}</p>
+                           <NewsImage src={item.imageUrl} />
+                           {/* Darken only the lower part, behind the text, so the photo stays visible */}
+                           <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent" />
+                           <div className="absolute inset-x-0 bottom-0 p-8 md:p-12 space-y-4">
+                              <Badge className="bg-primary text-white font-black px-6 py-1.5 rounded-full uppercase text-[10px] tracking-widest shadow-2xl">{isAr ? 'الأخبار' : 'News'}</Badge>
+                              <h4 className="text-3xl md:text-4xl font-black text-white leading-tight drop-shadow-2xl">{isAr ? item.titleAr : (item.titleEn || item.titleAr)}</h4>
+                              <p className="text-white/85 font-bold text-lg max-w-lg line-clamp-2 leading-relaxed">{isAr ? item.contentAr : (item.contentEn || item.contentAr)}</p>
                               <Button className="bg-white text-slate-900 font-black rounded-2xl px-10 h-14 shadow-2xl hover:bg-primary hover:text-white transition-all text-lg group/btn">
                                 {isAr ? "التفاصيل" : "Details"} <ChevronRight size={20} className={cn("inline ml-2 transition-transform group-hover/btn:translate-x-2", isAr && "rotate-180")} />
                               </Button>
@@ -282,7 +355,7 @@ export default function DhofarPortal() {
           <section className="py-12 bg-white">
             <div className="max-w-7xl mx-auto px-6">
                <div className="rounded-[4.5rem] overflow-hidden shadow-2xl relative h-[400px] group">
-                  <Carousel className="w-full h-full" opts={{ loop: true }}>
+                  <Carousel className="w-full h-full" opts={{ loop: true, direction: isAr ? 'rtl' : 'ltr' }}>
                     <CarouselContent className="h-full -ml-0">
                       {carouselItems.map(banner => (
                         <CarouselItemUI key={banner.id} className="h-full pl-0 relative">

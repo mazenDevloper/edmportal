@@ -105,7 +105,7 @@ export function InfoPageShell({ title, intro, icon, updated, toc, children }: Sh
         <main id="main" className="min-w-0">{children}</main>
       </div>
 
-      <div className="print:hidden"><PortalFooter siteConfig={siteConfig} /></div>
+      <div className="print:hidden"><PortalFooter siteConfig={siteConfig} lastUpdated={updated} /></div>
     </div>
   );
 }

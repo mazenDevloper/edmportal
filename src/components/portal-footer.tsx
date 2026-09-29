@@ -9,14 +9,31 @@ import { useSettingsStore } from '@/lib/settings-store';
 import { SiteConfig, FooterVariant } from '@/lib/types';
 import { ExternalLink, Mail, Phone, MessageCircle } from 'lucide-react';
 import { CONTACT, FOOTER_GROUPS, SITE_LAST_UPDATED } from '@/lib/footer-pages';
+import { usePathname } from 'next/navigation';
+import PAGE_DATES from '@/lib/page-dates.json';
+
+// Routes from the generated map (scripts/build-page-dates.js); "[id]" segments match any value.
+// Exact routes are checked before dynamic ones.
+const ROUTE_DATES = Object.entries(PAGE_DATES as Record<string, string>)
+  .map(([route, date]) => ({ parts: route.split('/'), dynamic: route.includes('['), date }))
+  .sort((a, b) => Number(a.dynamic) - Number(b.dynamic));
+
+function routeDate(pathname: string) {
+  const parts = pathname.replace(/\/$/, '').split('/');
+  if (parts.length === 1) parts.push(''); // "/" → ["", ""]
+  return ROUTE_DATES.find(r => r.parts.length === parts.length && r.parts.every((p, i) => p === parts[i] || /^\[.+\]$/.test(p)))?.date;
+}
 
 interface PortalFooterProps {
   siteConfig: SiteConfig | null;
   /** full = four columns (default); compact = one row; none = hidden */
   variant?: FooterVariant;
+  /** When the page's own content changed (database pages, legal documents); defaults to the route's last change */
+  lastUpdated?: string;
 }
 
-export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps) {
+export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUpdated }: PortalFooterProps) {
+  const pathname = usePathname() || '/';
   const { language } = useSettingsStore();
   const isAr = language === 'ar';
   const [mounted, setMounted] = useState(false);
@@ -34,7 +51,8 @@ export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps
       ...dbLinks.filter(l => l.category === g.id && !known.has(l.link) && !known.has(l.link.replace(/^\/p\//, '/'))),
     ],
   }));
-  const lastUpdated = new Date(SITE_LAST_UPDATED).toLocaleDateString(isAr ? 'ar-OM' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const updatedIso = pageUpdated || routeDate(pathname) || SITE_LAST_UPDATED;
+  const lastUpdated = new Date(updatedIso).toLocaleDateString(isAr ? 'ar-OM' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
   if (variant === 'none') return null;
 
@@ -58,6 +76,7 @@ export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps
             <Link href="/staff" className="text-sm font-bold text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link>
           </nav>
           <p className="text-xs font-bold text-white/50">© {new Date().getFullYear()} {isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</p>
+          <p className="text-xs font-bold text-accent">{isAr ? 'آخر تحديث لهذه الصفحة:' : 'This page was last updated:'} <time dateTime={updatedIso}>{lastUpdated}</time></p>
         </div>
       </footer>
     );
@@ -126,7 +145,7 @@ export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps
 
         <div className="mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-white/50 text-xs font-bold">
           <p>{isAr ? `© ${new Date().getFullYear()} بلدية ظفار - جميع الحقوق محفوظة` : `© ${new Date().getFullYear()} Dhofar Municipality - All Rights Reserved`}</p>
-          <p className="text-accent">{isAr ? 'آخر تعديل:' : 'Last updated:'} <time dateTime={SITE_LAST_UPDATED}>{lastUpdated}</time></p>
+          <p className="text-accent">{isAr ? 'آخر تحديث لهذه الصفحة:' : 'This page was last updated:'} <time dateTime={updatedIso}>{lastUpdated}</time></p>
           <p>{isAr ? 'سلطنة عمان - محافظة ظفار' : 'Sultanate of Oman - Dhofar Governorate'}</p>
         </div>
       </div>

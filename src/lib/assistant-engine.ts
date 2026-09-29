@@ -110,3 +110,29 @@ function bestFaq(question: string, isAr: boolean): AssistantAnswer | null {
   const f = FAQS[best.i];
   return { kind: 'faq', q: isAr ? f.q.ar : f.q.en, a: isAr ? f.a.ar : f.a.en };
 }
+
+// ─── Retrieval for the AI assistant: the model only ever sees these facts ───
+
+export interface RetrievedFacts {
+  services: { id: string; guide: ServiceGuide }[];
+  faqs: { q: string; a: string }[];
+}
+
+/** Best-matching public services (plus the one being discussed) and FAQs for a question */
+export function retrieve(question: string, ctx: AssistantContext, k = 4): RetrievedFacts {
+  const q = tokens(question);
+  const df = new Map<string, number>();
+  ctx.services.forEach(s => titleTokens(s).forEach(w => df.set(w, (df.get(w) || 0) + 1)));
+  const ranked = ctx.services.map(s => ({ s, score: scoreService(q, s, df) })).filter(r => r.score >= 2).sort((a, b) => b.score - a.score).slice(0, k).map(r => r.s);
+  const last = ctx.services.find(s => s.id === ctx.lastServiceId);
+  if (last && !ranked.includes(last)) ranked.push(last);
+  const services = ranked.map(s => ({ id: s.id, guide: buildServiceGuide(s, ctx.flows.find(f => f.serviceId === s.id || f.id === s.id) || null, ctx.isAr) }));
+
+  const faqs = FAQS.map(f => {
+    const words = new Set([...tokens(f.q.ar), ...tokens(f.q.en)]);
+    const hits = q.filter(w => words.has(w) || [...words].some(t => t.length > 3 && (t.startsWith(w) || w.startsWith(t)))).length;
+    return { f, score: q.length ? hits / q.length : 0 };
+  }).filter(x => x.score >= 0.34).sort((a, b) => b.score - a.score).slice(0, 3)
+    .map(({ f }) => ({ q: ctx.isAr ? f.q.ar : f.q.en, a: ctx.isAr ? f.a.ar : f.a.en }));
+  return { services, faqs };
+}

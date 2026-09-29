@@ -22,7 +22,7 @@ export default function VirtualServicesPage() {
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
-    document.title = `${t('فضاء الخدمات', 'Services space')} | ${t('بلدية ظفار', 'Dhofar Municipality')}`;
+    document.title = `${t('العرض الافتراضي', 'Virtual view')} | ${t('بلدية ظفار', 'Dhofar Municipality')}`;
     fetchBin().then(db => {
       const all: Service[] = db.services || [];
       const pub = all.filter(isPublicService);

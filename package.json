@@ -1,12 +1,13 @@
-
 {
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/build-page-dates.js",
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
+    "prebuild": "node scripts/build-page-dates.js && node scripts/build-brand-css.js",
     "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",

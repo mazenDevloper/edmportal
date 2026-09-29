@@ -248,7 +248,7 @@ export function ServiceSpace({ services, isAr, preview, onExit }: Props) {
 
       {/* Top bar */}
       <div ref={topRef} data-ui className="absolute top-0 inset-x-0 p-3 md:p-5 flex flex-wrap items-center gap-2 md:gap-3 bg-gradient-to-b from-[#020d1c]/80 to-transparent cursor-auto">
-        <h1 className="text-white font-black text-lg md:text-2xl me-auto">{t('فضاء الخدمات', 'Services space')}{preview && <span className="ms-2 align-middle text-[10px] px-2 py-0.5 rounded bg-amber-400 text-slate-900">{t('معاينة المشرف', 'Admin preview')}</span>}</h1>
+        <h1 className="text-white font-black text-lg md:text-2xl me-auto">{t('العرض الافتراضي للخدمات', 'Virtual services view')}{preview && <span className="ms-2 align-middle text-[10px] px-2 py-0.5 rounded bg-amber-400 text-slate-900">{t('معاينة المشرف', 'Admin preview')}</span>}</h1>
         <div className="relative order-3 md:order-none w-full md:w-72">
           <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-white/60" aria-hidden />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('ابحث عن خدمة', 'Search services')} aria-label={t('ابحث عن خدمة', 'Search services')}

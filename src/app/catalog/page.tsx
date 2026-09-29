@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { VrHeadsetIcon } from '@/components/vr-headset-icon';
 import Image from 'next/image';
 import { fetchBin } from '@/lib/jsonbin';
 import { Service, SiteConfig } from '@/lib/types';
@@ -18,7 +19,6 @@ import {
   Filter,
   Loader2,
   LayoutGrid,
-  Orbit,
   Clock,
   BadgeCent,
   ListChecks,
@@ -167,7 +167,7 @@ export default function ServiceCatalogPage() {
                <div>
                   <h1 className="text-3xl font-black text-primary tracking-tight">{isAr ? 'دليل الخدمات والإجراءات' : 'Service Catalog & Procedures'}</h1>
                   <p className="text-slate-400 font-bold mt-1">{isAr ? 'اضغط على الخدمة لاستعراض كافة التفاصيل والمتطلبات' : 'Click on a service to expand full details and requirements'}</p>
-                  <Link href="/virtual" className="mt-3 inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#0b4f86] text-white text-sm font-black hover:bg-[#0b4f86]/90"><Orbit size={18} aria-hidden />{isAr ? 'عرض الخدمات في بيئة افتراضية' : 'View services in a virtual space'}</Link>
+                  <Link href="/virtual" className="mt-3 inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#0b4f86] text-white text-sm font-black hover:bg-[#0b4f86]/90"><VrHeadsetIcon size={22} />{isAr ? 'العرض الافتراضي' : 'Virtual view'}</Link>
                </div>
                <div className="relative w-full md:w-80">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
