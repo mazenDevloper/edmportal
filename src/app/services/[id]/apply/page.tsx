@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useAdminSession } from '@/lib/admin-session';
 import { isPublicService, nextReference } from '@/lib/service-visibility';
-import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { citizenLabel, useCitizen, useCitizenSession } from '@/lib/citizen-session';
 import { Service, ServiceApplication, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
@@ -139,7 +139,8 @@ export default function ServiceApplicationPage() {
             id: newId, 
             serviceId: service?.id || '', 
             serviceName: isAr ? service?.title || '' : service?.titleEn || service?.title || '', 
-            citizenName: user?.displayName || (citizenPhone ? `Thiqa ${maskPhone(citizenPhone)}` : 'PKI User'),
+            citizenName: user?.displayName || (citizenPhone ? (citizenPhone.startsWith('thiqa:') ? citizenLabel(citizenPhone) : `Thiqa ${citizenLabel(citizenPhone)}`) : 'PKI User'),
+            // Who filed it (phone or Thiqa identity), so only they can track it
             applicantPhone: citizenPhone || undefined,
             status: 'pending', 
             data: formData, 

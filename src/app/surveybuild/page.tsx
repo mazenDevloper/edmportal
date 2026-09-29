@@ -289,17 +289,19 @@ function SurveyBuilder() {
     try {
       let next = survey;
       if (toEn.length) {
-        const { translations } = await translateBatch({ texts: toEn.map(([a]) => String(getP(survey, a))), source: 'ar', target: 'en', tone: 'concise' });
-        toEn.forEach(([, e], i) => { if (translations[i]) next = setP(next, e, translations[i]); });
+        const { translations, translated } = await translateBatch({ texts: toEn.map(([a]) => String(getP(survey, a))), source: 'ar', target: 'en', tone: 'concise' });
+        if (!translated.some(Boolean)) throw new Error('not translated');
+        toEn.forEach(([, e], i) => { if (translated[i]) next = setP(next, e, translations[i]); });
       }
       if (toAr.length) {
-        const { translations } = await translateBatch({ texts: toAr.map(([, e]) => String(getP(survey, e))), source: 'en', target: 'ar', tone: 'concise' });
-        toAr.forEach(([a], i) => { if (translations[i]) next = setP(next, a, translations[i]); });
+        const { translations, translated } = await translateBatch({ texts: toAr.map(([, e]) => String(getP(survey, e))), source: 'en', target: 'ar', tone: 'concise' });
+        if (!translated.some(Boolean)) throw new Error('not translated');
+        toAr.forEach(([a], i) => { if (translated[i]) next = setP(next, a, translations[i]); });
       }
       commit(next);
       toast({ title: t(`تمت ترجمة ${toEn.length + toAr.length} نصاً`, `Translated ${toEn.length + toAr.length} texts`) });
     } catch {
-      toast({ variant: 'destructive', title: t('تعذرت الترجمة الآلية', 'Machine translation failed'), description: t('تحقق من إعداد مفتاح Gemini.', 'Check the Gemini API key.') });
+      toast({ variant: 'destructive', title: t('تعذرت الترجمة الآلية', 'Machine translation failed'), description: t('لا يوجد محرك ترجمة مفعّل أو لم تنجح الترجمة. راجع إعداد OPEN_LLM_URL في ملف ‎.env', 'No translation engine is set up, or it did not return a translation. See OPEN_LLM_URL in .env.') });
     } finally { setTranslating(false); }
   };
 

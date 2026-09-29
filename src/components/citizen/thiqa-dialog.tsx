@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/lib/settings-store';
-import { THIQA_SSO_URL, isOmanMobile, maskPhone, normalizeOmanMobile, useCitizenSession } from '@/lib/citizen-session';
+import { THIQA_SSO_URL, isOmanMobile, maskPhone, normalizeOmanMobile, parseThiqaReturn, useCitizenSession } from '@/lib/citizen-session';
 
 const PENDING_KEY = 'dm-thiqa-sso-pending';
+/** Hand-off from the Thiqa tab to the portal tab (localStorage 'storage' events reach other tabs) */
+const RESULT_KEY = 'dm-thiqa-sso-result';
 import { cn } from '@/lib/utils';
 
 /** Thiqa sign-in pop-up for beneficiaries. Mounted once in the root layout; opened with requireCitizen(). */
@@ -45,6 +47,41 @@ export function ThiqaDialogHost() {
     window.open(THIQA_SSO_URL, '_blank', 'noopener');
     closePrompt();
   };
+  // 1) This page was opened by Thiqa's return (?SSO=<guid>&Name=<name>): sign in, tell the portal tab, go home
+  useEffect(() => {
+    const ret = parseThiqaReturn(window.location.search);
+    if (!ret) return;
+    useCitizenSession.getState().signInThiqa(ret.name, ret.ssoId);
+    try {
+      localStorage.setItem(RESULT_KEY, JSON.stringify({ ...ret, at: Date.now() }));
+      setTimeout(() => { try { localStorage.removeItem(RESULT_KEY); } catch { /* */ } }, 5000);
+    } catch { /* storage blocked */ }
+    // Remove the sign-in details from the address bar and history
+    const clean = new URL(window.location.href);
+    ['SSO', 'sso', 'Name', 'name'].forEach(k => clean.searchParams.delete(k));
+    window.history.replaceState(null, '', clean.pathname + clean.search + clean.hash);
+    if (clean.pathname !== '/') router.replace('/');
+    toast({ title: t(`مرحباً ${ret.name}`, `Welcome, ${ret.name}`), description: t('تم تسجيل دخولك عبر ثقة.', 'You are signed in with Thiqa.') });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 2) The portal tab that opened Thiqa: when the other tab reports the sign-in, sign in here too and go home
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== RESULT_KEY || !e.newValue) return;
+      try {
+        const r = JSON.parse(e.newValue);
+        if (!r?.name || !r?.ssoId || Date.now() - Number(r.at) > 60_000) return;
+        useCitizenSession.getState().signInThiqa(r.name, r.ssoId);
+        try { sessionStorage.removeItem(PENDING_KEY); } catch { /* */ }
+        router.push('/');
+        toast({ title: t(`مرحباً ${r.name}`, `Welcome, ${r.name}`), description: t('تم تسجيل دخولك عبر ثقة.', 'You are signed in with Thiqa.') });
+      } catch { /* malformed */ }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [router, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 3) Fallback: Thiqa returned to another site, so just bring the visitor home when they come back
   useEffect(() => {
     const back = () => {
       if (document.visibilityState !== 'visible') return;

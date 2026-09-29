@@ -42,12 +42,16 @@ export async function translateToEnglish(input: { text: string }) {
   return translateText({ text: input.text, source: 'ar', target: 'en' });
 }
 
+/**
+ * ok = false when nothing was really translated (no engine configured, engine down, or its output
+ * wasn't in the target language). Callers must not put the returned text into a translation field then.
+ */
 export async function translateText(input: { text: string; source?: Lang; target?: Lang; tone?: Tone }) {
   const source = input.source ?? 'ar';
   const target = input.target ?? (source === 'ar' ? 'en' : 'ar');
-  if (!input.text.trim() || source === target) return { translatedText: input.text };
-  const { translations } = await translateBatch({ texts: [input.text], source, target, tone: input.tone });
-  return { translatedText: translations[0] };
+  if (!input.text.trim() || source === target) return { translatedText: input.text, ok: true };
+  const { translations, translated } = await translateBatch({ texts: [input.text], source, target, tone: input.tone });
+  return { translatedText: translations[0], ok: translated[0] };
 }
 
 export async function translateBatch(input: { texts: string[]; source?: Lang; target?: Lang; tone?: Tone }) {
@@ -61,9 +65,27 @@ export async function translateBatch(input: { texts: string[]; source?: Lang; ta
   const todo = Array.from(new Set(texts.filter(t => t.trim() && cacheGet(key(t)) === undefined)));
   if (todo.length && source !== target) {
     const done = await engineTranslate(todo, source, target, tone);
-    todo.forEach((t, i) => { if (done[i] && done[i] !== t) cacheSet(key(t), done[i]); });
+    // Only real translations are cached; anything else is retried next time
+    todo.forEach((t, i) => { if (isTranslation(t, done[i], target)) cacheSet(key(t), done[i]); });
   }
-  return { translations: texts.map(t => (t.trim() ? cacheGet(key(t)) ?? t : t)) };
+  const out = texts.map(t => (t.trim() ? cacheGet(key(t)) : t));
+  return {
+    translations: out.map((o, i) => o ?? texts[i]),
+    /** Per string: was it really translated? (empty strings count as done) */
+    translated: out.map((o, i) => !texts[i].trim() || o !== undefined),
+    engine: providers.llm ? 'llm' : providers.libre ? 'libretranslate' : 'none',
+  };
+}
+
+const ARABIC_CHARS = /[؀-ۿ]/g;
+const LETTERS = /[؀-ۿA-Za-z]/g;
+/** A result counts only if it changed and is mostly in the target script (names may stay in Arabic) */
+function isTranslation(src: string, out: string | undefined, target: Lang) {
+  if (!out || !out.trim() || out.trim() === src.trim()) return false;
+  const letters = (out.match(LETTERS) || []).length;
+  if (!letters) return true; // numbers / symbols only
+  const arabicShare = (out.match(ARABIC_CHARS) || []).length / letters;
+  return target === 'en' ? arabicShare < 0.3 : arabicShare > 0.5;
 }
 
 async function engineTranslate(texts: string[], source: Lang, target: Lang, tone: Tone): Promise<string[]> {

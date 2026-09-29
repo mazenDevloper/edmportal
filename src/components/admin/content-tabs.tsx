@@ -401,7 +401,11 @@ export function AiTab({ isAr, services, setServices }: { isAr: boolean; services
   const translate = async () => {
     if (!source.trim()) return;
     setBusy('tool');
-    try { setResult((await translateToEnglish({ text: source })).translatedText); }
+    try {
+      const r = await translateToEnglish({ text: source });
+      if (!r.ok) throw new Error('not translated');
+      setResult(r.translatedText);
+    }
     catch { toast({ variant: 'destructive', title: isAr ? 'تعذرت الترجمة' : 'Translation failed' }); }
     finally { setBusy(null); }
   };
@@ -411,7 +415,8 @@ export function AiTab({ isAr, services, setServices }: { isAr: boolean; services
     try {
       const next = [...services];
       for (const s of missing) {
-        const { translatedText } = await translateToEnglish({ text: s.title });
+        const { translatedText, ok } = await translateToEnglish({ text: s.title });
+        if (!ok) throw new Error('not translated');
         const i = next.findIndex(x => x.id === s.id);
         next[i] = { ...next[i], titleEn: translatedText };
       }

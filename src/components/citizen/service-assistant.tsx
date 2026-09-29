@@ -11,7 +11,7 @@ import { isPublicService } from '@/lib/service-visibility';
 import { AssistantAnswer, Intent, answer, retrieve } from '@/lib/assistant-engine';
 import { askAssistant, assistantAvailable, type AiReply } from '@/ai/flows/assistant-flow';
 import { CONTACT } from '@/lib/footer-pages';
-import { maskPhone, requireCitizen, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { citizenLabel, requireCitizen, useCitizen, useCitizenSession } from '@/lib/citizen-session';
 import { useAssistant } from './assistant-store';
 import { TrackLookup } from './track-lookup';
 import { cn } from '@/lib/utils';
@@ -130,7 +130,7 @@ export function ServiceAssistant() {
           </header>
 
           {citizen ? (
-            <p className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-800 text-xs font-black"><ShieldCheck size={14} aria-hidden />{t('مسجل عبر ثقة', 'Signed in with Thiqa')} <span dir="ltr">{maskPhone(citizen)}</span></p>
+            <p className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-800 text-xs font-black"><ShieldCheck size={14} aria-hidden />{t('مسجل عبر ثقة', 'Signed in with Thiqa')} <span dir="ltr">{citizenLabel(citizen)}</span></p>
           ) : (
             <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-900">
               <p className="flex-1 text-xs font-bold">{t('سجّل دخولك عبر ثقة لتقديم الطلبات ومتابعة معاملاتك.', 'Sign in with Thiqa to apply and follow your requests.')}</p>

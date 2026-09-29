@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/carousel";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { citizenLabel, useCitizen, useCitizenSession } from '@/lib/citizen-session';
 import { BrandEmblem } from '@/components/brand-logo';
 import { TrackLookup } from '@/components/citizen/track-lookup';
 import { TransactionFigures } from '@/components/open-data/transaction-figures';
@@ -199,7 +199,7 @@ export default function DhofarPortal() {
                     </div>
                     {citizen ? (
                       <div className="flex items-center justify-between gap-3 p-5 rounded-[2rem] bg-emerald-50">
-                        <p className="font-black text-emerald-800">{isAr ? "مسجل عبر ثقة" : "Signed in with Thiqa"} <span dir="ltr" className="font-mono">{maskPhone(citizen)}</span></p>
+                        <p className="font-black text-emerald-800">{isAr ? "مسجل عبر ثقة" : "Signed in with Thiqa"} <span dir="ltr" className="font-mono">{citizenLabel(citizen)}</span></p>
                         <Button variant="ghost" onClick={() => useCitizenSession.getState().signOut()} className="font-black text-slate-600">{isAr ? "خروج" : "Sign out"}</Button>
                       </div>
                     ) : (

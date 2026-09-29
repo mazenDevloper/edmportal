@@ -19,7 +19,12 @@ const CODE_MS = 5 * 60 * 1000;
 const MAX_FAILURES = 5;
 
 interface CitizenSessionState {
+  /** Test sign-in (phone + one-time code) */
   phone: string | null;
+  /** Thiqa SSO sign-in: the name Thiqa returns, and its sign-in reference */
+  name: string | null;
+  ssoId: string | null;
+  method: 'thiqa' | 'otp' | null;
   expiresAt: number;
   // One-time code in flight (kept only for the simulation)
   pendingPhone: string | null;
@@ -31,6 +36,7 @@ interface CitizenSessionState {
   afterSignIn: string | null;
   requestCode: (phone: string) => string;
   verifyCode: (code: string) => boolean;
+  signInThiqa: (name: string, ssoId: string) => void;
   signOut: () => void;
   openPrompt: (afterSignIn?: string | null) => void;
   closePrompt: () => void;
@@ -44,6 +50,9 @@ export const useCitizenSession = create<CitizenSessionState>()(
   persist(
     (set, get) => ({
       phone: null,
+      name: null,
+      ssoId: null,
+      method: null,
       expiresAt: 0,
       pendingPhone: null,
       pendingCode: null,
@@ -67,10 +76,11 @@ export const useCitizenSession = create<CitizenSessionState>()(
           set(failures >= MAX_FAILURES ? { failures: 0, pendingCode: null } : { failures });
           return false;
         }
-        set({ phone: s.pendingPhone, expiresAt: Date.now() + SESSION_MS, pendingCode: null, pendingPhone: null, failures: 0 });
+        set({ phone: s.pendingPhone, name: null, ssoId: null, method: 'otp', expiresAt: Date.now() + SESSION_MS, pendingCode: null, pendingPhone: null, failures: 0 });
         return true;
       },
-      signOut: () => set({ phone: null, expiresAt: 0 }),
+      signInThiqa: (name, ssoId) => set({ name, ssoId, phone: null, method: 'thiqa', expiresAt: Date.now() + SESSION_MS }),
+      signOut: () => set({ phone: null, name: null, ssoId: null, method: null, expiresAt: 0 }),
       openPrompt: (afterSignIn = null) => set({ promptOpen: true, afterSignIn }),
       closePrompt: () => set({ promptOpen: false, afterSignIn: null }),
     }),
@@ -78,21 +88,39 @@ export const useCitizenSession = create<CitizenSessionState>()(
       name: 'dm-citizen-session',
       storage: createJSONStorage(() => sessionStorage),
       // The pop-up state is per page view, not part of the session
-      partialize: s => ({ phone: s.phone, expiresAt: s.expiresAt, pendingPhone: s.pendingPhone, pendingCode: s.pendingCode, codeExpiresAt: s.codeExpiresAt, failures: s.failures }),
+      partialize: s => ({ phone: s.phone, name: s.name, ssoId: s.ssoId, method: s.method, expiresAt: s.expiresAt, pendingPhone: s.pendingPhone, pendingCode: s.pendingCode, codeExpiresAt: s.codeExpiresAt, failures: s.failures }),
     }
   )
 );
 
-export const citizenSignedIn = () => {
-  const s = useCitizenSession.getState();
-  return !!s.phone && s.expiresAt > Date.now();
-};
+/** Who is signed in, as one key: the phone (test sign-in) or "thiqa:<name>" (Thiqa SSO) */
+const identityKey = (s: Pick<CitizenSessionState, 'phone' | 'name' | 'expiresAt'>) =>
+  s.expiresAt > Date.now() ? s.phone || (s.name ? `thiqa:${s.name}` : null) : null;
 
-/** Signed-in phone once hydrated, else null */
+export const citizenSignedIn = () => !!identityKey(useCitizenSession.getState());
+
+/** Signed-in citizen's identity key once hydrated, else null */
 export function useCitizen() {
   const phone = useCitizenSession(s => s.phone);
+  const name = useCitizenSession(s => s.name);
   const expiresAt = useCitizenSession(s => s.expiresAt);
-  return phone && expiresAt > Date.now() ? phone : null;
+  return identityKey({ phone, name, expiresAt });
+}
+
+/** What to show for a signed-in citizen: the Thiqa name, or the masked phone */
+export const citizenLabel = (key: string) => (key.startsWith('thiqa:') ? key.slice(6) : maskPhone(key));
+
+/**
+ * Reads the Thiqa return (?SSO=<guid>&Name=<name>). The name is shown and used to link requests.
+ * PROTOTYPE: the parameters are not verified with Thiqa yet — production must confirm the SSO
+ * reference with the municipality's SSO server before trusting the name.
+ */
+export function parseThiqaReturn(search: string): { ssoId: string; name: string } | null {
+  const q = new URLSearchParams(search);
+  const ssoId = (q.get('SSO') || q.get('sso') || '').trim();
+  const name = (q.get('Name') || q.get('name') || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ssoId) || !name) return null;
+  return { ssoId, name };
 }
 
 /** Runs the action now if signed in, otherwise opens the Thiqa pop-up and goes to `path` after sign-in */

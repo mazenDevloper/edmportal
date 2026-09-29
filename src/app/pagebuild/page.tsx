@@ -208,13 +208,14 @@ function PageBuilderContent() {
       let next = doc;
       for (const [list, source, target] of [[missingEn, 'ar', 'en'], [missingAr, 'en', 'ar']] as const) {
         if (!list.length) continue;
-        const { translations } = await translateBatch({ texts: list.map(p => p.get()[source]), source, target });
-        list.forEach((p, i) => { next = p.set(next, target, translations[i]); });
+        const { translations, translated } = await translateBatch({ texts: list.map(p => p.get()[source]), source, target });
+        if (!translated.some(Boolean)) throw new Error('not translated');
+        list.forEach((p, i) => { if (translated[i]) next = p.set(next, target, translations[i]); });
       }
       commit(() => next);
       toast({ title: t(`تمت ترجمة ${missingEn.length + missingAr.length} نصاً`, `Translated ${missingEn.length + missingAr.length} texts`) });
     } catch {
-      toast({ variant: 'destructive', title: t('تعذرت الترجمة الآلية', 'Machine translation failed'), description: t('تحقق من إعداد مفتاح Gemini.', 'Check the Gemini API key.') });
+      toast({ variant: 'destructive', title: t('تعذرت الترجمة الآلية', 'Machine translation failed'), description: t('لا يوجد محرك ترجمة مفعّل أو لم تنجح الترجمة. راجع إعداد OPEN_LLM_URL في ملف ‎.env', 'No translation engine is set up, or it did not return a translation. See OPEN_LLM_URL in .env.') });
     } finally { setTranslating(false); }
   };
 

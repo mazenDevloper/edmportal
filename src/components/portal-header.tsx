@@ -57,8 +57,8 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
           const rawTicker = data.newsTickerText || '';
           setTickerText(rawTicker);
           if (!isAr && rawTicker) {
-            const { translatedText } = await translateToEnglish({ text: rawTicker });
-            setTranslatedTicker(translatedText);
+            const { translatedText, ok } = await translateToEnglish({ text: rawTicker });
+            if (ok) setTranslatedTicker(translatedText);
           }
         }
         if (pathname === '/') { setEditLink('/edmPortal'); return; }

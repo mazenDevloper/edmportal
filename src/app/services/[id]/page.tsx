@@ -19,7 +19,7 @@ import { useAdminSession } from '@/lib/admin-session';
 import { isPublicService, servicePrefixes } from '@/lib/service-visibility';
 import { buildServiceGuide } from '@/lib/service-guide';
 import { LINKED_INFO } from '@/lib/linked-data';
-import { maskPhone, requireCitizen, useCitizen } from '@/lib/citizen-session';
+import { citizenLabel, requireCitizen, useCitizen } from '@/lib/citizen-session';
 import { useAssistant } from '@/components/citizen/assistant-store';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
@@ -123,7 +123,7 @@ export default function ServiceGuidePage() {
                 <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 h-14 px-5 rounded-2xl font-black text-white/80 hover:text-white hover:bg-white/10">
                   <Printer size={18} aria-hidden />{t('طباعة الدليل', 'Print guide')}
                 </button>
-                {mounted && citizen && <span className="text-xs font-bold text-white/70 flex items-center gap-1.5"><ShieldCheck size={14} aria-hidden />{t('مسجل عبر ثقة', 'Signed in with Thiqa')} <span dir="ltr">{maskPhone(citizen)}</span></span>}
+                {mounted && citizen && <span className="text-xs font-bold text-white/70 flex items-center gap-1.5"><ShieldCheck size={14} aria-hidden />{t('مسجل عبر ثقة', 'Signed in with Thiqa')} <span dir="ltr">{citizenLabel(citizen)}</span></span>}
               </div>
             </div>
           </section>

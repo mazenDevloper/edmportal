@@ -159,8 +159,9 @@ function WorkflowEngineContent() {
     if (!text) return;
     setAiLoading(fieldKey);
     try {
-      const { translatedText } = await translateToEnglish({ text });
-      setServiceInfo(prev => ({ ...prev, [fieldKey === 'title' ? 'titleEn' : 'descriptionEn']: translatedText }));
+      const { translatedText, ok } = await translateToEnglish({ text });
+      if (ok) setServiceInfo(prev => ({ ...prev, [fieldKey === 'title' ? 'titleEn' : 'descriptionEn']: translatedText }));
+      else toast({ variant: 'destructive', title: isAr ? 'تعذرت الترجمة الآلية' : 'Machine translation failed', description: isAr ? 'لا يوجد محرك ترجمة مفعّل أو لم تنجح الترجمة. راجع إعداد OPEN_LLM_URL في ملف ‎.env' : 'No translation engine is set up, or it did not return a translation. See OPEN_LLM_URL in .env.' });
     } finally { setAiLoading(null); }
   };
 

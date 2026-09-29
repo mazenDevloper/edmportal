@@ -15,14 +15,18 @@ import { useSettingsStore } from '@/lib/settings-store';
 
 const ARABIC = /[؀-ۿ]/;
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'CODE', 'PRE', 'SVG']);
-const CACHE_KEY = 'dm-auto-translate';
+// v2: drops results cached before translations were validated
+const CACHE_KEY = 'dm-auto-translate-v2';
+// Editors and panels show content being edited in both languages: never rewrite them
+const EXCLUDED = /^\/(edmPortal|edmEmp|pagebuild|servicebuild|surveybuild|identity\/board)(\/|$)/;
 const BATCH = 40;
 
 function loadCache(): Map<string, string> {
   try { return new Map(JSON.parse(sessionStorage.getItem(CACHE_KEY) || '[]')); } catch { return new Map(); }
 }
 function saveCache(m: Map<string, string>) {
-  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify([...m.entries()].slice(-3000))); } catch { /* storage full or blocked */ }
+  // Only real translations are kept across pages; untranslated strings get another chance next page
+  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify([...m.entries()].filter(([k, v]) => k !== v).slice(-3000))); } catch { /* storage full or blocked */ }
 }
 
 function skippable(el: Element | null): boolean {
@@ -45,6 +49,7 @@ export function AutoTranslate() {
   useEffect(() => { setTranslatedCount(0); }, [pathname, isAr]);
 
   useEffect(() => {
+    if (EXCLUDED.test(pathname || '')) return;
     if (isAr) {
       // Back to Arabic: put the original text back where React didn't already
       document.querySelectorAll('body *').forEach(el => el.childNodes.forEach(n => {
@@ -94,9 +99,9 @@ export function AutoTranslate() {
         const todo = [...new Set(nodes.map(n => (n.nodeValue || '').trim()).filter(s => s && ARABIC.test(s) && !memo.has(s)))];
         for (let i = 0; i < todo.length && !stopped; i += BATCH) {
           const chunk = todo.slice(i, i + BATCH);
-          const { translations } = await translateBatch({ texts: chunk, source: 'ar', target: 'en', tone: 'friendly' });
-          // An untranslated result (no engine configured) is remembered too, so we don't retry it on every change
-          chunk.forEach((s, j) => memo.set(s, translations[j] || s));
+          const { translations, translated } = await translateBatch({ texts: chunk, source: 'ar', target: 'en', tone: 'friendly' });
+          // Untranslated strings (no engine, bad output) are remembered as-is for this visit, so we don't retry them on every change
+          chunk.forEach((s, j) => memo.set(s, translated[j] ? translations[j] : s));
           apply(collect());
         }
         saveCache(memo);
@@ -114,7 +119,7 @@ export function AutoTranslate() {
     return () => { stopped = true; observer.disconnect(); if (timer) clearTimeout(timer); };
   }, [isAr, pathname]);
 
-  if (isAr || !translatedCount || dismissed) return null;
+  if (isAr || !translatedCount || dismissed || EXCLUDED.test(pathname || '')) return null;
   return (
     <div role="status" className="fixed bottom-5 start-5 z-[9990] flex items-center gap-2 rounded-2xl bg-slate-900 text-white px-3 py-2 text-xs font-bold shadow-xl print:hidden" translate="no">
       <Languages size={14} className="text-[#03CFCB]" aria-hidden />

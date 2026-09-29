@@ -80,10 +80,12 @@ function BilingualField({ field: f, value, set, isAr }: { field: FieldDef; value
     if (!text?.trim()) return;
     setBusy(target);
     try {
-      const { translatedText } = await translateText({ text, source, target, tone: multiline ? 'official' : 'concise' });
+      const { translatedText, ok } = await translateText({ text, source, target, tone: multiline ? 'official' : 'concise' });
+      // Never copy the untranslated text into the other language's field
+      if (!ok) throw new Error('not translated');
       set(target === 'ar' ? arKey : enKey, translatedText);
     } catch {
-      toast({ variant: 'destructive', title: isAr ? 'تعذرت الترجمة الآلية' : 'Machine translation failed', description: isAr ? 'تحقق من إعداد مفتاح Gemini.' : 'Check the Gemini API key.' });
+      toast({ variant: 'destructive', title: isAr ? 'تعذرت الترجمة الآلية' : 'Machine translation failed', description: isAr ? 'لا يوجد محرك ترجمة مفعّل أو لم تنجح الترجمة. راجع إعداد OPEN_LLM_URL في ملف ‎.env' : 'No translation engine is set up, or it did not return a translation. See OPEN_LLM_URL in .env.' });
     } finally { setBusy(null); }
   };
 

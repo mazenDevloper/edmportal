@@ -6,7 +6,7 @@ import { ChevronDown, ExternalLink, Fingerprint, LogOut, PlayCircle } from 'luci
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MAIN_MENU, MENU_HREFS, MENU_LABELS, MenuGroup, MenuLink } from '@/lib/main-menu';
 import { MenuItem } from '@/lib/types';
-import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { citizenLabel, useCitizen, useCitizenSession } from '@/lib/citizen-session';
 import { cn } from '@/lib/utils';
 
 /** Built-in menu plus database items that aren't already covered */
@@ -143,7 +143,7 @@ export function CitizenSignIn({ isAr, className }: { isAr: boolean; className?: 
   if (mounted && phone) {
     return (
       <button type="button" onClick={() => useCitizenSession.getState().signOut()} className={cn('h-10 px-4 rounded-full bg-emerald-50 text-emerald-800 font-black text-sm flex items-center gap-2 hover:bg-emerald-100', className)}>
-        <span dir="ltr">{maskPhone(phone)}</span><LogOut size={15} className={cn(isAr && '-scale-x-100')} aria-hidden />
+        <span dir="ltr">{citizenLabel(phone)}</span><LogOut size={15} className={cn(isAr && '-scale-x-100')} aria-hidden />
         <span className="sr-only">{isAr ? 'تسجيل خروج' : 'Sign out'}</span>
       </button>
     );

@@ -68,9 +68,10 @@ export default function ServiceCatalogPage() {
       services.forEach(async (s) => {
         if (!s.titleEn || !s.descriptionEn) {
           try {
-            const { translatedText } = await translateToEnglish({ 
+            const { translatedText, ok } = await translateToEnglish({ 
               text: `Title: ${s.title} | Desc: ${s.description} | Fees: ${s.fees} | Duration: ${s.durationAr} | Cond: ${s.conditionsAr}` 
             });
+            if (!ok) return;
             const parts = translatedText.split('|');
             setAiTranslations(prev => ({
               ...prev,
