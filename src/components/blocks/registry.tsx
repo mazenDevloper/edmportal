@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BlockStyle, BlockType } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { parseVideo } from '@/lib/video';
 
 /*
  * The page-block library. Each block declares its default content, the fields the builder
@@ -117,8 +118,8 @@ export function normalizeTable(c: any) {
 }
 
 const youtubeEmbed = (url: string) => {
-  const m = url?.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
-  return m ? `https://www.youtube-nocookie.com/embed/${m[1]}` : url;
+  const v = parseVideo(url);
+  return v?.kind === 'youtube' ? v.embedUrl : url;
 };
 
 // ─── Blocks ───

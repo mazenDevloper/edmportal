@@ -44,6 +44,7 @@ import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session'
 import { BrandEmblem } from '@/components/brand-logo';
 import { TrackLookup } from '@/components/citizen/track-lookup';
 import { TransactionFigures } from '@/components/open-data/transaction-figures';
+import { SocialFeedSection } from '@/components/social-feed-section';
 
 
 /** News photo with a branded fallback when there is no image or it fails to load */
@@ -292,6 +293,9 @@ export default function DhofarPortal() {
               </div>
            </div>
         </section>
+
+        {/* Latest posts from the municipality's YouTube channel, website and Facebook page */}
+        <SocialFeedSection isAr={isAr} />
 
         {/* 100% Width Banner Section */}
         {carouselItems.length > 0 && (

@@ -2,13 +2,16 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, ArrowRight, Fingerprint, Loader2, RotateCcw, Smartphone } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronDown, ExternalLink, Fingerprint, Loader2, RotateCcw, Smartphone } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/lib/settings-store';
-import { isOmanMobile, maskPhone, normalizeOmanMobile, useCitizenSession } from '@/lib/citizen-session';
+import { THIQA_SSO_URL, isOmanMobile, maskPhone, normalizeOmanMobile, useCitizenSession } from '@/lib/citizen-session';
+
+const PENDING_KEY = 'dm-thiqa-sso-pending';
 import { cn } from '@/lib/utils';
 
 /** Thiqa sign-in pop-up for beneficiaries. Mounted once in the root layout; opened with requireCitizen(). */
@@ -31,6 +34,31 @@ export function ThiqaDialogHost() {
     setStep('phone'); setCode(''); setError(null); setTestCode(null);
   }, [promptOpen]);
   useEffect(() => { if (step === 'code') codeRef.current?.focus(); }, [step]);
+
+  const { toast } = useToast();
+  const [showTest, setShowTest] = useState(false);
+
+  // Real Thiqa: the national sign-in opens in a new tab. When the visitor comes back to this tab,
+  // they are taken to the home page (the SSO returns to the municipality site, not to this portal).
+  const openThiqa = () => {
+    try { sessionStorage.setItem(PENDING_KEY, String(Date.now())); } catch { /* storage blocked */ }
+    window.open(THIQA_SSO_URL, '_blank', 'noopener');
+    closePrompt();
+  };
+  useEffect(() => {
+    const back = () => {
+      if (document.visibilityState !== 'visible') return;
+      let pending: string | null = null;
+      try { pending = sessionStorage.getItem(PENDING_KEY); sessionStorage.removeItem(PENDING_KEY); } catch { /* storage blocked */ }
+      // Ignore the instant focus flicker right after opening the tab
+      if (!pending || Date.now() - Number(pending) < 1500) { if (pending) try { sessionStorage.setItem(PENDING_KEY, pending); } catch { /* */ } return; }
+      router.push('/');
+      toast({ title: t('مرحباً بعودتك', 'Welcome back'), description: t('أكملت تسجيل الدخول في منصة ثقة.', 'You completed sign-in on the Thiqa platform.') });
+    };
+    document.addEventListener('visibilitychange', back);
+    window.addEventListener('focus', back);
+    return () => { document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); };
+  }, [router, toast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -75,6 +103,19 @@ export function ThiqaDialogHost() {
         </div>
 
         <div className="p-6 space-y-5">
+          <button type="button" onClick={openThiqa} className="w-full h-14 rounded-2xl bg-[#005751] hover:bg-[#005751]/90 text-white font-black text-lg flex items-center justify-center gap-2 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-amber-500">
+            <Fingerprint size={22} aria-hidden />{t('الدخول عبر منصة ثقة', 'Sign in on the Thiqa platform')}<ExternalLink size={16} className="opacity-70" aria-hidden />
+            <span className="sr-only">{t('(يفتح في نافذة جديدة)', '(opens in a new tab)')}</span>
+          </button>
+          <p className="text-xs font-bold text-slate-500 text-center">{t('تُفتح منصة ثقة في نافذة جديدة، وبعد إكمال الدخول عُد إلى هذه النافذة لتنتقل إلى الصفحة الرئيسية.', 'Thiqa opens in a new tab. When you finish, come back to this tab and you’ll be taken to the home page.')}</p>
+
+          <div className="border-t pt-4">
+            <button type="button" onClick={() => setShowTest(v => !v)} aria-expanded={showTest} aria-controls="thiqa-test" className="w-full flex items-center justify-between text-sm font-black text-slate-600 hover:text-slate-900">
+              {t('بيئة الاختبار: الدخول برقم الهاتف', 'Test environment: sign in with a phone number')}
+              <ChevronDown size={16} className={cn('transition-transform', showTest && 'rotate-180')} aria-hidden />
+            </button>
+          </div>
+          {showTest && <div id="thiqa-test">
           {step === 'phone' ? (
             <form onSubmit={send} className="space-y-4" noValidate>
               <div className="space-y-1.5">
@@ -119,6 +160,7 @@ export function ThiqaDialogHost() {
               </div>
             </form>
           )}
+          </div>}
         </div>
       </DialogContent>
     </Dialog>

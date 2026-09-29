@@ -6,7 +6,8 @@ import { useAdminSession } from '@/lib/admin-session';
 import Link from 'next/link';
 import { useSettingsStore } from '@/lib/settings-store';
 import { SiteConfig, FooterVariant } from '@/lib/types';
-import { ExternalLink, Mail, Phone, MessageCircle } from 'lucide-react';
+import { ExternalLink, Mail, Phone, MessageCircle, Globe, Headset, Facebook, Twitter, Youtube, Instagram } from 'lucide-react';
+import { CHANNELS } from '@/lib/participation';
 import { CONTACT, FOOTER_GROUPS, SITE_LAST_UPDATED } from '@/lib/footer-pages';
 import { usePathname } from 'next/navigation';
 import { BrandLogo } from '@/components/brand-logo';
@@ -67,8 +68,9 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
     return (
       <footer className="bg-slate-950 text-white border-t-4 border-accent">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center md:items-start gap-3">
             <BrandLogo height={40} onDark />
+            <SocialLinks isAr={isAr} size="sm" />
           </div>
           <nav aria-label={isAr ? 'روابط التذييل' : 'Footer links'} className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             {links.map(l => <Link key={l.id} href={l.link} className="text-sm font-bold text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded">{isAr ? l.labelAr : l.labelEn}</Link>)}
@@ -95,21 +97,32 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
              <p className="text-sm text-white/70 leading-relaxed font-medium max-w-xs">
                {isAr ? "نعمل بجد لتطوير محافظة ظفار وتقديم أفضل الخدمات الرقمية التي تساهم في تحسين جودة الحياة للمواطنين والمقيمين." : "Working diligently to develop Dhofar Governorate and provide best-in-class digital services."}
              </p>
-             <div className="space-y-4">
-               <div className="flex items-center gap-3 text-white/80">
-                 <Phone size={16} className="text-accent" />
-                 <span className="text-sm font-bold">{siteConfig?.contactPhone || '1771'}</span>
-               </div>
-               <div className="flex items-center gap-3 text-white/80">
-                 <Mail size={16} className="text-accent" />
-                 <span className="text-sm font-bold">{siteConfig?.contactEmail || CONTACT.infoEmail}</span>
-               </div>
+             <address className="not-italic space-y-3">
+               <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? 'تواصل معنا' : 'Contact us'}</h4>
+               <a href={`tel:${(siteConfig?.contactPhone || CONTACT.callCenter).replace(/s/g, '')}`} className="flex items-center gap-3 text-white/80 hover:text-white">
+                 <Phone size={16} className="text-accent" aria-hidden />
+                 <span className="text-sm font-bold">{isAr ? 'مركز الاتصال' : 'Call centre'} <span dir="ltr">{siteConfig?.contactPhone || CONTACT.callCenter}</span></span>
+               </a>
+               <a href={`mailto:${siteConfig?.contactEmail || CONTACT.infoEmail}`} className="flex items-center gap-3 text-white/80 hover:text-white">
+                 <Mail size={16} className="text-accent" aria-hidden />
+                 <span className="text-sm font-bold" dir="ltr">{siteConfig?.contactEmail || CONTACT.infoEmail}</span>
+               </a>
+               <a href={`mailto:${CONTACT.itsEmail}`} className="flex items-center gap-3 text-white/80 hover:text-white">
+                 <Headset size={16} className="text-accent" aria-hidden />
+                 <span className="text-sm font-bold">{isAr ? 'الدعم الفني' : 'Technical support'} <span dir="ltr">{CONTACT.itsEmail}</span></span>
+               </a>
+               <a href={`https://${CONTACT.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-white/80 hover:text-white">
+                 <Globe size={16} className="text-accent" aria-hidden />
+                 <span className="text-sm font-bold" dir="ltr">{CONTACT.website}</span>
+                 <span className="sr-only">{isAr ? '(يفتح في نافذة جديدة)' : '(opens in a new tab)'}</span>
+               </a>
                <a href={`https://wa.me/968${CONTACT.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-white/80 hover:text-white">
                  <MessageCircle size={16} className="text-accent" aria-hidden />
                  <span className="text-sm font-bold" dir="ltr">{CONTACT.whatsapp}</span>
                  <span className="sr-only">{isAr ? 'واتساب' : 'WhatsApp'}</span>
                </a>
-             </div>
+             </address>
+             <SocialLinks isAr={isAr} />
           </div>
           
           {groups.map(g => (
@@ -147,5 +160,27 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
       </div>
       <div className="absolute bottom-0 left-0 w-full h-80 dm-wave-5 opacity-10 pointer-events-none" />
     </footer>
+  );
+}
+
+const SOCIAL_ICON: Record<string, React.ElementType> = { facebook: Facebook, x: Twitter, youtube: Youtube, instagram: Instagram, whatsapp: MessageCircle };
+
+/** The municipality's official social media accounts */
+function SocialLinks({ isAr, size = 'md' }: { isAr: boolean; size?: 'sm' | 'md' }) {
+  return (
+    <ul className="flex flex-wrap gap-2" aria-label={isAr ? 'حسابات البلدية في وسائل التواصل' : 'Social media'}>
+      {CHANNELS.map(c => {
+        const Icon = SOCIAL_ICON[c.id] || MessageCircle;
+        return (
+          <li key={c.id}>
+            <a href={c.href} target="_blank" rel="noopener noreferrer" title={isAr ? c.name.ar : c.name.en}
+              className={size === 'sm' ? 'size-8 rounded-lg bg-white/10 hover:bg-accent hover:text-slate-900 flex items-center justify-center transition-colors' : 'size-10 rounded-xl bg-white/10 hover:bg-accent hover:text-slate-900 flex items-center justify-center transition-colors'}>
+              <Icon size={size === 'sm' ? 15 : 18} aria-hidden />
+              <span className="sr-only">{isAr ? c.name.ar : c.name.en}{isAr ? ' (يفتح في نافذة جديدة)' : ' (opens in a new tab)'}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

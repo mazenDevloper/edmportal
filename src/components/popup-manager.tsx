@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { PopupMessage } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
+import { parseVideo } from '@/lib/video';
 
 interface PopupManagerProps {
   popups: PopupMessage[];
@@ -30,6 +31,7 @@ export function PopupManager({ popups }: PopupManagerProps) {
   }, [popups]);
 
   if (!activePopup) return null;
+  const video = activePopup.type === 'video' ? parseVideo(activePopup.mediaUrl) : null;
 
   return (
     <Dialog open={!!activePopup} onOpenChange={() => setActivePopup(null)}>
@@ -69,14 +71,16 @@ export function PopupManager({ popups }: PopupManagerProps) {
             </div>
           )}
 
-          {activePopup.type === 'video' && activePopup.mediaUrl && (
+          {activePopup.type === 'video' && video && (
             <div className="aspect-video w-full bg-black">
-              <iframe 
-                src={activePopup.mediaUrl.replace('watch?v=', 'embed/')} 
-                className="w-full h-full" 
-                allow="autoplay; encrypted-media" 
-                allowFullScreen 
-              />
+              {video.kind === 'youtube' ? (
+                <iframe src={video.embedUrl} title={isAr ? activePopup.titleAr : activePopup.titleEn || activePopup.titleAr}
+                  className="w-full h-full" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+              ) : video.kind === 'file' ? (
+                <video src={video.url} controls playsInline className="w-full h-full" />
+              ) : (
+                <a href={video.url} target="_blank" rel="noopener noreferrer" className="w-full h-full flex items-center justify-center text-white font-black underline">{isAr ? 'مشاهدة الفيديو' : 'Watch the video'}</a>
+              )}
             </div>
           )}
 

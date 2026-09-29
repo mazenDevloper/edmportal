@@ -11,6 +11,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
  * sent and verified by Thiqa on a server, which then issues an httpOnly session cookie.
  */
 
+/** National Thiqa sign-in used by the municipality's portals (SAML, opens the national identity provider) */
+export const THIQA_SSO_URL = 'https://main.edm.gov.om/theqa/sso?origin=dhofar';
+
 const SESSION_MS = 2 * 60 * 60 * 1000;
 const CODE_MS = 5 * 60 * 1000;
 const MAX_FAILURES = 5;
