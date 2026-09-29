@@ -342,7 +342,7 @@ function PageBuilderContent() {
     <div className="h-screen flex flex-col bg-slate-100 overflow-hidden" dir={isAr ? 'rtl' : 'ltr'}>
       {/* ─── Top bar ─── */}
       <header className="bg-slate-950 text-white h-16 px-4 flex items-center gap-3 shrink-0 z-30">
-        <Button variant="ghost" size="icon" asChild className="text-white/60 hover:text-white hover:bg-white/10 rounded-xl"><Link href="/admin" aria-label={t('رجوع', 'Back')}><ArrowRight className={cn(!isAr && 'rotate-180')} size={18} /></Link></Button>
+        <Button variant="ghost" size="icon" asChild className="text-white/60 hover:text-white hover:bg-white/10 rounded-xl"><Link href="/edmPortal" aria-label={t('رجوع', 'Back')}><ArrowRight className={cn(!isAr && 'rotate-180')} size={18} /></Link></Button>
         <div className="flex items-center gap-2 min-w-0">
           <span className="size-9 rounded-xl bg-[#03CFCB] text-slate-900 flex items-center justify-center shrink-0"><LayoutTemplate size={18} /></span>
           <div className="min-w-0">

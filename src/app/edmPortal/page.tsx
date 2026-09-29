@@ -31,7 +31,7 @@ import {
   Survey, CustomPage, PopupMessage, ServiceFlow, ServiceApplication, NewsItem,
   StaffUser, ServiceRole, UserRoleAssignment
 } from '@/lib/types';
-import { AccessControlCenter } from '@/components/admin/access-control-center';
+import { servicePrefixes } from '@/lib/service-visibility';
 import { ServiceFlowsPanel } from '@/components/admin/service-flows-panel';
 import {
   NewsTab, ApplicationsTab, PagesTab, MenuTab, BrandingTab, CarouselTab, PopupsTab,
@@ -107,6 +107,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [services, setServices] = useState<Service[]>([]);
+  const prefixes = React.useMemo(() => servicePrefixes(services), [services]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [flows, setFlows] = useState<ServiceFlow[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
@@ -120,6 +121,8 @@ export default function AdminDashboard() {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [serviceRoles, setServiceRoles] = useState<ServiceRole[]>([]);
   const [roleAssignments, setRoleAssignments] = useState<UserRoleAssignment[]>([]);
+  // Roles/assignments as loaded; written back only if the flows tab changed them
+  const loadedAccess = React.useRef('');
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
   // Keys the admin has no editor for (e.g. courses), kept so the JSON tab can edit them too
   const [otherKeys, setOtherKeys] = useState<Record<string, unknown>>({});
@@ -143,6 +146,7 @@ export default function AdminDashboard() {
     setTickerItems(newsItems || []);
     setStaffUsers(staffUsers || []);
     setServiceRoles(serviceRoles || []);
+    loadedAccess.current = JSON.stringify([serviceRoles || [], userRoleAssignments || []]);
     setRoleAssignments(userRoleAssignments || []);
     setOtherKeys(rest);
   };
@@ -174,9 +178,8 @@ export default function AdminDashboard() {
     applications,
     newsTickerText: tickerText,
     newsItems: tickerItems,
-    staffUsers,
-    serviceRoles,
-    userRoleAssignments: roleAssignments
+    // Staff accounts are owned by /edmEmp and never written from here; roles only when the flows tab changed them
+    ...(JSON.stringify([serviceRoles, roleAssignments]) !== loadedAccess.current ? { serviceRoles, userRoleAssignments: roleAssignments } : {}),
   });
 
   const handleGlobalSave = async () => {
@@ -184,6 +187,7 @@ export default function AdminDashboard() {
     try {
       const remoteDb = await fetchBin();
       await updateBin({ ...remoteDb, ...currentDb() });
+      loadedAccess.current = JSON.stringify([serviceRoles, roleAssignments]);
       toast({ title: isAr ? "تم حفظ كافة التغييرات بنجاح" : "All changes saved successfully" });
     } catch (e) {
       toast({ title: "Save Failed", variant: "destructive" });
@@ -450,7 +454,7 @@ export default function AdminDashboard() {
                      <div className="relative w-full sm:w-96"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} /><Input placeholder={isAr ? "ابحث عن خدمة..." : "Search services..."} className="pl-10 rounded-xl h-11" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                      <div className="flex gap-3"><Button variant="outline" onClick={handleExecuteMasterSeed} className="rounded-full px-6 font-black border-slate-200">MASTER SEED</Button><Button asChild className="dm-gradient-primary rounded-full px-8 font-black"><Link href="/servicebuild">+ {isAr ? "إضافة خدمة" : "Add Service"}</Link></Button></div>
                   </div>
-                  <div className="bg-white border rounded-[2.5rem] overflow-hidden shadow-xl"><Table><TableHeader className="bg-slate-50"><TableRow><TableHead className="p-6 font-black">{isAr ? "الخدمة" : "Service"}</TableHead><TableHead className="p-6 font-black">{isAr ? "الفئة" : "Category"}</TableHead><TableHead className="p-6 font-black text-center">{isAr ? "ظاهرة للعامة" : "Visible"}</TableHead><TableHead className="p-6 font-black text-center">{isAr ? "مميزة" : "Featured"}</TableHead><TableHead className="p-6 font-black">{isAr ? "إجراء" : "Action"}</TableHead></TableRow></TableHeader><TableBody>{filteredServices.map(s => (<TableRow key={s.id} className={cn("hover:bg-slate-50 transition-colors", s.isActive === false && "opacity-50")}><TableCell className="p-6 font-bold"><div className="flex items-center gap-4"><div className="size-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center">{React.createElement((Icons as any)[s.iconName] || Icons.FileText, { size: 20 })}</div><div><p className="text-sm">{isAr ? s.title : (s.titleEn || s.title)}</p><p className="text-[9px] text-slate-400 uppercase font-mono tracking-tighter">{s.id}</p></div></div></TableCell><TableCell className="p-6"><Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-500">{s.category}</Badge></TableCell><TableCell className="p-6 text-center"><Switch checked={s.isActive !== false} aria-label={isAr ? "إظهار الخدمة للعامة" : "Show service publicly"} onCheckedChange={(val) => setServices(prev => prev.map(item => item.id === s.id ? {...item, isActive: val} : item))} className="mx-auto data-[state=checked]:bg-emerald-500" /></TableCell><TableCell className="p-6 text-center"><Switch checked={s.isFeatured || false} onCheckedChange={(val) => setServices(prev => prev.map(item => item.id === s.id ? {...item, isFeatured: val} : item))} className="mx-auto data-[state=checked]:bg-accent" /></TableCell><TableCell className="p-6"><div className="flex gap-2"><Button variant="ghost" size="icon" asChild className="text-primary hover:bg-primary/5 rounded-xl"><Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link></Button><Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={16}/></Button></div></TableCell></TableRow>))}</TableBody></Table></div>
+                  <div className="bg-white border rounded-[2.5rem] overflow-hidden shadow-xl"><Table><TableHeader className="bg-slate-50"><TableRow><TableHead className="p-6 font-black">{isAr ? "الخدمة" : "Service"}</TableHead><TableHead className="p-6 font-black">{isAr ? "الفئة" : "Category"}</TableHead><TableHead className="p-6 font-black text-center">{isAr ? "ظاهرة للعامة" : "Visible"}</TableHead><TableHead className="p-6 font-black text-center">{isAr ? "مميزة" : "Featured"}</TableHead><TableHead className="p-6 font-black">{isAr ? "إجراء" : "Action"}</TableHead></TableRow></TableHeader><TableBody>{filteredServices.map(s => (<TableRow key={s.id} className={cn("hover:bg-slate-50 transition-colors", s.isPublic !== true && "opacity-50")}><TableCell className="p-6 font-bold"><div className="flex items-center gap-4"><div className="size-10 rounded-xl bg-primary/5 text-primary flex items-center justify-center">{React.createElement((Icons as any)[s.iconName] || Icons.FileText, { size: 20 })}</div><div><p className="text-sm">{isAr ? s.title : (s.titleEn || s.title)}</p><p className="text-[9px] text-slate-400 uppercase font-mono tracking-tighter">{s.id} · <span className="text-primary font-black" title={isAr ? "رمز رقم المعاملة" : "Transaction number code"}>{prefixes.get(s.id)}-00000</span></p></div></div></TableCell><TableCell className="p-6"><Badge variant="secondary" className="rounded-lg bg-slate-100 text-slate-500">{s.category}</Badge></TableCell><TableCell className="p-6 text-center"><Switch checked={s.isPublic === true} aria-label={isAr ? "إظهار الخدمة للعامة" : "Show service publicly"} onCheckedChange={(val) => setServices(prev => prev.map(item => item.id === s.id ? {...item, isPublic: val} : item))} className="mx-auto data-[state=checked]:bg-emerald-500" /></TableCell><TableCell className="p-6 text-center"><Switch checked={s.isFeatured || false} onCheckedChange={(val) => setServices(prev => prev.map(item => item.id === s.id ? {...item, isFeatured: val} : item))} className="mx-auto data-[state=checked]:bg-accent" /></TableCell><TableCell className="p-6"><div className="flex gap-2"><Button variant="ghost" size="icon" asChild className="text-primary hover:bg-primary/5 rounded-xl"><Link href={`/servicebuild?id=${s.id}`}><Edit2 size={16}/></Link></Button><Button variant="ghost" size="icon" onClick={() => setServices(services.filter(svc => svc.id !== s.id))} className="text-red-400 hover:bg-red-50 rounded-xl"><Trash2 size={16}/></Button></div></TableCell></TableRow>))}</TableBody></Table></div>
                </div>
             )}
 
@@ -469,18 +473,12 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === 'access' && (
-              <AccessControlCenter
-                isAr={isAr}
-                services={services}
-                staffUsers={staffUsers}
-                setStaffUsers={setStaffUsers}
-                serviceRoles={serviceRoles}
-                setServiceRoles={setServiceRoles}
-                roleAssignments={roleAssignments}
-                setRoleAssignments={setRoleAssignments}
-                flows={flows}
-                setFlows={setFlows}
-              />
+              <div className="bg-white rounded-[2.5rem] border shadow-sm p-10 text-center space-y-4">
+                <UserCog size={40} className="mx-auto text-primary" />
+                <h2 className="text-2xl font-black text-slate-900">{isAr ? 'إدارة الموظفين والصلاحيات انتقلت إلى لوحة تحكم الموظفين' : 'Staff and permissions now live in the staff control panel'}</h2>
+                <p className="font-bold text-slate-500">{isAr ? 'حسابات الموظفين، إعادة تعيين كلمات المرور، الأدوار والصلاحيات، والقائمة الافتراضية.' : 'Staff accounts, password resets, roles and permissions, and the default list.'}</p>
+                <Button asChild className="dm-gradient-primary rounded-full px-8 font-black"><Link href="/edmEmp">{isAr ? 'فتح لوحة تحكم الموظفين' : 'Open the staff control panel'}</Link></Button>
+              </div>
             )}
 
             {activeTab === 'news' && <NewsTab isAr={isAr} news={news} setNews={setNews} />}

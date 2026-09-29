@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Service, SiteConfig, CarouselItem, Survey, PopupMessage, NewsItem } from '@/lib/types';
+import { isPublicService } from '@/lib/service-visibility';
 import { cn } from '@/lib/utils';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
@@ -38,6 +39,8 @@ import {
 } from "@/components/ui/carousel";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { TrackLookup } from '@/components/citizen/track-lookup';
 
 export default function DhofarPortal() {
   const { language } = useSettingsStore();
@@ -47,7 +50,7 @@ export default function DhofarPortal() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [submittingSurvey, setSubmittingSurvey] = useState(false);
-  const [pkiStatus, setPkiStatus] = useState<'connected' | 'disconnected'>('connected');
+  const citizen = useCitizen();
   const [services, setServices] = useState<Service[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [menuItems, setMenuItems] = useState([]);
@@ -63,7 +66,7 @@ export default function DhofarPortal() {
         const data = await fetchBin();
         if (data) {
           // Services switched off in the control panel are hidden from the public
-          setServices((data.services || []).filter((s: Service) => s.isActive !== false));
+          setServices((data.services || []).filter(isPublicService));
           setSiteConfig(data.siteConfig || null);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
@@ -169,13 +172,24 @@ export default function DhofarPortal() {
                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{isAr ? "نظام المصادقة الوطنية" : "National Auth System"}</p>
                          </div>
                        </div>
-                       <Badge className={cn("rounded-full border-none px-6 py-2 font-black text-[10px]", pkiStatus === 'connected' ? "bg-emerald-600 text-white" : "bg-amber-600 text-white")}>
-                         {pkiStatus === 'connected' ? (isAr ? "نشط وآمن" : "Active & Secure") : (isAr ? "غير مفعل" : "Inactive")}
+                       <Badge className={cn("rounded-full border-none px-6 py-2 font-black text-[10px]", citizen ? "bg-emerald-600 text-white" : "bg-slate-500 text-white")}>
+                         {citizen ? (isAr ? "مسجل الدخول" : "Signed in") : (isAr ? "غير مسجل" : "Signed out")}
                        </Badge>
                     </div>
-                    <Button onClick={() => setPkiStatus(pkiStatus === 'connected' ? 'disconnected' : 'connected')} className="w-full h-20 dm-gradient-primary rounded-[2rem] font-black shadow-2xl gap-5 text-xl">
-                      <Fingerprint size={28} /> {isAr ? "تسجيل دخول رقمي آمن" : "Secure Digital Sign-In"}
-                    </Button>
+                    {citizen ? (
+                      <div className="flex items-center justify-between gap-3 p-5 rounded-[2rem] bg-emerald-50">
+                        <p className="font-black text-emerald-800">{isAr ? "مسجل عبر ثقة" : "Signed in with Thiqa"} <span dir="ltr" className="font-mono">{maskPhone(citizen)}</span></p>
+                        <Button variant="ghost" onClick={() => useCitizenSession.getState().signOut()} className="font-black text-slate-600">{isAr ? "خروج" : "Sign out"}</Button>
+                      </div>
+                    ) : (
+                      <Button onClick={() => useCitizenSession.getState().openPrompt()} className="w-full h-20 dm-gradient-primary rounded-[2rem] font-black shadow-2xl gap-5 text-xl">
+                        <Fingerprint size={28} /> {isAr ? "تسجيل الدخول عبر ثقة" : "Sign in with Thiqa"}
+                      </Button>
+                    )}
+                    <div className="pt-8 border-t border-slate-100 space-y-3">
+                      <h2 className="font-black text-xl text-slate-800">{isAr ? "الاستعلام عن حالة معاملة" : "Track a request"}</h2>
+                      <TrackLookup isAr={isAr} compact />
+                    </div>
                  </div>
                </motion.div>
              </div>

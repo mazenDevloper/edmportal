@@ -116,7 +116,7 @@ export function PortalFooter({ siteConfig, variant = 'full' }: PortalFooterProps
                 {g.id === 'important' && (
                   <>
                     <li className="mt-4"><Link href="/staff" className="text-sm font-black text-white bg-white/10 inline-block px-4 py-2 rounded-lg hover:bg-white/15">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link></li>
-                    {isAdmin && <li><Link href="/admin" className="text-sm font-black text-accent bg-white/5 inline-block px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link></li>}
+                    {isAdmin && <li><Link href="/edmPortal" className="text-sm font-black text-accent bg-white/5 inline-block px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link></li>}
                   </>
                 )}
               </ul>

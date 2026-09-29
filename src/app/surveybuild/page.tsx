@@ -362,7 +362,7 @@ function SurveyBuilder() {
       {/* Top bar */}
       <header className="h-16 shrink-0 bg-white border-b flex items-center gap-3 px-4">
         <Button asChild variant="ghost" size="icon" className="rounded-xl" aria-label={t('رجوع', 'Back')}>
-          <Link href="/admin"><ArrowLeft size={18} className={cn(isAr && '-scale-x-100')} /></Link>
+          <Link href="/edmPortal"><ArrowLeft size={18} className={cn(isAr && '-scale-x-100')} /></Link>
         </Button>
         <span className="size-9 rounded-xl bg-secondary text-white flex items-center justify-center"><ClipboardList size={18} aria-hidden /></span>
         <div className="min-w-0">

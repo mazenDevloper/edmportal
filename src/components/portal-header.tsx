@@ -65,7 +65,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
             setAiName(translatedText);
           }
         }
-        if (pathname === '/') { setEditLink('/admin'); return; }
+        if (pathname === '/') { setEditLink('/edmPortal'); return; }
         if (!data) return;
         if (pathname.startsWith('/p/')) {
           const slug = pathname.split('/').pop();
@@ -92,7 +92,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
   const tickerOn = showTicker ?? variant === 'full';
   const topBarOn = (showTopBar ?? variant === 'full') && (isAdmin || isStaff);
   // Menu entries that point at admin-only pages are hidden from everyone but admins
-  const ADMIN_ONLY = /^\/(admin|pagebuild|servicebuild|surveybuild|identity\/board)(\/|\?|$)/;
+  const ADMIN_ONLY = /^\/(admin|edmPortal|edmEmp|pagebuild|servicebuild|surveybuild|identity\/board)(\/|\?|$)/;
   const orderedMenu = [...(menuItems || [])].filter(m => isAdmin || !ADMIN_ONLY.test(m.link || '')).sort((a, b) => a.order - b.order);
 
   if (variant === 'minimal') {
@@ -146,7 +146,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
             </Link>
             {isAdmin && (
               <>
-                <Link href="/admin" className="text-primary hover:underline flex items-center gap-2 font-black">
+                <Link href="/edmPortal" className="text-primary hover:underline flex items-center gap-2 font-black">
                   <LayoutDashboard size={14} /> {isAr ? 'لوحة التحكم' : 'Admin'}
                 </Link>
                 <button type="button" onClick={adminSignOut} className="text-white/70 hover:text-white flex items-center gap-2 font-black">

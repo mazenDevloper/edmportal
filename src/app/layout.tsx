@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 import { useSettingsStore } from '@/lib/settings-store';
 import { AccessibilityToolbar } from '@/components/accessibility-toolbar';
+import { ServiceAssistant } from '@/components/citizen/service-assistant';
+import { ThiqaDialogHost } from '@/components/citizen/thiqa-dialog';
 import { useEffect, useState } from 'react';
 
 export default function RootLayout({
@@ -49,6 +51,8 @@ export default function RootLayout({
             {children}
           </div>
           {mounted && <AccessibilityToolbar />}
+          {mounted && <ServiceAssistant />}
+          {mounted && <ThiqaDialogHost />}
           <Toaster />
         </FirebaseClientProvider>
       </body>

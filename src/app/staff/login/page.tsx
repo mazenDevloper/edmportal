@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/lib/settings-store';
-import { fetchBin } from '@/lib/jsonbin';
+import { fetchBin, updateBin } from '@/lib/jsonbin';
+import { hashPassword, passwordProblems } from '@/lib/staff-password';
 import { StaffUser } from '@/lib/types';
 import { useStaffSession, verifyCredentials, verifyThiqa } from '@/lib/staff-session';
 import { cn } from '@/lib/utils';
@@ -24,7 +25,11 @@ function StaffLogin() {
 
   const [method, setMethod] = useState<'credentials' | 'thiqa'>('credentials');
   const [employeeNumber, setEmployeeNumber] = useState('');
-  const [civilNumber, setCivilNumber] = useState('');
+  const [password, setPassword] = useState('');
+  // First sign-in after a reset: the temporary password must be replaced before entering
+  const [mustChange, setMustChange] = useState<StaffUser | null>(null);
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
   const [thiqaCivil, setThiqaCivil] = useState('');
   const [staff, setStaff] = useState<StaffUser[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,7 +56,7 @@ function StaffLogin() {
     setError(null);
     // Small delay so the result isn't instant (limits casual guessing)
     await new Promise(r => setTimeout(r, 500));
-    const user = method === 'credentials' ? verifyCredentials(staff, employeeNumber, civilNumber) : verifyThiqa(staff, thiqaCivil);
+    const user = method === 'credentials' ? await verifyCredentials(staff, employeeNumber, password) : verifyThiqa(staff, thiqaCivil);
     setBusy(false);
     if (!user) {
       recordFailure();
@@ -61,8 +66,32 @@ function StaffLogin() {
         : t('لم يتم العثور على حساب موظف مرتبط بهذه الهوية في ثقة.', 'No employee account is linked to this Thiqa identity.'));
       return;
     }
+    if (method === 'credentials' && user.mustChangePassword) { setPassword(''); setMustChange(user); return; }
     signIn(user.id, method);
     router.replace(target);
+  };
+
+  const pwProblems = passwordProblems(newPw, isAr);
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mustChange || pwProblems.length || newPw !== confirmPw) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const passwordHash = await hashPassword(newPw);
+      const db = await fetchBin();
+      await updateBin({
+        ...db,
+        staffUsers: (db.staffUsers || []).map((u: StaffUser) => u.id === mustChange.id
+          ? { ...u, passwordHash, mustChangePassword: false, passwordUpdatedAt: new Date().toISOString() } : u),
+      });
+      signIn(mustChange.id, 'credentials');
+      router.replace(target);
+    } catch {
+      setError(t('تعذّر حفظ كلمة المرور. حاول مرة أخرى.', 'Could not save the password. Try again.'));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -91,8 +120,35 @@ function StaffLogin() {
               <p className="text-sm font-bold text-slate-500">{t('اختر طريقة الدخول', 'Choose how to sign in')}</p>
             </div>
 
+            {mustChange ? (
+              <form onSubmit={changePassword} className="bg-white rounded-3xl shadow-xl ring-1 ring-slate-100 p-6 space-y-5" noValidate aria-labelledby="change-pw-title">
+                <div className="space-y-1">
+                  <h3 id="change-pw-title" className="text-xl font-black text-slate-900">{t('عيّن كلمة مرور جديدة', 'Set a new password')}</h3>
+                  <p className="text-sm font-bold text-slate-500">{t(`مرحباً ${mustChange.nameAr}. كلمة المرور الحالية مؤقتة، اختر كلمة مرور خاصة بك للمتابعة.`, `Welcome ${mustChange.nameEn || mustChange.nameAr}. Your current password is temporary; choose your own to continue.`)}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="new-pw" className="font-black text-slate-600">{t('كلمة المرور الجديدة', 'New password')}</Label>
+                  <Input id="new-pw" type="password" autoComplete="new-password" dir="ltr" autoFocus value={newPw} onChange={e => setNewPw(e.target.value)} aria-describedby="new-pw-rules" className="h-12 rounded-xl" />
+                  <ul id="new-pw-rules" className="text-[11px] font-bold space-y-0.5">
+                    {passwordProblems('', isAr).map(rule => {
+                      const ok = !pwProblems.includes(rule);
+                      return <li key={rule} className={ok ? 'text-emerald-700' : 'text-slate-400'}>{ok ? '✓' : '•'} {rule}</li>;
+                    })}
+                  </ul>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirm-pw" className="font-black text-slate-600">{t('تأكيد كلمة المرور', 'Confirm password')}</Label>
+                  <Input id="confirm-pw" type="password" autoComplete="new-password" dir="ltr" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} aria-invalid={!!confirmPw && confirmPw !== newPw} className="h-12 rounded-xl" />
+                  {!!confirmPw && confirmPw !== newPw && <p className="text-xs font-bold text-red-700">{t('كلمتا المرور غير متطابقتين.', 'The passwords do not match.')}</p>}
+                </div>
+                {error && <p role="alert" className="flex gap-2 p-3 rounded-xl bg-red-50 text-sm font-bold text-red-700"><AlertTriangle size={16} className="shrink-0" />{error}</p>}
+                <Button type="submit" disabled={busy || pwProblems.length > 0 || newPw !== confirmPw} className="w-full h-12 rounded-2xl font-black gap-2 dm-gradient-primary text-slate-900">
+                  {busy ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}{t('حفظ والدخول', 'Save and sign in')}
+                </Button>
+              </form>
+            ) : (<>
             <div role="tablist" aria-label={t('طريقة الدخول', 'Sign-in method')} className="grid grid-cols-2 gap-2 p-1.5 bg-white rounded-2xl shadow-sm ring-1 ring-slate-100">
-              {([['credentials', KeyRound, t('الرقم الوظيفي + المدني', 'Employee + civil no.')], ['thiqa', Fingerprint, t('الدخول عبر ثقة', 'Sign in with Thiqa')]] as const).map(([m, Icon, label]) => (
+              {([['credentials', KeyRound, t('الرقم الوظيفي وكلمة المرور', 'Employee no. + password')], ['thiqa', Fingerprint, t('الدخول عبر ثقة', 'Sign in with Thiqa')]] as const).map(([m, Icon, label]) => (
                 <button key={m} type="button" role="tab" aria-selected={method === m} aria-controls={`panel-${m}`} onClick={() => { setMethod(m); setError(null); }}
                   className={cn('h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-black transition-colors', method === m ? 'bg-secondary text-white shadow' : 'text-slate-500 hover:bg-slate-50')}>
                   <Icon size={17} />{label}
@@ -111,12 +167,12 @@ function StaffLogin() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="civil" className="font-black text-slate-600">{t('الرقم المدني', 'Civil number')}</Label>
+                    <Label htmlFor="staff-pw" className="font-black text-slate-600">{t('كلمة المرور', 'Password')}</Label>
                     <div className="relative">
-                      <ShieldCheck size={17} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
-                      <Input id="civil" type="password" inputMode="numeric" autoComplete="current-password" dir="ltr" required value={civilNumber} onChange={e => setCivilNumber(e.target.value.replace(/\D/g, ''))} className="h-12 ps-10 rounded-xl font-mono text-lg" />
+                      <KeyRound size={17} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+                      <Input id="staff-pw" type="password" autoComplete="current-password" dir="ltr" required value={password} onChange={e => setPassword(e.target.value)} className="h-12 ps-10 rounded-xl" />
                     </div>
-                    <p className="text-[11px] font-bold text-slate-400">{t('يجب أن يتطابق الرقمان مع بياناتك المسجلة لدى الموارد البشرية.', 'Both numbers must match your HR record.')}</p>
+                    <p className="text-[11px] font-bold text-slate-400">{t('نسيت كلمة المرور؟ تواصل مع مسؤول النظام لإعادة تعيينها.', 'Forgot your password? Ask the system administrator to reset it.')}</p>
                   </div>
                 </div>
               ) : (
@@ -137,12 +193,13 @@ function StaffLogin() {
                 {locked && <p role="alert" className="flex gap-2 p-3 rounded-xl bg-red-50 text-sm font-bold text-red-700"><AlertTriangle size={16} className="shrink-0" />{t(`محاولات كثيرة. حاول بعد ${lockSeconds} ثانية.`, `Too many attempts. Try again in ${lockSeconds}s.`)}</p>}
               </div>
 
-              <Button type="submit" disabled={busy || locked || !staff || (method === 'credentials' ? !employeeNumber || !civilNumber : !thiqaCivil)}
+              <Button type="submit" disabled={busy || locked || !staff || (method === 'credentials' ? !employeeNumber || !password : !thiqaCivil)}
                 className={cn('w-full h-13 py-3.5 rounded-2xl font-black text-lg gap-2', method === 'thiqa' ? 'bg-secondary hover:bg-secondary/90 text-white' : 'dm-gradient-primary text-slate-900')}>
                 {busy || !staff ? <Loader2 className="animate-spin" size={18} /> : method === 'thiqa' ? <Fingerprint size={18} /> : <KeyRound size={18} />}
                 {method === 'thiqa' ? t('المتابعة عبر ثقة', 'Continue with Thiqa') : t('دخول', 'Sign in')}
               </Button>
             </form>
+            </>)}
 
             <p className="text-center text-xs font-bold text-slate-400">
               {t('لست موظفاً؟', 'Not staff?')} <Link href="/" className="text-secondary underline">{t('بوابة الخدمات للمواطنين', 'Citizen services portal')}</Link>

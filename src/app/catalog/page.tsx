@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { fetchBin } from '@/lib/jsonbin';
 import { Service, SiteConfig } from '@/lib/types';
+import { isPublicService } from '@/lib/service-visibility';
 import { CAT_CONFIG, CategoryId } from '@/lib/constants';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
@@ -54,7 +55,7 @@ export default function ServiceCatalogPage() {
     fetchBin().then(data => {
       if (data) {
         // Services switched off in the control panel are hidden from the public
-        setServices((data.services || []).filter((s: Service) => s.isActive !== false));
+        setServices((data.services || []).filter(isPublicService));
         setSiteConfig(data.siteConfig || null);
       }
       setLoading(false);

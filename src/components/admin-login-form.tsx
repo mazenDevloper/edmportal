@@ -1,9 +1,8 @@
 'use client';
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Eye, EyeOff, Fingerprint, KeyRound, Languages, Loader2, LockKeyhole, Smartphone, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,16 +11,12 @@ import { useSettingsStore } from '@/lib/settings-store';
 import { useAdminSession, verifyAdminCredentials, verifyAdminThiqa } from '@/lib/admin-session';
 import { cn } from '@/lib/utils';
 
-/** Only same-site admin destinations are allowed after sign-in */
-const safeNext = (next: string | null) => (next && next.startsWith('/') && !next.startsWith('//') ? next : '/admin');
-
-function AdminLogin() {
-  const router = useRouter();
-  const target = safeNext(useSearchParams().get('next'));
+/** Sign-in shown in place of an admin panel (/edmPortal, /edmEmp) until the admin session is valid */
+export function AdminLoginForm({ panelAr = 'لوحة التحكم', panelEn = 'Control panel' }: { panelAr?: string; panelEn?: string }) {
   const { language, setLanguage } = useSettingsStore();
   const isAr = language === 'ar';
   const t = (ar: string, en: string) => (isAr ? ar : en);
-  const { expiresAt, lockedUntil, signIn, recordFailure } = useAdminSession();
+  const { lockedUntil, signIn, recordFailure } = useAdminSession();
 
   const [method, setMethod] = useState<'credentials' | 'thiqa'>('credentials');
   const [username, setUsername] = useState('');
@@ -35,7 +30,6 @@ function AdminLogin() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
-  useEffect(() => { if (mounted && expiresAt > Date.now()) router.replace(target); }, [mounted, expiresAt, router, target]);
   useEffect(() => {
     if (lockedUntil <= now) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -63,7 +57,6 @@ function AdminLogin() {
       return;
     }
     signIn(method);
-    router.replace(target);
   };
 
   return (
@@ -75,7 +68,7 @@ function AdminLogin() {
           <span className="text-2xl font-black">{t('بلدية ظفار', 'Dhofar Municipality')}</span>
         </div>
         <div className="relative space-y-4">
-          <h1 className="text-5xl font-black leading-tight">{t('لوحة التحكم', 'Control panel')}</h1>
+          <h1 className="text-5xl font-black leading-tight">{t(panelAr, panelEn)}</h1>
           <p className="text-lg font-medium text-white/80 max-w-md">{t('إدارة الخدمات والصفحات والاستطلاعات والهوية والصلاحيات.', 'Manage services, pages, surveys, identity and permissions.')}</p>
         </div>
         <p className="relative text-xs font-bold text-white/60">{t('للمشرفين المخوّلين فقط. تُسجَّل محاولات الدخول.', 'Authorised administrators only. Sign-in attempts are recorded.')}</p>
@@ -164,6 +157,3 @@ function AdminLogin() {
   );
 }
 
-export default function AdminLoginPage() {
-  return <Suspense fallback={null}><AdminLogin /></Suspense>;
-}

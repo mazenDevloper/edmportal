@@ -74,6 +74,10 @@ export interface Service {
   customIconUrl?: string;
   category: string;
   isActive: boolean;
+  /** Shown to the public (home, catalogue, guide, assistant). Hidden unless explicitly true. */
+  isPublic?: boolean;
+  /** Two letters that start this service's transaction numbers, e.g. "SL" → SL-00482 */
+  refPrefix?: string;
   isFeatured?: boolean;
   reqsAr: string[];
   reqsEn: string[];
@@ -92,6 +96,8 @@ export interface ServiceApplication {
   serviceId: string;
   serviceName: string;
   citizenName: string;
+  /** Mobile number the beneficiary signed in with through Thiqa */
+  applicantPhone?: string;
   status: 'pending' | 'in-review' | 'approved' | 'rejected';
   data: Record<string, any>;
   createdAt: string;
@@ -359,6 +365,13 @@ export interface StaffUser {
   civilNumber?: string;
   isActive: boolean;
   isSuperAdmin?: boolean;
+  /** PBKDF2 hash (see staff-password.ts); never the plain password */
+  passwordHash?: string;
+  /** Set by a reset: the temporary password must be replaced at the next sign-in */
+  mustChangePassword?: boolean;
+  passwordUpdatedAt?: string;
+  jobTitle?: string;
+  phone?: string;
   createdAt: string;
 }
 

@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { StaffUser } from './types';
+import { verifyPassword } from './staff-password';
 
 /*
  * Staff sign-in for the internal portal.
@@ -52,11 +53,14 @@ export const useStaffSession = create<StaffSessionState>()(
 
 const normalize = (v: string) => v.replace(/\s|-/g, '');
 
-/** Employee number AND civil number must both belong to the same active employee */
-export function verifyCredentials(staff: StaffUser[], employeeNumber: string, civilNumber: string): StaffUser | null {
-  const emp = normalize(employeeNumber), civil = normalize(civilNumber);
-  if (!emp || !civil) return null;
-  return staff.find(u => u.isActive && u.employeeNumber === emp && !!u.civilNumber && normalize(u.civilNumber) === civil) || null;
+/** Employee number + password of an active employee (async: the password check is PBKDF2) */
+export async function verifyCredentials(staff: StaffUser[], employeeNumber: string, password: string): Promise<StaffUser | null> {
+  const emp = normalize(employeeNumber);
+  if (!emp || !password) return null;
+  const user = staff.find(u => u.isActive && u.employeeNumber === emp);
+  // Hash anyway when the user is unknown, so timing doesn't reveal which employee numbers exist
+  const ok = await verifyPassword(password, user?.passwordHash || 'pbkdf2$150000$00$00');
+  return user && ok ? user : null;
 }
 
 /** Simulated Thiqa: the civil number Thiqa would return is matched to an active employee */

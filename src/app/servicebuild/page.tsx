@@ -340,7 +340,7 @@ function WorkflowEngineContent() {
         userRoleAssignments: roleAssignments
       });
       toast({ title: "Saved Successfully" });
-      router.push('/admin');
+      router.push('/edmPortal');
     } finally { setSaving(false); }
   };
 

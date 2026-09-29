@@ -7,6 +7,7 @@ import { InfoPageShell, useLang } from '@/components/legal/info-page';
 import { fetchBin } from '@/lib/jsonbin';
 import { Bi, FOOTER_GROUPS, SITE_LAST_UPDATED } from '@/lib/footer-pages';
 import { CustomPage, Service } from '@/lib/types';
+import { isPublicService } from '@/lib/service-visibility';
 
 type Entry = { href: string; label: Bi; external?: boolean };
 
@@ -25,7 +26,7 @@ export default function SitemapPage() {
 
   useEffect(() => {
     fetchBin().then(db => {
-      setServices((db.services || []).filter((s: Service) => s.isActive !== false));
+      setServices((db.services || []).filter(isPublicService));
       setPages((db.customPages || []).filter((p: CustomPage) => p.status !== 'draft'));
     }).catch(() => {});
   }, []);

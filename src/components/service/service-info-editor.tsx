@@ -116,6 +116,8 @@ export function ServiceInfoEditor({ isAr, value, onChange }: Props) {
           </div>
           <div className="space-y-2 pt-5">
             <label className="flex items-center justify-between text-xs font-bold">{t('الخدمة مفعّلة', 'Active')}<Switch checked={value.isActive !== false} onCheckedChange={v => set({ isActive: v })} /></label>
+            <label className="flex items-center justify-between text-xs font-bold">{t('ظاهرة للعامة', 'Visible to the public')}<Switch checked={value.isPublic === true} onCheckedChange={v => set({ isPublic: v })} /></label>
+            <label className="flex items-center justify-between gap-2 text-xs font-bold">{t('رمز رقم المعاملة (حرفان)', 'Transaction number code (2 letters)')}<input value={value.refPrefix || ''} onChange={e => set({ refPrefix: e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2) || undefined })} placeholder={t('تلقائي', 'Auto')} dir="ltr" maxLength={2} className="w-16 h-8 rounded-lg border px-2 text-center font-mono font-black uppercase" /></label>
             <label className="flex items-center justify-between text-xs font-bold">{t('خدمة مميزة', 'Featured')}<Switch checked={!!value.isFeatured} onCheckedChange={v => set({ isFeatured: v })} /></label>
           </div>
         </div>
