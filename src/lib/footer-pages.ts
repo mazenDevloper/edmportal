@@ -511,6 +511,8 @@ export const FOOTER_GROUPS: { id: 'legal' | 'services' | 'important'; title: Bi;
   { id: 'important', title: { ar: 'روابط هامة', en: 'Important links' }, links: [
     { href: '/governor-portal', label: { ar: 'البوابة الرسمية لمحافظ ظفار', en: 'Governor of Dhofar portal' } },
     { href: '/tajawoob', label: { ar: 'المنصة الوطنية للمقترحات والشكاوى والبلاغات (تجاوب)', en: 'Tajawob (suggestions & complaints)' } },
+    { href: '/participation', label: { ar: 'المشاركة الرقمية', en: 'Digital participation' } },
+    { href: '/identity', label: { ar: 'دليل الهوية البصرية', en: 'Visual identity guide' } },
     { href: '/sitemap', label: { ar: 'خريطة الموقع', en: 'Sitemap' } },
   ] },
 ];

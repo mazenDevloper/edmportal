@@ -41,6 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { BrandEmblem } from '@/components/brand-logo';
 import { TrackLookup } from '@/components/citizen/track-lookup';
 
 /** Counts up once when the figures scroll into view (instant for reduced motion) */
@@ -108,7 +109,7 @@ function NewsImage({ src }: { src?: string }) {
     return (
       <div className="w-full h-full bg-gradient-to-br from-[#005751] via-[#008E91] to-[#470D67] relative">
         <div aria-hidden className="absolute inset-0 dm-pattern-landmark opacity-20" />
-        <img src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="" className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 opacity-30 brightness-0 invert" />
+        <span className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-30"><BrandEmblem height={120} onDark /></span>
       </div>
     );
   }

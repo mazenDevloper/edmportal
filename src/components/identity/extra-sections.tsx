@@ -16,8 +16,8 @@ import { cn } from '@/lib/utils';
 type CopyFn = (text: string, label?: string) => void;
 interface P { isAr: boolean; copy: CopyFn }
 
-const LOGO_ICON = 'https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png';
-const LOGO_FULL = 'https://imagetourl.cloud/a90z81isxaf9.png';
+// Official logo (bilingual wordmark + emblem)
+const LOGO_FULL = '/brand/dhofar-municipality-logo.png';
 
 export const EXTRA_SECTIONS = {
   logo: { id: 'logo', ar: 'الشعار', en: 'Logo' },
@@ -101,7 +101,7 @@ export function LogoSection({ isAr, copy }: P) {
             {variants.map(v => (
               <figure key={v.label} className={cn('rounded-2xl ring-1 p-4 flex flex-col items-center gap-3', v.bg, v.ring)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_ICON} alt="" className={cn('h-14 w-14', v.img)} />
+                <img src={LOGO_FULL} alt="" className={cn('h-14 w-auto object-contain', v.img)} />
                 <figcaption className={cn('text-[11px] font-black', v.bg === 'bg-white' || v.bg === 'bg-slate-100' ? 'text-slate-600' : 'text-white/80')}>{v.label}</figcaption>
               </figure>
             ))}
@@ -113,7 +113,7 @@ export function LogoSection({ isAr, copy }: P) {
           <figure key={d.label} className="bg-white rounded-2xl ring-1 ring-red-100 p-4 flex flex-col items-center gap-3">
             <div className="relative h-16 flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={LOGO_ICON} alt="" className="h-12 w-12 object-contain" style={d.style} />
+              <img src={LOGO_FULL} alt="" className="h-12 w-auto object-contain" style={d.style} />
               <SquareX size={20} className="absolute -top-1 -end-5 text-red-500" aria-hidden />
             </div>
             <figcaption className="text-xs font-black text-red-700">{d.label}</figcaption>

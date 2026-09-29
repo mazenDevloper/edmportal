@@ -1,7 +1,6 @@
 'use client';
 
 import React, { Suspense, useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Fingerprint, IdCard, KeyRound, Languages, Loader2, ShieldCheck } from 'lucide-react';
@@ -13,6 +12,7 @@ import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { hashPassword, passwordProblems } from '@/lib/staff-password';
 import { StaffUser } from '@/lib/types';
 import { useStaffSession, verifyCredentials, verifyThiqa } from '@/lib/staff-session';
+import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
 
 function StaffLogin() {
@@ -99,8 +99,7 @@ function StaffLogin() {
       <aside className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-[#0f9e9b] to-[#005751] text-white overflow-hidden">
         <div aria-hidden className="absolute inset-0 dm-pattern-landmark opacity-10" />
         <div className="relative flex items-center gap-3">
-          <span className="size-14 rounded-2xl bg-white flex items-center justify-center"><Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={44} height={30} className="object-contain" unoptimized /></span>
-          <span className="text-2xl font-black">{t('بلدية ظفار', 'Dhofar Municipality')}</span>
+          <BrandLogo height={72} onDark alt={t('بلدية ظفار', 'Dhofar Municipality')} />
         </div>
         <div className="relative space-y-4">
           <h1 className="text-5xl font-black leading-tight">{t('بوابة الموظف الداخلية', 'Internal staff portal')}</h1>

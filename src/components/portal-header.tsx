@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Globe, LayoutDashboard, Menu, Edit2, Megaphone, Sparkles, Briefcase, LogOut } from 'lucide-react';
 import { useAdminSession } from '@/lib/admin-session';
 import { useStaffSession } from '@/lib/staff-session';
@@ -14,6 +13,8 @@ import { usePathname } from 'next/navigation';
 import { fetchBin } from '@/lib/jsonbin';
 import { Badge } from '@/components/ui/badge';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
+import { BrandLogo } from '@/components/brand-logo';
+import { CitizenSignIn, DesktopMenu, MobileMenu, useMenu } from '@/components/main-nav';
 import {
   Sheet,
   SheetContent,
@@ -38,7 +39,6 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
   const [editLink, setEditLink] = useState<string | null>(null);
   const [tickerText, setTickerText] = useState('');
   const [translatedTicker, setTranslatedTicker] = useState<string | null>(null);
-  const [aiName, setAiName] = useState<string | null>(null);
   // Sessions live in sessionStorage, so read them only after mount to avoid hydration mismatches
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -60,10 +60,6 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
             const { translatedText } = await translateToEnglish({ text: rawTicker });
             setTranslatedTicker(translatedText);
           }
-          if (!isAr && !aiName) {
-            const { translatedText } = await translateToEnglish({ text: "بلدية ظفار" });
-            setAiName(translatedText);
-          }
         }
         if (pathname === '/') { setEditLink('/edmPortal'); return; }
         if (!data) return;
@@ -81,7 +77,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
       } catch (err) { setEditLink(null); }
     };
     determineEditLink();
-  }, [pathname, isAr, aiName]);
+  }, [pathname, isAr]);
 
   const handleLanguageToggle = () => {
     setLanguage(isAr ? 'en' : 'ar');
@@ -93,15 +89,14 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
   const topBarOn = (showTopBar ?? variant === 'full') && (isAdmin || isStaff);
   // Menu entries that point at admin-only pages are hidden from everyone but admins
   const ADMIN_ONLY = /^\/(admin|edmPortal|edmEmp|pagebuild|servicebuild|surveybuild|identity\/board)(\/|\?|$)/;
-  const orderedMenu = [...(menuItems || [])].filter(m => isAdmin || !ADMIN_ONLY.test(m.link || '')).sort((a, b) => a.order - b.order);
+  const menu = useMenu([...(menuItems || [])].filter(m => isAdmin || !ADMIN_ONLY.test(m.link || '')).sort((a, b) => a.order - b.order));
 
   if (variant === 'minimal') {
     return (
       <header className={cn('w-full bg-white border-b z-[50]', sticky && 'sticky top-0')}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 focus-visible:outline focus-visible:outline-4 focus-visible:outline-[#03CFCB] rounded-lg">
-            <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={56} height={38} className="object-contain" priority unoptimized />
-            <span className="text-xl font-black text-secondary">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+            <BrandLogo height={44} alt={isAr ? 'بلدية ظفار – الصفحة الرئيسية' : 'Dhofar Municipality – home'} />
           </Link>
           <Button variant="outline" onClick={handleLanguageToggle} lang={isAr ? 'en' : 'ar'} className="rounded-full font-black h-9 px-5">{isAr ? 'English' : 'العربية'}</Button>
         </div>
@@ -159,61 +154,55 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
       </nav>
       )}
 
-      <nav aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'} className={cn('bg-white border-b z-[50] shadow-sm', variant === 'compact' ? 'py-4' : 'py-8', sticky && 'sticky top-0')}>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-10 min-w-0">
-            <Link href="/" className="flex items-center gap-3 md:gap-6 group min-w-0">
-               <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={variant === 'compact' ? 70 : 95} height={variant === 'compact' ? 48 : 65} className="object-contain w-14 md:w-auto shrink-0" priority unoptimized />
-               <span className={cn('font-black text-secondary leading-none tracking-tighter uppercase', variant === 'compact' ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl')}>
-                 {isAr ? 'بلدية ظفار' : (aiName || 'Dhofar Municipality')}
-               </span>
-            </Link>
-          </div>
-          
-          <div className="hidden lg:flex items-center gap-8">
-            <Link href="/" aria-current={pathname === '/' ? 'page' : undefined} className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/' ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? 'الرئيسية' : 'Home'}</Link>
-            <Link href="/catalog" aria-current={pathname === '/catalog' ? 'page' : undefined} className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === '/catalog' ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? 'دليل الخدمات' : 'Catalog'}</Link>
-            {orderedMenu.map(m => (
-              <Link key={m.id} href={m.link} aria-current={pathname === m.link ? 'page' : undefined} className={cn("text-sm font-black hover:text-primary transition-all uppercase tracking-widest", pathname === m.link ? "text-primary border-b-4 border-secondary pb-1" : "text-slate-600")}>{isAr ? m.labelAr : m.labelEn || m.labelAr}</Link>
-            ))}
-            <Link href="/identity" className={cn("text-sm font-black text-primary bg-primary/5 px-6 py-2 rounded-2xl hover:bg-primary hover:text-slate-900 transition-all uppercase tracking-widest", pathname === '/identity' && "bg-primary text-slate-900 shadow-lg")}>{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
-            
-            <Button 
-              variant="outline" 
-              onClick={handleLanguageToggle}
-              className="rounded-full border-slate-200 font-black h-10 px-6 text-slate-700 hover:border-primary flex items-center gap-2 group"
-            >
-              <Sparkles size={16} className="text-accent group-hover:animate-pulse" />
+      <div className={cn('bg-white border-b z-[50] shadow-sm', sticky && 'sticky top-0')}>
+        <div className={cn('max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-3', variant === 'compact' ? 'py-3' : 'py-4')}>
+          <Link href="/" className="flex items-center min-w-0 rounded-lg focus-visible:outline focus-visible:outline-4 focus-visible:outline-[#03CFCB]">
+            {/* The official logo carries the bilingual name */}
+            <BrandLogo height={variant === 'compact' ? 48 : 64} className="max-h-12 md:max-h-none" alt={isAr ? 'بلدية ظفار – الصفحة الرئيسية' : 'Dhofar Municipality – home'} />
+          </Link>
+
+          <div className="hidden xl:flex items-center gap-3">
+            <Button variant="outline" onClick={handleLanguageToggle} lang={isAr ? 'en' : 'ar'} className="rounded-full border-slate-200 font-black h-10 px-5 text-slate-700 hover:border-primary flex items-center gap-2 group">
+              <Globe size={16} className="text-accent" aria-hidden />
               <span>{isAr ? 'English' : 'العربية'}</span>
-              <Badge variant="outline" className="text-[9px] font-black ml-1 bg-slate-50">AI</Badge>
             </Button>
-
-            <Button asChild className="dm-gradient-royal rounded-full px-10 h-10 font-black shadow-2xl text-white uppercase text-[11px] tracking-widest">
-              <Link href="/services/svc_105">{isAr ? 'تواصل معنا' : 'Support'}</Link>
+            <CitizenSignIn isAr={isAr} />
+            <Button asChild className="dm-gradient-royal rounded-full px-6 h-10 font-black shadow-lg text-white text-sm">
+              <Link href="/services/svc_105">{isAr ? 'تواصل معنا' : 'Contact us'}</Link>
             </Button>
           </div>
 
-          <div className="lg:hidden">
+          <div className="xl:hidden flex items-center gap-2">
+            <CitizenSignIn isAr={isAr} className="hidden sm:flex" />
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-14 rounded-2xl bg-slate-50 border shadow-sm"><Menu size={32}/></Button>
+                <Button variant="ghost" size="icon" className="size-12 rounded-2xl bg-slate-50 border shadow-sm" aria-label={isAr ? 'القائمة' : 'Menu'}><Menu size={26} /></Button>
               </SheetTrigger>
-              <SheetContent side={isAr ? "right" : "left"} className="rounded-l-[3.5rem] border-none shadow-2xl">
-                <SheetTitle className="text-secondary font-black text-4xl mb-12 uppercase tracking-tighter">{isAr ? "قائمة البوابة" : "Digital Menu"}</SheetTitle>
-                <nav className="flex flex-col gap-8">
-                  <Link href="/" className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? 'الرئيسية' : 'Portal Home'}</Link>
-                  <Link href="/catalog" className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? 'دليل الخدمات' : 'Service Catalog'}</Link>
-                  <Link href="/identity" className="text-3xl font-black text-primary hover:text-primary transition-colors">{isAr ? 'دليل الهوية' : 'Identity Hub'}</Link>
-                  {orderedMenu.map(m => <Link key={m.id} href={m.link} className="text-3xl font-black text-slate-800 hover:text-primary transition-colors">{isAr ? m.labelAr : m.labelEn || m.labelAr}</Link>)}
-                  <Link href="/staff" className="text-2xl font-black text-secondary hover:text-primary transition-colors">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link>
-                  <Button variant="outline" onClick={handleLanguageToggle} className="rounded-full font-black h-12 w-fit px-8">{isAr ? 'English' : 'العربية'}</Button>
-                  <a href="https://tajawob.om" target="_blank" className="text-3xl font-black text-secondary">{isAr ? 'منصة تجاوب' : 'Tajawoob'}</a>
+              <SheetContent side={isAr ? 'right' : 'left'} dir={isAr ? 'rtl' : 'ltr'} className="w-[min(24rem,100vw)] overflow-y-auto border-none shadow-2xl">
+                <SheetTitle className="text-secondary font-black text-2xl mb-6">{isAr ? 'قائمة البوابة' : 'Menu'}</SheetTitle>
+                <nav aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'} className="space-y-6">
+                  <MobileMenu groups={menu} isAr={isAr} pathname={pathname} />
+                  <div className="flex flex-wrap gap-2 border-t pt-4">
+                    <CitizenSignIn isAr={isAr} />
+                    <Button variant="outline" onClick={handleLanguageToggle} lang={isAr ? 'en' : 'ar'} className="rounded-full font-black h-10 px-5">{isAr ? 'English' : 'العربية'}</Button>
+                  </div>
+                  <div className="flex flex-col gap-1 border-t pt-4 text-base font-black">
+                    <Link href="/services/svc_105" className="px-3 py-2 rounded-lg text-secondary hover:bg-slate-50">{isAr ? 'تواصل معنا' : 'Contact us'}</Link>
+                    <Link href="/tajawoob" className="px-3 py-2 rounded-lg text-secondary hover:bg-slate-50">{isAr ? 'منصة تجاوب' : 'Tajawob'}</Link>
+                    <Link href="/staff" className="px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>
           </div>
         </div>
-      </nav>
+
+        <nav aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'} className="hidden xl:block border-t border-slate-100">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-1.5">
+            <DesktopMenu groups={menu} isAr={isAr} pathname={pathname} />
+          </div>
+        </nav>
+      </div>
     </header>
   );
 }

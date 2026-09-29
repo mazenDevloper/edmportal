@@ -4,12 +4,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAdminSession } from '@/lib/admin-session';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSettingsStore } from '@/lib/settings-store';
 import { SiteConfig, FooterVariant } from '@/lib/types';
 import { ExternalLink, Mail, Phone, MessageCircle } from 'lucide-react';
 import { CONTACT, FOOTER_GROUPS, SITE_LAST_UPDATED } from '@/lib/footer-pages';
 import { usePathname } from 'next/navigation';
+import { BrandLogo } from '@/components/brand-logo';
 import PAGE_DATES from '@/lib/page-dates.json';
 
 // Routes from the generated map (scripts/build-page-dates.js); "[id]" segments match any value.
@@ -68,8 +68,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
       <footer className="bg-slate-950 text-white border-t-4 border-accent">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="" width={36} height={36} className="brightness-0 invert" />
-            <span className="font-black">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+            <BrandLogo height={40} onDark />
           </div>
           <nav aria-label={isAr ? 'روابط التذييل' : 'Footer links'} className="flex flex-wrap justify-center gap-x-6 gap-y-2">
             {links.map(l => <Link key={l.id} href={l.link} className="text-sm font-bold text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent rounded">{isAr ? l.labelAr : l.labelEn}</Link>)}
@@ -90,11 +89,8 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
           {/* Brand Column */}
           <div className="space-y-8">
              <div className="flex items-center gap-4">
-               <Image src="https://apps.edm.gov.om/ords/r/dmpm/130/files/static/v15/cropped-DM-ICON.png" alt="Logo" width={60} height={60} className="brightness-0 invert" />
-               <div className="flex flex-col">
-                 <span className="text-2xl font-black">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
-                 <span className="text-[10px] text-accent font-black tracking-widest uppercase">{isAr ? 'حكومة سلطنة عمان' : 'OMAN GOVERNMENT'}</span>
-               </div>
+               <BrandLogo height={72} onDark />
+               <span className="text-[10px] text-accent font-black tracking-widest uppercase">{isAr ? 'حكومة سلطنة عمان' : 'OMAN GOVERNMENT'}</span>
              </div>
              <p className="text-sm text-white/70 leading-relaxed font-medium max-w-xs">
                {isAr ? "نعمل بجد لتطوير محافظة ظفار وتقديم أفضل الخدمات الرقمية التي تساهم في تحسين جودة الحياة للمواطنين والمقيمين." : "Working diligently to develop Dhofar Governorate and provide best-in-class digital services."}

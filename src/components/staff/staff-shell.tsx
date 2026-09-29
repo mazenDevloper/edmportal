@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Languages, LogIn, LogOut, Search, UserCircle2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { useStaffSession } from '@/lib/staff-session';
 import { DEFAULT_STAFF_PLATFORMS } from '@/lib/staff-platforms';
 import { AccessData } from '@/lib/rbac';
 import { Service, ServiceApplication, ServiceFlow, StaffPlatform, StaffUser } from '@/lib/types';
+import { BrandEmblem } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
 
 export interface StaffPortalData {
@@ -94,7 +94,7 @@ export function StaffShell({ user, search, onSearch, children }: ShellProps) {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-4">
           <Link href="/staff" className="flex items-center gap-3 shrink-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
             <span className="size-10 rounded-xl bg-white flex items-center justify-center">
-              <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={32} height={22} className="object-contain" unoptimized />
+              <BrandEmblem height={30} />
             </span>
             <span className="leading-tight">
               <span className="block font-black">{t('بوابة الموظف', 'Staff portal')}</span>

@@ -45,9 +45,11 @@ interface Props {
   /** Highlight a question (builder preview) */
   activeQuestionId?: string | null;
   onQuestionClick?: (id: string) => void;
+  /** The host already shows the title and description (e.g. a dialog header) */
+  hideHeader?: boolean;
 }
 
-export function SurveyForm({ survey, isAr, onSubmit, compact, activeQuestionId, onQuestionClick }: Props) {
+export function SurveyForm({ survey, isAr, onSubmit, compact, activeQuestionId, onQuestionClick, hideHeader }: Props) {
   const t = (ar: string, en: string) => (isAr ? ar : en);
   const tx = (ar?: string, en?: string) => (isAr ? ar || en : en || ar) || '';
   const [answers, setAnswers] = useState<SurveyAnswers>({});
@@ -90,8 +92,8 @@ export function SurveyForm({ survey, isAr, onSubmit, compact, activeQuestionId, 
   return (
     <form onSubmit={submit} noValidate dir={isAr ? 'rtl' : 'ltr'} lang={isAr ? 'ar' : 'en'} className={cn('space-y-6', compact && 'space-y-4')}>
       <header className="space-y-2">
-        <h2 className={cn('font-black text-slate-900 leading-tight', compact ? 'text-xl' : 'text-3xl')}>{tx(survey.titleAr, survey.titleEn) || t('استطلاع بدون عنوان', 'Untitled survey')}</h2>
-        {tx(survey.descriptionAr, survey.descriptionEn) && <p className="text-slate-600 font-medium leading-relaxed">{tx(survey.descriptionAr, survey.descriptionEn)}</p>}
+        {!hideHeader && <h2 className={cn('font-black text-slate-900 leading-tight', compact ? 'text-xl' : 'text-3xl')}>{tx(survey.titleAr, survey.titleEn) || t('استطلاع بدون عنوان', 'Untitled survey')}</h2>}
+        {!hideHeader && tx(survey.descriptionAr, survey.descriptionEn) && <p className="text-slate-600 font-medium leading-relaxed">{tx(survey.descriptionAr, survey.descriptionEn)}</p>}
         <div className="flex items-center gap-3 pt-1">
           <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} aria-label={t('نسبة الإنجاز', 'Progress')}>
             <div className="h-full bg-secondary transition-all" style={{ width: `${progress}%` }} />

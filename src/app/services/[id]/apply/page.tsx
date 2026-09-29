@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useAdminSession } from '@/lib/admin-session';
 import { isPublicService, nextReference } from '@/lib/service-visibility';
@@ -46,6 +45,7 @@ import { cn } from '@/lib/utils';
 import * as Icons from 'lucide-react';
 import Confetti from 'react-confetti';
 import QRCode from 'react-qr-code';
+import { BrandLogo } from '@/components/brand-logo';
 import { PortalFooter } from '@/components/portal-footer';
 
 export default function ServiceApplicationPage() {
@@ -260,8 +260,7 @@ export default function ServiceApplicationPage() {
       <header className="bg-white border-b py-6 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
            <Link href="/" className="flex items-center gap-3">
-             <Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="Logo" width={60} height={40} className="object-contain" unoptimized />
-             <span className="font-black text-xl text-primary">{isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</span>
+             <BrandLogo height={48} alt={isAr ? 'بلدية ظفار – الصفحة الرئيسية' : 'Dhofar Municipality – home'} />
            </Link>
            <Button variant="ghost" onClick={() => router.push(`/services/${id}`)} className="font-bold rounded-xl">{isAr ? 'إلغاء' : 'Cancel'}</Button>
         </div>

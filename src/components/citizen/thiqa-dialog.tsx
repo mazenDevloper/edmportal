@@ -62,7 +62,7 @@ export function ThiqaDialogHost() {
 
   return (
     <Dialog open={promptOpen} onOpenChange={o => { if (!o) closePrompt(); }}>
-      <DialogContent dir={isAr ? 'rtl' : 'ltr'} lang={isAr ? 'ar' : 'en'} className="max-w-md rounded-[2rem] p-0 overflow-hidden border-none">
+      <DialogContent dir={isAr ? 'rtl' : 'ltr'} lang={isAr ? 'ar' : 'en'} className="max-w-md rounded-[2rem] p-0 overflow-hidden border-none [&>button:last-child]:!text-white [&>button:last-child]:!bg-white/15 [&>button:last-child]:!opacity-100 [&>button:last-child]:size-9 [&>button:last-child]:rounded-xl [&>button:last-child]:flex [&>button:last-child]:items-center [&>button:last-child]:justify-center [&>button:last-child]:top-3 rtl:[&>button:last-child]:!right-auto rtl:[&>button:last-child]:left-3">
         <div className="relative bg-gradient-to-br from-[#005751] to-[#008E91] text-white p-6">
           <div aria-hidden className="absolute inset-0 dm-pattern-wave-pro opacity-20" />
           <div className="relative flex items-center gap-3">

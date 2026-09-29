@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { AlertTriangle, Eye, EyeOff, Fingerprint, KeyRound, Languages, Loader2, LockKeyhole, Smartphone, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/lib/settings-store';
 import { useAdminSession, verifyAdminCredentials, verifyAdminThiqa } from '@/lib/admin-session';
+import { BrandLogo } from '@/components/brand-logo';
 import { cn } from '@/lib/utils';
 
 /** Sign-in shown in place of an admin panel (/edmPortal, /edmEmp) until the admin session is valid */
@@ -64,8 +64,7 @@ export function AdminLoginForm({ panelAr = 'لوحة التحكم', panelEn = 'C
       <aside className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-[#470D67] to-[#2a0640] text-white overflow-hidden">
         <div aria-hidden className="absolute inset-0 dm-pattern-landmark opacity-10" />
         <div className="relative flex items-center gap-3">
-          <span className="size-14 rounded-2xl bg-white flex items-center justify-center"><Image src="https://imagetourl.cloud/a90z81isxaf9.png" alt="" width={44} height={30} className="object-contain" unoptimized /></span>
-          <span className="text-2xl font-black">{t('بلدية ظفار', 'Dhofar Municipality')}</span>
+          <BrandLogo height={72} onDark alt={t('بلدية ظفار', 'Dhofar Municipality')} />
         </div>
         <div className="relative space-y-4">
           <h1 className="text-5xl font-black leading-tight">{t(panelAr, panelEn)}</h1>
