@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BadgeCent, Bot, Clock, ExternalLink, Fingerprint, ListChecks, Loader2, MessageCircle, Phone, Send, ShieldCheck, X } from 'lucide-react';
+import { BadgeCent, Clock, Sparkles, ExternalLink, Fingerprint, ListChecks, Loader2, MessageCircle, Phone, Send, ShieldCheck, X } from 'lucide-react';
 import { fetchBin } from '@/lib/jsonbin';
 import { Service, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
@@ -87,10 +87,10 @@ export function ServiceAssistant() {
       <button
         ref={triggerRef} type="button" onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open} aria-controls="service-assistant"
-        aria-label={open ? t('إغلاق مساعد الخدمات', 'Close the service assistant') : t('مساعد الخدمات: اسأل عن أي خدمة', 'Service assistant: ask about any service')}
+        aria-label={open ? t('إغلاق المساعد الذكي', 'Close the AI assistant') : t('المساعد الذكي: اسأل عن أي خدمة', 'AI assistant: ask about any service')}
         className="fixed bottom-5 end-[5.5rem] z-[9999] size-14 rounded-full bg-[#470D67] text-white border-4 border-white shadow-[0_10px_30px_rgba(71,13,103,0.45)] flex items-center justify-center hover:scale-105 transition-transform focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-amber-500 print:hidden"
       >
-        {open ? <X className="size-6" aria-hidden /> : <MessageCircle className="size-7" aria-hidden />}
+        {open ? <X className="size-6" aria-hidden /> : <AiMark />}
       </button>
 
       {open && (
@@ -100,9 +100,9 @@ export function ServiceAssistant() {
           className="fixed z-[9999] bottom-24 end-3 sm:end-5 w-[min(420px,calc(100vw-24px))] h-[min(640px,calc(100dvh-120px))] flex flex-col rounded-3xl bg-slate-50 shadow-[0_30px_80px_rgba(0,0,0,0.3)] overflow-hidden print:hidden"
         >
           <header className="flex items-center gap-3 px-4 py-3 bg-[#470D67] text-white">
-            <span className="size-10 rounded-xl bg-white/15 flex items-center justify-center"><Bot size={22} aria-hidden /></span>
+            <span className="size-10 rounded-xl bg-white/15 flex items-center justify-center"><AiMark small /></span>
             <div className="flex-1 min-w-0">
-              <h2 id="assistant-title" className="font-black leading-tight">{t('مساعد الخدمات', 'Service assistant')}</h2>
+              <h2 id="assistant-title" className="font-black leading-tight">{t('المساعد الذكي للخدمات', 'AI service assistant')}</h2>
               <p className="text-[11px] font-bold text-white/70 truncate">{t('إجابات من دليل خدمات البلدية', 'Answers from the municipality service guide')}</p>
             </div>
             <button type="button" onClick={close} className="size-9 rounded-xl hover:bg-white/15 flex items-center justify-center" aria-label={t('إغلاق', 'Close')}><X size={18} /></button>
@@ -145,6 +145,16 @@ export function ServiceAssistant() {
         </section>
       )}
     </>
+  );
+}
+
+/** "AI" wordmark with a small spark, used instead of a chat icon */
+function AiMark({ small = false }: { small?: boolean }) {
+  return (
+    <span aria-hidden className={cn('relative font-black tracking-tight leading-none', small ? 'text-base' : 'text-xl')} dir="ltr">
+      AI
+      <Sparkles className={cn('absolute text-[#03CFCB]', small ? '-top-1.5 -right-2.5 size-2.5' : '-top-2 -right-3 size-3')} />
+    </span>
   );
 }
 

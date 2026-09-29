@@ -20,6 +20,7 @@ import {
   Send
 } from 'lucide-react';
 import Link from 'next/link';
+import { Orbit } from 'lucide-react';
 import { Service, SiteConfig, CarouselItem, Survey, PopupMessage, NewsItem } from '@/lib/types';
 import { isPublicService } from '@/lib/service-visibility';
 import { cn } from '@/lib/utils';
@@ -142,6 +143,8 @@ export default function DhofarPortal() {
                        onChange={(e) => setSearchQuery(e.target.value)} 
                      />
                    </div>
+
+                   <Link href="/virtual" className="inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-gradient-to-r from-[#0b4f86] to-[#020d1c] text-white font-black shadow-xl hover:shadow-[0_0_30px_rgba(3,207,203,0.4)] transition-shadow"><Orbit size={18} aria-hidden />{isAr ? 'عرض الخدمات في بيئة افتراضية' : 'View services in a virtual space'}</Link>
 
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {filteredQuickAccess.map((s) => {
