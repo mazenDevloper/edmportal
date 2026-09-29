@@ -183,3 +183,17 @@ html[data-a11y-motion="reduce"] *::after {
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee { animation: none; }
 }
+
+/* Dark figure cards: dashed skyline along the bottom edge (from the municipality's transactions dashboard) */
+.dm-card-skyline::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -8px;
+  height: 52px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 40' preserveAspectRatio='none'%3E%3Cpath d='M0,40 L0,20 L10,20 L10,10 L20,10 L20,20 L30,20 L30,10 L40,10 L40,20 L50,20 L50,15 L60,15 L60,20 L70,20 L70,10 L80,10 L80,20 L90,20 L90,15 L100,15 L100,25 L110,25 L110,15 L120,15 L120,20 L130,20 L130,5 L140,5 L140,20 L150,20 L150,10 L160,10 L160,20 L170,20 L170,15 L180,15 L180,20 L190,20 L190,10 L200,10 L200,40' fill='none' stroke='%2303CFCB' stroke-width='1.5' stroke-dasharray='4,2' opacity='0.7'/%3E%3Cpath d='M0,40 L0,25 L15,25 L15,15 L25,15 L25,25 L35,25 L35,15 L45,15 L45,25 L55,25 L55,20 L65,20 L65,25 L75,25 L75,15 L85,15 L85,25 L95,25 L95,20 L105,20 L105,30 L115,30 L115,20 L125,20 L125,25 L135,25 L135,10 L145,10 L145,25 L155,25 L155,15 L165,15 L165,25 L175,25 L175,20 L185,20 L185,25 L195,25 L195,15 L200,15 L200,40' fill='none' stroke='%23A187B2' stroke-width='1.5' stroke-dasharray='3,3' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  opacity: 0.8;
+}

@@ -5,10 +5,19 @@ export interface SiteConfig {
   contactPhone: string;
   contactEmail: string;
   stats?: {
-    transactions: number;
-    permits: number;
-    contracts: number;
-    tickets: number;
+    /** Legacy home figures, no longer shown (rent and excavation now come live from open data) */
+    transactions?: number;
+    permits?: number;
+    contracts?: number;
+    tickets?: number;
+    /** Figures with no open-data API yet (see lib/open-data/official-figures.ts) */
+    visits?: number;
+    eTransactions?: number;
+    bookings?: number;
+    municipalLicences?: number;
+    buildingPermits?: number;
+    figuresAsOfAr?: string;
+    figuresAsOfEn?: string;
   };
   categories: string[];
   isMaintenanceMode: boolean;

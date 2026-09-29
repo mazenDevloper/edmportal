@@ -43,64 +43,8 @@ import { useToast } from '@/hooks/use-toast';
 import { maskPhone, useCitizen, useCitizenSession } from '@/lib/citizen-session';
 import { BrandEmblem } from '@/components/brand-logo';
 import { TrackLookup } from '@/components/citizen/track-lookup';
+import { TransactionFigures } from '@/components/open-data/transaction-figures';
 
-/** Counts up once when the figures scroll into view (instant for reduced motion) */
-function CountUp({ value, isAr }: { value: number; isAr: boolean }) {
-  const ref = React.useRef<HTMLSpanElement>(null);
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setShown(value); return; }
-    let raf = 0;
-    const io = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      io.disconnect();
-      const t0 = performance.now();
-      const step = (now: number) => {
-        const k = Math.min(1, (now - t0) / 1400);
-        setShown(Math.round(value * (1 - Math.pow(1 - k, 3))));
-        if (k < 1) raf = requestAnimationFrame(step);
-      };
-      raf = requestAnimationFrame(step);
-    }, { threshold: 0.3 });
-    io.observe(el);
-    return () => { io.disconnect(); cancelAnimationFrame(raf); };
-  }, [value]);
-  return <span ref={ref} aria-hidden>{shown.toLocaleString(isAr ? 'ar-OM' : 'en-US')}</span>;
-}
-
-function TransactionStats({ isAr, stats, portalRequests }: { isAr: boolean; stats?: SiteConfig['stats']; portalRequests: number }) {
-  const items = [
-    { label: isAr ? 'إجمالي المعاملات' : 'Transactions', value: stats?.transactions, icon: FileText },
-    { label: isAr ? 'التصاريح والتراخيص' : 'Permits & licences', value: stats?.permits, icon: ShieldCheck },
-    { label: isAr ? 'العقود الموثقة' : 'Registered contracts', value: stats?.contracts, icon: Users },
-    { label: isAr ? 'البلاغات المعالجة' : 'Reports handled', value: stats?.tickets, icon: CheckCircle2 },
-    { label: isAr ? 'طلبات عبر البوابة' : 'Portal requests', value: portalRequests, icon: TrendingUp, live: true },
-  ].filter(i => typeof i.value === 'number' && i.value > 0);
-  if (!items.length) return null;
-  return (
-    <section aria-labelledby="stats-title" className="relative overflow-hidden bg-gradient-to-br from-[#005751] to-[#003b37] text-white py-14">
-      <div aria-hidden className="absolute inset-0 dm-pattern-wave-pro opacity-10" />
-      <div className="relative max-w-7xl mx-auto px-6 space-y-8">
-        <h2 id="stats-title" className="text-2xl md:text-3xl font-black">{isAr ? 'أرقام المعاملات' : 'Transactions in numbers'}</h2>
-        <dl className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          {items.map(i => (
-            <div key={i.label} className="rounded-3xl bg-white/10 ring-1 ring-white/15 p-5 space-y-2">
-              <dt className="flex items-center gap-2 text-sm font-bold text-white/75"><i.icon size={16} className="text-[#03CFCB]" aria-hidden />{i.label}
-                {i.live && <span className="ms-auto flex items-center gap-1 text-[10px] font-black text-[#03CFCB]"><span className="size-1.5 rounded-full bg-[#03CFCB] animate-pulse" aria-hidden />{isAr ? 'مباشر' : 'Live'}</span>}
-              </dt>
-              <dd className="text-3xl md:text-4xl font-black tabular-nums">
-                <CountUp value={i.value!} isAr={isAr} />
-                <span className="sr-only">{i.value!.toLocaleString(isAr ? 'ar-OM' : 'en-US')}</span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
-  );
-}
 
 /** News photo with a branded fallback when there is no image or it fails to load */
 function NewsImage({ src }: { src?: string }) {
@@ -125,7 +69,6 @@ export default function DhofarPortal() {
   const [loading, setLoading] = useState(true);
   const [submittingSurvey, setSubmittingSurvey] = useState(false);
   const citizen = useCitizen();
-  const [portalRequests, setPortalRequests] = useState(0);
   const [services, setServices] = useState<Service[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [menuItems, setMenuItems] = useState([]);
@@ -143,7 +86,6 @@ export default function DhofarPortal() {
           // Services switched off in the control panel are hidden from the public
           setServices((data.services || []).filter(isPublicService));
           setSiteConfig(data.siteConfig || null);
-          setPortalRequests((data.applications || []).length);
           setMenuItems(data.menuItems || []);
           setCarouselItems(data.carouselItems || []);
           setNews(data.news || []);
@@ -274,8 +216,8 @@ export default function DhofarPortal() {
            </div>
         </section>
 
-        {/* Transaction figures: set in the control panel (Identity → home statistics), plus live portal requests */}
-        <TransactionStats isAr={isAr} stats={siteConfig?.stats} portalRequests={portalRequests} />
+        {/* Transaction figures: live rent contracts and excavation permits from open data, plus official figures */}
+        <TransactionFigures isAr={isAr} stats={siteConfig?.stats} />
 
         {/* 50/50 Survey & News Matrix */}
         <section className="py-24 bg-white border-y border-slate-100">
