@@ -24,8 +24,8 @@ interface Props {
   setStaffUsers: React.Dispatch<React.SetStateAction<StaffUser[]>>;
 }
 
-type Draft = Pick<StaffUser, 'employeeNumber' | 'nameAr' | 'nameEn' | 'jobTitle' | 'department' | 'email' | 'phone' | 'civilNumber' | 'isSuperAdmin'>;
-const EMPTY: Draft = { employeeNumber: '', nameAr: '', nameEn: '', jobTitle: '', department: '', email: '', phone: '', civilNumber: '', isSuperAdmin: false };
+type Draft = Pick<StaffUser, 'employeeNumber' | 'nameAr' | 'nameEn' | 'jobTitle' | 'jobTitleEn' | 'department' | 'email' | 'phone' | 'civilNumber' | 'isSuperAdmin'>;
+const EMPTY: Draft = { employeeNumber: '', nameAr: '', nameEn: '', jobTitle: '', jobTitleEn: '', department: '', email: '', phone: '', civilNumber: '', isSuperAdmin: false };
 type Filter = 'all' | 'active' | 'inactive' | 'temp' | 'nopass';
 
 export function passwordState(u: StaffUser): 'set' | 'temp' | 'none' {
@@ -74,7 +74,7 @@ export function StaffAccounts({ isAr, staffUsers, roleAssignments, commit, setSt
       return;
     }
     const clean = (v?: string) => v?.trim() || undefined;
-    const fields = { employeeNumber: emp, nameAr: d.nameAr.trim(), nameEn: clean(d.nameEn), jobTitle: clean(d.jobTitle), department: clean(d.department), email: clean(d.email), phone: clean(d.phone), civilNumber: clean(d.civilNumber), isSuperAdmin: !!d.isSuperAdmin };
+    const fields = { employeeNumber: emp, nameAr: d.nameAr.trim(), nameEn: clean(d.nameEn), jobTitle: clean(d.jobTitle), jobTitleEn: clean(d.jobTitleEn), department: clean(d.department), email: clean(d.email), phone: clean(d.phone), civilNumber: clean(d.civilNumber), isSuperAdmin: !!d.isSuperAdmin };
     setBusy(true);
     if (editing.id) {
       setStaffUsers(prev => prev.map(u => (u.id === editing.id ? { ...u, ...fields } : u)));
@@ -166,7 +166,7 @@ export function StaffAccounts({ isAr, staffUsers, roleAssignments, commit, setSt
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="rounded-xl" aria-label={t(`تعديل ${name}`, `Edit ${name}`)} onClick={() => setEditing({ id: u.id, draft: { employeeNumber: u.employeeNumber, nameAr: u.nameAr, nameEn: u.nameEn || '', jobTitle: u.jobTitle || '', department: u.department || '', email: u.email || '', phone: u.phone || '', civilNumber: u.civilNumber || '', isSuperAdmin: !!u.isSuperAdmin } })}><Pencil size={16} /></Button>
+                      <Button variant="ghost" size="icon" className="rounded-xl" aria-label={t(`تعديل ${name}`, `Edit ${name}`)} onClick={() => setEditing({ id: u.id, draft: { employeeNumber: u.employeeNumber, nameAr: u.nameAr, nameEn: u.nameEn || '', jobTitle: u.jobTitle || '', jobTitleEn: u.jobTitleEn || '', department: u.department || '', email: u.email || '', phone: u.phone || '', civilNumber: u.civilNumber || '', isSuperAdmin: !!u.isSuperAdmin } })}><Pencil size={16} /></Button>
                       <Button variant="ghost" size="sm" className="rounded-xl font-black gap-1.5 text-[#005751]" onClick={() => setConfirmReset(u)}><KeyRound size={15} />{t('إعادة تعيين', 'Reset')}</Button>
                       <Button variant="ghost" size="icon" className="rounded-xl text-red-500 hover:bg-red-50" aria-label={t(`حذف ${name}`, `Delete ${name}`)} onClick={() => setConfirmDelete(u)}><Trash2 size={16} /></Button>
                     </div>
@@ -193,6 +193,7 @@ export function StaffAccounts({ isAr, staffUsers, roleAssignments, commit, setSt
                 ['nameAr', t('الاسم بالعربية *', 'Name (Arabic) *'), 'text', 'rtl'],
                 ['nameEn', t('الاسم بالإنجليزية', 'Name (English)'), 'text', 'ltr'],
                 ['jobTitle', t('المسمى الوظيفي', 'Job title'), 'text', undefined],
+                ['jobTitleEn', t('المسمى الوظيفي (إنجليزي)', 'Job title (English)'), 'text', 'ltr'],
                 ['department', t('الدائرة', 'Department'), 'text', undefined],
                 ['email', t('البريد الإلكتروني', 'Email'), 'email', 'ltr'],
                 ['phone', t('الهاتف', 'Phone'), 'tel', 'ltr'],

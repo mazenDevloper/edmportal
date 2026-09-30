@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/lib/settings-store';
 import { fetchBin } from '@/lib/jsonbin';
 import { useStaffSession } from '@/lib/staff-session';
 import { DEFAULT_STAFF_PLATFORMS } from '@/lib/staff-platforms';
+import { DEFAULT_CALLS, PaperCall } from '@/lib/papers';
 import { AccessData } from '@/lib/rbac';
 import { Service, ServiceApplication, ServiceFlow, StaffPlatform, StaffUser } from '@/lib/types';
 import { BrandEmblem } from '@/components/brand-logo';
@@ -20,6 +21,7 @@ export interface StaffPortalData {
   flows: ServiceFlow[];
   applications: ServiceApplication[];
   platforms: StaffPlatform[];
+  paperCalls: PaperCall[];
 }
 
 /**
@@ -45,6 +47,7 @@ export function useStaffPortal({ requireAuth = true }: { requireAuth?: boolean }
       flows: db.serviceFlows || [],
       applications: db.applications || [],
       platforms: db.staffPlatforms?.length ? db.staffPlatforms : DEFAULT_STAFF_PLATFORMS,
+      paperCalls: db.paperCalls?.length ? db.paperCalls : DEFAULT_CALLS,
     });
   }, []);
 
@@ -86,7 +89,7 @@ export function StaffShell({ user, search, onSearch, children }: ShellProps) {
     { href: '/staff#platforms', label: t('المنصات', 'Platforms') },
     { href: '/staff#my-services', label: t('خدماتي', 'My services') },
     { href: '/staff#guides', label: t('الأدلة والسياسات', 'Guides & policies') },
-    { href: '/staff/papers', label: t('المشاركات وأوراق العمل', 'Working papers') },
+    { href: '/staff/papers', label: t('أوراق العمل', 'Working papers') },
   ];
 
   return (
