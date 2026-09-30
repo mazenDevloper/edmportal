@@ -380,6 +380,9 @@ export interface StaffUser {
   mustChangePassword?: boolean;
   passwordUpdatedAt?: string;
   jobTitle?: string;
+  jobTitleEn?: string;
+  /** Small photo for the employee card: a URL or a downscaled data URL */
+  photoUrl?: string;
   phone?: string;
   createdAt: string;
 }
@@ -404,4 +407,11 @@ export interface PopupMessage {
   mediaUrl?: string;
   isActive: boolean;
   displayDelay?: number;
+  /** Visual design from the popup builder; when set it replaces type/title/content/media */
+  design?: import('./popup-design').PopupDesign;
+  /** How often one visitor sees it (default: every visit) */
+  frequency?: 'always' | 'session' | 'day' | 'once';
+  /** Optional schedule, ISO date-times */
+  startAt?: string;
+  endAt?: string;
 }

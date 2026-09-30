@@ -10,6 +10,9 @@ import { PopupMessage } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { cn } from '@/lib/utils';
 import { parseVideo } from '@/lib/video';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { markPopupSeen, popupEligible } from '@/lib/popup-design';
+import { PopupCanvas, ScaledCanvas } from '@/components/popup/popup-canvas';
 
 interface PopupManagerProps {
   popups: PopupMessage[];
@@ -21,16 +24,19 @@ export function PopupManager({ popups }: PopupManagerProps) {
   const [activePopup, setActivePopup] = useState<PopupMessage | null>(null);
 
   useEffect(() => {
-    const active = popups.find(p => p.isActive);
+    // First popup that is active, in its schedule and not yet seen at its frequency
+    const active = popups.find(p => popupEligible(p));
     if (active) {
       const timer = setTimeout(() => {
         setActivePopup(active);
+        markPopupSeen(active);
       }, (active.displayDelay || 0) * 1000);
       return () => clearTimeout(timer);
     }
   }, [popups]);
 
   if (!activePopup) return null;
+  if (activePopup.design) return <DesignedPopup popup={activePopup} isAr={isAr} onClose={() => setActivePopup(null)} />;
   const video = activePopup.type === 'video' ? parseVideo(activePopup.mediaUrl) : null;
 
   return (
@@ -101,5 +107,47 @@ export function PopupManager({ popups }: PopupManagerProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const POSITION: Record<string, string> = {
+  center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+  top: 'top-4 left-1/2 -translate-x-1/2',
+  'bottom-end': 'bottom-4 ltr:right-4 rtl:left-4',
+  'bottom-start': 'bottom-4 ltr:left-4 rtl:right-4',
+};
+const ANIMATION: Record<string, string> = {
+  fade: 'motion-safe:animate-in motion-safe:fade-in duration-300',
+  zoom: 'motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-300',
+  'slide-up': 'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-8 duration-500',
+  none: '',
+};
+
+/** A popup made in the visual builder */
+export function DesignedPopup({ popup, isAr, onClose }: { popup: PopupMessage; isAr: boolean; onClose: () => void }) {
+  const d = popup.design!;
+  const title = (isAr ? popup.titleAr : popup.titleEn || popup.titleAr) || (isAr ? 'إعلان' : 'Announcement');
+  const modal = d.position === 'center' || d.position === 'top';
+  return (
+    <DialogPrimitive.Root open onOpenChange={o => !o && onClose()} modal={modal}>
+      <DialogPrimitive.Portal>
+        {modal && <DialogPrimitive.Overlay className="fixed inset-0 z-[80] motion-safe:animate-in motion-safe:fade-in" style={{ background: d.overlay }} />}
+        <DialogPrimitive.Content dir={isAr ? 'rtl' : 'ltr'}
+          onPointerDownOutside={e => { if (!d.closeOnOverlay) e.preventDefault(); }}
+          onInteractOutside={e => { if (!d.closeOnOverlay) e.preventDefault(); }}
+          className={cn('fixed z-[81] outline-none', POSITION[d.position] || POSITION.center, ANIMATION[d.animation])}
+          style={{ filter: 'drop-shadow(0 25px 50px rgba(15,23,42,0.35))' }}>
+          <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">{isAr ? 'نافذة إعلان منبثقة' : 'Announcement popup'}</DialogPrimitive.Description>
+          <ScaledCanvas design={d}>{() => <PopupCanvas design={d} isAr={isAr} onClose={onClose} />}</ScaledCanvas>
+          {d.closeButton && (
+            <DialogPrimitive.Close className="absolute top-3 ltr:right-3 rtl:left-3 z-10 size-9 rounded-full bg-black/35 hover:bg-black/55 text-white flex items-center justify-center backdrop-blur focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+              aria-label={isAr ? 'إغلاق' : 'Close'}>
+              <X size={18} />
+            </DialogPrimitive.Close>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

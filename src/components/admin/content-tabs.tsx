@@ -17,6 +17,7 @@ import {
 } from '@/lib/types';
 import { classifyActor, getStageAssignees } from '@/lib/rbac';
 import { CollectionEditor } from './collection-editor';
+import { PopupsStudio } from '@/components/popup/popups-studio';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, Edit2, ExternalLink, Download, Upload, RefreshCw, Loader2, Sparkles, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -272,25 +273,7 @@ export function CarouselTab({ isAr, items, setItems }: { isAr: boolean; items: C
 
 // ─── Popups ───
 export function PopupsTab({ isAr, items, setItems }: { isAr: boolean; items: PopupMessage[]; setItems: (v: PopupMessage[]) => void }) {
-  return (
-    <CollectionEditor
-      isAr={isAr} items={items} onChange={setItems}
-      newItem={(): PopupMessage => ({ id: uid('p'), type: 'text', titleAr: '', titleEn: '', contentAr: '', contentEn: '', mediaUrl: '', isActive: false, displayDelay: 2 })}
-      titleOf={p => (isAr ? p.titleAr : p.titleEn || p.titleAr)}
-      subtitleOf={p => <>{p.type} · {p.isActive ? <span className="text-emerald-600">{isAr ? 'مفعّلة' : 'active'}</span> : (isAr ? 'متوقفة' : 'inactive')}</>}
-      addLabel={isAr ? 'رسالة منبثقة' : 'New popup'}
-      fields={[
-        { key: 'type', label: isAr ? 'النوع' : 'Type', type: 'select', options: [{ value: 'text', label: isAr ? 'نص' : 'Text' }, { value: 'image', label: isAr ? 'صورة' : 'Image' }, { value: 'video', label: isAr ? 'فيديو' : 'Video' }] },
-        { key: 'isActive', label: isAr ? 'مفعّلة (تظهر واحدة فقط)' : 'Active (first active one shows)', type: 'switch' },
-        { key: 'titleAr', label: isAr ? 'العنوان (عربي)' : 'Title (AR)', dir: 'rtl' },
-        { key: 'titleEn', label: isAr ? 'العنوان (إنجليزي)' : 'Title (EN)', dir: 'ltr' },
-        { key: 'contentAr', label: isAr ? 'المحتوى (عربي)' : 'Content (AR)', type: 'textarea', dir: 'rtl' },
-        { key: 'contentEn', label: isAr ? 'المحتوى (إنجليزي)' : 'Content (EN)', type: 'textarea', dir: 'ltr' },
-        { key: 'mediaUrl', label: isAr ? 'رابط الصورة / الفيديو' : 'Media URL', dir: 'ltr' },
-        { key: 'displayDelay', label: isAr ? 'التأخير (ثوانٍ)' : 'Delay (seconds)', type: 'number' },
-      ]}
-    />
-  );
+  return <PopupsStudio isAr={isAr} items={items} setItems={setItems} />;
 }
 
 // ─── Surveys ───
