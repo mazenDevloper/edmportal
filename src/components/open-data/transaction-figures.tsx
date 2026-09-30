@@ -10,6 +10,10 @@ import { cn } from '@/lib/utils';
 
 export const RENT_COLOR = '#00979B';
 export const DIG_COLOR = '#7B3FA8';
+export const LICENCE_COLOR = '#C2560C';
+export const BUILDING_COLOR = '#2563EB';
+/** One validated colour per open-data source (colour-blind safe as a set; always shown with a label) */
+export const SOURCE_COLOR = { rent: RENT_COLOR, dig: DIG_COLOR, licences: LICENCE_COLOR, buildings: BUILDING_COLOR } as const;
 
 /** Loads the open-data totals once per page view */
 export function useTransactionStats(query = '') {
@@ -112,8 +116,9 @@ export function TransactionFigures({ isAr, stats, compactHeader = false }: { isA
   ];
   const bottom: Card[] = [
     { id: 'bookings', label: isAr ? FIGURE_LABELS.bookings.ar : FIGURE_LABELS.bookings.en, value: f.bookings, icon: Ticket, tone: 'teal', note: asOf },
-    { id: 'baladi', label: isAr ? FIGURE_LABELS.municipalLicences.ar : FIGURE_LABELS.municipalLicences.en, value: f.municipalLicences, icon: Store, tone: 'dark', source: ODM_SOURCES.municipalLicences, note: asOf },
-    { id: 'build', label: isAr ? FIGURE_LABELS.buildingPermits.ar : FIGURE_LABELS.buildingPermits.en, value: f.buildingPermits, icon: Building2, tone: 'dark', source: ODM_SOURCES.buildingPermits, note: asOf },
+    { id: 'baladi', label: t('التراخيص البلدية', 'Municipal licences'), value: data?.allTime.licences ?? null, icon: Store, tone: 'dark', live: true, accent: '#f5a46b', source: ODM_SOURCES.municipalLicences,
+      note: data?.activeLicences != null ? t(`منها ${fmtNum(data.activeLicences, true)} سارية حالياً`, `${fmtNum(data.activeLicences, false)} currently valid`) : since },
+    { id: 'build', label: t('تراخيص البناء', 'Building permits'), value: data?.allTime.buildings ?? null, icon: Building2, tone: 'dark', live: true, accent: '#8fb2ff', source: ODM_SOURCES.buildingPermits, note: since },
     { id: 'dig', label: t('تراخيص حفر / مسارات خدمات', 'Excavation / utility routes'), value: data?.allTime.dig ?? null, icon: Construction, tone: 'dark', live: true, accent: '#c9a3ea', source: ODM_SOURCES.dig, note: since },
   ];
 

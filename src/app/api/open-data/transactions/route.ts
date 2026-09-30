@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   if (from > to) return NextResponse.json({ error: 'from must be before to' }, { status: 400 });
 
   const snap = await getSnapshot();
-  if (!snap.rent && !snap.dig) {
+  if (!snap.rent && !snap.dig && !snap.licences && !snap.buildings) {
     return NextResponse.json({ error: 'Open-data APIs are unreachable' }, { status: 503 });
   }
   return NextResponse.json(summarise(snap, from, to, wilaya), {

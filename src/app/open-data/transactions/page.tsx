@@ -7,8 +7,8 @@ import { fetchBin } from '@/lib/jsonbin';
 import { MenuItem, SiteConfig } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { ODM_SOURCES } from '@/lib/open-data/official-figures';
-import { Count, TransactionStats } from '@/lib/open-data/transactions-stats';
-import { DIG_COLOR, RENT_COLOR, TransactionFigures, fmtNum, useTransactionStats } from '@/components/open-data/transaction-figures';
+import { Count, SOURCES, SourceKey, TransactionStats } from '@/lib/open-data/transactions-stats';
+import { BUILDING_COLOR, DIG_COLOR, LICENCE_COLOR, RENT_COLOR, SOURCE_COLOR, TransactionFigures, fmtNum, useTransactionStats } from '@/components/open-data/transaction-figures';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -126,17 +126,19 @@ function Analysis({ isAr }: { isAr: boolean }) {
         <div className={cn('space-y-6 transition-opacity', state === 'loading' && 'opacity-60')} aria-busy={state === 'loading'}>
           <Kpis data={data} isAr={isAr} />
           <div className="grid gap-6 lg:grid-cols-2">
-            <MonthlyChart data={data} isAr={isAr} series="rent" />
-            <MonthlyChart data={data} isAr={isAr} series="dig" />
+            {SOURCES.map(k => <MonthlyChart key={k} data={data} isAr={isAr} series={k} />)}
           </div>
           <WilayatTable data={data} isAr={isAr} selected={wilaya} onSelect={setWilaya} />
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <Breakdown title={t('التراخيص البلدية حسب النشاط', 'Municipal licences by activity')} items={data.licencesByActivity} color={LICENCE_COLOR} isAr={isAr} />
+            <Breakdown title={t('تراخيص البناء حسب نوع المبنى', 'Building permits by building type')} items={data.buildingsByType} color={BUILDING_COLOR} isAr={isAr} />
+            <Breakdown title={t('تراخيص البناء حسب نوع الترخيص', 'Building permits by permit type')} items={data.buildingsByService} color={BUILDING_COLOR} isAr={isAr} />
             <Breakdown title={t('عقود الإيجار حسب الاستخدام', 'Rent contracts by use')} items={data.rentByUse} color={RENT_COLOR} isAr={isAr} />
             <Breakdown title={t('عقود الإيجار حسب الحالة', 'Rent contracts by status')} items={data.rentByStatus} color={RENT_COLOR} isAr={isAr} />
             <Breakdown title={t('تراخيص الحفر حسب نوع المشروع', 'Excavation permits by project')} items={data.digByProject} color={DIG_COLOR} isAr={isAr} />
           </div>
           <p className="text-xs font-bold text-slate-500">
-            {t('المصدر: واجهات البيانات المفتوحة لبلدية ظفار (ODM2040). عقود الإيجار حسب تاريخ بداية العقد، وتراخيص الحفر حسب تاريخ تقديم الطلب. آخر تحديث: ', 'Source: Dhofar Municipality open-data APIs (ODM2040). Rent contracts by contract start date; excavation permits by application date. Updated: ')}
+            {t('المصدر: واجهات البيانات المفتوحة لبلدية ظفار (ODM2040). عقود الإيجار حسب تاريخ بداية العقد، والتراخيص البلدية حسب تاريخ الإصدار، وتراخيص البناء والحفر حسب تاريخ الطلب. آخر تحديث: ', 'Source: Dhofar Municipality open-data APIs (ODM2040). Rent contracts by start date, municipal licences by issue date, building and excavation permits by application date. Updated: ')}
             {new Date(data.updatedAt).toLocaleString(isAr ? 'ar-OM' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
           </p>
         </div>
@@ -145,35 +147,41 @@ function Analysis({ isAr }: { isAr: boolean }) {
   );
 }
 
+const SOURCE_LABEL: Record<SourceKey, [string, string]> = {
+  rent: ['عقود الإيجار', 'Rent contracts'],
+  dig: ['تراخيص الحفر', 'Excavation permits'],
+  licences: ['التراخيص البلدية', 'Municipal licences'],
+  buildings: ['تراخيص البناء', 'Building permits'],
+};
+
 function Kpis({ data, isAr }: { data: TransactionStats; isAr: boolean }) {
   const t = (ar: string, en: string) => (isAr ? ar : en);
   const m = data.monthOverMonth.month ? Number(data.monthOverMonth.month.slice(5)) - 1 : null;
   const monthName = m !== null ? (isAr ? MONTHS_AR[m] : MONTHS_EN[m]) : '';
-  const tile = (label: string, value: React.ReactNode, color: string, sub?: string) => (
-    <div className="rounded-2xl bg-white ring-1 ring-slate-200 p-4">
-      <p className="flex items-center gap-2 text-xs font-black text-slate-500"><span className="size-2.5 rounded-sm" style={{ background: color }} aria-hidden />{label}</p>
-      <p className="mt-1 text-3xl font-black text-slate-900 tabular-nums">{value}</p>
-      {sub && <p className="text-[11px] font-bold text-slate-400">{sub}</p>}
-    </div>
-  );
-  const growth = (v: number | null) => v === null ? '—' : (
-    <span className="inline-flex items-center gap-1">{v >= 0 ? <TrendingUp size={20} className="text-emerald-600" aria-hidden /> : <TrendingDown size={20} className="text-red-600" aria-hidden />}{v > 0 ? '+' : ''}{v.toLocaleString(isAr ? 'ar-OM' : 'en-US')}%</span>
+  const growth = (v: number | null) => v === null ? null : (
+    <span className={cn('inline-flex items-center gap-1 text-xs font-black', v >= 0 ? 'text-emerald-700' : 'text-red-700')}>
+      {v >= 0 ? <TrendingUp size={14} aria-hidden /> : <TrendingDown size={14} aria-hidden />}{v > 0 ? '+' : ''}{v.toLocaleString(isAr ? 'ar-OM' : 'en-US')}%
+      <span className="font-bold text-slate-400">{monthName && t(`(${monthName} مقارنة بالشهر السابق)`, `(${monthName} vs previous month)`)}</span>
+    </span>
   );
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {tile(t('عقود الإيجار في الفترة', 'Rent contracts in period'), data.totals.rent === null ? '—' : fmtNum(data.totals.rent, isAr), RENT_COLOR)}
-      {tile(t('تراخيص الحفر في الفترة', 'Excavation permits in period'), data.totals.dig === null ? '—' : fmtNum(data.totals.dig, isAr), DIG_COLOR)}
-      {tile(t('نمو عقود الإيجار الشهري', 'Rent: month on month'), growth(data.monthOverMonth.rent), RENT_COLOR, monthName && t(`${monthName} مقارنة بالشهر السابق`, `${monthName} vs previous month`))}
-      {tile(t('نمو تراخيص الحفر الشهري', 'Excavation: month on month'), growth(data.monthOverMonth.dig), DIG_COLOR, monthName && t(`${monthName} مقارنة بالشهر السابق`, `${monthName} vs previous month`))}
+      {SOURCES.map(k => (
+        <div key={k} className="rounded-2xl bg-white ring-1 ring-slate-200 p-4 space-y-1">
+          <p className="flex items-center gap-2 text-xs font-black text-slate-500"><span className="size-2.5 rounded-sm" style={{ background: SOURCE_COLOR[k] }} aria-hidden />{t(`${SOURCE_LABEL[k][0]} في الفترة`, `${SOURCE_LABEL[k][1]} in period`)}</p>
+          <p className="text-3xl font-black text-slate-900 tabular-nums">{data.totals[k] === null ? '—' : fmtNum(data.totals[k]!, isAr)}</p>
+          {growth(data.monthOverMonth[k])}
+        </div>
+      ))}
     </div>
   );
 }
 
-/** One series per chart: rent (thousands) and excavation (hundreds) never share an axis */
-function MonthlyChart({ data, isAr, series }: { data: TransactionStats; isAr: boolean; series: 'rent' | 'dig' }) {
+/** One series per chart: the sources differ by orders of magnitude, so they never share an axis */
+function MonthlyChart({ data, isAr, series }: { data: TransactionStats; isAr: boolean; series: SourceKey }) {
   const t = (ar: string, en: string) => (isAr ? ar : en);
-  const color = series === 'rent' ? RENT_COLOR : DIG_COLOR;
-  const title = series === 'rent' ? t('عقود الإيجار شهرياً', 'Rent contracts per month') : t('تراخيص الحفر شهرياً', 'Excavation permits per month');
+  const color = SOURCE_COLOR[series];
+  const title = t(`${SOURCE_LABEL[series][0]} شهرياً`, `${SOURCE_LABEL[series][1]} per month`);
   const label = (m: string) => { const i = Number(m.slice(5)) - 1; return `${isAr ? MONTHS_AR[i] : MONTHS_EN[i]} ${m.slice(2, 4)}`; };
   const rows = data.byMonth.map(m => ({ month: m.month, name: label(m.month), value: m[series] }));
   return (
@@ -208,8 +216,7 @@ function MonthlyChart({ data, isAr, series }: { data: TransactionStats; isAr: bo
 /** Wilayat comparison for the period; a row selects that wilayat as the filter */
 function WilayatTable({ data, isAr, selected, onSelect }: { data: TransactionStats; isAr: boolean; selected: string | null; onSelect: (w: string | null) => void }) {
   const t = (ar: string, en: string) => (isAr ? ar : en);
-  const maxRent = Math.max(1, ...data.byWilaya.map(w => w.rent));
-  const maxDig = Math.max(1, ...data.byWilaya.map(w => w.dig));
+  const max = Object.fromEntries(SOURCES.map(k => [k, Math.max(1, ...data.byWilaya.map(w => w[k]))])) as Record<SourceKey, number>;
   return (
     <section aria-labelledby="wilayat-title" className="rounded-3xl bg-white ring-1 ring-slate-200 p-5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -217,12 +224,13 @@ function WilayatTable({ data, isAr, selected, onSelect }: { data: TransactionSta
         <p className="text-xs font-bold text-slate-400">{t('اختر ولاية لتصفية باقي الأرقام', 'Pick a wilayat to filter the other figures')}</p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="text-xs text-slate-500">
               <th scope="col" className="py-2 text-start">{t('الولاية', 'Wilayat')}</th>
-              <th scope="col" className="py-2 text-start"><span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ background: RENT_COLOR }} aria-hidden />{t('عقود الإيجار', 'Rent contracts')}</span></th>
-              <th scope="col" className="py-2 text-start"><span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ background: DIG_COLOR }} aria-hidden />{t('تراخيص الحفر', 'Excavation permits')}</span></th>
+              {SOURCES.map(k => (
+                <th key={k} scope="col" className="py-2 text-start"><span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm" style={{ background: SOURCE_COLOR[k] }} aria-hidden />{isAr ? SOURCE_LABEL[k][0] : SOURCE_LABEL[k][1]}</span></th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -231,17 +239,17 @@ function WilayatTable({ data, isAr, selected, onSelect }: { data: TransactionSta
                 <th scope="row" className="py-2 pe-3 text-start">
                   <button type="button" aria-pressed={selected === w.wilaya} onClick={() => onSelect(selected === w.wilaya ? null : w.wilaya)} className="font-black text-slate-800 hover:text-[#7B3FA8] underline-offset-4 hover:underline">{w.wilaya}</button>
                 </th>
-                {([['rent', maxRent, RENT_COLOR], ['dig', maxDig, DIG_COLOR]] as const).map(([k, max, color]) => (
+                {SOURCES.map(k => (
                   <td key={k} className="py-2 pe-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-2.5 flex-1 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${(w[k] / max) * 100}%`, background: color }} /></div>
+                      <div className="h-2.5 flex-1 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${(w[k] / max[k]) * 100}%`, background: SOURCE_COLOR[k] }} /></div>
                       <span className="w-16 text-end font-black tabular-nums text-slate-700">{fmtNum(w[k], isAr)}</span>
                     </div>
                   </td>
                 ))}
               </tr>
             ))}
-            {!data.byWilaya.length && <tr><td colSpan={3} className="py-8 text-center font-bold text-slate-400">{t('لا توجد بيانات في هذه الفترة', 'No data in this period')}</td></tr>}
+            {!data.byWilaya.length && <tr><td colSpan={5} className="py-8 text-center font-bold text-slate-400">{t('لا توجد بيانات في هذه الفترة', 'No data in this period')}</td></tr>}
           </tbody>
         </table>
       </div>

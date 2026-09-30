@@ -20,7 +20,7 @@ import { CollectionEditor } from './collection-editor';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, Edit2, ExternalLink, Download, Upload, RefreshCw, Loader2, Sparkles, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
-import { DEFAULT_FIGURES, FIGURE_LABELS, FigureKey } from '@/lib/open-data/official-figures';
+import { DEFAULT_FIGURES, FIGURE_LABELS, MANUAL_FIGURES } from '@/lib/open-data/official-figures';
 import { cn } from '@/lib/utils';
 
 const uid = (prefix: string) => `${prefix}_${Date.now()}`;
@@ -229,14 +229,14 @@ export function BrandingTab({ isAr, siteConfig, setSiteConfig }: { isAr: boolean
       <Card className="rounded-[2rem] border-none shadow-xl bg-white p-8 space-y-4">
         <h3 className="font-black text-lg">{isAr ? 'إحصائيات الصفحة الرئيسية' : 'Home statistics'}</h3>
         <div className="grid grid-cols-2 gap-4">
-          {(Object.keys(FIGURE_LABELS) as FigureKey[]).map(k => (
+          {MANUAL_FIGURES.map(k => (
             <div key={k} className="space-y-1"><Label className="text-xs font-bold text-slate-500">{isAr ? FIGURE_LABELS[k].ar : FIGURE_LABELS[k].en}</Label>
               <Input type="number" min={0} value={stats[k] ?? DEFAULT_FIGURES[k]} onChange={e => set({ stats: { ...stats, [k]: Number(e.target.value) } })} className="rounded-xl h-11" dir="ltr" /></div>
           ))}
           {field(isAr ? 'تاريخ الأرقام (عربي)' : 'Figures as of (AR)', stats.figuresAsOfAr ?? DEFAULT_FIGURES.asOfAr, v => set({ stats: { ...stats, figuresAsOfAr: v } }), 'rtl')}
           {field(isAr ? 'تاريخ الأرقام (إنجليزي)' : 'Figures as of (EN)', stats.figuresAsOfEn ?? DEFAULT_FIGURES.asOfEn, v => set({ stats: { ...stats, figuresAsOfEn: v } }), 'ltr')}
         </div>
-        <p className="text-xs font-bold text-slate-500">{isAr ? 'عقود الإيجار وتراخيص الحفر تُحسب مباشرة من واجهات البيانات المفتوحة ولا تحتاج إدخالاً.' : 'Rent contracts and excavation permits are counted live from the open-data APIs; nothing to enter.'}</p>
+        <p className="text-xs font-bold text-slate-500">{isAr ? 'عقود الإيجار وتراخيص الحفر والتراخيص البلدية وتراخيص البناء تُحسب مباشرة من واجهات البيانات المفتوحة ولا تحتاج إدخالاً.' : 'Rent contracts, excavation permits, municipal licences and building permits are counted live from the open-data APIs; nothing to enter.'}</p>
         <h3 className="font-black text-lg pt-4">{isAr ? 'بيانات SEO' : 'SEO meta'}</h3>
         <div className="grid grid-cols-2 gap-4">
           {field(isAr ? 'عنوان الصفحة (عربي)' : 'Title (AR)', meta.titleAr, v => set({ meta: { ...meta, titleAr: v } }), 'rtl')}

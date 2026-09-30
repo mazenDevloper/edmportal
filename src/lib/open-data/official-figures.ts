@@ -3,7 +3,8 @@ import { SiteConfig } from '../types';
 /*
  * Figures with no open-data API yet. Defaults come from the municipality's "المعاملات المخزنة
  * إلكترونياً" dashboard (2020 → end of Q1 2026); admins update them in /edmPortal → Identity.
- * Rent contracts and excavation permits are NOT here: they are counted live from the APIs.
+ * Rent contracts, excavation permits, municipal licences and building permits are NOT here:
+ * they are counted live from the open-data APIs (lib/open-data/transactions-source.ts).
  */
 
 export type FigureKey = 'visits' | 'eTransactions' | 'bookings' | 'municipalLicences' | 'buildingPermits';
@@ -17,6 +18,9 @@ export const DEFAULT_FIGURES: Record<FigureKey, number> & { asOfAr: string; asOf
   asOfAr: 'حتى نهاية الربع الأول 2026',
   asOfEn: 'to the end of Q1 2026',
 };
+
+/** Figures still entered by hand in the control panel */
+export const MANUAL_FIGURES: FigureKey[] = ['visits', 'eTransactions', 'bookings'];
 
 export const FIGURE_LABELS: Record<FigureKey, { ar: string; en: string }> = {
   visits: { ar: 'عدد الزيارات لكل الزوار', en: 'Total visits' },

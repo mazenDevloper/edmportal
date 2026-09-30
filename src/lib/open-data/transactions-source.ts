@@ -1,8 +1,10 @@
 /*
  * Live transaction data from Dhofar Municipality's open-data APIs (ODM2040), server side only.
  *
- * - Rent contracts:     main.edm.gov.om/opendatedm/rent/getRent  (~20 MB for 2020→today)
+ * - Rent contracts:     main.edm.gov.om/opendatedm/rent/getRent          (~20 MB for 2020→today)
  * - Excavation permits: main.edm.gov.om/opendatedm/dig/getDigs
+ * - Municipal licences: main.edm.gov.om/opendatedm/health/getHealth      (~29 MB for 2020→today)
+ * - Building permits:   main.edm.gov.om/opendatedm/building/getBuilding
  *
  * The full history is fetched once, trimmed to the few fields we use, and kept in memory for
  * 30 minutes (then refreshed in the background while the old copy keeps being served). Every
@@ -11,17 +13,27 @@
 
 const RENT_API = 'https://main.edm.gov.om/opendatedm/rent/getRent';
 const DIG_API = 'https://main.edm.gov.om/opendatedm/dig/getDigs';
+const HEALTH_API = 'https://main.edm.gov.om/opendatedm/health/getHealth';
+const BUILDING_API = 'https://main.edm.gov.om/opendatedm/building/getBuilding';
 export const HISTORY_START = '2020-01-01';
 const TTL_MS = 30 * 60 * 1000;
+/** After a failed source, try again this soon instead of waiting the full TTL */
+const RETRY_MS = 2 * 60 * 1000;
 const OMAN_OFFSET_MS = 4 * 3600 * 1000;
 
 export interface RentRow { d: string; w: string; u: string; s: string }
 export interface DigRow { d: string; w: string; p: string }
+/** Municipal licence: issue date, wilayat, activity, expiry date */
+export interface LicenceRow { d: string; w: string; a: string; e: string }
+/** Building permit: date, wilayat, permit type, building type, use */
+export interface BuildingRow { d: string; w: string; s: string; t: string; u: string }
+export type SourceKey = 'rent' | 'dig' | 'licences' | 'buildings';
 export interface Snapshot {
   rent: RentRow[] | null;
   dig: DigRow[] | null;
-  rentError?: string;
-  digError?: string;
+  licences: LicenceRow[] | null;
+  buildings: BuildingRow[] | null;
+  errors: Partial<Record<SourceKey, string>>;
   fetchedAt: string;
 }
 
@@ -52,24 +64,46 @@ async function fetchDig(): Promise<DigRow[]> {
   return rows.filter(r => r.CreatedDate).map(r => ({ d: omanDate(r.CreatedDate), w: normWilaya(r.City), p: r.Project || 'غير محدد' }));
 }
 
+async function fetchLicences(): Promise<LicenceRow[]> {
+  const url = `${HEALTH_API}?city=%25&startDate=${HISTORY_START}&endDate=${todayOman()}`;
+  const rows = await getJson(url, 120_000);
+  // The activity names end with " (ظفار)"; drop it, every licence here is in Dhofar
+  const activity = (a: string) => (a || 'غير محدد').replace(/\s*\(\s*ظفار\s*\)\s*$/, '').trim();
+  return rows.filter(r => r.ISSUEDATE).map(r => ({ d: omanDate(r.ISSUEDATE), w: normWilaya(r.STATENAMEAR), a: activity(r.DEFINITIONNAMEAR), e: r.EXPIRYDATE ? omanDate(r.EXPIRYDATE) : '' }));
+}
+
+async function fetchBuildings(): Promise<BuildingRow[]> {
+  const url = `${BUILDING_API}?city=null&startDate=${HISTORY_START}&endDate=${todayOman()}`;
+  const rows = await getJson(url, 60_000);
+  return rows.filter(r => r.Date).map(r => ({ d: omanDate(r.Date), w: normWilaya(r.city), s: r.ServiceName || 'غير محدد', t: r.BuildingType || 'غير محدد', u: r.UseType || 'غير محدد' }));
+}
+
 // Module-level cache shared by all requests on this server instance
 let cached: { snap: Snapshot; at: number } | null = null;
 let inFlight: Promise<Snapshot> | null = null;
 
 async function refresh(): Promise<Snapshot> {
-  const [rent, dig] = await Promise.allSettled([fetchRent(), fetchDig()]);
+  const [rent, dig, licences, buildings] = await Promise.allSettled([fetchRent(), fetchDig(), fetchLicences(), fetchBuildings()]);
   const prev = cached?.snap;
+  const errors: Snapshot['errors'] = {};
+  // If one source fails, keep its last good copy rather than dropping to nothing
+  const keep = <T,>(key: SourceKey, r: PromiseSettledResult<T[]>, old: T[] | null | undefined): T[] | null => {
+    if (r.status === 'fulfilled') return r.value;
+    errors[key] = String((r.reason as Error)?.message || r.reason);
+    console.warn(`[open-data] ${key} API failed:`, errors[key]);
+    return old ?? null;
+  };
   const snap: Snapshot = {
-    // If one source fails, keep its last good copy rather than dropping to nothing
-    rent: rent.status === 'fulfilled' ? rent.value : prev?.rent ?? null,
-    dig: dig.status === 'fulfilled' ? dig.value : prev?.dig ?? null,
-    rentError: rent.status === 'rejected' ? String((rent.reason as Error)?.message || rent.reason) : undefined,
-    digError: dig.status === 'rejected' ? String((dig.reason as Error)?.message || dig.reason) : undefined,
+    rent: keep('rent', rent, prev?.rent),
+    dig: keep('dig', dig, prev?.dig),
+    licences: keep('licences', licences, prev?.licences),
+    buildings: keep('buildings', buildings, prev?.buildings),
+    errors,
     fetchedAt: new Date().toISOString(),
   };
-  if (snap.rentError) console.warn('[open-data] rent API failed:', snap.rentError);
-  if (snap.digError) console.warn('[open-data] dig API failed:', snap.digError);
-  cached = { snap, at: Date.now() };
+  // A failure is kept only briefly, so a short outage upstream doesn't stick for the whole TTL
+  const failed = Object.keys(errors).length > 0;
+  cached = { snap, at: failed ? Date.now() - TTL_MS + RETRY_MS : Date.now() };
   return snap;
 }
 

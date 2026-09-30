@@ -26,6 +26,8 @@ export const YOUTUBE_CHANNEL_ID = 'UCp8waHfGiU5cPKU85INEnwg';
 const YT_FEED = `https://www.youtube.com/feeds/videos.xml?channel_id=${YOUTUBE_CHANNEL_ID}`;
 const SITE_FEED = 'https://edm.gov.om/?feed=rss2';
 const TTL_MS = 30 * 60 * 1000;
+/** After a failed source, try again this soon instead of waiting the full TTL */
+const RETRY_MS = 2 * 60 * 1000;
 
 const decode = (s: string) => s
   .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
@@ -91,7 +93,8 @@ async function load(): Promise<FeedResult> {
   };
   // Keep the last good items if every source failed this time
   if (!items.length && cached?.data.items.length) return { ...cached.data, sources: data.sources };
-  cached = { at: Date.now(), data };
+  const failed = Object.values(data.sources).includes('error');
+  cached = { at: failed ? Date.now() - TTL_MS + RETRY_MS : Date.now(), data };
   return data;
 }
 
