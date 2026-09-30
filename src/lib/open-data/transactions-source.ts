@@ -79,12 +79,25 @@ async function fetchBuildings(): Promise<BuildingRow[]> {
 }
 
 // Module-level cache shared by all requests on this server instance
-let cached: { snap: Snapshot; at: number } | null = null;
-let inFlight: Promise<Snapshot> | null = null;
+// Kept on globalThis so every API route shares ONE copy (in development each route is bundled separately)
+type Store = { cached: { snap: Snapshot; at: number } | null; inFlight: Promise<Snapshot> | null };
+const store: Store = ((globalThis as unknown as { __dmOpenData?: Store }).__dmOpenData ??= { cached: null, inFlight: null });
+
+/** One retry after a short pause: the municipality's server has brief hiccups */
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try { return await fn(); } catch { await new Promise(r => setTimeout(r, 3000)); return fn(); }
+}
 
 async function refresh(): Promise<Snapshot> {
-  const [rent, dig, licences, buildings] = await Promise.allSettled([fetchRent(), fetchDig(), fetchLicences(), fetchBuildings()]);
-  const prev = cached?.snap;
+  // One source at a time, smallest first, to keep the load on the municipality's server low
+  const settle = async <T,>(fn: () => Promise<T>): Promise<PromiseSettledResult<T>> => {
+    try { return { status: 'fulfilled', value: await withRetry(fn) }; } catch (reason) { return { status: 'rejected', reason }; }
+  };
+  const dig = await settle(fetchDig);
+  const buildings = await settle(fetchBuildings);
+  const rent = await settle(fetchRent);
+  const licences = await settle(fetchLicences);
+  const prev = store.cached?.snap;
   const errors: Snapshot['errors'] = {};
   // If one source fails, keep its last good copy rather than dropping to nothing
   const keep = <T,>(key: SourceKey, r: PromiseSettledResult<T[]>, old: T[] | null | undefined): T[] | null => {
@@ -103,14 +116,14 @@ async function refresh(): Promise<Snapshot> {
   };
   // A failure is kept only briefly, so a short outage upstream doesn't stick for the whole TTL
   const failed = Object.keys(errors).length > 0;
-  cached = { snap, at: failed ? Date.now() - TTL_MS + RETRY_MS : Date.now() };
+  store.cached = { snap, at: failed ? Date.now() - TTL_MS + RETRY_MS : Date.now() };
   return snap;
 }
 
 /** Latest snapshot: fresh copy if we have one, stale copy while refreshing, or wait for the first fetch */
 export async function getSnapshot(): Promise<Snapshot> {
-  const stale = !cached || Date.now() - cached.at > TTL_MS;
-  if (stale && !inFlight) inFlight = refresh().finally(() => { inFlight = null; });
-  if (cached) return cached.snap;
-  return inFlight!;
+  const stale = !store.cached || Date.now() - store.cached.at > TTL_MS;
+  if (stale && !store.inFlight) store.inFlight = refresh().finally(() => { store.inFlight = null; });
+  if (store.cached) return store.cached.snap;
+  return store.inFlight!;
 }

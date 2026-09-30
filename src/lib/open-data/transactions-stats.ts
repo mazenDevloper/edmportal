@@ -1,4 +1,5 @@
 import type { Snapshot, SourceKey } from './transactions-source';
+import type { WebsiteCounters } from './website-counters';
 
 /*
  * Aggregations over the open-data snapshot, and the shared shape the API route returns.
@@ -33,6 +34,8 @@ export interface TransactionStats {
   /** Last full month in the period vs the month before, per source (null if not enough data) */
   monthOverMonth: PerSource<number | null> & { month: string | null };
   wilayat: string[];
+  /** Counters read from the municipality website's home page (visits, e-transactions, bookings) */
+  website?: WebsiteCounters;
 }
 
 const inRange = (d: string, from: string, to: string) => d >= from && d <= to;

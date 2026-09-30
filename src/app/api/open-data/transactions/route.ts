@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSnapshot, HISTORY_START, todayOman } from '@/lib/open-data/transactions-source';
 import { summarise } from '@/lib/open-data/transactions-stats';
+import { getWebsiteCounters } from '@/lib/open-data/website-counters';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +19,11 @@ export async function GET(req: Request) {
   const wilaya = (q.get('wilaya') || '').trim().slice(0, 60) || null;
   if (from > to) return NextResponse.json({ error: 'from must be before to' }, { status: 400 });
 
-  const snap = await getSnapshot();
+  const [snap, website] = await Promise.all([getSnapshot(), getWebsiteCounters()]);
   if (!snap.rent && !snap.dig && !snap.licences && !snap.buildings) {
     return NextResponse.json({ error: 'Open-data APIs are unreachable' }, { status: 503 });
   }
-  return NextResponse.json(summarise(snap, from, to, wilaya), {
+  return NextResponse.json({ ...summarise(snap, from, to, wilaya), website }, {
     headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=1800' },
   });
 }

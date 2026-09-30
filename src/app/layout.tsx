@@ -9,6 +9,7 @@ import { AccessibilityToolbar } from '@/components/accessibility-toolbar';
 import { ServiceAssistant } from '@/components/citizen/service-assistant';
 import { ThiqaDialogHost } from '@/components/citizen/thiqa-dialog';
 import { AutoTranslate } from '@/components/auto-translate';
+import { HappinessMeter } from '@/components/citizen/happiness-meter';
 import { useEffect, useState } from 'react';
 
 export default function RootLayout({
@@ -53,6 +54,7 @@ export default function RootLayout({
           </div>
           {mounted && <AccessibilityToolbar />}
           {mounted && <ServiceAssistant />}
+          {mounted && <HappinessMeter />}
           {mounted && <ThiqaDialogHost />}
           {mounted && <AutoTranslate />}
           <Toaster />

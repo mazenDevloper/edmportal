@@ -108,14 +108,17 @@ export function TransactionFigures({ isAr, stats, compactHeader = false }: { isA
   const f = officialFigures(stats);
   const asOf = isAr ? f.asOfAr : f.asOfEn;
   const since = t('من 2020 حتى اليوم', 'since 2020');
+  const web = data?.website;
+  const fromSite = t('من موقع البلدية edm.gov.om', 'from edm.gov.om');
 
   const top: Card[] = [
-    { id: 'visits', label: isAr ? FIGURE_LABELS.visits.ar : FIGURE_LABELS.visits.en, value: f.visits, icon: Globe, tone: 'gradient', note: asOf },
-    { id: 'etrans', label: isAr ? FIGURE_LABELS.eTransactions.ar : FIGURE_LABELS.eTransactions.en, value: f.eTransactions, icon: ReceiptText, tone: 'dark', note: asOf },
+    // Read from the municipality website when available (visits are live there); panel values otherwise
+    { id: 'visits', label: isAr ? FIGURE_LABELS.visits.ar : FIGURE_LABELS.visits.en, value: web?.visits ?? f.visits, icon: Globe, tone: 'gradient', live: !!web?.visits, note: web?.visits ? fromSite : asOf, source: web?.visits ? 'https://edm.gov.om/' : undefined },
+    { id: 'etrans', label: isAr ? FIGURE_LABELS.eTransactions.ar : FIGURE_LABELS.eTransactions.en, value: web?.eTransactions ?? f.eTransactions, icon: ReceiptText, tone: 'dark', note: web?.eTransactions ? fromSite : asOf },
     { id: 'rent', label: t('إجمالي عقود الإيجار', 'Rent contracts'), value: data?.allTime.rent ?? null, icon: FileSignature, tone: 'dark', live: true, accent: '#5fd3d6', source: ODM_SOURCES.rent, note: since },
   ];
   const bottom: Card[] = [
-    { id: 'bookings', label: isAr ? FIGURE_LABELS.bookings.ar : FIGURE_LABELS.bookings.en, value: f.bookings, icon: Ticket, tone: 'teal', note: asOf },
+    { id: 'bookings', label: isAr ? FIGURE_LABELS.bookings.ar : FIGURE_LABELS.bookings.en, value: web?.bookings ?? f.bookings, icon: Ticket, tone: 'teal', note: web?.bookings ? fromSite : asOf },
     { id: 'baladi', label: t('التراخيص البلدية', 'Municipal licences'), value: data?.allTime.licences ?? null, icon: Store, tone: 'dark', live: true, accent: '#f5a46b', source: ODM_SOURCES.municipalLicences,
       note: data?.activeLicences != null ? t(`منها ${fmtNum(data.activeLicences, true)} سارية حالياً`, `${fmtNum(data.activeLicences, false)} currently valid`) : since },
     { id: 'build', label: t('تراخيص البناء', 'Building permits'), value: data?.allTime.buildings ?? null, icon: Building2, tone: 'dark', live: true, accent: '#8fb2ff', source: ODM_SOURCES.buildingPermits, note: since },

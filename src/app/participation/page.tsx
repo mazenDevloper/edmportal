@@ -91,7 +91,7 @@ export default function ParticipationPage() {
               </button>
             </li>
             <li>
-              <Link href="/p/open-data" className="block h-full rounded-3xl bg-white ring-1 ring-slate-200 p-5 space-y-2 hover:ring-[#008E91]">
+              <Link href="/open-data/hub" className="block h-full rounded-3xl bg-white ring-1 ring-slate-200 p-5 space-y-2 hover:ring-[#008E91]">
                 <Lightbulb size={26} className="text-[#008E91]" aria-hidden />
                 <p className="font-black text-lg text-slate-900">{t('البيانات المفتوحة', 'Open data')}</p>
                 <p className="text-sm font-bold text-slate-500">{t('بيانات التراخيص والعقود والإحصاءات', 'Licence, contract and statistics data')}</p>

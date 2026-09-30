@@ -7,7 +7,7 @@
  *  ✗ X / Twitter                    — timelines need the paid X API; the public endpoint is rate-limited
  *  ✗ Facebook posts as data         — need a Page access token; the page is shown with Facebook's own embed instead
  *
- * Server side only; cached for 30 minutes.
+ * Server side only; store.cached for 30 minutes.
  */
 
 export interface FeedItem {
@@ -74,8 +74,9 @@ async function instagram(): Promise<FeedItem[]> {
 
 export interface FeedResult { items: FeedItem[]; sources: Record<FeedItem['source'], 'ok' | 'error' | 'off'>; updatedAt: string }
 
-let cached: { at: number; data: FeedResult } | null = null;
-let inFlight: Promise<FeedResult> | null = null;
+// Shared by every API route (in development each route is bundled separately)
+type Store = { cached: { at: number; data: FeedResult } | null; inFlight: Promise<FeedResult> | null };
+const store: Store = ((globalThis as unknown as { __dmSocialFeed?: Store }).__dmSocialFeed ??= { cached: null, inFlight: null });
 
 async function load(): Promise<FeedResult> {
   const [yt, web, ig] = await Promise.allSettled([youtube(), website(), instagram()]);
@@ -92,14 +93,14 @@ async function load(): Promise<FeedResult> {
     updatedAt: new Date().toISOString(),
   };
   // Keep the last good items if every source failed this time
-  if (!items.length && cached?.data.items.length) return { ...cached.data, sources: data.sources };
+  if (!items.length && store.cached?.data.items.length) return { ...store.cached.data, sources: data.sources };
   const failed = Object.values(data.sources).includes('error');
-  cached = { at: failed ? Date.now() - TTL_MS + RETRY_MS : Date.now(), data };
+  store.cached = { at: failed ? Date.now() - TTL_MS + RETRY_MS : Date.now(), data };
   return data;
 }
 
 export async function getFeed(): Promise<FeedResult> {
-  if (cached && Date.now() - cached.at < TTL_MS) return cached.data;
-  if (!inFlight) inFlight = load().finally(() => { inFlight = null; });
-  return cached ? cached.data : inFlight;
+  if (store.cached && Date.now() - store.cached.at < TTL_MS) return store.cached.data;
+  if (!store.inFlight) store.inFlight = load().finally(() => { store.inFlight = null; });
+  return store.cached ? store.cached.data : store.inFlight;
 }
