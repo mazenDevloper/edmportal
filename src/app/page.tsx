@@ -162,7 +162,10 @@ export default function DhofarPortal() {
                      />
                    </div>
 
-                   <Link href="/virtual" className="inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-gradient-to-r from-[#0b4f86] to-[#020d1c] text-white font-black shadow-xl hover:shadow-[0_0_30px_rgba(3,207,203,0.4)] transition-shadow"><VrHeadsetIcon size={22} />{isAr ? 'العرض الافتراضي' : 'Virtual view'}</Link>
+                   <div className="flex flex-wrap gap-3">
+                     <Link href="/virtual" className="inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-gradient-to-r from-[#0b4f86] to-[#020d1c] text-white font-black shadow-xl hover:shadow-[0_0_30px_rgba(3,207,203,0.4)] transition-shadow"><VrHeadsetIcon size={22} />{isAr ? 'العرض الافتراضي' : 'Virtual view'}</Link>
+                     <Link href="/virtual/journey" className="inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-gradient-to-r from-[#7B3FA8] to-[#0b1030] text-white font-black shadow-xl ring-1 ring-[#03CFCB]/40 hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition-shadow"><VrHeadsetIcon size={22} />{isAr ? 'رحلة التحول الرقمي VR' : 'Digital journey VR'}</Link>
+                   </div>
 
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {filteredQuickAccess.map((s) => {

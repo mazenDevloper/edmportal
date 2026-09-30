@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 type Message = { id: number; role: 'user' | 'bot'; text?: string; answer?: AssistantAnswer; ai?: AiReply & { ok: true }; thinking?: boolean };
 
 // Staff and admin areas have their own tools
-const HIDDEN_ON = /^\/(edmPortal|edmEmp|staff|pagebuild|servicebuild|surveybuild|identity\/board)(\/|$)/;
+const HIDDEN_ON = /^\/(edmPortal|edmEmp|staff|pagebuild|servicebuild|surveybuild|identity\/board|virtual)(\/|$)/;
 
 /** Floating service assistant, beside the accessibility button. Answers from the portal's own service data. */
 export function ServiceAssistant() {
