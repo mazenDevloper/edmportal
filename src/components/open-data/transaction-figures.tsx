@@ -107,7 +107,8 @@ export function TransactionFigures({ isAr, stats, compactHeader = false }: { isA
   const { data, state } = useTransactionStats();
   const f = officialFigures(stats);
   const asOf = isAr ? f.asOfAr : f.asOfEn;
-  const since = t('من 2020 حتى اليوم', 'since 2020');
+  // Whole history up to yesterday: every day counted is complete
+  const since = t('من 2020 حتى أمس', 'since 2020, to yesterday');
   const web = data?.website;
   const fromSite = t('من موقع البلدية edm.gov.om', 'from edm.gov.om');
 
@@ -125,7 +126,6 @@ export function TransactionFigures({ isAr, stats, compactHeader = false }: { isA
     { id: 'dig', label: t('تراخيص حفر / مسارات خدمات', 'Excavation / utility routes'), value: data?.allTime.dig ?? null, icon: Construction, tone: 'dark', live: true, accent: '#c9a3ea', source: ODM_SOURCES.dig, note: since },
   ];
 
-  const updated = data ? new Date(data.updatedAt).toLocaleTimeString(isAr ? 'ar-OM' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
 
   return (
     <section aria-labelledby="figures-title" className="bg-slate-100 py-14">
@@ -138,7 +138,7 @@ export function TransactionFigures({ isAr, stats, compactHeader = false }: { isA
           <div className="flex flex-wrap items-center gap-2">
             <span role="status" className={cn('inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black ring-1',
               state === 'ready' ? 'bg-emerald-50 text-emerald-800 ring-emerald-200' : state === 'error' ? 'bg-amber-50 text-amber-900 ring-amber-200' : 'bg-white text-slate-600 ring-slate-200')}>
-              {state === 'ready' ? <><span className="size-2 rounded-full bg-emerald-500" aria-hidden />{t('متصل بالبيانات المفتوحة', 'Connected to open data')}{updated && ` · ${t('آخر تحديث', 'updated')} ${updated}`}</>
+              {state === 'ready' ? <><span className="size-2 rounded-full bg-emerald-500" aria-hidden />{t('متصل بالبيانات المفتوحة · تُحدَّث يومياً', 'Connected to open data · updated daily')}{data?.asOf && ` · ${t('حتى', 'to')} ${new Date(data.asOf).toLocaleDateString(isAr ? 'ar-OM' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`}</>
                 : state === 'error' ? <><WifiOff size={13} aria-hidden />{t('تعذّر الاتصال بالبيانات المفتوحة', 'Open data unavailable')}</>
                 : <><Loader2 size={13} className="animate-spin" aria-hidden />{t('جارٍ الاتصال بالبيانات المفتوحة…', 'Connecting to open data…')}</>}
             </span>

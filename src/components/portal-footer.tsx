@@ -6,7 +6,8 @@ import { useAdminSession } from '@/lib/admin-session';
 import Link from 'next/link';
 import { useSettingsStore } from '@/lib/settings-store';
 import { SiteConfig, FooterVariant } from '@/lib/types';
-import { ExternalLink, Mail, Phone, MessageCircle, Globe, Headset, Facebook, Twitter, Youtube, Instagram } from 'lucide-react';
+import { ExternalLink, Mail, Phone, MessageCircle, Globe, Headset, Facebook, Twitter, Youtube, Instagram, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { CHANNELS } from '@/lib/participation';
 import { CONTACT, FOOTER_GROUPS, SITE_LAST_UPDATED } from '@/lib/footer-pages';
 import { usePathname } from 'next/navigation';
@@ -41,6 +42,9 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
   useEffect(() => { setMounted(true); }, []);
   const adminExpires = useAdminSession(s => s.expiresAt);
   const isAdmin = mounted && adminExpires > Date.now();
+  // Collapsed by default: essentials + section titles; a title expands the full footer
+  const [expanded, setExpanded] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
   // The standard footer pages always show; links added in the database are appended to their group
   const dbLinks = siteConfig?.footerLinks || [];
@@ -83,82 +87,97 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
     );
   }
 
+  const phone = siteConfig?.contactPhone || CONTACT.callCenter;
+  const email = siteConfig?.contactEmail || CONTACT.infoEmail;
+  const SECTIONS = [
+    { id: 'contact', title: { ar: 'تواصل معنا', en: 'Contact us' } },
+    ...groups.map(g => ({ id: g.id, title: g.title })),
+  ];
+  // Opening any title expands the whole footer and brings that section into view; the open title closes it
+  const toggle = (id: string) => {
+    if (expanded && openSection === id) { setExpanded(false); return; }
+    setExpanded(true);
+    setOpenSection(id);
+    setTimeout(() => document.getElementById(`footer-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  };
+
   return (
-    <footer className="bg-slate-950 text-white py-24 px-6 relative overflow-hidden border-t-8 border-accent">
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
-          
-          {/* Brand Column */}
-          <div className="space-y-8">
-             <div className="flex items-center gap-4">
-               <BrandLogo height={72} onDark />
-               <span className="text-[10px] text-accent font-black tracking-widest uppercase">{isAr ? 'حكومة سلطنة عمان' : 'OMAN GOVERNMENT'}</span>
-             </div>
-             <p className="text-sm text-white/70 leading-relaxed font-medium max-w-xs">
-               {isAr ? "نعمل بجد لتطوير محافظة ظفار وتقديم أفضل الخدمات الرقمية التي تساهم في تحسين جودة الحياة للمواطنين والمقيمين." : "Working diligently to develop Dhofar Governorate and provide best-in-class digital services."}
-             </p>
-             <address className="not-italic space-y-3">
-               <h4 className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? 'تواصل معنا' : 'Contact us'}</h4>
-               <a href={`tel:${(siteConfig?.contactPhone || CONTACT.callCenter).replace(/s/g, '')}`} className="flex items-center gap-3 text-white/80 hover:text-white">
-                 <Phone size={16} className="text-accent" aria-hidden />
-                 <span className="text-sm font-bold">{isAr ? 'مركز الاتصال' : 'Call centre'} <span dir="ltr">{siteConfig?.contactPhone || CONTACT.callCenter}</span></span>
-               </a>
-               <a href={`mailto:${siteConfig?.contactEmail || CONTACT.infoEmail}`} className="flex items-center gap-3 text-white/80 hover:text-white">
-                 <Mail size={16} className="text-accent" aria-hidden />
-                 <span className="text-sm font-bold" dir="ltr">{siteConfig?.contactEmail || CONTACT.infoEmail}</span>
-               </a>
-               <a href={`mailto:${CONTACT.itsEmail}`} className="flex items-center gap-3 text-white/80 hover:text-white">
-                 <Headset size={16} className="text-accent" aria-hidden />
-                 <span className="text-sm font-bold">{isAr ? 'الدعم الفني' : 'Technical support'} <span dir="ltr">{CONTACT.itsEmail}</span></span>
-               </a>
-               <a href={`https://${CONTACT.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-white/80 hover:text-white">
-                 <Globe size={16} className="text-accent" aria-hidden />
-                 <span className="text-sm font-bold" dir="ltr">{CONTACT.website}</span>
-                 <span className="sr-only">{isAr ? '(يفتح في نافذة جديدة)' : '(opens in a new tab)'}</span>
-               </a>
-               <a href={`https://wa.me/968${CONTACT.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-white/80 hover:text-white">
-                 <MessageCircle size={16} className="text-accent" aria-hidden />
-                 <span className="text-sm font-bold" dir="ltr">{CONTACT.whatsapp}</span>
-                 <span className="sr-only">{isAr ? 'واتساب' : 'WhatsApp'}</span>
-               </a>
-             </address>
-             <SocialLinks isAr={isAr} />
-          </div>
-          
-          {groups.map(g => (
-            <nav key={g.id} aria-labelledby={`footer-${g.id}`} className="flex flex-col gap-6">
-              <h4 id={`footer-${g.id}`} className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? g.title.ar : g.title.en}</h4>
-              <ul className="flex flex-col gap-4">
-                {g.links.map(l => {
-                  const external = l.link.startsWith('http');
-                  return (
-                    <li key={l.id}>
-                      <Link href={l.link} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
-                        className="text-sm font-bold text-white/70 hover:text-white transition-colors inline-flex items-center gap-2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-                        {isAr ? l.labelAr : l.labelEn}
-                        {external && <ExternalLink size={12} aria-label={isAr ? 'رابط خارجي' : 'External link'} />}
-                      </Link>
-                    </li>
-                  );
-                })}
-                {g.id === 'important' && (
-                  <>
-                    <li className="mt-4"><Link href="/staff" className="text-sm font-black text-white bg-white/10 inline-block px-4 py-2 rounded-lg hover:bg-white/15">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link></li>
-                    {isAdmin && <li><Link href="/edmPortal" className="text-sm font-black text-accent bg-white/5 inline-block px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link></li>}
-                  </>
-                )}
-              </ul>
-            </nav>
-          ))}
+    <footer className="bg-slate-950 text-white border-t-4 border-accent relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        {/* Always visible: the essentials */}
+        <div className="py-7 flex flex-wrap items-center justify-between gap-6">
+          <BrandLogo height={52} onDark />
+          <ul className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-white/80">
+            <li><a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-white"><Phone size={15} className="text-accent" aria-hidden />{isAr ? 'مركز الاتصال' : 'Call centre'} <span dir="ltr">{phone}</span></a></li>
+            <li><a href={`mailto:${email}`} className="flex items-center gap-2 hover:text-white"><Mail size={15} className="text-accent" aria-hidden /><span dir="ltr">{email}</span></a></li>
+            <li><a href={`https://wa.me/968${CONTACT.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white"><MessageCircle size={15} className="text-accent" aria-hidden /><span className="sr-only">{isAr ? 'واتساب' : 'WhatsApp'}</span><span dir="ltr">{CONTACT.whatsapp}</span></a></li>
+          </ul>
+          <SocialLinks isAr={isAr} size="sm" />
         </div>
 
-        <div className="mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-white/50 text-xs font-bold">
+        {/* Section titles: the arrow opens the full footer */}
+        <div className="border-t border-white/10 py-3 flex flex-wrap gap-2" role="group" aria-label={isAr ? 'أقسام التذييل' : 'Footer sections'}>
+          {SECTIONS.map(sec => {
+            const open = expanded && openSection === sec.id;
+            return (
+              <button key={sec.id} type="button" onClick={() => toggle(sec.id)} aria-expanded={expanded} aria-controls="footer-details"
+                className={cn('h-10 px-4 rounded-xl text-sm font-black flex items-center gap-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
+                  open ? 'bg-accent text-slate-900' : 'bg-white/5 text-white/80 hover:bg-white/10 hover:text-white')}>
+                {isAr ? sec.title.ar : sec.title.en}
+                <ChevronDown size={16} className={cn('transition-transform', expanded && 'rotate-180')} aria-hidden />
+              </button>
+            );
+          })}
+        </div>
+
+        {expanded && (
+          <div id="footer-details" className="border-t border-white/10 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2">
+            <section id="footer-contact" aria-labelledby="footer-contact-title" className={cn('space-y-4 rounded-2xl p-1 scroll-mt-24', openSection === 'contact' && 'ring-1 ring-accent/40 p-4')}>
+              <h4 id="footer-contact-title" className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? 'تواصل معنا' : 'Contact us'}</h4>
+              <p className="text-sm text-white/70 leading-relaxed font-medium">
+                {isAr ? 'نعمل بجد لتطوير محافظة ظفار وتقديم أفضل الخدمات الرقمية التي تساهم في تحسين جودة الحياة للمواطنين والمقيمين.' : 'We work to develop Dhofar and offer the best digital services to improve quality of life for citizens and residents.'}
+              </p>
+              <address className="not-italic space-y-3 text-sm font-bold text-white/80">
+                <a href={`mailto:${CONTACT.itsEmail}`} className="flex items-center gap-3 hover:text-white"><Headset size={16} className="text-accent" aria-hidden />{isAr ? 'الدعم الفني' : 'Technical support'} <span dir="ltr">{CONTACT.itsEmail}</span></a>
+                <a href={`https://${CONTACT.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-white"><Globe size={16} className="text-accent" aria-hidden /><span dir="ltr">{CONTACT.website}</span><span className="sr-only">{isAr ? '(يفتح في نافذة جديدة)' : '(opens in a new tab)'}</span></a>
+              </address>
+              <p className="text-[10px] text-accent font-black tracking-widest uppercase">{isAr ? 'حكومة سلطنة عمان' : 'OMAN GOVERNMENT'}</p>
+            </section>
+
+            {groups.map(g => (
+              <nav key={g.id} id={`footer-${g.id}`} aria-labelledby={`footer-${g.id}-title`} className={cn('flex flex-col gap-5 rounded-2xl p-1 scroll-mt-24', openSection === g.id && 'ring-1 ring-accent/40 p-4')}>
+                <h4 id={`footer-${g.id}-title`} className="text-accent text-xs font-black uppercase tracking-widest">{isAr ? g.title.ar : g.title.en}</h4>
+                <ul className="flex flex-col gap-3">
+                  {g.links.map(l => {
+                    const external = l.link.startsWith('http');
+                    return (
+                      <li key={l.id}>
+                        <Link href={l.link} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
+                          className="text-sm font-bold text-white/70 hover:text-white transition-colors inline-flex items-center gap-2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+                          {isAr ? l.labelAr : l.labelEn}
+                          {external && <ExternalLink size={12} aria-label={isAr ? 'رابط خارجي' : 'External link'} />}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                  {g.id === 'important' && (
+                    <>
+                      <li className="mt-3"><Link href="/staff" className="text-sm font-black text-white bg-white/10 inline-block px-4 py-2 rounded-lg hover:bg-white/15">{isAr ? 'بوابة الموظف' : 'Staff portal'}</Link></li>
+                      {isAdmin && <li><Link href="/edmPortal" className="text-sm font-black text-accent bg-white/5 inline-block px-4 py-2 rounded-lg hover:bg-white/10">{isAr ? 'لوحة التحكم' : 'Admin Panel'}</Link></li>}
+                    </>
+                  )}
+                </ul>
+              </nav>
+            ))}
+          </div>
+        )}
+
+        <div className="border-t border-white/10 py-5 flex flex-col md:flex-row justify-between items-center gap-3 text-white/50 text-xs font-bold">
           <p>{isAr ? `© ${new Date().getFullYear()} بلدية ظفار - جميع الحقوق محفوظة` : `© ${new Date().getFullYear()} Dhofar Municipality - All Rights Reserved`}</p>
           <p className="text-accent">{isAr ? 'آخر تحديث لهذه الصفحة:' : 'This page was last updated:'} <time dateTime={updatedIso}>{lastUpdated}</time></p>
           <p>{isAr ? 'سلطنة عمان - محافظة ظفار' : 'Sultanate of Oman - Dhofar Governorate'}</p>
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 w-full h-80 dm-wave-5 opacity-10 pointer-events-none" />
     </footer>
   );
 }

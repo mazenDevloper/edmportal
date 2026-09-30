@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSnapshot, todayOman, HISTORY_START } from '@/lib/open-data/transactions-source';
+import { getSnapshot, todayOman, yesterdayOman, HISTORY_START } from '@/lib/open-data/transactions-source';
 import { datasetById, DatasetId } from '@/lib/open-data/catalog';
 import { fetchBin } from '@/lib/jsonbin';
 import { SLA_SERVICES } from '@/lib/footer-pages';
@@ -20,7 +20,10 @@ export async function GET(req: Request) {
   if (!ds) return NextResponse.json({ error: 'Unknown dataset' }, { status: 404 });
   const format = q.get('format') === 'csv' ? 'csv' : 'json';
   const from = DATE.test(q.get('from') || '') ? q.get('from')! : HISTORY_START;
-  const to = DATE.test(q.get('to') || '') ? q.get('to')! : todayOman();
+  // Complete days only by default; &includeToday=1 adds today's partial data
+  const bound = q.get('includeToday') === '1' ? todayOman() : yesterdayOman();
+  const asked = DATE.test(q.get('to') || '') ? q.get('to')! : bound;
+  const to = asked > bound ? bound : asked;
   const wilaya = (q.get('wilaya') || '').trim().slice(0, 60) || null;
   const limit = Math.min(Math.max(Number(q.get('limit')) || 0, 0), 500_000);
 

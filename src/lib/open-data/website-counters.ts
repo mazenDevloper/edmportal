@@ -5,12 +5,13 @@
  * - eTransactions: "المعاملات الالكترونية"   — counter box maintained by the website team
  * - bookings:      "حجز للتذاكر الكترونيا"   — counter box maintained by the website team
  *
- * Reading the HTML doesn't run the page's scripts, so it doesn't add a visit. Cached 30 minutes;
+ * Reading the HTML doesn't run the page's scripts, so it doesn't add a visit. Read once a day;
  * a failed read is retried after 2 minutes and the last good values are kept meanwhile.
  */
 
 const SITE = 'https://edm.gov.om/';
-const TTL_MS = 30 * 60 * 1000;
+const TTL_MS = 24 * 60 * 60 * 1000;
+const omanDay = (ms: number) => new Date(ms + 4 * 3600e3).toISOString().slice(0, 10);
 const RETRY_MS = 2 * 60 * 1000;
 
 export interface WebsiteCounters {
@@ -42,7 +43,7 @@ export function parseCounters(html: string): Omit<WebsiteCounters, 'fetchedAt' |
 }
 
 // Shared by every API route (in development each route is bundled separately)
-type Store = { cached: { at: number; data: WebsiteCounters } | null; inFlight: Promise<WebsiteCounters> | null };
+type Store = { cached: { at: number; retryAt: number | null; data: WebsiteCounters } | null; inFlight: Promise<WebsiteCounters> | null };
 const store: Store = ((globalThis as unknown as { __dmWebsiteCounters?: Store }).__dmWebsiteCounters ??= { cached: null, inFlight: null });
 
 async function load(): Promise<WebsiteCounters> {
@@ -58,18 +59,19 @@ async function load(): Promise<WebsiteCounters> {
       fetchedAt: new Date().toISOString(),
       ok: parsed.visits !== null,
     };
-    store.cached = { at: data.ok ? Date.now() : Date.now() - TTL_MS + RETRY_MS, data };
+    store.cached = { at: Date.now(), retryAt: data.ok ? null : Date.now() + RETRY_MS, data };
     return data;
   } catch (e) {
     console.warn('[website-counters]', (e as Error).message);
     const data = store.cached?.data ? { ...store.cached.data, ok: false } : { visits: null, eTransactions: null, bookings: null, fetchedAt: new Date().toISOString(), ok: false };
-    store.cached = { at: Date.now() - TTL_MS + RETRY_MS, data };
+    store.cached = { at: Date.now(), retryAt: Date.now() + RETRY_MS, data };
     return data;
   }
 }
 
 export async function getWebsiteCounters(): Promise<WebsiteCounters> {
-  const stale = !store.cached || Date.now() - store.cached.at > TTL_MS;
+  const c = store.cached;
+  const stale = !c || (c.retryAt !== null && Date.now() > c.retryAt) || Date.now() - c.at > TTL_MS || omanDay(c.at) !== omanDay(Date.now());
   if (stale && !store.inFlight) store.inFlight = load().finally(() => { store.inFlight = null; });
   return store.cached ? store.cached.data : store.inFlight!;
 }

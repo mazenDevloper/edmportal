@@ -16,6 +16,8 @@ export interface TransactionStats {
   updatedAt: string;
   live: PerSource<boolean>;
   range: { from: string; to: string; wilaya: string | null };
+  /** Last day included in the whole-history figures (yesterday unless today was asked for) */
+  asOf: string;
   /** In the selected period (and wilayat) */
   totals: PerSource<number | null>;
   /** Whole history, all wilayat: the headline figures */
@@ -46,8 +48,10 @@ const tally = (items: string[], top = 8): Count[] => {
 };
 const zero = (): PerSource<number> => ({ rent: 0, dig: 0, licences: 0, buildings: 0 });
 
-export function summarise(snap: Snapshot, from: string, to: string, wilaya: string | null): TransactionStats {
-  const all = { rent: snap.rent, dig: snap.dig, licences: snap.licences, buildings: snap.buildings };
+export function summarise(snap: Snapshot, from: string, to: string, wilaya: string | null, asOf: string = to): TransactionStats {
+  // Whole history up to asOf: by default yesterday, so no figure includes a half-finished day
+  const upTo = <T extends { d: string }>(rows: T[] | null) => (rows ? rows.filter(r => r.d <= asOf) : null);
+  const all = { rent: upTo(snap.rent), dig: upTo(snap.dig), licences: upTo(snap.licences), buildings: upTo(snap.buildings) };
   const inPeriod = <T extends { d: string }>(rows: T[] | null) => rows ? rows.filter(r => inRange(r.d, from, to)) : null;
   const period = { rent: inPeriod(all.rent), dig: inPeriod(all.dig), licences: inPeriod(all.licences), buildings: inPeriod(all.buildings) };
   const pick = <T extends { w: string }>(rows: T[] | null) => rows ? rows.filter(r => !wilaya || r.w === wilaya) : null;
@@ -82,6 +86,7 @@ export function summarise(snap: Snapshot, from: string, to: string, wilaya: stri
     updatedAt: snap.fetchedAt,
     live: { rent: !!all.rent && !snap.errors.rent, dig: !!all.dig && !snap.errors.dig, licences: !!all.licences && !snap.errors.licences, buildings: !!all.buildings && !snap.errors.buildings },
     range: { from, to, wilaya },
+    asOf,
     totals: { rent: count(sel.rent), dig: count(sel.dig), licences: count(sel.licences), buildings: count(sel.buildings) },
     allTime: { rent: count(all.rent), dig: count(all.dig), licences: count(all.licences), buildings: count(all.buildings) },
     activeLicences: all.licences ? all.licences.filter(r => r.e && r.e >= today).length : null,

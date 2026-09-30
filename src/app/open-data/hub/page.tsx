@@ -155,7 +155,7 @@ export default function OpenDataHub() {
               <div>
                 <h2 className="text-xl font-black text-slate-900">{t('عدد الزيارات لكل الزوار', 'Total visits')}</h2>
                 <p className="text-3xl font-black text-slate-900 tabular-nums">{stats?.website?.visits ? fmtNum(stats.website.visits, isAr) : '…'}</p>
-                <p className="text-xs font-bold text-slate-500">{t('يُقرأ من عدّاد موقع البلدية edm.gov.om كل 30 دقيقة', 'Read from the edm.gov.om visit counter every 30 minutes')}</p>
+                <p className="text-xs font-bold text-slate-500">{t('يُقرأ من عدّاد موقع البلدية edm.gov.om مرة يومياً', 'Read from the edm.gov.om visit counter once a day')}</p>
               </div>
             </div>
           </section>
@@ -380,7 +380,7 @@ function DevelopersSection({ isAr }: { isAr: boolean }) {
   return (
     <section aria-labelledby="dev-title" className="rounded-[2rem] bg-slate-900 text-white p-6 md:p-8 space-y-4">
       <h2 id="dev-title" className="text-2xl font-black flex items-center gap-2"><Braces className="text-[#03CFCB]" aria-hidden />{t('للمطوّرين', 'For developers')}</h2>
-      <p className="font-bold text-white/70">{t('واجهات برمجية مفتوحة بدون مفتاح، تُحدَّث كل 30 دقيقة من أنظمة البلدية.', 'Open APIs, no key needed, refreshed every 30 minutes from municipal systems.')}</p>
+      <p className="font-bold text-white/70">{t('واجهات برمجية مفتوحة بدون مفتاح، تُحدَّث يومياً من أنظمة البلدية، وتنتهي افتراضياً بآخر يوم مكتمل (أمس)؛ أضف includeToday=1 لبيانات اليوم.', 'Open APIs, no key needed, refreshed daily from municipal systems; by default they end at the last complete day (yesterday) — add includeToday=1 for today’s data.')}</p>
       <ul className="space-y-2">
         {endpoints.map(e => (
           <li key={e.path} className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3 space-y-2">

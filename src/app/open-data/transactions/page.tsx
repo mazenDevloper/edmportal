@@ -15,7 +15,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 const TODAY = new Date(Date.now() + 4 * 3600e3).toISOString().slice(0, 10);
-const YEAR = TODAY.slice(0, 4);
+/** Last complete day: the default end of every period, so the figures are complete */
+const YESTERDAY = new Date(Date.now() + 4 * 3600e3 - 86_400_000).toISOString().slice(0, 10);
+const YEAR = YESTERDAY.slice(0, 4);
 
 const PRESETS = [
   { id: 'q1', ar: `الربع الأول ${YEAR}`, en: `Q1 ${YEAR}`, from: `${YEAR}-01-01`, to: `${YEAR}-03-31` },
@@ -23,7 +25,7 @@ const PRESETS = [
   { id: 'q3', ar: `الربع الثالث ${YEAR}`, en: `Q3 ${YEAR}`, from: `${YEAR}-07-01`, to: `${YEAR}-09-30` },
   { id: 'q4', ar: `الربع الرابع ${YEAR}`, en: `Q4 ${YEAR}`, from: `${YEAR}-10-01`, to: `${YEAR}-12-31` },
   { id: 'year', ar: `كامل عام ${YEAR}`, en: `All of ${YEAR}`, from: `${YEAR}-01-01`, to: `${YEAR}-12-31` },
-  { id: 'all', ar: 'منذ 2020', en: 'Since 2020', from: '2020-01-01', to: TODAY },
+  { id: 'all', ar: 'منذ 2020', en: 'Since 2020', from: '2020-01-01', to: YESTERDAY },
 ];
 
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -77,9 +79,12 @@ export default function TransactionsDashboard() {
 function Analysis({ isAr }: { isAr: boolean }) {
   const t = (ar: string, en: string) => (isAr ? ar : en);
   const [range, setRange] = useState({ from: PRESETS[0].from, to: PRESETS[0].to, preset: 'q1' as string | null });
+  // Off by default: periods end yesterday (complete days). On: today's partial data is included too.
+  const [includeToday, setIncludeToday] = useState(false);
+  const bound = includeToday ? TODAY : YESTERDAY;
   const [draft, setDraft] = useState({ from: range.from, to: range.to });
   const [wilaya, setWilaya] = useState<string | null>(null);
-  const query = useMemo(() => `?from=${range.from}&to=${range.to}${wilaya ? `&wilaya=${encodeURIComponent(wilaya)}` : ''}`, [range, wilaya]);
+  const query = useMemo(() => `?from=${range.from}&to=${range.to > bound ? bound : range.to}${wilaya ? `&wilaya=${encodeURIComponent(wilaya)}` : ''}${includeToday ? '&includeToday=1' : ''}`, [range, wilaya, includeToday, bound]);
   const { data, state } = useTransactionStats(query);
 
   const applyCustom = (e: React.FormEvent) => {
@@ -94,18 +99,18 @@ function Analysis({ isAr }: { isAr: boolean }) {
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('الفترة', 'Period')}>
           <Filter size={16} className="text-slate-400" aria-hidden />
           {PRESETS.map(p => {
-            const future = p.from > TODAY;
+            const future = p.from > bound;
             return (
               <button key={p.id} type="button" disabled={future} aria-pressed={range.preset === p.id}
-                onClick={() => { const to = p.to > TODAY ? TODAY : p.to; setRange({ from: p.from, to, preset: p.id }); setDraft({ from: p.from, to }); }}
+                onClick={() => { const to = p.to > bound ? bound : p.to; setRange({ from: p.from, to, preset: p.id }); setDraft({ from: p.from, to }); }}
                 className={cn('h-9 px-3 rounded-lg text-xs font-black transition-colors disabled:opacity-35 disabled:cursor-not-allowed', range.preset === p.id ? 'bg-[#005751] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200')}>
                 {isAr ? p.ar : p.en}
               </button>
             );
           })}
           <form onSubmit={applyCustom} className="flex flex-wrap items-center gap-2 ms-auto text-xs font-bold">
-            <label className="flex items-center gap-1">{t('من', 'From')}<input type="date" min="2020-01-01" max={TODAY} value={draft.from} onChange={e => setDraft(d => ({ ...d, from: e.target.value }))} className="h-9 rounded-lg border px-2" /></label>
-            <label className="flex items-center gap-1">{t('إلى', 'To')}<input type="date" min="2020-01-01" max={TODAY} value={draft.to} onChange={e => setDraft(d => ({ ...d, to: e.target.value }))} className="h-9 rounded-lg border px-2" /></label>
+            <label className="flex items-center gap-1">{t('من', 'From')}<input type="date" min="2020-01-01" max={bound} value={draft.from} onChange={e => setDraft(d => ({ ...d, from: e.target.value }))} className="h-9 rounded-lg border px-2" /></label>
+            <label className="flex items-center gap-1">{t('إلى', 'To')}<input type="date" min="2020-01-01" max={bound} value={draft.to} onChange={e => setDraft(d => ({ ...d, to: e.target.value }))} className="h-9 rounded-lg border px-2" /></label>
             <button type="submit" disabled={!draft.from || !draft.to || draft.from > draft.to} className="h-9 px-3 rounded-lg bg-slate-900 text-white font-black disabled:opacity-40">{t('تطبيق', 'Apply')}</button>
           </form>
         </div>
@@ -114,7 +119,16 @@ function Analysis({ isAr }: { isAr: boolean }) {
           <span>{t('الولاية:', 'Wilayat:')}</span>
           <span className="font-black text-slate-900">{wilaya || t('كافة الولايات', 'All wilayat')}</span>
           {wilaya && <button type="button" onClick={() => setWilaya(null)} className="inline-flex items-center gap-1 text-slate-500 underline"><RotateCcw size={12} aria-hidden />{t('إلغاء التصفية', 'Clear')}</button>}
-          <span className="ms-auto text-slate-400">{t('من', 'From')} <span dir="ltr">{range.from}</span> {t('إلى', 'to')} <span dir="ltr">{range.to}</span></span>
+          <label className="ms-auto inline-flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={includeToday} onChange={e => {
+              const on = e.target.checked;
+              setIncludeToday(on);
+              // Presets that end "today/yesterday" follow the switch; a fixed past range is kept
+              if (range.preset === 'all' || range.to >= YESTERDAY) setRange(r => ({ ...r, to: on ? TODAY : YESTERDAY }));
+            }} className="size-4 accent-[#005751]" />
+            {t('تضمين بيانات اليوم (غير مكتملة)', "Include today's data (incomplete)")}
+          </label>
+          <span className="text-slate-400">{t('من', 'From')} <span dir="ltr">{range.from}</span> {t('إلى', 'to')} <span dir="ltr">{range.to > bound ? bound : range.to}</span></span>
         </div>
       </div>
 

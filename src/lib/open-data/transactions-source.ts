@@ -6,8 +6,8 @@
  * - Municipal licences: main.edm.gov.om/opendatedm/health/getHealth      (~29 MB for 2020→today)
  * - Building permits:   main.edm.gov.om/opendatedm/building/getBuilding
  *
- * The full history is fetched once, trimmed to the few fields we use, and kept in memory for
- * 30 minutes (then refreshed in the background while the old copy keeps being served). Every
+ * The full history is fetched once a day (first request after midnight, Oman time), trimmed to the
+ * few fields we use, and kept in memory; the old copy keeps being served while a refresh runs. Every
  * period / wilayat question is answered from that copy, so the browser only ever gets totals.
  */
 
@@ -16,7 +16,8 @@ const DIG_API = 'https://main.edm.gov.om/opendatedm/dig/getDigs';
 const HEALTH_API = 'https://main.edm.gov.om/opendatedm/health/getHealth';
 const BUILDING_API = 'https://main.edm.gov.om/opendatedm/building/getBuilding';
 export const HISTORY_START = '2020-01-01';
-const TTL_MS = 30 * 60 * 1000;
+/** Refreshed daily: at most 24 h old, and always renewed when the Oman calendar day changes */
+const TTL_MS = 24 * 60 * 60 * 1000;
 /** After a failed source, try again this soon instead of waiting the full TTL */
 const RETRY_MS = 2 * 60 * 1000;
 const OMAN_OFFSET_MS = 4 * 3600 * 1000;
@@ -40,6 +41,9 @@ export interface Snapshot {
 /** Oman calendar date (UTC+4) of an API timestamp: "2025-12-31T20:00:00Z" → "2026-01-01" */
 const omanDate = (iso: string) => new Date(Date.parse(iso) + OMAN_OFFSET_MS).toISOString().slice(0, 10);
 export const todayOman = () => new Date(Date.now() + OMAN_OFFSET_MS).toISOString().slice(0, 10);
+/** Last complete day: the default end of every count, so no figure includes a half-finished day */
+export const yesterdayOman = () => new Date(Date.now() + OMAN_OFFSET_MS - 86_400_000).toISOString().slice(0, 10);
+const omanDayOf = (ms: number) => new Date(ms + OMAN_OFFSET_MS).toISOString().slice(0, 10);
 /** "ولاية صلالة" (excavation API) and "صلالة" (rent API) are the same wilayat */
 export const normWilaya = (w: string) => (w || '').trim().replace(/^ولاية\s+/, '') || 'غير محدد';
 
@@ -80,7 +84,8 @@ async function fetchBuildings(): Promise<BuildingRow[]> {
 
 // Module-level cache shared by all requests on this server instance
 // Kept on globalThis so every API route shares ONE copy (in development each route is bundled separately)
-type Store = { cached: { snap: Snapshot; at: number } | null; inFlight: Promise<Snapshot> | null };
+/** at = when fetched; retryAt = when to try again after a failed source (null when all succeeded) */
+type Store = { cached: { snap: Snapshot; at: number; retryAt: number | null } | null; inFlight: Promise<Snapshot> | null };
 const store: Store = ((globalThis as unknown as { __dmOpenData?: Store }).__dmOpenData ??= { cached: null, inFlight: null });
 
 /** One retry after a short pause: the municipality's server has brief hiccups */
@@ -116,13 +121,14 @@ async function refresh(): Promise<Snapshot> {
   };
   // A failure is kept only briefly, so a short outage upstream doesn't stick for the whole TTL
   const failed = Object.keys(errors).length > 0;
-  store.cached = { snap, at: failed ? Date.now() - TTL_MS + RETRY_MS : Date.now() };
+  store.cached = { snap, at: Date.now(), retryAt: failed ? Date.now() + RETRY_MS : null };
   return snap;
 }
 
 /** Latest snapshot: fresh copy if we have one, stale copy while refreshing, or wait for the first fetch */
 export async function getSnapshot(): Promise<Snapshot> {
-  const stale = !store.cached || Date.now() - store.cached.at > TTL_MS;
+  const c = store.cached;
+  const stale = !c || (c.retryAt !== null && Date.now() > c.retryAt) || Date.now() - c.at > TTL_MS || omanDayOf(c.at) !== todayOman();
   if (stale && !store.inFlight) store.inFlight = refresh().finally(() => { store.inFlight = null; });
   if (store.cached) return store.cached.snap;
   return store.inFlight!;
