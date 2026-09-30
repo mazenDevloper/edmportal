@@ -20,7 +20,8 @@ export const DEFAULT_FIGURES: Record<FigureKey, number> & { asOfAr: string; asOf
 };
 
 /** Figures still entered by hand in the control panel */
-export const MANUAL_FIGURES: FigureKey[] = ['visits', 'eTransactions', 'bookings'];
+// E-transactions is not entered: it is the sum of the transaction cards
+export const MANUAL_FIGURES: FigureKey[] = ['visits', 'bookings'];
 
 export const FIGURE_LABELS: Record<FigureKey, { ar: string; en: string }> = {
   visits: { ar: 'عدد الزيارات لكل الزوار', en: 'Total visits' },

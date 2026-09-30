@@ -112,14 +112,21 @@ export function TransactionFigures({ isAr, stats, compactHeader = false }: { isA
   const web = data?.website;
   const fromSite = t('من موقع البلدية edm.gov.om', 'from edm.gov.om');
 
+  // E-transactions is the sum of every transaction card (bookings + rent + municipal, building and
+  // excavation licences), so it follows them daily. Visits are page views, not transactions: excluded.
+  const bookings = web?.bookings ?? f.bookings;
+  const parts = [bookings, data?.allTime.rent, data?.allTime.licences, data?.allTime.buildings, data?.allTime.dig];
+  const eTransactions = parts.every(v => typeof v === 'number') ? (parts as number[]).reduce((x, y) => x + y, 0) : null;
+
   const top: Card[] = [
     // Read from the municipality website when available (visits are live there); panel values otherwise
     { id: 'visits', label: isAr ? FIGURE_LABELS.visits.ar : FIGURE_LABELS.visits.en, value: web?.visits ?? f.visits, icon: Globe, tone: 'gradient', live: !!web?.visits, note: web?.visits ? fromSite : asOf, source: web?.visits ? 'https://edm.gov.om/' : undefined },
-    { id: 'etrans', label: isAr ? FIGURE_LABELS.eTransactions.ar : FIGURE_LABELS.eTransactions.en, value: web?.eTransactions ?? f.eTransactions, icon: ReceiptText, tone: 'dark', note: web?.eTransactions ? fromSite : asOf },
+    { id: 'etrans', label: isAr ? FIGURE_LABELS.eTransactions.ar : FIGURE_LABELS.eTransactions.en, value: eTransactions, icon: ReceiptText, tone: 'dark', live: true,
+      note: t('مجموع الحجوزات وعقود الإيجار والتراخيص البلدية وتراخيص البناء والحفر', 'Sum of bookings, rent contracts and municipal, building and excavation licences') },
     { id: 'rent', label: t('إجمالي عقود الإيجار', 'Rent contracts'), value: data?.allTime.rent ?? null, icon: FileSignature, tone: 'dark', live: true, accent: '#5fd3d6', source: ODM_SOURCES.rent, note: since },
   ];
   const bottom: Card[] = [
-    { id: 'bookings', label: isAr ? FIGURE_LABELS.bookings.ar : FIGURE_LABELS.bookings.en, value: web?.bookings ?? f.bookings, icon: Ticket, tone: 'teal', note: web?.bookings ? fromSite : asOf },
+    { id: 'bookings', label: isAr ? FIGURE_LABELS.bookings.ar : FIGURE_LABELS.bookings.en, value: bookings, icon: Ticket, tone: 'teal', note: web?.bookings ? fromSite : asOf },
     { id: 'baladi', label: t('التراخيص البلدية', 'Municipal licences'), value: data?.allTime.licences ?? null, icon: Store, tone: 'dark', live: true, accent: '#f5a46b', source: ODM_SOURCES.municipalLicences,
       note: data?.activeLicences != null ? t(`منها ${fmtNum(data.activeLicences, true)} سارية حالياً`, `${fmtNum(data.activeLicences, false)} currently valid`) : since },
     { id: 'build', label: t('تراخيص البناء', 'Building permits'), value: data?.allTime.buildings ?? null, icon: Building2, tone: 'dark', live: true, accent: '#8fb2ff', source: ODM_SOURCES.buildingPermits, note: since },
