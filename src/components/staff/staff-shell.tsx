@@ -86,6 +86,7 @@ export function StaffShell({ user, search, onSearch, children }: ShellProps) {
     { href: '/staff#platforms', label: t('المنصات', 'Platforms') },
     { href: '/staff#my-services', label: t('خدماتي', 'My services') },
     { href: '/staff#guides', label: t('الأدلة والسياسات', 'Guides & policies') },
+    { href: '/staff/papers', label: t('المشاركات وأوراق العمل', 'Working papers') },
   ];
 
   return (

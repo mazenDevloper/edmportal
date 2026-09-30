@@ -96,6 +96,18 @@ export default function StaffPortalHome() {
         </section>
         )}
 
+        {/* Participations & working papers */}
+        <Link href="/staff/papers" className="group flex flex-wrap items-center justify-between gap-4 rounded-[2rem] bg-white ring-1 ring-slate-100 shadow-sm p-6 hover:ring-[#0f9e9b]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0f9e9b]">
+          <span className="flex items-center gap-4">
+            <span className="size-12 rounded-2xl bg-[#0f9e9b]/10 text-[#0f9e9b] flex items-center justify-center"><Icons.FileText size={22} aria-hidden /></span>
+            <span>
+              <span className="block text-lg font-black text-slate-800">{t('بوابة المشاركات وأوراق العمل التنظيمية', 'Participations & working papers')}</span>
+              <span className="block text-sm font-bold text-slate-500">{t('دعوات النشر الإقليمية والدولية، مصفوفة المحاور، البنك المعرفي، ومسار المراجعة والاعتماد', 'Regional and international calls, themes matrix, knowledge bank and approval path')}</span>
+            </span>
+          </span>
+          <ArrowUpRight size={20} className="text-[#0f9e9b] transition-transform group-hover:-translate-y-0.5" aria-hidden />
+        </Link>
+
         {/* My services by permission */}
         <section id="my-services" aria-labelledby="my-services-title" className="scroll-mt-24 space-y-4">
           <SectionTitle id="my-services-title">{t('خدماتي حسب الصلاحيات', 'My services by permission')}</SectionTitle>
