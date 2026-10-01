@@ -38,6 +38,7 @@ export const MAIN_MENU: MenuGroup[] = [
     children: [
       { label: { ar: 'الصفحة الرئيسية للبيانات المفتوحة', en: 'Open data home' }, href: '/open-data/hub' },
       { label: { ar: 'لوحة المعاملات المخزنة إلكترونياً', en: 'Transactions dashboard' }, href: '/open-data/transactions' },
+      { label: { ar: 'المستكشف المرئي: خرائط وثلاثي الأبعاد', en: 'Visual explorer: maps & 3D' }, href: '/open-data/visual' },
       { label: { ar: 'إحصائيات التراخيص البلدية', en: 'Municipal licence statistics' }, href: 'https://apps.edm.gov.om/ords/dm_health/r/health-system/225', external: true },
       { label: { ar: 'إحصائيات عقود الإيجار', en: 'Lease contract statistics' }, href: 'https://apps.edm.gov.om/ords/f?p=105:182', external: true },
       { label: { ar: 'رخصة البيانات المفتوحة', en: 'Open data licence' }, href: '/open-data' },

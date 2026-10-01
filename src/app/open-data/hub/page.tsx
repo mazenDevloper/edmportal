@@ -94,6 +94,13 @@ export default function OpenDataHub() {
                 placeholder={t('ابحث: إيجار، تراخيص، بناء، حفر…', 'Search: rent, licences, building, excavation…')}
                 className="w-full h-14 ps-12 pe-4 rounded-2xl bg-white/90 ring-1 ring-slate-200 shadow-inner font-bold outline-none focus:ring-2 focus:ring-[#03CFCB]" />
             </div>
+            <div className="flex flex-wrap gap-2 text-sm font-black">
+              {([['map', 'خريطة الولايات', 'Wilayat map'], ['3d', 'مجسم ثلاثي الأبعاد', '3D view'], ['heat', 'خريطة حرارية زمنية', 'Time heatmap'], ['tree', 'خريطة شجرية', 'Treemap']] as const).map(([id, ar, en]) => (
+                <Link key={id} href={`/open-data/visual#${id}`} className="h-10 px-4 rounded-xl bg-white/90 ring-1 ring-slate-200 text-slate-700 inline-flex items-center gap-1.5 hover:ring-[#008E91]/60 hover:text-[#005751]">
+                  {isAr ? ar : en}<ArrowUpRight size={14} className={cn(isAr && '-scale-x-100')} aria-hidden />
+                </Link>
+              ))}
+            </div>
             <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Stat icon={Database} label={t('مجموعات بيانات', 'Datasets')} value={String(DATASETS.length)} />
               <Stat icon={FileSpreadsheet} label={t('سجلات منشورة', 'Published records')} value={totalRecords === null ? '…' : fmtNum(totalRecords, isAr)} />
