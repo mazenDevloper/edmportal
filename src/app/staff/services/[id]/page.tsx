@@ -14,6 +14,8 @@ import { classifyActor, getStageHandlers, getUserRoles, hasServicePermission } f
 import { ApplicationEvent, RolePermission, ServiceApplication } from '@/lib/types';
 import { StaffShell, useStaffPortal } from '@/components/staff/staff-shell';
 import { ServiceIcon } from '@/components/service/service-icon';
+import { RoleScreens } from '@/components/flow/role-screens';
+import { attachPdfBlueprints } from '@/lib/flow-blueprints';
 import { cn } from '@/lib/utils';
 
 const STATUS: Record<ServiceApplication['status'], { ar: string; en: string; cls: string }> = {
@@ -134,6 +136,13 @@ export default function StaffServiceInbox() {
               })}
             </ol>
           </section>
+        )}
+
+        {flow && (
+          <details className="rounded-2xl bg-white ring-1 ring-slate-100 p-4 group">
+            <summary className="cursor-pointer font-black text-slate-800">{t('خطوات عملي وشاشاتي في هذه الخدمة', 'My steps and screens in this service')} <span className="text-xs font-bold text-slate-400">{t('— حسب مخطط المسار', '— from the flow diagram')}</span></summary>
+            <div className="mt-4"><RoleScreens flow={attachPdfBlueprints([flow])[0]} isAr={isAr} mineRoleIds={roles.map(r => r.id)} /></div>
+          </details>
         )}
 
         <div role="tablist" aria-label={t('تصفية الطلبات', 'Filter requests')} className="flex flex-wrap gap-2">

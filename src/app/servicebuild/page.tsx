@@ -25,6 +25,7 @@ import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
 import { ServiceStep, FormField, Service, ServiceFlow, StepLogic, ProcessStage, StaffUser, ServiceRole, UserRoleAssignment, FlowBlueprint } from '@/lib/types';
 import { SwimlaneBlueprint } from '@/components/flow/swimlane-blueprint';
+import { RoleScreens } from '@/components/flow/role-screens';
 import { ProcessStagesEditor } from '@/components/flow/process-stages-editor';
 import { grantRole } from '@/components/admin/service-flows-panel';
 import { deriveRolesFromFlows, mergeById } from '@/lib/rbac';
@@ -112,7 +113,7 @@ function WorkflowEngineContent() {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [serviceRoles, setServiceRoles] = useState<ServiceRole[]>([]);
   const [roleAssignments, setRoleAssignments] = useState<UserRoleAssignment[]>([]);
-  const [canvasMode, setCanvasMode] = useState<'lanes' | 'logic'>('lanes');
+  const [canvasMode, setCanvasMode] = useState<'lanes' | 'screens' | 'logic'>('lanes');
   const access = useMemo(() => ({ staffUsers, serviceRoles, roleAssignments }), [staffUsers, serviceRoles, roleAssignments]);
   const serviceId = editId || 'new';
   const [blueprint, setBlueprint] = useState<FlowBlueprint | undefined>();
@@ -553,7 +554,8 @@ function WorkflowEngineContent() {
                     <div className="inline-flex rounded-full bg-white shadow-sm p-1 ring-1 ring-slate-100">
                        {([
                          ['lanes', isAr ? 'مخطط المسار (مثل PDF)' : 'Process swimlanes (PDF)'],
-                         ['logic', isAr ? 'منطق خطوات النموذج' : 'Form step logic'],
+                         ['screens', isAr ? 'خطوات العمل والشاشات حسب المستخدم' : 'Steps & screens by user'],
+                         ['logic', isAr ? 'تفرعات نموذج الطلب' : 'Request form branching'],
                        ] as const).map(([v, label]) => (
                          <button key={v} onClick={() => setCanvasMode(v)} className={cn('px-6 h-10 rounded-full text-xs font-black', canvasMode === v ? 'bg-primary text-white' : 'text-slate-500')}>{label}</button>
                        ))}
@@ -568,6 +570,9 @@ function WorkflowEngineContent() {
                         onGrantRole={(userId, roleId, sid) => setRoleAssignments(prev => grantRole(prev, userId, roleId, sid))}
                         className="h-[850px] rounded-[2rem] border-4 border-white shadow-2xl"
                       />
+                    ) : canvasMode === 'screens' ? (
+                      // Read from the same diagram, so it always matches "مخطط المسار"
+                      <RoleScreens flow={blueprintFlow} isAr={isAr} />
                     ) : (
                     <Card className="rounded-[4rem] overflow-hidden h-[850px] border-[12px] border-white shadow-[0_50px_100px_rgba(0,0,0,0.15)] relative bg-slate-100 ring-1 ring-slate-200">
                        <ReactFlowProvider>
