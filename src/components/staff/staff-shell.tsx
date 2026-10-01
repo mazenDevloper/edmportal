@@ -13,6 +13,7 @@ import { DEFAULT_CALLS, PaperCall } from '@/lib/papers';
 import { AccessData } from '@/lib/rbac';
 import { Service, ServiceApplication, ServiceFlow, StaffPlatform, StaffUser } from '@/lib/types';
 import { BrandEmblem } from '@/components/brand-logo';
+import { DEV_LOGIN } from '@/lib/dev-login';
 import { cn } from '@/lib/utils';
 
 export interface StaffPortalData {
@@ -32,7 +33,7 @@ export interface StaffPortalData {
 export function useStaffPortal({ requireAuth = true }: { requireAuth?: boolean } = {}) {
   const router = useRouter();
   const pathname = usePathname();
-  const { userId, expiresAt, signOut } = useStaffSession();
+  const { userId, expiresAt, signOut, signIn } = useStaffSession();
   const [hydrated, setHydrated] = useState(false);
   const [data, setData] = useState<StaffPortalData | null>(null);
 
@@ -41,8 +42,10 @@ export function useStaffPortal({ requireAuth = true }: { requireAuth?: boolean }
 
   const load = useCallback(async () => {
     const db = await fetchBin();
+    // Development auto-login (see dev-login.ts): that employee is a system administrator in memory only
+    const staffUsers: StaffUser[] = (db.staffUsers || []).map((u: StaffUser) => (DEV_LOGIN && u.employeeNumber === DEV_LOGIN ? { ...u, isSuperAdmin: true } : u));
     setData({
-      access: { staffUsers: db.staffUsers || [], serviceRoles: db.serviceRoles || [], roleAssignments: db.userRoleAssignments || [] },
+      access: { staffUsers, serviceRoles: db.serviceRoles || [], roleAssignments: db.userRoleAssignments || [] },
       services: db.services || [],
       flows: db.serviceFlows || [],
       applications: db.applications || [],
@@ -60,13 +63,17 @@ export function useStaffPortal({ requireAuth = true }: { requireAuth?: boolean }
 
   useEffect(() => {
     if (!hydrated) return;
+    if (DEV_LOGIN && data && (!userId || Date.now() > expiresAt)) {
+      const dev = data.access.staffUsers.find(u => u.isActive && u.employeeNumber === DEV_LOGIN);
+      if (dev) { signIn(dev.id, 'credentials'); return; }
+    }
     const expired = !!userId && Date.now() > expiresAt;
     // Expired, or the account was disabled/removed: drop the session
     if (expired || (data && userId && !user)) signOut();
     if (requireAuth && (!userId || expired || (data && !user))) {
       router.replace(`/staff/login?next=${encodeURIComponent(pathname)}`);
     }
-  }, [hydrated, userId, expiresAt, data, user, pathname, router, signOut, requireAuth]);
+  }, [hydrated, userId, expiresAt, data, user, pathname, router, signOut, signIn, requireAuth]);
 
   return { data, user, loading: !data || (requireAuth && !user), reload: load, setData };
 }
