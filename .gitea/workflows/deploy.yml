@@ -1,0 +1,30 @@
+# Automatic deployment: every push to main updates the portal on the server.
+# Needs Gitea Actions enabled and an act_runner installed on the portal server in host mode
+# with the label "portal-server" (see docs/DEPLOY.md). It uses no external actions, so it works
+# on an internal network without internet access.
+name: Deploy portal
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-portal
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: portal-server
+    steps:
+      - name: Update and rebuild
+        run: |
+          cd "${DEPLOY_DIR:-/opt/dhofar-portal}"
+          ./scripts/deploy.sh
+      - name: Check the portal answers
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null "http://127.0.0.1:${PORTAL_PORT:-8080}/"; then echo "Portal is up"; exit 0; fi
+            sleep 5
+          done
+          echo "Portal did not answer after 150 s"; docker compose -f "${DEPLOY_DIR:-/opt/dhofar-portal}/docker-compose.yml" logs --tail 80 portal; exit 1

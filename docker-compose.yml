@@ -1,0 +1,15 @@
+# Dhofar Municipality portal
+#   docker compose up -d --build     # build and start (or update after git pull)
+#   docker compose logs -f portal    # logs
+# The portal listens on http://<server>:8080 (Gitea already uses port 3000). Change PORTAL_PORT to move it.
+services:
+  portal:
+    build: .
+    image: dhofar-portal:latest
+    container_name: dhofar-portal
+    restart: unless-stopped
+    ports:
+      - "${PORTAL_PORT:-8080}:3000"
+    env_file:
+      - path: .env
+        required: false

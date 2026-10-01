@@ -2,7 +2,9 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Docker/server deployments build a self-contained server (see Dockerfile and docs/DEPLOY.md);
+  // local `next dev` / `next start` keep the default output
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   typescript: {
     ignoreBuildErrors: true,
   },
