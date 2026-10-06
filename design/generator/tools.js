@@ -1,4 +1,4 @@
-const { C, R, CIRC, LINE, T, P, I, G, BTN, CHIP, IMG, NOTE, LOGO, LEGEND, DOC, save } = require('./lib');
+const { C, R, CIRC, LINE, T, P, I, G, BTN, CHIP, IMG, NOTE, LOGO, LEGEND, PATTERN, HEADER, board } = require('./lib');
 
 const W = 1440;
 /** Toggle switch; x is the left edge */
@@ -77,7 +77,7 @@ function accessibility() {
     CIRC(96, 270, 30, { f: C.purple, s: C.white, sw: 4 }) + I('accessibility', 82, 256, 28, C.white) + T(436, 276, 'الزر العائم', { s: 13.5, w: 700, f: C.mut });
   ctx += R(40, 370, 420, 250, { r: 24, f: C.white, s: C.line }) + T(436, 414, 'متطلبات التصميم', { s: 18, w: 700 }) +
     P(436, 446, ['• تباين النص 4.5:1 على الأقل في كل الأوضاع', '• كل أداة تعمل بلوحة المفاتيح ولها اسم لقارئ الشاشة', '• مساحة اللمس 44×44 بكسل على الأقل', '• اللوحة لا تغطي المحتوى على الجوال (تنزلق من الأسفل)', '• لا تعتمد أي حالة على اللون وحده'], 60, { s: 13.5, f: C.text, lh: 30 }).svg;
-  save('03-accessibility-tools.svg', DOC(W, TH, R(0, 0, W, TH, { f: '#e5e7eb' }) + G('context', ctx) + G('accessibility-panel', R(PX, 0, PW, PH, { f: C.white, filter: 'shadow' }) + p) + lg.svg, 'أدوات النفاذ الرقمي'));
+  board('05-accessibility-tools.svg', W, TH, R(0, 0, W, TH, { f: '#e5e7eb' }) + G('context', ctx) + G('accessibility-panel', R(PX, 0, PW, PH, { f: C.white, filter: 'shadow' }) + p) + lg.svg, '05', 'أدوات النفاذ الرقمي', 'اللوحة الجانبية وشرح كل أداة · WCAG 2.2');
 }
 
 // ───────────────────────── 04 Project manager dashboard ─────────────────────────
@@ -113,7 +113,7 @@ function dashboard() {
   // Calendar strip
   o += G('schedule', R(LX, 830, CW, 130, { r: 22, f: C.white, s: C.line }) + T(RX - 20, 866, 'المجدول هذا الأسبوع', { s: 16, w: 700 }) +
     [['إعلان منبثق: ملتقى الخدمات الرقمية', 'يبدأ 8 أكتوبر · ينتهي 12 أكتوبر', C.purple], ['استطلاع: أولويات الخدمات', 'ينتهي 10 أكتوبر · 1,284 مشاركاً', C.blue], ['صفحة: دليل تصاريح الحفر', 'مسودة بانتظار النشر', C.teal]].map((e, i) => { const w = (CW - 72) / 3, x = RX - 20 - (i + 1) * w - i * 16; return R(x, 884, w, 60, { r: 14, f: C.soft }) + R(x + w - 6, 884, 6, 60, { r: 3, f: e[2] }) + T(x + w - 20, 908, e[0], { s: 13.5, w: 700 }) + T(x + w - 20, 930, e[1], { s: 12, f: C.mut }); }).join(''));
-  save('04-project-manager-dashboard.svg', DOC(W, 1000, R(0, 0, W, 1000, { f: C.bg }) + o, 'لوحة مهام مدير المشروع'));
+  return; // replaced by 01-site-manager-tasks (tasks.js)
 }
 
 // ───────────────────────── 05 Popup builder ─────────────────────────
@@ -145,7 +145,7 @@ function popupBuilder() {
   pr += FIELD(170, 568, 140, 'استدارة الزوايا', '20') + FIELD(20, 568, 140, 'الشفافية %', '100') + H(310, 652, 'الموضع والحجم') + FIELD(170, 676, 140, 'X', '80') + FIELD(20, 676, 140, 'Y', '180') + FIELD(170, 742, 140, 'العرض', '440') + FIELD(20, 742, 140, 'الارتفاع', '110');
   pr += T(310, 830, 'تبويب «العرض»: التأخير، التكرار للزائر، الجدولة', { s: 11.5, f: C.faint }) + T(310, 852, 'تبويب «النافذة»: المقاس، الخلفية، مكان الظهور، الحركة', { s: 11.5, f: C.faint });
   o += G('properties', pr);
-  save('05-popup-builder.svg', DOC(W, 900, R(0, 0, W, 900, { f: C.bg }) + o, 'محرر الإعلانات المنبثقة'));
+  board('06-popup-builder.svg', W, 900, R(0, 0, W, 900, { f: C.bg }) + o, '06', 'محرر الإعلانات المنبثقة', 'تصميم بالسحب والإفلات: العناصر والطبقات، لوحة التصميم، الخصائص');
 }
 
 // ───────────────────────── 06 Survey builder ─────────────────────────
@@ -174,7 +174,7 @@ function surveyBuilder() {
   [['تراخيص البناء', 46], ['عقود الإيجار', 31], ['تصاريح الحفر', 23]].forEach((r, i) => { const y = 580 + i * 52; rs += T(LX + SW_ - 20, y + 14, r[0], { s: 12.5, w: 700, f: C.text }) + T(LX + 20, y + 14, r[1] + '%', { s: 12.5, w: 700, f: C.teal, a: 'start' }) + R(LX + 20, y + 22, SW_ - 40, 12, { r: 6, f: C.soft }) + R(LX + SW_ - 20 - (SW_ - 40) * r[1] / 100, y + 22, (SW_ - 40) * r[1] / 100, 12, { r: 6, f: C.teal2 }); });
   rs += LINE(LX + 20, 744, LX + SW_ - 20, 744) + T(LX + SW_ - 20, 776, 'متوسط الرضا', { s: 12.5, f: C.mut }) + T(LX + 20, 776, '4.2 / 5', { s: 15, w: 700, a: 'start' }) + T(LX + SW_ - 20, 806, 'مؤشر التوصية NPS', { s: 12.5, f: C.mut }) + T(LX + 20, 806, '+38', { s: 15, w: 700, a: 'start', f: C.green }) + BTN(LX + 20, 822, SW_ - 40, 34, 'تنزيل الردود CSV', { f: C.soft, c: C.text, r: 10, s: 12.5 });
   o += G('publish-settings', st) + G('results', rs);
-  save('06-survey-builder.svg', DOC(W, 1000, R(0, 0, W, 1000, { f: C.bg }) + o, 'منشئ الاستطلاعات'));
+  board('07-survey-builder.svg', W, 1000, R(0, 0, W, 1000, { f: C.bg }) + o, '07', 'منشئ الاستطلاعات', 'أنواع الأسئلة، إعدادات النشر في الصفحة الرئيسية، النتائج');
 }
 
 // ───────────────────────── 07 Page builder ─────────────────────────
@@ -208,13 +208,13 @@ function pageBuilder() {
   st += BTN(20, 520, 290, 36, '+ إضافة خطوة', { f: C.white, c: C.teal2, stroke: C.aqua, r: 10, s: 12.5 }) + BTN(20, 566, 290, 36, 'ترجمة آلية إلى الإنجليزية', { f: C.soft, c: C.text, r: 10, s: 12.5 });
   st += LINE(20, 624, 310, 624) + H(310, 654, 'إعدادات الصفحة') + P(310, 680, ['• الرابط (slug) والحالة: مسودة / منشورة', '• الترويسة: كاملة، مختصرة، مصغرة، بدون', '• التذييل: كامل، مختصر، بدون', '• شريط العنوان: بسيط، بنقش، داكن', '• عرض المحتوى: ضيق، عادي، واسع، كامل', '• مسار التنقل وشريط الأخبار'], 60, { s: 12.5, f: C.text, lh: 30 }).svg;
   o += G('settings', st);
-  save('07-page-builder.svg', DOC(W, 900, R(0, 0, W, 900, { f: C.bg }) + o, 'منشئ الصفحات'));
+  board('08-page-builder.svg', W, 900, R(0, 0, W, 900, { f: C.bg }) + o, '08', 'منشئ الصفحات', 'مكتبة المكونات، الصفحة، إعدادات المكوّن والصفحة');
 }
 
 // ───────────────────────── 08 Open data ─────────────────────────
 function openData() {
   const LX = 120, RX = 1320, CW = RX - LX;
-  let o = R(0, 0, W, 84, { f: C.white }) + LINE(0, 84, W, 84) + LOGO(RX - 150, 12, 60) + T(RX - 190, 50, 'الرئيسية  ·  دليل الخدمات  ·  البيانات المفتوحة  ·  المشاركة الرقمية', { s: 14, f: C.text });
+  let o = '';
   o += G('hero', R(LX, 110, CW, 250, { r: 36, f: C.white, s: C.line }) + T(RX - 40, 172, 'البيانات المفتوحة', { s: 44, w: 700, f: C.teal }) + P(RX - 40, 212, 'بيانات بلدية ظفار متاحة للجميع بصيغ مفتوحة ورخصة مفتوحة: للباحثين وروّاد الأعمال والإعلاميين والمطوّرين.', 70, { s: 16, f: C.text }).svg +
     R(RX - 40 - 560, 270, 560, 54, { r: 16, f: C.soft, s: C.line }) + I('search', RX - 84, 286, 22, C.faint) + T(RX - 96, 303, 'ابحث: إيجار، تراخيص، بناء، حفر…', { s: 14.5, f: C.faint }) +
     [['6', 'مجموعات بيانات'], ['255,433', 'سجلاً منشوراً'], ['يومي', 'التحديث'], ['3★', 'تقييم الانفتاح']].map((s, i) => R(LX + 40 + i * 132, 150, 120, 96, { r: 18, f: i === 0 ? C.teal : C.soft }) + T(LX + 100 + i * 132, 198, s[0], { s: 22, w: 700, a: 'middle', f: i === 0 ? C.white : C.ink }) + T(LX + 100 + i * 132, 226, s[1], { s: 11.5, a: 'middle', f: i === 0 ? '#cfe9e7' : C.mut })).join('') +
@@ -238,7 +238,7 @@ function openData() {
   o += G('visual-explorer', v);
   // standards strip
   o += G('standards', R(LX, 1116, CW, 84, { r: 24, f: C.ink }) + T(RX - 30, 1166, 'المعايير ورخصة البيانات المفتوحة', { s: 15, w: 700, f: C.white }) + T(RX - 330, 1166, 'DCAT-AP · schema.org · W3C DWBP', { s: 14, f: '#cbd5e1' }) + BTN(LX + 30, 1138, 190, 40, 'اطلب مجموعة بيانات', { f: C.aqua, c: C.ink, s: 13.5 }) + BTN(LX + 236, 1138, 150, 40, 'للمطوّرين', { f: 'rgba(255,255,255,0.1)', s: 13.5 }));
-  save('08-open-data.svg', DOC(W, 1240, R(0, 0, W, 1240, { f: C.bg }) + o, 'البيانات المفتوحة'));
+  board('09-open-data.svg', W, 1276, R(0, 0, W, 1276, { f: C.bg }) + `<g transform="translate(0 36)">` + o + '</g>' + HEADER(W, 0).svg, '09', 'البيانات المفتوحة', 'مجموعات البيانات والمستكشف المرئي');
 }
 
-accessibility(); dashboard(); popupBuilder(); surveyBuilder(); pageBuilder(); openData();
+accessibility(); popupBuilder(); surveyBuilder(); pageBuilder(); openData();

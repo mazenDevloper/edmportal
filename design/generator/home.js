@@ -1,4 +1,4 @@
-const { C, R, CIRC, LINE, T, P, I, G, BTN, CHIP, IMG, NOTE, LOGO, LEGEND, DOC, save } = require('./lib');
+const { C, R, CIRC, LINE, T, P, I, G, BTN, CHIP, IMG, NOTE, LOGO, LEGEND, PATTERN, HEADER, board } = require('./lib');
 
 // ───────────────────────── 01 Home page, desktop 1440 ─────────────────────────
 function homeDesktop() {
@@ -6,50 +6,39 @@ function homeDesktop() {
   let y = 0, out = '';
   const sec = (id, h, inner) => { out += G(id, inner); y += h; };
 
-  // 1 Utility bar
-  sec('01-utility-bar', 40,
-    R(0, y, W, 40, { f: C.ink }) +
-    T(RX, y + 26, 'الثلاثاء 6 أكتوبر 2026 · 13 ربيع الآخر 1448 هـ', { s: 12.5, f: '#cbd5e1' }) +
-    I('accessibility', LX + 300, y + 11, 18, C.aqua) + T(LX + 292, y + 26, 'أدوات النفاذ الرقمي', { s: 12.5, f: C.white, w: 700 }) +
-    I('languages', LX + 150, y + 11, 18, '#cbd5e1') + T(LX + 142, y + 26, 'English', { s: 12.5, f: '#cbd5e1' }) +
-    I('briefcase', LX + 86, y + 11, 18, '#cbd5e1') + T(LX + 78, y + 26, 'بوابة الموظف', { s: 12.5, f: '#cbd5e1' }));
+  // 1 Header: slim message bar, then menu + search, hanging logo, language + sign-in
+  const hd = HEADER(W, 0); y += hd.h; // drawn last, so the hanging logo sits over the hero
 
-  // 2 Header
-  const nav = ['الرئيسية', 'عن بلدية ظفار', 'دليل الخدمات', 'البيانات المفتوحة', 'التقارير', 'المركز الإعلامي', 'المشاركة الرقمية'];
-  let nx = RX - 190, navSvg = '';
-  nav.forEach((n, i) => { navSvg += T(nx, y + 50, n, { s: 14, w: i === 0 ? 700 : 500, f: i === 0 ? C.teal : C.text }); if (i === 3) navSvg += R(nx - n.length * 7.6 - 44, y + 34, 38, 20, { r: 10, f: C.aqua }) + T(nx - n.length * 7.6 - 25, y + 48, 'جديد', { s: 10.5, w: 700, f: C.ink, a: 'middle' }); nx -= n.length * 7.6 + (i === 3 ? 74 : 28); });
-  sec('02-header', 84,
-    R(0, y, W, 84, { f: C.white }) + LINE(0, y + 84, W, y + 84) + LOGO(RX - 150, y + 12, 60) + navSvg +
-    BTN(LX, y + 20, 200, 44, 'الدخول عبر ثقة', { f: C.purple, icon: 'fingerprint' }) +
-    CIRC(LX + 232, y + 42, 22, { f: C.soft }) + I('search', LX + 222, y + 32, 20, C.text));
-
-  // 3 News ticker
-  sec('03-news-ticker', 44,
-    R(0, y, W, 44, { f: C.teal }) + R(RX - 110, y + 8, 110, 28, { r: 14, f: C.aqua }) + T(RX - 55, y + 27, 'عاجل', { s: 13, w: 700, a: 'middle' }) +
-    T(RX - 130, y + 28, 'بلدية ظفار تطلق البوابة الرقمية الموحدة للخدمات البلدية  •  بدء استقبال طلبات المشاركة في مجلة Agora  •  تحديث بيانات تراخيص البناء يومياً', { s: 13.5, f: C.white }));
-  const yTicker = y - 22;
-
-  // 4 Hero
+  // 2 Welcome and search, over a faint landmark pattern
   const hy = y;
-  let chips = '', cx = RX - 40;
-  ['تراخيص البناء', 'عقود الإيجار', 'تصريح حفر', 'التراخيص البلدية', 'حجز تذاكر'].forEach(c => { const ch = CHIP(cx, hy + 318, c, { f: 'rgba(255,255,255,0.14)', c: C.white }); chips += ch.svg; cx -= ch.w + 10; });
-  sec('04-hero', 460,
-    R(0, hy, W, 460, { f: 'url(#g-brand)' }) + `<clipPath id="clip-hero"><rect x="0" y="${hy}" width="${W}" height="460"/></clipPath><g id="hero-shapes" clip-path="url(#clip-hero)">` + CIRC(180, hy + 60, 260, { f: C.aqua, op: 0.08 }) + CIRC(1300, hy + 430, 200, { f: C.violet, op: 0.12 }) + '</g>' +
-    T(RX - 40, hy + 92, 'البوابة الرقمية الموحدة', { s: 15, w: 700, f: C.aqua, ls: 1 }) +
-    T(RX - 40, hy + 150, 'خدمات بلدية ظفار في مكان واحد', { s: 44, w: 700, f: C.white }) +
-    P(RX - 40, hy + 196, 'قدّم طلبك، تابع معاملتك، وسدّد رسومك إلكترونياً. ابحث عن الخدمة أو اسأل المساعد الذكي.', 62, { s: 18, f: '#d5efed' }).svg +
-    R(RX - 40 - 620, hy + 232, 620, 64, { r: 32, f: C.white, filter: 'shadow' }) + I('search', RX - 40 - 54, hy + 252, 24, C.mut) +
-    T(RX - 40 - 72, hy + 271, 'ابحث عن خدمة بلدية…', { s: 17, f: C.faint }) + BTN(RX - 40 - 612, hy + 240, 120, 48, 'بحث', { f: C.teal }) +
-    chips +
-    BTN(RX - 40 - 220, hy + 376, 220, 50, 'العرض الافتراضي', { f: 'url(#g-night)', icon: 'glasses' }) +
-    BTN(RX - 40 - 500, hy + 376, 264, 50, 'رحلة التحول الرقمي VR', { f: 'url(#g-purple)', icon: 'glasses' }) +
-    // Carousel (managed from the banners tool)
-    G('hero-carousel', IMG(LX, hy + 60, 460, 320, { r: 28, f: '#0a6b64', label: '' }) + R(LX, hy + 290, 460, 90, { r: 0, f: '#00201e', op: 0.55 }) +
-      T(LX + 436, hy + 328, 'افتتاح ساحة المبنى الجديد لبلدية ظفار', { s: 17, w: 700, f: C.white }) + T(LX + 436, hy + 354, 'بنر 1 من 4 · يُدار من أداة «البنرات»', { s: 12.5, f: '#cfe9e7' }) +
-      [0, 1, 2, 3].map(i => CIRC(LX + 30 + i * 16, hy + 400, i === 0 ? 5 : 4, { f: i === 0 ? C.aqua : '#ffffff', op: i === 0 ? 1 : 0.5 })).join('')));
+  let chips = '', cx = RX;
+  ['تراخيص البناء', 'عقود الإيجار', 'تصريح حفر', 'التراخيص البلدية', 'حجز تذاكر'].forEach(c => { const ch = CHIP(cx, hy + 318, c, { f: C.white, c: C.text, stroke: C.line, h: 34 }); chips += ch.svg; cx -= ch.w + 10; });
+  sec('02-welcome-search', 400,
+    R(0, hy, W, 400, { f: '#f6f8fa' }) + `<clipPath id="clip-hero"><rect x="0" y="${hy}" width="${W}" height="400"/></clipPath><g id="landmark-pattern" clip-path="url(#clip-hero)">` +
+      [[40, 150], [200, 190], [400, 150], [560, 120]].map(m => PATTERN('landmark', m[0], hy + 400 - m[1] * 388 / 261, m[1], { op: 0.09 })).join('') + '</g>' +
+    T(RX, hy + 128, 'مرحباً', { s: 60, w: 700, f: C.teal2 }) + T(RX, hy + 186, 'كيف يمكننا مساعدتك اليوم؟', { s: 30, w: 400 }) +
+    R(RX - 840, hy + 226, 840, 64, { r: 32, f: C.white, s: '#94a3b8' }) + T(RX - 30, hy + 265, 'ابحث عن خدمة بلدية…', { s: 17, f: C.faint }) + CIRC(RX - 840 + 32, hy + 258, 27, { f: C.teal }) + I('search', RX - 840 + 21, hy + 247, 22, C.white) +
+    chips + LINE(0, hy + 400, W, hy + 400));
+
+  // 3 Banner (managed from the banners tool)
+  const by = y + 44;
+  sec('03-banner', 470,
+    R(LX, by, CW, 380, { r: 0, f: '#eaf4f3' }) + `<path d="M${LX} ${by} H${LX + 250} C ${LX + 430} ${by + 70}, ${LX + 500} ${by + 210}, ${LX + 480} ${by + 380} H${LX} Z" fill="${C.teal}"/>` +
+    PATTERN('landmark', LX + 30, by + 380 - 170 * 388 / 261, 170, { op: 0.16 }) + IMG(LX + 150, by + 90, 250, 290, { r: 20, f: '#0a6b64', label: '' }) + T(LX + 275, by + 240, 'صورة الحملة', { s: 13, w: 700, f: '#cfe9e7', a: 'middle' }) +
+    LOGO(RX - 40 - 120, by + 44, 72) +
+    T(RX - 40, by + 200, 'خدمات بلدية ظفار', { s: 50, w: 700, f: C.teal }) + T(RX - 40, by + 266, 'في منفذ رقمي موحّد', { s: 50, w: 700, f: C.teal }) +
+    T(RX - 40, by + 310, 'قدّم طلبك، تابع معاملتك، وسدّد رسومك إلكترونياً.', { s: 18, f: C.text }) +
+    BTN(RX - 40 - 220, by + 330, 220, 46, 'العرض الافتراضي', { f: 'url(#g-night)', icon: 'glasses' }) + BTN(RX - 40 - 500, by + 330, 264, 46, 'رحلة التحول الرقمي VR', { f: 'url(#g-purple)', icon: 'glasses' }) +
+    [0, 1, 2, 3].map(i => CIRC(W / 2 - 24 + i * 16, by + 404, i === 0 ? 5 : 4, { f: i === 0 ? C.teal2 : C.faint })).join(''));
+
+  // 4 News ticker (slim strip)
+  const yTicker = y + 22;
+  sec('04-news-ticker', 76,
+    R(LX, y, CW, 44, { r: 22, f: C.white, s: C.line }) + R(RX - 96, y + 7, 88, 30, { r: 15, f: C.teal }) + T(RX - 52, y + 27, 'عاجل', { s: 13, w: 700, f: C.white, a: 'middle' }) +
+    T(RX - 112, y + 28, 'بدء استقبال طلبات المشاركة في مجلة Agora  •  تحديث بيانات تراخيص البناء يومياً  •  ملتقى الخدمات الرقمية 12 أكتوبر', { s: 13.5, f: C.text }));
 
   // 5 Quick services
-  y += 56;
+  y += 10;
   const sy = y;
   const tabs = ['الكل', 'الأفراد', 'الأعمال', 'الجهات الحكومية'];
   let tx = RX, tabSvg = '';
@@ -134,8 +123,9 @@ function homeDesktop() {
     T(RX, fy2 + 188, '© 2026 بلدية ظفار - جميع الحقوق محفوظة', { s: 12, f: '#94a3b8' }) + T(W / 2, fy2 + 188, 'آخر تحديث لهذه الصفحة: 6 أكتوبر 2026', { s: 12, f: C.aqua, a: 'middle', w: 700 }) + T(LX, fy2 + 188, 'سلطنة عمان - محافظة ظفار', { s: 12, f: '#94a3b8', a: 'start' }));
   const H = y;
 
+  out += hd.svg;
   // Floating tools (fixed on screen; drawn beside the hero bottom)
-  const fl = hy + 560;
+  const fl = sy + 150;
   out += G('floating-tools', CIRC(LX - 60, fl, 28, { f: C.purple, s: C.white, sw: 4 }) + I('accessibility', LX - 73, fl - 13, 26, C.white) +
     CIRC(LX - 60, fl + 70, 28, { f: C.ink, s: C.white, sw: 4 }) + T(LX - 60, fl + 76, 'AI', { s: 16, w: 700, f: C.aqua, a: 'middle' }) +
     CIRC(LX - 60, fl + 140, 28, { f: '#fbbf24', s: C.white, sw: 4 }) + I('smile', LX - 73, fl + 127, 26, C.ink));
@@ -149,8 +139,8 @@ function homeDesktop() {
 
   // Notes: what the vendor's home page lacks
   const notes = [
-    ['شريط الأخبار العاجلة', 'غير موجود في عرض الشركة. يُدار من لوحة التحكم (شريط الأخبار) ويظهر في كل الصفحات.'],
-    ['الدخول عبر «ثقة»', 'العرض يستخدم رقماً مدنياً ورمز SMS تجريبياً. المطلوب زر الهوية الرقمية الوطنية في الترويسة وبطاقة في الصفحة.'],
+    ['شريط الأخبار العاجلة', 'غير موجود في عرض الشركة. شريط نحيف يُدار من لوحة التحكم (شريط الأخبار).'],
+    ['الدخول عبر «ثقة»', 'العرض يستخدم رقماً مدنياً ورمز SMS تجريبياً. المطلوب زر الهوية الرقمية الوطنية في الشريط العلوي وبطاقة في الصفحة.'],
     ['بنرات متحركة (Carousel)', 'لا يوجد في العرض مكان لحملات البلدية وصورها. تُدار من أداة «البنرات».'],
     ['أزرار العرض الافتراضي و VR', 'عرض الخدمات ثلاثي الأبعاد ورحلة التحول الرقمي غير موجودين في العرض.'],
     ['الاستعلام عن معاملة والمساعد الذكي', 'الاستعلام موجود عند الشركة كصفحة فرعية فقط، والمساعد الذكي غير موجود.'],
@@ -162,13 +152,13 @@ function homeDesktop() {
     ['الأدوات العائمة', 'أدوات النفاذ الرقمي، والمساعد الذكي، ومؤشر السعادة: ثلاثتها غير موجودة في العرض.'],
     ['الإعلان المنبثق', 'لا توجد إعلانات منبثقة في العرض. تُصمَّم بالسحب والإفلات وتُجدول من لوحة التحكم.'],
   ];
-  const marks = [[RX + 40, yTicker], [LX + 100, 12], [LX + 480, hy + 80], [RX - 560, hy + 400], [RX + 40, ty + 30], [RX + 40, fy + 70], [RX + 40, ny + 24], [RX + 40, oy + 24], [RX + 40, py + 30], [RX + 40, fy2 + 40], [LX - 60, fl - 44]];
+  const marks = [[RX + 40, yTicker], [LX + 95, 64], [LX + 520, by + 40], [RX - 560, by + 353], [RX + 40, ty + 30], [RX + 40, fy + 70], [RX + 40, ny + 24], [RX + 40, oy + 24], [RX + 40, py + 30], [RX + 40, fy2 + 40], [LX - 60, fl - 44]];
   out += G('notes', marks.map((m, i) => NOTE(i + 1, m[0], m[1])).join(''));
   const lg = LEGEND(1480, 40, 440, 'النواقص في الصفحة الرئيسية لعرض الشركة', notes);
   const py2 = lg.h + 120, TH = Math.max(H, py2 + 300);
   const side = lg.svg + T(1920, py2 - 24, 'الإعلان المنبثق (يظهر فوق الصفحة عند الدخول)', { s: 15, w: 700 }) + popup(1490, py2) + NOTE(12, 1490, py2);
   out = R(0, 0, 1960, TH, { f: '#e5e7eb' }) + G('artboard-home-desktop', R(0, 0, W, H, { f: C.bg }) + out) + side;
-  save('01-home-desktop.svg', DOC(1960, TH, out, 'الصفحة الرئيسية - سطح المكتب'));
+  board('03-home-desktop.svg', 1960, TH, out, '03', 'الصفحة الرئيسية · سطح المكتب', 'ترويسة بسيطة، ترحيب وبحث، ونمط المعلم الخفيف. الملاحظات الحمراء: ما ينقص عرض الشركة', 1440);
 }
 
 // ───────────────────────── 02 Home page, mobile 390 ─────────────────────────
@@ -176,15 +166,14 @@ function homeMobile() {
   const W = 390, RX = 370, LX = 20;
   let y = 0, out = '';
   const add = (id, h, inner) => { out += G(id, inner); y += h; };
-  add('header', 64, R(0, 0, W, 64, { f: C.white }) + LINE(0, 64, W, 64) + LOGO(RX - 76, 10, 44) + R(LX, 12, 40, 40, { r: 12, f: C.soft }) + I('menu', LX + 10, 22, 20, C.ink) + R(LX + 48, 12, 40, 40, { r: 12, f: C.purple }) + I('fingerprint', LX + 58, 22, 20, C.white));
-  add('ticker', 36, R(0, y, W, 36, { f: C.teal }) + T(RX, y + 23, 'عاجل · البلدية تطلق البوابة الرقمية الموحدة', { s: 12.5, f: C.white, w: 700 }));
+  const hd = HEADER(W, 0, { lx: 20 }); y += hd.h;
   const hy = y;
-  add('hero', 330, R(0, hy, W, 330, { f: 'url(#g-brand)' }) + T(RX, hy + 56, 'خدمات بلدية ظفار', { s: 28, w: 700, f: C.white }) + T(RX, hy + 92, 'في مكان واحد', { s: 28, w: 700, f: C.aqua }) +
-    P(RX, hy + 124, 'قدّم طلبك وتابع معاملتك وسدّد رسومك إلكترونياً.', 40, { s: 14, f: '#d5efed' }).svg +
-    R(LX, hy + 160, W - 40, 52, { r: 26, f: C.white }) + I('search', RX - 36, hy + 176, 20, C.mut) + T(RX - 46, hy + 192, 'ابحث عن خدمة…', { s: 14.5, f: C.faint }) +
-    BTN(LX + (W - 50) / 2 + 10, hy + 232, (W - 50) / 2, 44, 'العرض الافتراضي', { f: 'url(#g-night)', s: 13 }) + BTN(LX, hy + 232, (W - 50) / 2, 44, 'رحلة التحول VR', { f: 'url(#g-purple)', s: 13 }) +
-    [0, 1, 2, 3].map(i => CIRC(W / 2 - 24 + i * 16, hy + 304, i === 0 ? 5 : 4, { f: i === 0 ? C.aqua : C.white, op: i === 0 ? 1 : 0.5 })).join(''));
-  const sy = y + 24;
+  add('welcome-search', 300, R(0, hy, W, 300, { f: '#f6f8fa' }) + PATTERN('landmark', 16, hy + 300 - 110 * 388 / 261, 110, { op: 0.09 }) + PATTERN('landmark', 110, hy + 300 - 80 * 388 / 261, 80, { op: 0.07 }) +
+    T(RX, hy + 92, 'مرحباً', { s: 40, w: 700, f: C.teal2 }) + T(RX, hy + 132, 'كيف يمكننا مساعدتك اليوم؟', { s: 19 }) +
+    R(LX, hy + 160, W - 40, 52, { r: 26, f: C.white, s: '#94a3b8' }) + T(RX - 20, hy + 192, 'ابحث عن خدمة…', { s: 14.5, f: C.faint }) + CIRC(LX + 26, hy + 186, 21, { f: C.teal }) + I('search', LX + 17, hy + 177, 18, C.white) +
+    BTN(LX + (W - 50) / 2 + 10, hy + 232, (W - 50) / 2, 44, 'العرض الافتراضي', { f: 'url(#g-night)', s: 13 }) + BTN(LX, hy + 232, (W - 50) / 2, 44, 'رحلة التحول VR', { f: 'url(#g-purple)', s: 13 }));
+  add('ticker', 60, R(LX, y + 12, W - 40, 36, { r: 18, f: C.white, s: C.line }) + R(RX - 58, y + 17, 52, 26, { r: 13, f: C.teal }) + T(RX - 32, y + 35, 'عاجل', { s: 11, w: 700, f: C.white, a: 'middle' }) + T(RX - 66, y + 35, 'ملتقى الخدمات الرقمية 12 أكتوبر', { s: 12, f: C.text }));
+  const sy = y + 10;
   let g = T(RX, sy + 20, 'الخدمات الأكثر استخداماً', { s: 19, w: 700 });
   [['building-2', 'تراخيص البناء'], ['file-signature', 'عقود الإيجار'], ['store', 'التراخيص البلدية'], ['construction', 'تصريح حفر'], ['ticket', 'ختم التذاكر'], ['credit-card', 'سداد الرسوم']].forEach((s, i) => { const w = (W - 52) / 2, x = RX - (i % 2 + 1) * w - (i % 2) * 12, yy = sy + 40 + Math.floor(i / 2) * 96; g += R(x, yy, w, 84, { r: 18, f: C.white, s: C.line }) + R(x + w - 52, yy + 14, 38, 38, { r: 12, f: '#e6f7f6' }) + I(s[0], x + w - 44, yy + 22, 22, C.teal2) + T(x + w - 14, yy + 70, s[1], { s: 13.5, w: 700 }); });
   y = sy; add('services', 350, g);
@@ -198,8 +187,9 @@ function homeMobile() {
   add('news', 300, T(RX, ny + 20, 'الأخبار', { s: 19, w: 700 }) + R(LX, ny + 36, W - 40, 240, { r: 22, f: C.white, s: C.line }) + IMG(LX + 10, ny + 46, W - 60, 130, { r: 14 }) + T(RX - 16, ny + 204, '5 أكتوبر 2026', { s: 12, f: C.teal2, w: 700 }) + P(RX - 16, ny + 230, 'البلدية تدشّن خدمة الاستعلام عن المعاملة برقمها', 40, { s: 15, w: 700 }).svg);
   const fo = y;
   add('footer', 150, R(0, fo, W, 150, { f: '#020617' }) + R(0, fo, W, 4, { f: C.aqua }) + LOGO(RX - 76, fo + 20, 44, true) + T(LX, fo + 48, '1771', { s: 15, w: 700, f: C.white, a: 'start' }) + R(LX, fo + 78, W - 40, 36, { r: 12, f: 'rgba(255,255,255,0.07)' }) + T(W / 2, fo + 101, 'أقسام التذييل  ▾', { s: 13, f: '#e2e8f0', a: 'middle', w: 700 }) + T(W / 2, fo + 136, 'آخر تحديث: 6 أكتوبر 2026', { s: 11, f: C.aqua, a: 'middle' }));
+  out += hd.svg;
   out += G('floating-tools', CIRC(44, y - 200, 24, { f: C.purple, s: C.white, sw: 3 }) + I('accessibility', 33, y - 211, 22, C.white) + CIRC(100, y - 200, 24, { f: C.ink, s: C.white, sw: 3 }) + T(100, y - 195, 'AI', { s: 14, w: 700, f: C.aqua, a: 'middle' }) + CIRC(156, y - 200, 24, { f: '#fbbf24', s: C.white, sw: 3 }) + I('smile', 145, y - 211, 22, C.ink));
-  save('02-home-mobile.svg', DOC(W, y, G('artboard-home-mobile', R(0, 0, W, y, { f: C.bg }) + out), 'الصفحة الرئيسية - الجوال'));
+  board('04-home-mobile.svg', 760, y, `<g transform="translate(185 0)">` + G('artboard-home-mobile', R(0, 0, W, y, { f: C.bg }) + out) + '</g>', '04', 'الصفحة الرئيسية · الجوال', 'عرض 390 بكسل');
 }
 
 homeDesktop();

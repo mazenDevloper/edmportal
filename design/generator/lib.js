@@ -11,6 +11,8 @@ const C = {
 };
 const FONT = "'Readex Pro', 'Tajawal', 'Segoe UI', Tahoma, sans-serif";
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// Arabic strings are wrapped in an RTL embedding so mixed Arabic/Latin text keeps its order in every app
+const RLE = String.fromCharCode(0x202B), PDF = String.fromCharCode(0x202C);
 const hasAr = s => /[؀-ۿ]/.test(s);
 
 /** Rectangle. o: r (radius), f (fill), s (stroke), sw, op */
@@ -25,7 +27,7 @@ const LINE = (x1, y1, x2, y2, o = {}) => `<line x1="${x1}" y1="${y1}" x2="${x2}"
  */
 const T = (x, y, str, o = {}) => {
   const s = String(str);
-  return `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${o.s ?? 16}" font-weight="${o.w ?? 400}" fill="${o.f ?? C.ink}" text-anchor="${o.a ?? 'end'}"${o.op != null ? ` opacity="${o.op}"` : ''}${o.ls ? ` letter-spacing="${o.ls}"` : ''}>${hasAr(s) ? '‏' : ''}${esc(s)}${hasAr(s) ? '‏' : ''}</text>`;
+  return `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${o.s ?? 16}" font-weight="${o.w ?? 400}" fill="${o.f ?? C.ink}" text-anchor="${o.a ?? 'end'}"${o.op != null ? ` opacity="${o.op}"` : ''}${o.ls ? ` letter-spacing="${o.ls}"` : ''}>${hasAr(s) ? RLE : ''}${esc(s)}${hasAr(s) ? PDF : ''}</text>`;
 };
 /** Wraps on words to about `max` characters per line */
 const wrap = (str, max) => {
@@ -134,4 +136,49 @@ function save(name, svg) {
   console.log(name, Math.round(svg.length / 1024) + ' KB');
 }
 
-module.exports = { C, FONT, R, CIRC, LINE, T, P, I, G, BTN, CHIP, IMG, NOTE, LOGO, LEGEND, DOC, save, wrap, esc };
+// ── Brand patterns, read from the identity CSS so they are the real ones ──
+let patterns = null, patSeq = 0;
+/** A brand pattern (landmark, wave-pro, tree-pro, circle-pro, matrix-all) drawn w wide at x,y. o: op (opacity) */
+function PATTERN(name, x, y, w, o = {}) {
+  if (!patterns) {
+    patterns = {};
+    const css = fs.readFileSync(path.join(ROOT, 'public/brand/dhofar-identity.css'), 'utf8');
+    for (const m of css.matchAll(/\.dm-pattern-([a-z-]+)\s*\{\s*background-image:\s*url\("data:image\/svg\+xml,([^"]+)"\)/g)) {
+      const svg = decodeURIComponent(m[2]);
+      const vb = /viewBox='0 0 ([\d.]+) ([\d.]+)'/.exec(svg);
+      patterns[m[1]] = { w: +vb[1], h: +vb[2], inner: svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '').replace(/'/g, '"') };
+    }
+  }
+  const pt = patterns[name]; if (!pt) return '';
+  const id = 'pat' + (++patSeq), k = w / pt.w;
+  return `<g id="pattern-${name}-${patSeq}" transform="translate(${x} ${y}) scale(${k})" opacity="${o.op ?? 0.12}">${pt.inner.replace(/id="lg"/g, `id="${id}"`).replace(/url\(#lg\)/g, `url(#${id})`)}</g>`;
+}
+const patternSize = name => { PATTERN(name, 0, 0, 1); return patterns[name]; };
+
+/** Simple public header: slim message bar, then menu + search (right), hanging logo (centre), language + sign-in (left) */
+function HEADER(W, y = 0, o = {}) {
+  const LX = o.lx ?? 120, RX = W - LX, mob = W < 600;
+  let s = R(0, y, W, 44, { f: C.teal });
+  if (mob) s += I('megaphone', RX - 18, y + 13, 18, C.white) + T(RX - 26, y + 28, 'ثقة: هويتك الرقمية للدخول والتقديم', { s: 11.5, w: 700, f: C.white }) + R(LX, y + 8, 84, 28, { r: 8, f: 'none', s: 'rgba(255,255,255,0.7)' }) + T(LX + 42, y + 27, 'ادخل عبر ثقة', { s: 10.5, w: 700, f: C.white, a: 'middle' });
+  else s += I('megaphone', RX - 20, y + 12, 20, C.white) + T(RX - 32, y + 28, '«ثقة» بوابتك للهوية الرقمية الموثوقة لتسجيل الدخول والتقديم على الخدمات البلدية.', { s: 14, w: 700, f: C.white }) +
+    R(LX, y + 7, 190, 30, { r: 8, f: 'none', s: 'rgba(255,255,255,0.7)' }) + I('fingerprint', LX + 160, y + 13, 18, C.white) + T(LX + 150, y + 27, 'الدخول عبر ثقة', { s: 13, w: 700, f: C.white }) + I('arrow-left', LX + 14, y + 13, 18, C.white);
+  const hy = y + 44, hh = mob ? 60 : 76;
+  s += R(0, hy, W, hh, { f: '#fbfcfd' }) + LINE(0, hy + hh, W, hy + hh);
+  if (mob) s += I('menu', RX - 22, hy + 19, 22, C.ink) + I('search', RX - 58, hy + 20, 20, C.ink) + I('log-in', LX, hy + 20, 20, C.ink) + T(LX + 36, hy + 35, 'EN', { s: 12.5, w: 700, a: 'start' });
+  else s += I('menu', RX - 22, hy + 27, 22, C.ink) + T(RX - 32, hy + 44, 'القائمة', { s: 15.5, w: 500 }) + LINE(RX - 112, hy + 24, RX - 112, hy + 52) + I('search', RX - 146, hy + 28, 20, C.ink) + T(RX - 156, hy + 44, 'ابحث', { s: 15.5, w: 500 }) +
+    I('log-in', LX + 132, hy + 28, 20, C.ink) + T(LX + 122, hy + 44, 'تسجيل الدخول', { s: 15.5, w: 500 }) + LINE(LX + 168, hy + 24, LX + 168, hy + 52) + I('globe', LX + 276, hy + 28, 20, C.ink) + T(LX + 266, hy + 44, 'English', { s: 15.5, w: 500 });
+  // Hanging logo plate in the centre
+  const pw = mob ? 96 : 150, ph = mob ? 70 : 96;
+  s += R(W / 2 - pw / 2, hy, pw, ph, { r: 0, f: C.white }) + `<path d="M${W / 2 - pw / 2} ${hy} h${pw} v${ph - 10} a10 10 0 0 1 -10 10 h-${pw - 20} a10 10 0 0 1 -10 -10 z" fill="${C.white}" stroke="${C.line}" filter="url(#shadow)"/>` + LOGO(W / 2 - (mob ? 37 : 58), hy + (mob ? 12 : 13), mob ? 45 : 70);
+  return { svg: G('header', s), h: 44 + hh };
+}
+
+/** Saves a design file with a title band above the artboard */
+function board(file, w, h, inner, num, title, sub, tw) {
+  const TOP = 130, bw = tw || w; // tw: width of the screen itself when notes sit beside it
+  const band = G('screen-title', R(0, 0, w, TOP, { f: '#e5e7eb' }) + R(bw - 40 - 64, 30, 64, 64, { r: 18, f: C.teal }) + T(bw - 72, 73, num, { s: 26, w: 700, f: C.white, a: 'middle' }) +
+    T(bw - 124, 62, title, { s: 30, w: 700 }) + T(bw - 124, 94, sub, { s: 15, f: C.mut }) + T(40, 70, 'بلدية ظفار · البوابة الرقمية الموحدة', { s: 14, w: 700, f: C.mut, a: 'start' }) + T(40, 94, 'Dhofar Municipality portal', { s: 12.5, f: C.faint, a: 'start' }));
+  save(file, DOC(w, h + TOP, R(0, 0, w, h + TOP, { f: '#e5e7eb' }) + band + `<g id="artboard" transform="translate(0 ${TOP})">${inner}</g>`, title));
+}
+
+module.exports = { PATTERN, patternSize, HEADER, board, C, FONT, R, CIRC, LINE, T, P, I, G, BTN, CHIP, IMG, NOTE, LOGO, LEGEND, DOC, save, wrap, esc };
