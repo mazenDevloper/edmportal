@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { translateToEnglish } from '@/ai/flows/translate-flow';
 import { BrandLogo } from '@/components/brand-logo';
 import { CitizenSignIn, DesktopMenu, MobileMenu, useMenu } from '@/components/main-nav';
+import { CitizenBar } from '@/components/citizen/citizen-bar';
 import {
   Sheet,
   SheetContent,
@@ -203,6 +204,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
           </div>
         </nav>
       </div>
+      <CitizenBar isAr={isAr} />
     </header>
   );
 }

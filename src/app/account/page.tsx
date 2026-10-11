@@ -7,8 +7,9 @@
  * show sample data until those systems are linked (see src/lib/citizen-account.ts).
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertTriangle, Bell, Check, ChevronLeft, Clock, CreditCard, FileText, Fingerprint, Globe, Info, Loader2, LogOut, Mail, MessageSquare, RotateCcw, ShieldCheck, UserRound, Wallet } from 'lucide-react';
 import { fetchBin } from '@/lib/jsonbin';
 import { MenuItem, ServiceApplication, SiteConfig } from '@/lib/types';
@@ -39,12 +40,18 @@ const Sample = ({ isAr }: { isAr: boolean }) => (
 );
 
 export default function AccountPage() {
+  return <Suspense fallback={null}><Account /></Suspense>;
+}
+
+function Account() {
+  const router = useRouter();
+  const asked = useSearchParams().get('tab') as Tab | null;
+  const tab: Tab = asked && TABS.some(x => x.id === asked) ? asked : 'requests';
   const { language, setLanguage } = useSettingsStore();
   const isAr = language === 'ar';
   const t = (ar: string, en: string) => (isAr ? ar : en);
   const { identity, capacities, current } = useCapacity();
   const [mounted, setMounted] = useState(false);
-  const [tab, setTab] = useState<Tab>('requests');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [apps, setApps] = useState<ServiceApplication[] | null>(null);
@@ -52,12 +59,10 @@ export default function AccountPage() {
 
   useEffect(() => {
     setMounted(true);
-    const fromUrl = new URLSearchParams(window.location.search).get('tab') as Tab | null;
-    if (fromUrl && TABS.some(x => x.id === fromUrl)) setTab(fromUrl);
     fetchBin().then(db => { setMenuItems(db.menuItems || []); setSiteConfig(db.siteConfig || null); setApps(db.applications || []); }).catch(() => setApps([]));
   }, []);
   useEffect(() => { document.title = `${t('حسابي', 'My account')} | ${t('بلدية ظفار', 'Dhofar Municipality')}`; }, [isAr]); // eslint-disable-line react-hooks/exhaustive-deps
-  const open = (id: Tab) => { setTab(id); window.history.replaceState(null, '', `/account?tab=${id}`); };
+  const open = (id: Tab) => router.replace(`/account?tab=${id}`, { scroll: false });
 
   // Requests filed by this person in the current capacity (older requests carry no capacity: they belong to the person)
   const mine = useMemo(() => (apps || []).filter(a => a.applicantPhone === identity && ((a as ServiceApplication & { capacityId?: string }).capacityId || 'person') === (current?.id || 'person')), [apps, identity, current]);
@@ -253,9 +258,12 @@ function Requests({ apps, mine, isAr, holder }: { apps: ServiceApplication[] | n
 
 function Dues({ dues, isAr, holder, refNo }: { dues: Due[]; isAr: boolean; holder: string; refNo: string }) {
   const t = (ar: string, en: string) => (isAr ? ar : en);
-  const [picked, setPicked] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [told, setTold] = useState(false);
   const total = dues.reduce((s, d) => s + d.amount, 0);
+  const chosen = dues.filter(d => picked.has(d.id)), sum = chosen.reduce((s, d) => s + d.amount, 0);
+  const toggle = (id: string) => { setTold(false); setPicked(p => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; }); };
+  const all = dues.length > 0 && picked.size === dues.length;
   return (
     <div className="space-y-4">
       <p className="font-bold text-slate-500">{t(`المبالغ المستحقة في سجلات ${holder} (${refNo}).`, `Amounts due on record for ${holder} (${refNo}).`)}</p>
@@ -266,8 +274,8 @@ function Dues({ dues, isAr, holder, refNo }: { dues: Due[]; isAr: boolean; holde
             <fieldset key={g} className="space-y-2">
               <legend className="mb-2 text-lg font-black text-slate-900">{isAr ? DUE_GROUPS[g][0] : DUE_GROUPS[g][1]}</legend>
               {dues.filter(d => d.group === g).map(d => (
-                <label key={d.id} className={cn('flex cursor-pointer items-center gap-3 rounded-2xl border-2 bg-white p-4', picked === d.id ? 'border-[#008E91]' : 'border-slate-200 hover:border-slate-300')}>
-                  <input type="radio" name="due" checked={picked === d.id} onChange={() => { setPicked(d.id); setTold(false); }} className="size-5 accent-[#005751]" />
+                <label key={d.id} className={cn('flex cursor-pointer items-center gap-3 rounded-2xl border-2 bg-white p-4', picked.has(d.id) ? 'border-[#008E91] bg-[#03CFCB]/5' : 'border-slate-200 hover:border-slate-300')}>
+                  <input type="checkbox" checked={picked.has(d.id)} onChange={() => toggle(d.id)} className="size-5 accent-[#005751]" />
                   <span className="min-w-0 flex-1"><span className="block font-black text-slate-900">{isAr ? d.ar : d.en}</span><span className="block text-xs font-bold text-slate-500"><span dir="ltr">{d.id}</span> — {t('الاستحقاق', 'Due')} {isAr ? d.dueAr : d.dueEn}</span></span>
                   <span className="shrink-0 font-black tabular-nums text-slate-900">{omr(d.amount, isAr)}</span>
                 </label>
@@ -277,10 +285,16 @@ function Dues({ dues, isAr, holder, refNo }: { dues: Due[]; isAr: boolean; holde
           {!dues.length && <p className="rounded-2xl bg-white p-8 text-center font-bold text-slate-500 ring-1 ring-slate-200">{t('لا مستحقات عليك.', 'Nothing is due.')}</p>}
         </div>
         <div className="h-fit rounded-2xl bg-white p-5 ring-1 ring-slate-200 space-y-3">
-          <p className="text-sm font-bold text-slate-500">{t('إجمالي المستحق', 'Total due')}</p>
-          <p className="text-3xl font-black tabular-nums text-slate-900">{omr(total, isAr)}</p>
-          <p className="text-sm font-bold text-slate-500">{t('اختر بنداً واحداً للسداد، ويمكنك الدفع بالبطاقة عبر بوابة الدفع أو من محفظتك الإلكترونية.', 'Choose one item to pay, by card through the payment gateway or from your wallet.')}</p>
-          <button type="button" disabled={!picked} onClick={() => setTold(true)} className="w-full h-12 rounded-xl bg-[#470D67] font-black text-white disabled:opacity-40">{t('المتابعة إلى السداد', 'Continue to payment')}</button>
+          <p className="text-sm font-bold text-slate-500">{t('المبلغ المختار للسداد', 'Selected to pay')}</p>
+          <p className="text-3xl font-black tabular-nums text-slate-900" aria-live="polite">{omr(sum, isAr)}</p>
+          <p className="text-sm font-bold text-slate-500">{t(`${chosen.length} من ${dues.length} بنود · إجمالي المستحق ${omr(total, true)}`, `${chosen.length} of ${dues.length} items · total due ${omr(total, false)}`)}</p>
+          {dues.length > 1 && (
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-black text-slate-800">
+              <input type="checkbox" checked={all} onChange={() => { setTold(false); setPicked(all ? new Set() : new Set(dues.map(d => d.id))); }} className="size-4 accent-[#005751]" />{t('اختيار الكل', 'Select all')}
+            </label>
+          )}
+          <p className="text-sm font-bold text-slate-500">{t('اختر بنداً أو أكثر، وادفع بالبطاقة عبر بوابة الدفع أو من محفظتك الإلكترونية.', 'Choose one or more items, and pay by card through the payment gateway or from your wallet.')}</p>
+          <button type="button" disabled={!chosen.length} onClick={() => setTold(true)} className="w-full h-12 rounded-xl bg-[#470D67] font-black text-white disabled:opacity-40">{chosen.length ? t(`سداد ${omr(sum, true)}`, `Pay ${omr(sum, false)}`) : t('المتابعة إلى السداد', 'Continue to payment')}</button>
           {told && <p role="status" className="text-xs font-bold text-amber-800">{t('بوابة الدفع غير مربوطة في المرحلة التجريبية، ولم يُخصم أي مبلغ.', 'The payment gateway is not connected in the trial phase; nothing was charged.')}</p>}
           <p className="flex items-center justify-between border-t pt-3 text-sm font-bold text-slate-600"><span className="flex items-center gap-2"><Wallet size={16} aria-hidden />{t('رصيد المحفظة الإلكترونية', 'Wallet balance')}</span><span className="font-black tabular-nums text-slate-900">{omr(85, isAr)}</span></p>
         </div>

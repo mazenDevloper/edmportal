@@ -97,6 +97,7 @@ export function StaffShell({ user, search, onSearch, children }: ShellProps) {
     { href: '/staff#my-services', label: t('خدماتي', 'My services') },
     { href: '/staff#guides', label: t('الأدلة والسياسات', 'Guides & policies') },
     { href: '/staff/papers', label: t('أوراق العمل', 'Working papers') },
+    { href: '/staff/verify', label: t('التحقق من وثيقة', 'Verify a document') },
   ];
 
   return (

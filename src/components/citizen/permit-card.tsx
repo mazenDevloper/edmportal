@@ -18,7 +18,7 @@ export function PermitCard({ doc, holder, isAr }: { doc: IssuedDocument; holder:
   const t = (ar: string, en: string) => (isAr ? ar : en);
   const Icon = ICON[doc.icon], tone = TONE[doc.tone];
   const date = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(isAr ? 'ar-OM' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : t('بلا انتهاء', 'No expiry'));
-  const verifyUrl = `${typeof window === 'undefined' ? '' : window.location.origin}/track?ref=${encodeURIComponent(doc.id)}`;
+  const verifyUrl = `${typeof window === 'undefined' ? '' : window.location.origin}/staff/verify?ref=${encodeURIComponent(doc.id)}`;
   return (
     <article className="overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_50px_rgba(71,13,103,0.12)] ring-1 ring-slate-100">
       <div className={cn('relative h-28 px-6 pt-5', tone.band)}>

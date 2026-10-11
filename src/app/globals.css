@@ -169,6 +169,13 @@ html[data-a11y-images="hidden"] body [style*="background-image"] { background-im
 /* Align text to the reading start edge (no justified/centred paragraphs) */
 html[data-a11y-align="start"] body :where(p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th) { text-align: start !important; }
 
+/* Footer wave band: three layers drifting one tile (160px) at different speeds */
+@keyframes dm-wave { to { transform: translateX(-160px); } }
+.dm-wave-a { animation: dm-wave 9s linear infinite; }
+.dm-wave-b { animation: dm-wave 14s linear infinite reverse; transform: translateX(-160px); }
+.dm-wave-c { animation: dm-wave 20s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .dm-wave-a, .dm-wave-b, .dm-wave-c { animation: none; } }
+
 /* Stop animations */
 html[data-a11y-motion="reduce"] *,
 html[data-a11y-motion="reduce"] *::before,

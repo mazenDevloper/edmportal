@@ -1,6 +1,7 @@
 
 'use client';
 
+import { FooterWaves } from '@/components/footer-waves';
 import React, { useEffect, useState } from 'react';
 import { useAdminSession } from '@/lib/admin-session';
 import Link from 'next/link';
@@ -70,7 +71,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
       { id: 'sitemap', labelAr: 'خريطة الموقع', labelEn: 'Sitemap', link: '/sitemap' },
     ];
     return (
-      <footer className="bg-slate-950 text-white border-t-4 border-accent">
+      <><FooterWaves /><footer className="bg-[#3b0a57] text-white">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col items-center md:items-start gap-3">
             <BrandLogo height={40} onDark />
@@ -83,7 +84,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
           <p className="text-xs font-bold text-white/50">© {new Date().getFullYear()} {isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</p>
           <p className="text-xs font-bold text-accent">{isAr ? 'آخر تحديث لهذه الصفحة:' : 'This page was last updated:'} <time dateTime={updatedIso}>{lastUpdated}</time></p>
         </div>
-      </footer>
+      </footer></>
     );
   }
 
@@ -102,7 +103,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
   };
 
   return (
-    <footer className="bg-slate-950 text-white border-t-4 border-accent relative overflow-hidden">
+    <><FooterWaves /><footer className="bg-[#3b0a57] text-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         {/* Always visible: the essentials */}
         <div className="py-7 flex flex-wrap items-center justify-between gap-6">
@@ -178,7 +179,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
           <p>{isAr ? 'سلطنة عمان - محافظة ظفار' : 'Sultanate of Oman - Dhofar Governorate'}</p>
         </div>
       </div>
-    </footer>
+    </footer></>
   );
 }
 
