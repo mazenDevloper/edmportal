@@ -17,7 +17,8 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import type { JourneyAward, JourneyIcon, JourneyStage } from '@/lib/digital-journey';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import type { JourneyAward, JourneyIcon, JourneyModel, JourneyStage } from '@/lib/digital-journey';
 
 export interface LiveFigure { labelAr: string; labelEn: string; value: number | null; color: string }
 export interface CourtyardHandle { enterVR: () => Promise<void> }
@@ -308,7 +309,7 @@ function drawMedallion(c: HTMLCanvasElement, icon: JourneyIcon, color: string) {
 function drawCaption(c: HTMLCanvasElement, lines: string[], color: string, isAr: boolean, plate = false) {
   const g = c.getContext('2d')!; const w = c.width, h = c.height;
   g.clearRect(0, 0, w, h);
-  if (plate) { g.fillStyle = '#0a1122'; g.fillRect(0, 0, w, h); g.strokeStyle = color; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6); }
+  if (plate) { g.fillStyle = '#0a1122'; g.fillRect(0, 0, w, h); }
   g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center';
   lines.forEach((l, i) => {
     const size = fitFont(g, l, 700, Math.round((h / lines.length) * (i === 0 && lines.length > 1 ? 0.7 : 0.56)), w - 30);
@@ -324,7 +325,8 @@ function drawStage(c: HTMLCanvasElement, s: JourneyStage, isAr: boolean) {
   g.clearRect(0, 0, w, h);
   const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, 'rgba(6,18,38,0.94)'); bg.addColorStop(1, 'rgba(18,8,40,0.94)');
   g.fillStyle = bg; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 36); g.fill();
-  g.strokeStyle = s.color; g.lineWidth = 6; g.stroke();
+  // A short accent bar instead of a frame
+  g.fillStyle = s.color; g.beginPath(); g.roundRect(isAr ? w - 60 - 220 : 60, 40, 220, 8, 4); g.fill();
   g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = isAr ? 'right' : 'left';
   const x0 = isAr ? w - 60 : 60, maxW = w - 120;
   g.font = `700 190px ${FONT}`; emboss(g, s.year, x0, 205, s.color, 190);
@@ -349,7 +351,6 @@ function drawBoard(c: HTMLCanvasElement, figures: LiveFigure[] | null, isAr: boo
   g.clearRect(0, 0, w, h);
   const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, 'rgba(4,12,28,0.9)'); bg.addColorStop(1, 'rgba(20,6,38,0.9)');
   g.fillStyle = bg; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 40); g.fill();
-  g.strokeStyle = AQUA; g.lineWidth = 6; g.stroke();
   g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center';
   g.font = `700 84px ${FONT}`; emboss(g, isAr ? 'أرقام المعاملات الإلكترونية' : 'E-transactions in numbers', w / 2, 112, '#9ff3f1', 84);
   g.fillStyle = 'rgba(255,255,255,0.75)'; g.font = `400 34px ${FONT}`;
@@ -375,6 +376,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
   const api = useRef<{
     goTo: (i: number) => void; setFigures: (f: LiveFigure[] | null, asOf?: string) => void; enterVR: () => Promise<void>;
   } | null>(null);
+  const indexRef = useRef(index);
+  indexRef.current = index;
   const cb = useRef({ onNext, onVRChange, onReady });
   cb.current = { onNext, onVRChange, onReady };
 
@@ -584,14 +587,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     /** Text drawn again once the web font is ready */
     const labels: (() => void)[] = [];
     /** A card that stands proud of its board: dark body, lit rim, canvas face */
-    const raised = (w: number, h: number, color: string, cw: number, ch: number, depth = 0.18) => {
+    const raised = (w: number, h: number, cw: number, ch: number, depth = 0.18) => {
       const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
       const group = new THREE.Group();
-      const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.08, h + 0.08, depth * 0.5), neon(color, 2.4)); rim.position.z = -depth * 0.3;
       const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, depth), new THREE.MeshStandardMaterial({ color: 0x0b1326, metalness: 0.7, roughness: 0.3, envMap, envMapIntensity: 0.6 }));
       const faceMesh = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.06, h - 0.06), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) })); faceMesh.position.z = depth / 2 + 0.004;
-      group.add(rim, body, faceMesh);
+      group.add(body, faceMesh);
       return { group, canvas, tex };
     };
     const caption = (w: number, h: number, lines: string[], color: string, plate = false) => {
@@ -607,7 +609,60 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 0.3, 16), gold); stem.position.y = 0.25;
       g.add(foot, stem);
       let top: THREE.Object3D;
-      if (shape === 'cup') {
+      const navy = new THREE.MeshStandardMaterial({ color: 0x1b1d45, metalness: 0.4, roughness: 0.4 });
+      if (shape === 'text') {
+        // "SAG GIS Award" lettering on a gold-edged slab
+        g.remove(stem);
+        const c = document.createElement('canvas'); c.width = 512; c.height = 300;
+        const x = c.getContext('2d')!; x.fillStyle = '#10142e'; x.fillRect(0, 0, 512, 300);
+        x.textAlign = 'left'; x.font = '700 118px "Readex Pro", "Segoe UI", sans-serif';
+        const grad = x.createLinearGradient(0, 40, 0, 270); grad.addColorStop(0, '#fff1a8'); grad.addColorStop(0.5, '#d9b92a'); grad.addColorStop(1, '#a8870f');
+        x.fillStyle = '#000'; x.fillText('SAG GIS', 34, 136); x.fillText('Award', 34, 254);
+        x.fillStyle = grad; x.fillText('SAG GIS', 30, 130); x.fillText('Award', 30, 248);
+        const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+        top = new THREE.Group();
+        const slab = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.52, 0.07), gold);
+        const face = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.46), new THREE.MeshBasicMaterial({ map: t, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) })); face.position.z = 0.037;
+        const back = face.clone(); back.position.z = -0.037; back.rotation.y = Math.PI;
+        (top as THREE.Group).add(slab, face, back); top.position.y = 0.38;
+      } else if (shape === 'plaque') {
+        // Gold plaque in a navy frame with a fine gold outline, leaning back on its foot
+        g.remove(stem);
+        top = new THREE.Group();
+        const outline = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.54, 0.02), gold);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.46, 0.05), navy);
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.36, 0.07), gold);
+        (top as THREE.Group).add(outline, frame, plate); top.position.y = 0.4; top.rotation.x = -0.16;
+      } else if (shape === 'sail') {
+        // A solid leaning sail with an open lattice wing beside it
+        g.remove(stem); g.remove(foot);
+        top = new THREE.Group();
+        const slabBase = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.07, 0.3), gold); slabBase.position.y = 0.035;
+        const step = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.24), gold); step.position.y = 0.085;
+        const sh = new THREE.Shape(); sh.moveTo(-0.22, 0); sh.lineTo(0.12, 0); sh.lineTo(0.18, 0.6); sh.lineTo(-0.1, 0.46); sh.closePath();
+        const sail = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.1, bevelEnabled: false }), gold); sail.position.set(0, 0.1, -0.05);
+        const wire = (a: [number, number], b: [number, number]) => {
+          const v = new THREE.Vector3(b[0] - a[0], b[1] - a[1], 0), rod = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, v.length(), 6), gold);
+          rod.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 0.1, 0); rod.rotation.z = Math.atan2(v.y, v.x) - Math.PI / 2; return rod;
+        };
+        const P: [number, number][] = [[0.1, 0.9], [0.3, 0.72], [0.3, 0.42], [0.2, 0.1], [0.1, 0.6], [0.2, 0.62], [0.24, 0.5]];
+        for (const [a, b] of [[0, 1], [1, 2], [2, 3], [0, 4], [4, 1], [4, 5], [5, 2], [5, 6], [6, 3], [0, 5]] as const) (top as THREE.Group).add(wire(P[a], P[b]));
+        (top as THREE.Group).add(slabBase, step, sail);
+      } else if (shape === 'gate') {
+        // A block with a fan of pins rising to a peak (smart cities award)
+        g.remove(stem); g.remove(foot);
+        top = new THREE.Group();
+        const slabBase = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.12, 0.3), gold); slabBase.position.y = 0.06;
+        const block = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.5, 0.2), gold); block.position.y = 0.37;
+        (top as THREE.Group).add(slabBase, block);
+        const N = 19;
+        for (let i = 0; i < N; i++) {
+          const u = (i / (N - 1)) * 2 - 1, x = u * 0.29, h = 0.42 + (1 - Math.abs(u)) * 0.5;
+          const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, h, 6), gold); pin.position.set(x, 0.12 + h / 2, Math.abs(u) < 0.5 ? -0.08 : 0);
+          const bead = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), gold); bead.position.set(x, 0.12 + h, pin.position.z);
+          (top as THREE.Group).add(pin, bead);
+        }
+      } else if (shape === 'cup') {
         const pts = [[0.05, 0], [0.12, 0.04], [0.22, 0.2], [0.27, 0.42], [0.28, 0.5], [0.25, 0.5], [0.2, 0.22], [0.02, 0.06]].map(([x, y]) => new THREE.Vector2(x, y));
         top = new THREE.Mesh(new THREE.LatheGeometry(pts, 36), gold); top.position.y = 0.38;
         for (const sx of [-1, 1]) { const handle = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 20, Math.PI), gold); handle.position.set(sx * 0.27, 0.72, 0); handle.rotation.z = -sx * Math.PI / 2; g.add(handle); }
@@ -638,6 +693,94 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       g.add(top);
       return g;
     };
+    const white = new THREE.MeshStandardMaterial({ color: 0xf1f3f5, metalness: 0.1, roughness: 0.32, envMap, envMapIntensity: 0.7 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x0b0d12, metalness: 0.6, roughness: 0.25, envMap, envMapIntensity: 0.8 });
+    const lit = (hex: string, k = 1.5) => new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(k), toneMapped: false });
+    const logoTex = new THREE.TextureLoader().load('/brand/dhofar-municipality-logo.png'); logoTex.colorSpace = THREE.SRGBColorSpace; logoTex.anisotropy = 4;
+    /** The object that stands in front of a station. Built about 2–3 m tall, standing on y = 0 */
+    const landmark = (kind: JourneyModel['kind'], color: string) => {
+      const g = new THREE.Group();
+      if (kind === 'robot') {
+        // Cruzr service robot: rounded white body on a lit base, oval face screen, two arms, the municipality logo on the body
+        const skirt = new THREE.Mesh(new THREE.LatheGeometry([[0.36, 0], [0.37, 0.12], [0.36, 0.3], [0.33, 0.75], [0.27, 0.98], [0, 0.98]].map(([x, y]) => new THREE.Vector2(x, y)), 40), white); skirt.position.y = 0.06;
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.385, 0.4, 0.07, 40), new THREE.MeshStandardMaterial({ color: 0x0f5b4c, roughness: 0.5 })); foot.position.y = 0.035;
+        const glow = new THREE.Mesh(new THREE.TorusGeometry(0.372, 0.02, 8, 48), lit('#4f9dff', 2)); glow.rotation.x = Math.PI / 2; glow.position.y = 0.2;
+        const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.275, 0.275, 0.04, 40), new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: 0.9, roughness: 0.3, envMap })); belt.position.y = 1.05;
+        const waist = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.16, 32), lit('#59e6c8', 1.3)); waist.position.y = 1.15;
+        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 24), white); chest.scale.set(1, 0.72, 0.92); chest.position.y = 1.36;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.31, 36, 28), white); head.scale.set(1, 0.92, 0.95); head.position.y = 1.78;
+        const faceDisc = new THREE.Mesh(new THREE.CircleGeometry(0.235, 40), dark); faceDisc.scale.set(1, 0.84, 1); faceDisc.position.set(0, 1.8, 0.262); faceDisc.rotation.x = -0.2;
+        const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.17), lit('#2f8dff', 1.6)); screen.position.set(0, 1.805, 0.268); screen.rotation.x = -0.2;
+        const sensor = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.09, 0.04), dark); sensor.position.set(0, 0.86, 0.305);
+        const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.163), new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) })); badge.position.set(0, 0.62, 0.352); badge.rotation.x = -0.06;
+        g.add(foot, skirt, glow, belt, waist, chest, head, faceDisc, screen, sensor, badge);
+        for (const sx of [-1, 1]) {
+          const joint = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 10, 24), dark); joint.rotation.y = Math.PI / 2; joint.position.set(sx * 0.29, 1.4, 0);
+          const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.5, 6, 14), white); arm.position.set(sx * 0.37, 1.1, 0.03); arm.rotation.z = sx * 0.08;
+          const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), white); hand.position.set(sx * 0.4, 0.78, 0.04);
+          g.add(joint, arm, hand);
+        }
+        g.scale.setScalar(1.25);
+      } else if (kind === 'burj') {
+        // Burj Al Nahdha, loaded from the supplied model and stood on the plinth
+        new OBJLoader().load('/models/burj.obj', obj => {
+          const glassMat = new THREE.MeshStandardMaterial({ color: 0xe9edf1, metalness: 0.25, roughness: 0.35, envMap, envMapIntensity: 0.8 });
+          const warm = new THREE.MeshStandardMaterial({ color: 0xe9dcc3, roughness: 0.6, emissive: 0xffc27a, emissiveIntensity: 0.35 });
+          const pick = (x: THREE.Material) => (/glass/i.test(x.name) ? glassMat : warm);
+          obj.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) m.material = Array.isArray(m.material) ? m.material.map(pick) : pick(m.material); });
+          const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), k = 3.3 / size.y;
+          obj.scale.setScalar(k); obj.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k, -(box.min.z + size.z / 2) * k);
+          g.add(obj);
+        });
+      } else if (kind === 'cloud') {
+        const rack = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.3, 0.5), dark); rack.position.y = 0.65; g.add(rack);
+        for (let i = 0; i < 6; i++) { const led = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.02), lit(i % 2 ? color : '#59e6c8', 1.4)); led.position.set(0, 0.2 + i * 0.19, 0.255); g.add(led); }
+        const cloud = new THREE.Group();
+        for (const [x, y, r] of [[-0.42, 0, 0.3], [0, 0.14, 0.42], [0.44, 0, 0.32], [0.05, -0.1, 0.34]]) { const puff = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18), white); puff.position.set(x, y, 0); cloud.add(puff); }
+        cloud.position.y = 2.25; g.add(cloud); movers.push({ o: cloud, bob: 0.08, y0: 2.25, phase: 1 });
+        const link = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.6, 6), lit(color, 1.4)); link.position.y = 1.62; g.add(link);
+      } else if (kind === 'qr') {
+        const c = document.createElement('canvas'); c.width = c.height = 290;
+        const x = c.getContext('2d')!; x.fillStyle = '#fff'; x.fillRect(0, 0, 290, 290); x.fillStyle = '#0b1020';
+        const r = rng(42);
+        for (let i = 0; i < 25; i++) for (let j = 0; j < 25; j++) {
+          const fi = (a: number, b: number) => a < 7 && b < 7, finder = fi(i, j) || fi(24 - i, j) || fi(i, 24 - j);
+          const u = Math.min(i, 24 - i) % 24, v = Math.min(j, 24 - j) % 24, ring = finder && (u === 0 || u === 6 || v === 0 || v === 6 || (u > 1 && u < 5 && v > 1 && v < 5));
+          if (finder ? ring : r() > 0.52) x.fillRect(20 + i * 10, 20 + j * 10, 10, 10);
+        }
+        const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.95), new THREE.MeshStandardMaterial({ map: t, roughness: 0.5 })); cube.position.y = 1.5; cube.rotation.z = 0.2;
+        const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.9, 10), dark); stand.position.y = 0.45;
+        g.add(cube, stand); movers.push({ o: cube, spin: 0.4, y0: 1.5, phase: 0 });
+      } else if (kind === 'palm') {
+        const bark = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.9 }), frondMat = new THREE.MeshStandardMaterial({ color: 0x2f7a3b, roughness: 0.8, side: THREE.DoubleSide });
+        for (let i = 0; i < 9; i++) { const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.1 - i * 0.004, 0.12 - i * 0.004, 0.34, 10), bark); seg.position.set(Math.sin(i * 0.22) * 0.18, 0.17 + i * 0.31, 0); seg.rotation.z = -Math.cos(i * 0.22) * 0.12; g.add(seg); }
+        const crown = new THREE.Vector3(Math.sin(8 * 0.22) * 0.18 + 0.04, 2.92, 0);
+        for (let i = 0; i < 10; i++) {
+          const fr = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.5, 4), frondMat); fr.scale.set(1, 1, 0.12);
+          const hold = new THREE.Group(); fr.position.y = 0.75; hold.add(fr); hold.position.copy(crown); hold.rotation.set(0, (i / 10) * Math.PI * 2, 0); hold.rotateZ(1.05 + (i % 2) * 0.35); g.add(hold);
+        }
+        for (let i = 0; i < 4; i++) { const nut = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 10), new THREE.MeshStandardMaterial({ color: 0x8a6a2c, roughness: 0.7 })); nut.position.set(crown.x + Math.cos(i * 1.6) * 0.14, crown.y - 0.12, Math.sin(i * 1.6) * 0.14); g.add(nut); }
+      } else if (kind === 'vr') {
+        const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 1.2, 10), dark); stand.position.y = 0.6;
+        const headForm = new THREE.Mesh(new THREE.SphereGeometry(0.34, 28, 22), white); headForm.scale.set(0.9, 1.1, 1); headForm.position.y = 1.55;
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.3, 0.3), dark); visor.position.set(0, 1.62, 0.26);
+        const strap = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.035, 8, 40), dark); strap.rotation.x = Math.PI / 2; strap.position.y = 1.62;
+        const lens = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.08), lit(color, 1.6)); lens.position.set(0, 1.62, 0.412);
+        g.add(stand, headForm, visor, strap, lens);
+      } else {
+        // A small smart-city skyline for the 2040 vision
+        const tower = new THREE.MeshStandardMaterial({ color: 0x16223d, metalness: 0.6, roughness: 0.3, envMap, envMapIntensity: 0.8 });
+        ([[-0.55, 1.5, 0.1], [-0.15, 2.5, -0.1], [0.3, 1.9, 0.15], [0.62, 1.2, -0.15], [-0.4, 0.9, -0.45], [0.1, 1.3, 0.5], [0.5, 0.8, 0.5]] as const).forEach(([x, h, z], i) => {
+          const b = new THREE.Mesh(new THREE.BoxGeometry(0.32, h, 0.32), tower); b.position.set(x, h / 2, z); g.add(b);
+          const cap = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.03, 0.34), lit(i % 2 ? color : '#59e6c8', 1.4)); cap.position.set(x, h + 0.015, z); g.add(cap);
+          for (let y = 0.25; y < h - 0.1; y += 0.3) { const band = new THREE.Mesh(new THREE.BoxGeometry(0.325, 0.02, 0.325), lit('#ffd9a0', 1.1)); band.position.set(x, y, z); g.add(band); }
+        });
+        const orbit = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.012, 6, 64), lit(color, 1.5)); orbit.rotation.x = Math.PI / 2.4; orbit.position.y = 1.5; g.add(orbit);
+        movers.push({ o: orbit, spin: 0.5, y0: 1.5, phase: 0 });
+      }
+      return g;
+    };
     const addPanel = (s: JourneyStage, pos: THREE.Vector3, face: THREE.Vector3) => {
       const canvas = document.createElement('canvas'); canvas.width = 1400; canvas.height = 1000;
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
@@ -646,9 +789,6 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       group.add(plane);
       // Neon frame and a floor beam under the panel
       const frameMat = neon(s.color, 2), hw = PANEL_W / 2, hh = PANEL_H / 2;
-      for (const [w, h, x, y] of [[PANEL_W + 0.2, 0.06, 0, hh + 0.07], [PANEL_W + 0.2, 0.06, 0, -hh - 0.07], [0.06, PANEL_H + 0.2, hw + 0.07, 0], [0.06, PANEL_H + 0.2, -hw - 0.07, 0]] as const) {
-        const f = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), frameMat); f.position.set(x, y, -0.03); group.add(f);
-      }
       const beamG = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, pos.y - hh, 8), frameMat); beamG.position.set(0, -(pos.y - hh) / 2 - hh, -0.2); group.add(beamG);
       const base = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 6, 48), frameMat); base.rotation.x = Math.PI / 2; base.position.set(0, -pos.y + 0.03, -0.2); group.add(base);
 
@@ -657,7 +797,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const note = s.statsNoteAr && isAr ? ` (${s.statsNoteAr})` : '';
         const stats: [number, string][] = [[s.visits, (isAr ? 'زيارة للبوابة' : 'portal visits') + note], [s.transactions, isAr ? 'معاملة رقمية' : 'digital transactions']];
         stats.forEach(([v, label], k) => {
-          const card = raised(2.85, 1.3, s.color, 760, 346);
+          const card = raised(2.85, 1.3, 760, 346);
           card.group.position.set((isAr ? 1 : -1) * (k ? -1.52 : 1.52), -hh - 0.05, 0.3);
           group.add(card.group);
           labels.push(() => { drawFigure(card.canvas, fmt(v, isAr), label, s.color, isAr); card.tex.needsUpdate = true; });
@@ -695,30 +835,40 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         movers.push({ o: cup, spin: 0.35 + k * 0.03, y0: cup.position.y, phase: k });
       });
 
+      // A landmark of the stage on a low plinth, in front of the card and to its side
+      if (s.model) {
+        const mx = -(hw + 1.05), floor = -pos.y, mz = 1.9;
+        const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.92, 0.3, 36), new THREE.MeshStandardMaterial({ color: 0x141b2e, metalness: 0.6, roughness: 0.35, envMap, envMapIntensity: 0.5 }));
+        plinth.position.set(mx, floor + 0.15, mz);
+        const model = landmark(s.model.kind, s.color); model.position.set(mx, floor + 0.3, mz); model.rotation.y = 0.35;
+        const tag = caption(1.5, 0.36, [isAr ? s.model.ar : s.model.en], s.color); tag.position.set(mx, floor + 0.16, mz + 0.95); tag.rotation.x = -0.5;
+        const lamp = new THREE.SpotLight(0xfff1dc, 26, 9, 0.6, 0.6, 1.4); lamp.position.set(mx + 0.6, floor + 5, mz + 2.2); lamp.target.position.set(mx, floor + 1.4, mz);
+        group.add(plinth, model, tag, lamp, lamp.target);
+      }
+
       const dir = face.clone().sub(pos); dir.y = 0; dir.normalize();
       group.rotation.y = Math.atan2(dir.x, dir.z);
       scene.add(group);
       panelTex.push({ canvas, tex, stage: s });
       // Step back far enough to take in the medallions above and the cards or trophies below
-      const top = pos.y + hh + (logos.length ? 1.5 : 0.2), low = awards.length ? 0.2 : pos.y - hh - (s.visits ? 0.8 : 0.2);
+      const top = pos.y + hh + (logos.length ? 1.5 : 0.2), low = awards.length || s.model ? 0.2 : pos.y - hh - (s.visits ? 0.8 : 0.2);
       const mid = (top + low) / 2, dist = Math.max(7.2, ((top - low) / 2) / Math.tan(THREE.MathUtils.degToRad(29)) + (awards.length ? 2.2 : 1.0));
-      const cam = pos.clone().add(dir.clone().multiplyScalar(dist)); cam.y = Math.max(1.9, mid - 0.4);
-      return { cam, target: pos.clone().setY(mid) };
+      // With a landmark beside the card the view shifts toward it and steps back a little
+      const side = new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar(s.model ? -0.75 : 0);
+      const cam = pos.clone().add(dir.clone().multiplyScalar(dist + (s.model ? 1.4 : 0))).add(side); cam.y = Math.max(1.9, mid - 0.4);
+      return { cam, target: pos.clone().add(side).setY(mid) };
     };
     years.forEach((s, i) => { const p = placeYear(i); stations.push(addPanel(s, p, new THREE.Vector3(0, 3, p.z + 6))); });
-    extras.forEach((s, i) => { const p = placeExtra(i); stations.push(addPanel(s, p, new THREE.Vector3(0, 3, p.z + 9))); });
+    extras.forEach((s, i) => { const p = placeExtra(i); stations.push(addPanel(s, p, new THREE.Vector3(p.x, 3, p.z + 9))); });
     // Live board in front of the portal
     const BW = 17.4, BH = 8.6, BY = 8.9, BZ = FZ + 5;
     const boardCanvas = document.createElement('canvas'); boardCanvas.width = 1800; boardCanvas.height = Math.round((1800 * BH) / BW);
     const boardTex = new THREE.CanvasTexture(boardCanvas); boardTex.colorSpace = THREE.SRGBColorSpace; boardTex.anisotropy = 4;
     const board = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ map: boardTex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92) }));
     board.position.set(0, BY, BZ); scene.add(board);
-    for (const [w, h, x, y] of [[BW + 0.3, 0.08, 0, BH / 2 + 0.05], [BW + 0.3, 0.08, 0, -BH / 2 - 0.05], [0.08, BH + 0.2, BW / 2 + 0.1, 0], [0.08, BH + 0.2, -BW / 2 - 0.1, 0]] as const) {
-      const f = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.06), neon(AQUA, 3)); f.position.set(x, BY + y, BZ - 0.05); scene.add(f);
-    }
     // Six figures as cards standing proud of the board
     const figureCards = Array.from({ length: 6 }, (_, i) => {
-      const card = raised(5.3, 2.75, AQUA, 1000, 520, 0.3);
+      const card = raised(5.3, 2.75, 1000, 520, 0.3);
       const col = i % 3, row = Math.floor(i / 3);
       card.group.position.set((isAr ? 1 : -1) * (1 - col) * 5.6, BY + 0.55 - row * 3.05, BZ + 0.3);
       card.group.visible = false; scene.add(card.group);
@@ -730,15 +880,12 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const f = figuresState?.[i];
         card.group.visible = !!f;
         if (!f) return;
-        (card.group.children[0] as THREE.Mesh).material = rimFor(f.color);
         drawFigure(card.canvas, f.value === null ? '—' : fmt(Math.round(f.value * e), isAr), isAr ? f.labelAr : f.labelEn, f.color, isAr);
         card.tex.needsUpdate = true;
       });
     };
-    const rims = new Map<string, THREE.MeshBasicMaterial>();
-    const rimFor = (c: string) => { if (!rims.has(c)) rims.set(c, neon(c, 2.4)); return rims.get(c)!; };
     // The municipality logo, raised on a plaque over the board
-    const plaque = raised(5.2, 3.0, AQUA, 780, 450, 0.3);
+    const plaque = raised(5.2, 3.0, 780, 450, 0.3);
     plaque.group.position.set(0, BY + BH / 2 + 1.9, BZ + 0.1); scene.add(plaque.group);
     { const g = plaque.canvas.getContext('2d')!; g.fillStyle = '#ffffff'; g.fillRect(0, 0, 780, 450); plaque.tex.needsUpdate = true; }
     const logoImg = new Image();
@@ -891,7 +1038,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     };
     const ro = new ResizeObserver(onResize); ro.observe(mount);
 
-    goTo(0);
+    // A rebuilt scene (language or motion setting changed) returns to the station the visitor was at
+    if (indexRef.current) goTo(indexRef.current, true); else goTo(0);
 
     return () => {
       ro.disconnect();
