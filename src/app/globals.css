@@ -169,12 +169,17 @@ html[data-a11y-images="hidden"] body [style*="background-image"] { background-im
 /* Align text to the reading start edge (no justified/centred paragraphs) */
 html[data-a11y-align="start"] body :where(p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th) { text-align: start !important; }
 
-/* Footer wave band: three layers drifting one tile (160px) at different speeds */
-@keyframes dm-wave { to { transform: translateX(-160px); } }
-.dm-wave-a { animation: dm-wave 9s linear infinite; }
-.dm-wave-b { animation: dm-wave 14s linear infinite reverse; transform: translateX(-160px); }
-.dm-wave-c { animation: dm-wave 20s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .dm-wave-a, .dm-wave-b, .dm-wave-c { animation: none; } }
+/* Footer wave band: the brand wave lines as a mask over turquoise, drifting one tile at a time */
+@keyframes dm-drift { to { -webkit-mask-position: 220px 0; mask-position: 220px 0; } }
+.dm-foot-waves {
+  position: absolute; inset-inline: 0; top: 0; height: 46px; z-index: 0;
+  display: block; pointer-events: none;
+  background: #03CFCB; opacity: .9;
+  -webkit-mask: url(/brand/wave.svg) repeat left top / 220px auto;
+  mask: url(/brand/wave.svg) repeat left top / 220px auto;
+  animation: dm-drift 18s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .dm-foot-waves { animation: none; } }
 
 /* Stop animations */
 html[data-a11y-motion="reduce"] *,

@@ -71,7 +71,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
       { id: 'sitemap', labelAr: 'خريطة الموقع', labelEn: 'Sitemap', link: '/sitemap' },
     ];
     return (
-      <><FooterWaves /><footer className="bg-[#3b0a57] text-white">
+      <footer className="relative overflow-hidden rounded-t-[28px] bg-[#470D67] pt-[46px] text-white"><FooterWaves />
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col items-center md:items-start gap-3">
             <BrandLogo height={40} onDark />
@@ -84,7 +84,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
           <p className="text-xs font-bold text-white/50">© {new Date().getFullYear()} {isAr ? 'بلدية ظفار' : 'Dhofar Municipality'}</p>
           <p className="text-xs font-bold text-accent">{isAr ? 'آخر تحديث لهذه الصفحة:' : 'This page was last updated:'} <time dateTime={updatedIso}>{lastUpdated}</time></p>
         </div>
-      </footer></>
+      </footer>
     );
   }
 
@@ -103,7 +103,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
   };
 
   return (
-    <><FooterWaves /><footer className="bg-[#3b0a57] text-white relative overflow-hidden">
+    <footer className="relative overflow-hidden rounded-t-[28px] bg-[#470D67] pt-[46px] text-white"><FooterWaves />
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         {/* Always visible: the essentials */}
         <div className="py-7 flex flex-wrap items-center justify-between gap-6">
@@ -179,7 +179,7 @@ export function PortalFooter({ siteConfig, variant = 'full', lastUpdated: pageUp
           <p>{isAr ? 'سلطنة عمان - محافظة ظفار' : 'Sultanate of Oman - Dhofar Governorate'}</p>
         </div>
       </div>
-    </footer></>
+    </footer>
   );
 }
 

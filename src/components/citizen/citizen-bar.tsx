@@ -3,14 +3,12 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Clock, CreditCard, House, LayoutGrid, Wallet } from 'lucide-react';
+import { Clock, CreditCard, Wallet } from 'lucide-react';
 import { useCitizen } from '@/lib/citizen-session';
 import { cn } from '@/lib/utils';
 
 const ITEMS = [
-  { href: '/', ar: 'الرئيسية', en: 'Home', icon: House, match: (p: string) => p === '/' },
-  { href: '/catalog', ar: 'محطات الحياة', en: 'Life stations', icon: LayoutGrid, match: (p: string) => p.startsWith('/catalog') || p.startsWith('/services') },
-  { href: '/account?tab=requests', ar: 'المتابعة', en: 'Tracking', icon: Clock, match: (p: string, tab: string) => p.startsWith('/track') || (p === '/account' && !['documents', 'dues', 'deposits'].includes(tab)) },
+  { href: '/account?tab=requests', ar: 'معاملاتي', en: 'My transactions', icon: Clock, match: (p: string, tab: string) => p.startsWith('/track') || (p === '/account' && !['documents', 'dues', 'deposits'].includes(tab)) },
   { href: '/account?tab=documents', ar: 'المحفظة', en: 'Wallet', icon: Wallet, match: (p: string, tab: string) => p === '/account' && tab === 'documents' },
   { href: '/account?tab=dues', ar: 'السداد', en: 'Payments', icon: CreditCard, match: (p: string, tab: string) => p === '/account' && ['dues', 'deposits'].includes(tab) },
 ];
@@ -38,7 +36,7 @@ function Bar({ isAr }: { isAr: boolean }) {
   );
 }
 
-/** The signed-in beneficiary's own bar under the header: home, life stations, tracking, wallet, payments */
+/** The signed-in beneficiary's own bar under the header: my transactions, wallet, payments */
 export function CitizenBar({ isAr }: { isAr: boolean }) {
   const citizen = useCitizen();
   const [mounted, setMounted] = useState(false);
