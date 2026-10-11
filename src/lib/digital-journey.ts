@@ -20,7 +20,15 @@ export interface JourneyStage {
   transactions?: number;
   statsNoteAr?: string;
   color: string;
+  /** Platforms and services launched in the stage, shown as raised medallions above the panel */
+  logos?: JourneyLogo[];
+  /** Awards, shown as trophies in front of the panel */
+  awards?: JourneyAward[];
 }
+
+export type JourneyIcon = 'globe' | 'file' | 'building' | 'card' | 'chat' | 'bot' | 'cloud' | 'map' | 'qr' | 'leaf' | 'handshake' | 'chart' | 'award' | 'sparkles' | 'camera' | 'users' | 'wallet' | 'zap';
+export interface JourneyLogo { icon: JourneyIcon; ar: string; en: string }
+export interface JourneyAward { shape: 'globe' | 'cup' | 'star' | 'shield' | 'medal' | 'crystal'; year: string; ar: string; en: string }
 
 export const JOURNEY: JourneyStage[] = [
   {
@@ -29,6 +37,7 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'تحديات البداية: نقص قاعدة البيانات، ومقاومة التغيير، وظروف جائحة كوفيد-19.',
     summaryEn: 'Early challenges: missing data, resistance to change and the COVID-19 pandemic.',
     itemsLabelAr: 'المخرجات',
+    logos: [{ icon: 'globe', ar: 'بوابة الخدمات', en: 'e-Services portal' }, { icon: 'file', ar: 'الترخيص البلدي', en: 'Municipal licence' }, { icon: 'building', ar: 'عقود الإيجار', en: 'Rent contracts' }, { icon: 'card', ar: 'الدفع الإلكتروني', en: 'e-Payment' }, { icon: 'chat', ar: 'دعم واتساب', en: 'WhatsApp support' }],
     items: ['تشكيل فرق عمل متخصصة', 'إنشاء قاعدة بيانات أساسية', 'إطلاق بوابة الخدمات الإلكترونية (15-12-2020)', 'التراخيص وعقود الإيجار والدفع الإلكتروني', 'دعم فني عبر واتساب'],
   },
   {
@@ -37,6 +46,7 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'تطوير البوابة، ومراكز خدمة خارجية، وإطلاق خدمات مبتكرة.',
     summaryEn: 'A better portal, outreach service centres and new services.',
     itemsLabelAr: 'الإنجازات',
+    logos: [{ icon: 'bot', ar: 'سهالة', en: 'Sahalah chatbot' }, { icon: 'cloud', ar: 'الخدمات السحابية', en: 'Cloud services' }, { icon: 'building', ar: 'تراخيص البناء', en: 'Building permits' }, { icon: 'map', ar: 'مصادقات المسارات', en: 'Route approvals' }],
     items: ['إنشاء مراكز خدمة خارجية', 'المحادثة الآلية «سهالة» (1 أبريل)', 'الانتقال للخدمات السحابية (1 أبريل)', 'تراخيص البناء ورقابة البناء (15 أغسطس)', 'مصادقات مسارات تمديدات الخدمة (يونيو)'],
   },
   {
@@ -45,6 +55,7 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'استكمال التحول السحابي، ورقمنة الملفات، وتطبيقات متخصصة.',
     summaryEn: 'Cloud migration completed, paper files digitised, specialised apps.',
     itemsLabelAr: 'الإنجازات',
+    logos: [{ icon: 'cloud', ar: 'تحول سحابي كامل', en: 'Full cloud' }, { icon: 'qr', ar: 'رمز QR للعقود', en: 'QR contracts' }, { icon: 'file', ar: 'الأرشفة الرقمية', en: 'Digital archive' }, { icon: 'leaf', ar: 'خريف ظفار', en: 'Khareef Dhofar' }],
     items: ['التحول الكامل للخدمات السحابية', 'رموز QR للعقود الإلكترونية', 'تحويل الملفات الورقية إلى رقمية', 'تطبيق «خريف ظفار» (14 أغسطس)'],
   },
   {
@@ -53,6 +64,7 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'تطبيقات جديدة، وإتاحة البيانات المفتوحة، وتوظيف الذكاء الاصطناعي.',
     summaryEn: 'New apps, open data and artificial intelligence.',
     itemsLabelAr: 'الإنجازات',
+    logos: [{ icon: 'leaf', ar: 'مواسم ظفار', en: 'Mawasim Dhofar' }, { icon: 'handshake', ar: 'أبشر', en: 'Absher' }, { icon: 'chart', ar: 'البيانات المفتوحة', en: 'Open data' }, { icon: 'map', ar: 'GIS ذكي', en: 'AI GIS' }, { icon: 'award', ar: 'كومكس', en: 'COMEX' }],
     items: ['«خريف ظفار» يصبح «مواسم ظفار»', 'تطبيق «أبشر» (1 يونيو)', 'البيانات المفتوحة للخدمات البلدية', 'نظم المعلومات الجغرافية بالذكاء الاصطناعي', 'أول مشاركة في كومكس'],
   },
   {
@@ -61,6 +73,7 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'أحدث التقنيات ومبادرات تعزز المشاركة المجتمعية.',
     summaryEn: 'Latest technology and initiatives for community participation.',
     itemsLabelAr: 'الإنجازات',
+    logos: [{ icon: 'globe', ar: 'الميتافيرس', en: 'Metaverse' }, { icon: 'sparkles', ar: 'صلالة الذكية', en: 'Smart Salalah' }, { icon: 'camera', ar: 'كاميرات ذكية', en: 'AI cameras' }, { icon: 'users', ar: 'ضع بصمتك', en: 'Leave your mark' }, { icon: 'wallet', ar: 'منصة الاستثمار', en: 'Investment' }],
     items: ['خدمة العملاء بتقنية الميتافيرس (27 مايو)', 'منصة صلالة الذكية', 'كاميرات ذكاء اصطناعي في المناطق الحيوية', 'تطبيق «ضع بصمتك»', 'منصة بلدية ظفار للاستثمار'],
   },
   {
@@ -69,6 +82,7 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'خدمات استباقية للمستخدمين وأحدث تقنيات الذكاء الاصطناعي.',
     summaryEn: 'Proactive services and the latest AI.',
     itemsLabelAr: 'الإنجازات',
+    logos: [{ icon: 'zap', ar: 'خدمات استباقية', en: 'Proactive services' }, { icon: 'camera', ar: 'مرور ذكي', en: 'AI traffic' }, { icon: 'chat', ar: 'محادثة ذكية', en: 'Smart chat' }, { icon: 'map', ar: 'التوائم الرقمية', en: 'Digital twins' }, { icon: 'bot', ar: 'روبوت البلدية', en: 'Service robot' }],
     items: ['خدمات استباقية', 'مراقبة حركة المرور بالذكاء الاصطناعي', 'محادثة ذكية لمركز الاتصال الافتراضي', 'التوائم الرقمية Digital Twins GIS', 'روبوت خدمات البلدية وروبوت الإصحاح البيئي'],
   },
   {
@@ -77,6 +91,14 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'تكريم محلي وعالمي للتميز في التحول الرقمي.',
     summaryEn: 'Local and international recognition.',
     itemsLabelAr: 'الجوائز',
+    awards: [
+      { shape: 'globe', year: '2022', ar: 'جائزة SAG GIS العالمية', en: 'SAG GIS global award' },
+      { shape: 'cup', year: '2023', ar: 'أفضل منافذ تقديم الخدمة', en: 'Best service outlets' },
+      { shape: 'star', year: '2024', ar: 'أفضل قائد للتغيير الرقمي', en: 'Best digital change leader' },
+      { shape: 'shield', year: '2024', ar: 'أفضل فريق تحول رقمي', en: 'Best digital team' },
+      { shape: 'medal', year: '2024', ar: 'سياسات البيانات المفتوحة', en: 'Open-data policies' },
+      { shape: 'crystal', year: '2024', ar: 'جائزة المدن الذكية', en: 'Smart cities award' },
+    ],
     items: ['جائزة SAG GIS العالمية للذكاء الاصطناعي في نظم المعلومات الجغرافية (2022)', 'أفضل منافذ تقديم الخدمة في المحافظات (2023)', 'أفضل قائد للتغيير الرقمي (2024)', 'أفضل فريق للتحول الرقمي الحكومي (2024)', 'أفضل مؤسسة في سياسات البيانات المفتوحة (2024)', 'جائزة المدن الذكية بكومكس (2024)'],
   },
   {

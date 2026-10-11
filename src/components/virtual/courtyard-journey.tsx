@@ -16,7 +16,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import type { JourneyStage } from '@/lib/digital-journey';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import type { JourneyAward, JourneyIcon, JourneyStage } from '@/lib/digital-journey';
 
 export interface LiveFigure { labelAr: string; labelEn: string; value: number | null; color: string }
 export interface CourtyardHandle { enterVR: () => Promise<void> }
@@ -40,7 +41,9 @@ const FOUNTAIN = new THREE.Vector3(0, 0, -12);
 const AQUA = '#03CFCB', PURPLE = '#A855F7', PINK = '#EC4899', WARM = '#FFB86B';
 const FONT = '"Readex Pro", "Segoe UI", Tahoma, sans-serif';
 
-const neon = (hex: string, k = 3) => new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(k), toneMapped: false });
+/** LED strip material. GLOW tones every strip down together: the light reads as a line, not a haze */
+const GLOW = 0.5;
+const neon = (hex: string, k = 3) => new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(Math.max(1, k * GLOW)), toneMapped: false });
 
 /** Pointed (ogee-like) arch outline from bottom-left, over the apex, to bottom-right */
 function archPoints(cx: number, w: number, spring: number, apex: number, n = 24): [number, number][] {
@@ -161,6 +164,51 @@ function tileTexture() {
   return t;
 }
 
+/** The round plaza: white stone rings alternating with striped drainage bands (as on site) */
+function plazaTexture() {
+  const S = 1024, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d')!; const m = S / 2, px = m / 10;
+  const bands: [number, number, boolean][] = [[8, 10, true], [6.6, 8, false], [5, 6.6, true], [3.6, 5, false], [2, 3.6, true], [0, 2, false]];
+  for (const [, r1, striped] of bands) {
+    g.fillStyle = striped ? '#8f9296' : '#d9d5cc'; g.beginPath(); g.arc(m, m, r1 * px, 0, Math.PI * 2); g.fill();
+  }
+  // Radial slats on the striped bands
+  g.strokeStyle = '#3d4044'; g.lineWidth = 2.2;
+  for (const [r0, r1, striped] of bands) {
+    if (!striped) continue;
+    const n = Math.round(r1 * 46);
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; g.beginPath(); g.moveTo(m + Math.cos(a) * r0 * px, m + Math.sin(a) * r0 * px); g.lineTo(m + Math.cos(a) * r1 * px, m + Math.sin(a) * r1 * px); g.stroke(); }
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+
+/** The star inlay of the entrance floor: interlaced squares in light stone on the paving */
+function starTexture() {
+  const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d')!; g.translate(S / 2, S / 2);
+  g.strokeStyle = 'rgba(236,230,218,0.95)'; g.lineWidth = 9; g.lineJoin = 'miter';
+  for (const [r, turns] of [[230, 2], [150, 2], [78, 2]] as const) for (let k = 0; k < turns; k++) {
+    g.save(); g.rotate((k * Math.PI) / 4); g.strokeRect(-r * 0.7, -r * 0.7, r * 1.4, r * 1.4); g.restore();
+  }
+  g.fillStyle = 'rgba(176,97,74,0.55)';
+  for (let k = 0; k < 8; k++) { g.save(); g.rotate((k * Math.PI) / 4); g.beginPath(); g.moveTo(0, -200); g.lineTo(26, -150); g.lineTo(-26, -150); g.closePath(); g.fill(); g.restore(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+
+/** Curtain-wall grid of the glass tower */
+function glassTexture() {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 512;
+  const g = c.getContext('2d')!; const r = rng(5);
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 8; x++) { g.fillStyle = `hsl(205, 35%, ${7 + r() * 9}%)`; g.fillRect(x * 32, y * 32, 32, 32); }
+  g.strokeStyle = '#3a4756'; g.lineWidth = 2;
+  for (let i = 0; i <= 8; i++) { g.beginPath(); g.moveTo(i * 32, 0); g.lineTo(i * 32, 512); g.stroke(); }
+  for (let i = 0; i <= 16; i++) { g.beginPath(); g.moveTo(0, i * 32); g.lineTo(256, i * 32); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 function dotSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d')!; const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -179,6 +227,97 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number) {
 
 const fmt = (n: number, isAr: boolean) => n.toLocaleString(isAr ? 'ar-OM' : 'en-US');
 
+/** Raised lettering: a dark drop edge under a light-to-colour face, so figures read as embossed */
+function emboss(g: CanvasRenderingContext2D, text: string, x: number, y: number, color: string, size: number) {
+  g.save();
+  g.fillStyle = 'rgba(0,0,0,0.9)';
+  for (let d = Math.max(3, Math.round(size * 0.06)); d > 0; d--) g.fillText(text, x, y + d);
+  const face = g.createLinearGradient(0, y - size * 0.78, 0, y + size * 0.08);
+  face.addColorStop(0, '#ffffff'); face.addColorStop(0.5, color); face.addColorStop(1, new THREE.Color(color).multiplyScalar(0.62).getStyle());
+  g.fillStyle = face; g.fillText(text, x, y);
+  g.restore();
+}
+
+/** Shrinks the font until the text fits `max` pixels; returns the size used */
+function fitFont(g: CanvasRenderingContext2D, text: string, weight: number, size: number, max: number) {
+  let s = size;
+  do { g.font = `${weight} ${s}px ${FONT}`; s -= 4; } while (g.measureText(text).width > max && s > 24);
+  return s + 4;
+}
+
+/** A raised figure card: one large embossed number and its label */
+function drawFigure(c: HTMLCanvasElement, value: string, label: string, color: string, isAr: boolean) {
+  const g = c.getContext('2d')!; const w = c.width, h = c.height;
+  g.clearRect(0, 0, w, h);
+  const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#101c36'); bg.addColorStop(1, '#070b18');
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+  g.fillStyle = color; g.fillRect(0, 0, w, Math.round(h * 0.035));
+  g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center';
+  const size = fitFont(g, value, 700, Math.round(h * 0.46), w - 70);
+  emboss(g, value, w / 2, h * 0.58, color, size);
+  g.fillStyle = 'rgba(255,255,255,0.92)'; fitFont(g, label, 700, Math.round(h * 0.15), w - 60);
+  g.fillText(label, w / 2, h * 0.86);
+}
+
+// Icon outlines on a 24-unit grid (lucide geometry): p = path, c = circle, r = rounded rect
+type IconPart = ['p', string] | ['c', number, number, number] | ['r', number, number, number, number, number];
+const ICONS: Record<JourneyIcon, IconPart[]> = {
+  globe: [['c', 12, 12, 10], ['p', 'M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20'], ['p', 'M2 12h20']],
+  file: [['p', 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'], ['p', 'M14 2v4a2 2 0 0 0 2 2h4'], ['p', 'M10 9H8'], ['p', 'M16 13H8'], ['p', 'M16 17H8']],
+  building: [['p', 'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z'], ['p', 'M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2'], ['p', 'M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2'], ['p', 'M10 6h4'], ['p', 'M10 10h4'], ['p', 'M10 14h4'], ['p', 'M10 18h4']],
+  card: [['r', 2, 5, 20, 14, 2], ['p', 'M2 10h20']],
+  chat: [['p', 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z']],
+  bot: [['p', 'M12 8V4H8'], ['r', 4, 8, 16, 12, 2], ['p', 'M2 14h2'], ['p', 'M20 14h2'], ['p', 'M15 13v2'], ['p', 'M9 13v2']],
+  cloud: [['p', 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z']],
+  map: [['p', 'M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z'], ['p', 'M15 5.764v15'], ['p', 'M9 3.236v15']],
+  qr: [['r', 3, 3, 5, 5, 1], ['r', 16, 3, 5, 5, 1], ['r', 3, 16, 5, 5, 1], ['p', 'M21 16h-3a2 2 0 0 0-2 2v3'], ['p', 'M12 7v3a2 2 0 0 1-2 2H7'], ['p', 'M16 12h1'], ['p', 'M12 21v-1'], ['p', 'M12 16v.01'], ['p', 'M21 21v.01'], ['p', 'M21 12v.01'], ['p', 'M3 12h.01'], ['p', 'M12 3h.01']],
+  leaf: [['p', 'M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'], ['p', 'M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12']],
+  handshake: [['p', 'm11 17 2 2a1 1 0 1 0 3-3'], ['p', 'm14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4'], ['p', 'm21 3 1 11h-2'], ['p', 'M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3'], ['p', 'M3 4h8']],
+  chart: [['p', 'M3 3v16a2 2 0 0 0 2 2h16'], ['p', 'M18 17V9'], ['p', 'M13 17V5'], ['p', 'M8 17v-3']],
+  award: [['p', 'm15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526'], ['c', 12, 8, 6]],
+  sparkles: [['p', 'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z'], ['p', 'M20 3v4'], ['p', 'M22 5h-4']],
+  camera: [['p', 'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'], ['c', 12, 13, 3]],
+  users: [['p', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'], ['c', 9, 7, 4], ['p', 'M22 21v-2a4 4 0 0 0-3-3.87'], ['p', 'M16 3.13a4 4 0 0 1 0 7.75']],
+  wallet: [['p', 'M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1'], ['p', 'M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4']],
+  zap: [['p', 'M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z']],
+};
+
+/** The face of a logo medallion: the icon embossed on a dark enamel disc */
+function drawMedallion(c: HTMLCanvasElement, icon: JourneyIcon, color: string) {
+  const g = c.getContext('2d')!; const S = c.width;
+  g.clearRect(0, 0, S, S);
+  const bg = g.createRadialGradient(S * 0.4, S * 0.35, S * 0.05, S / 2, S / 2, S / 2);
+  bg.addColorStop(0, '#1d2c50'); bg.addColorStop(1, '#070b18');
+  g.fillStyle = bg; g.beginPath(); g.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2); g.fill();
+  const k = (S * 0.52) / 24, o = S * 0.24;
+  const stroke = (dx: number, dy: number, style: string) => {
+    g.save(); g.translate(o + dx, o + dy); g.scale(k, k);
+    g.strokeStyle = style; g.lineWidth = 2; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const p of ICONS[icon]) {
+      if (p[0] === 'p') g.stroke(new Path2D(p[1]));
+      else if (p[0] === 'c') { g.beginPath(); g.arc(p[1], p[2], p[3], 0, Math.PI * 2); g.stroke(); }
+      else { g.beginPath(); g.roundRect(p[1], p[2], p[3], p[4], p[5]); g.stroke(); }
+    }
+    g.restore();
+  };
+  stroke(0, S * 0.014, 'rgba(0,0,0,0.9)'); stroke(0, 0, '#ffffff');
+  g.strokeStyle = color; g.lineWidth = S * 0.03; g.beginPath(); g.arc(S / 2, S / 2, S * 0.46, 0, Math.PI * 2); g.stroke();
+}
+
+/** A small caption (logo name, trophy plate) */
+function drawCaption(c: HTMLCanvasElement, lines: string[], color: string, isAr: boolean, plate = false) {
+  const g = c.getContext('2d')!; const w = c.width, h = c.height;
+  g.clearRect(0, 0, w, h);
+  if (plate) { g.fillStyle = '#0a1122'; g.fillRect(0, 0, w, h); g.strokeStyle = color; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6); }
+  g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center';
+  lines.forEach((l, i) => {
+    const size = fitFont(g, l, 700, Math.round((h / lines.length) * (i === 0 && lines.length > 1 ? 0.7 : 0.56)), w - 30);
+    g.fillStyle = i === 0 && lines.length > 1 ? color : '#ffffff';
+    if (!plate) { g.lineWidth = 8; g.strokeStyle = 'rgba(3,7,18,0.9)'; g.strokeText(l, w / 2, (h / lines.length) * (i + 0.5) + size * 0.34); }
+    g.fillText(l, w / 2, (h / lines.length) * (i + 0.5) + size * 0.34);
+  });
+}
+
 /** A holographic station panel */
 function drawStage(c: HTMLCanvasElement, s: JourneyStage, isAr: boolean) {
   const g = c.getContext('2d')!; const w = c.width, h = c.height;
@@ -188,58 +327,40 @@ function drawStage(c: HTMLCanvasElement, s: JourneyStage, isAr: boolean) {
   g.strokeStyle = s.color; g.lineWidth = 6; g.stroke();
   g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = isAr ? 'right' : 'left';
   const x0 = isAr ? w - 60 : 60, maxW = w - 120;
-  g.fillStyle = s.color; g.font = `700 120px ${FONT}`; g.fillText(s.year, x0, 150);
-  g.fillStyle = '#ffffff'; g.font = `700 50px ${FONT}`;
-  let y = 225;
-  for (const l of wrap(g, isAr ? s.titleAr : s.titleEn, maxW).slice(0, 2)) { g.fillText(l, x0, y); y += 60; }
-  g.fillStyle = 'rgba(255,255,255,0.78)'; g.font = `400 32px ${FONT}`; y += 6;
-  for (const l of wrap(g, isAr ? s.summaryAr : s.summaryEn, maxW).slice(0, 3)) { g.fillText(l, x0, y); y += 44; }
+  g.font = `700 190px ${FONT}`; emboss(g, s.year, x0, 205, s.color, 190);
+  g.fillStyle = '#ffffff'; g.font = `700 62px ${FONT}`;
+  let y = 300;
+  for (const l of wrap(g, isAr ? s.titleAr : s.titleEn, maxW).slice(0, 2)) { g.fillText(l, x0, y); y += 74; }
+  g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = `400 38px ${FONT}`; y += 4;
+  for (const l of wrap(g, isAr ? s.summaryAr : s.summaryEn, maxW).slice(0, 3)) { g.fillText(l, x0, y); y += 52; }
+  const bottom = h - (s.visits ? 150 : 50);
   if (isAr) {
-    y += 14; g.font = `400 30px ${FONT}`;
+    y += 16; g.font = `400 36px ${FONT}`;
     for (const it of s.items.slice(0, 6)) {
-      if (y > h - (s.visits ? 150 : 60)) break;
-      g.fillStyle = s.color; g.fillText('◆', x0, y); g.fillStyle = 'rgba(255,255,255,0.92)';
-      g.fillText(wrap(g, it, maxW - 50)[0], x0 - 44, y); y += 44;
+      if (y > bottom) break;
+      g.fillStyle = s.color; g.fillText('◆', x0, y); g.fillStyle = 'rgba(255,255,255,0.94)';
+      g.fillText(wrap(g, it, maxW - 56)[0], x0 - 50, y); y += 52;
     }
-  }
-  if (s.visits && s.transactions) {
-    const by = h - 70; g.font = `700 44px ${FONT}`; g.fillStyle = s.color;
-    const stat = (label: string, v: number, x: number) => { g.fillText(fmt(v, isAr), x, by); g.font = `400 24px ${FONT}`; g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillText(label, x, by + 36); g.font = `700 44px ${FONT}`; g.fillStyle = s.color; };
-    const note = s.statsNoteAr && isAr ? ` (${s.statsNoteAr})` : '';
-    stat((isAr ? 'زيارة للبوابة' : 'portal visits') + note, s.visits, x0);
-    stat(isAr ? 'معاملة رقمية' : 'digital transactions', s.transactions, isAr ? w / 2 - 20 : w / 2 + 20);
   }
 }
 
-function drawBoard(c: HTMLCanvasElement, figures: LiveFigure[] | null, isAr: boolean, progress: number, asOf?: string) {
+function drawBoard(c: HTMLCanvasElement, figures: LiveFigure[] | null, isAr: boolean, asOf?: string) {
   const g = c.getContext('2d')!; const w = c.width, h = c.height;
   g.clearRect(0, 0, w, h);
   const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, 'rgba(4,12,28,0.9)'); bg.addColorStop(1, 'rgba(20,6,38,0.9)');
   g.fillStyle = bg; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 40); g.fill();
   g.strokeStyle = AQUA; g.lineWidth = 6; g.stroke();
   g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center';
-  g.fillStyle = '#ffffff'; g.font = `700 64px ${FONT}`;
-  g.fillText(isAr ? 'أرقام المعاملات الإلكترونية' : 'E-transactions in numbers', w / 2, 100);
-  g.fillStyle = 'rgba(255,255,255,0.65)'; g.font = `400 30px ${FONT}`;
+  g.font = `700 84px ${FONT}`; emboss(g, isAr ? 'أرقام المعاملات الإلكترونية' : 'E-transactions in numbers', w / 2, 112, '#9ff3f1', 84);
+  g.fillStyle = 'rgba(255,255,255,0.75)'; g.font = `400 34px ${FONT}`;
   g.fillText(isAr ? `مباشر من البيانات المفتوحة لبلدية ظفار${asOf ? ` · حتى ${asOf}` : ''}` : `Live from Dhofar Municipality open data${asOf ? ` · to ${asOf}` : ''}`, w / 2, 150);
-  if (!figures) { g.font = `400 40px ${FONT}`; g.fillText(isAr ? 'جارٍ الاتصال بالبيانات المفتوحة…' : 'Connecting to open data…', w / 2, h / 2 + 60); return; }
-  const cols = 3, cellW = (w - 120) / cols, cellH = (h - 220) / 2;
-  const ease = 1 - Math.pow(1 - progress, 3);
-  figures.slice(0, 6).forEach((f, i) => {
-    const col = isAr ? cols - 1 - (i % cols) : i % cols, row = Math.floor(i / cols);
-    const cx = 60 + cellW * col + cellW / 2, cy = 200 + cellH * row;
-    g.fillStyle = 'rgba(255,255,255,0.05)'; g.beginPath(); g.roundRect(cx - cellW / 2 + 14, cy + 10, cellW - 28, cellH - 20, 24); g.fill();
-    g.fillStyle = f.color; g.font = `700 78px ${FONT}`;
-    g.fillText(f.value === null ? '—' : fmt(Math.round(f.value * ease), isAr), cx, cy + cellH / 2 + 12);
-    g.fillStyle = 'rgba(255,255,255,0.85)'; g.font = `400 32px ${FONT}`;
-    g.fillText(isAr ? f.labelAr : f.labelEn, cx, cy + cellH / 2 + 62);
-  });
+  if (!figures) { g.font = `400 40px ${FONT}`; g.fillText(isAr ? 'جارٍ الاتصال بالبيانات المفتوحة…' : 'Connecting to open data…', w / 2, h / 2 + 60); }
 }
 
 function drawSign(c: HTMLCanvasElement, isAr: boolean) {
   const g = c.getContext('2d')!; g.clearRect(0, 0, c.width, c.height);
   g.textAlign = 'center'; g.direction = isAr ? 'rtl' : 'ltr';
-  g.font = `700 150px ${FONT}`; g.shadowColor = AQUA; g.shadowBlur = 30; g.fillStyle = '#b8fffd';
+  g.font = `700 150px ${FONT}`; g.shadowColor = AQUA; g.shadowBlur = 10; g.fillStyle = '#d9fffe';
   g.fillText(isAr ? 'رحلة التحول الرقمي' : 'Digital Transformation Journey', c.width / 2, 170);
   g.font = `400 64px ${FONT}`; g.shadowColor = PURPLE; g.fillStyle = '#f0ddff';
   g.fillText(isAr ? 'بلدية ظفار · 2020 — 2040' : 'Dhofar Municipality · 2020 — 2040', c.width / 2, 280);
@@ -289,6 +410,14 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.85 })));
     const moon = new THREE.Mesh(new THREE.SphereGeometry(6, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff3d6').multiplyScalar(1.6), toneMapped: false, fog: false }));
     moon.position.set(-160, 170, -300); scene.add(moon);
+
+    // Reflections for the gold trophies, medallion rims and the glass tower (not applied scene-wide)
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    const gold = new THREE.MeshStandardMaterial({ color: 0xf2c14e, metalness: 1, roughness: 0.22, envMap, envMapIntensity: 1.15 });
+    /** Things that turn or bob in the animation loop */
+    const movers: { o: THREE.Object3D; spin?: number; bob?: number; y0: number; phase: number }[] = [];
 
     // ── Lights ──
     scene.add(new THREE.HemisphereLight(0x3a4a7a, 0x120e18, 0.9));
@@ -359,8 +488,26 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const brace = new THREE.Mesh(new THREE.BoxGeometry(0.06, 12.8, 0.06), steel);
       brace.position.set(x + 6, H + 2.25, FZ + 1); brace.rotation.z = Math.atan2(12, 4.5) * (x % 24 === 0 ? 1 : -1); scene.add(brace);
     }
+    // The space frame continues over the courtyard: rafters from the roof beam and purlins across them
+    for (let x = -W / 2; x <= W / 2 + 0.01; x += 12) {
+      const rafter = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 38), steel); rafter.position.set(x, H + 4.5, FZ + 20); scene.add(rafter);
+    }
+    for (let z = FZ + 7; z <= FZ + 39; z += 8) {
+      const purlin = new THREE.Mesh(new THREE.BoxGeometry(W, 0.1, 0.1), steel); purlin.position.set(0, H + 4.5, z); scene.add(purlin);
+    }
+    // Arcade columns with white capitals in front of the side blocks
+    const shaftMat = new THREE.MeshStandardMaterial({ color: 0xa8553f, roughness: 0.8 }), capMat = new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.7 });
+    const shaftGeo = new THREE.CylinderGeometry(0.3, 0.33, 3.0, 20), capGeo = new THREE.CylinderGeometry(0.5, 0.34, 0.36, 20), footGeo = new THREE.CylinderGeometry(0.4, 0.44, 0.22, 20);
+    for (let x = -W / 2 + 2.2 + 1.8; x < W / 2 - 1; x += 3.6) {
+      if (Math.abs(x) < PW / 2 + 1) continue;
+      const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(x, 1.72, FZ + 0.5);
+      const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(x, 3.4, FZ + 0.5);
+      const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(x, 0.11, FZ + 0.5);
+      scene.add(shaft, cap, foot);
+    }
     // Wings: dark glass on the left, stone on the right (as in the photos)
-    const glass = new THREE.Mesh(new THREE.BoxGeometry(10, 22, 26), new THREE.MeshStandardMaterial({ color: 0x0b1624, metalness: 0.85, roughness: 0.12 }));
+    const glassMap = glassTexture(); glassMap.wrapS = glassMap.wrapT = THREE.RepeatWrapping; glassMap.repeat.set(3, 2);
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(10, 22, 26), new THREE.MeshStandardMaterial({ map: glassMap, metalness: 0.9, roughness: 0.1, envMap, envMapIntensity: 0.9 }));
     glass.position.set(-W / 2 - 5, 11, FZ + 11); scene.add(glass);
     for (let y = 3.6; y < 22; y += 3.6) strip(0.08, 0.08, 26, -W / 2 + 0.05, y, FZ + 11, AQUA, 1.6);
     const wingMap = fac.map.clone(), wingEm = fac.emissive.clone();
@@ -371,12 +518,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     strip(0.14, 0.14, 26, W / 2 + 0.05, H + 0.05, FZ + 11, AQUA);
 
     // ── Fountain ──
-    const water = new THREE.Mesh(new THREE.CircleGeometry(10, 72), new THREE.MeshStandardMaterial({ color: 0x0a1b2a, metalness: 0.7, roughness: 0.08 }));
+    const water = new THREE.Mesh(new THREE.CircleGeometry(10, 96), new THREE.MeshStandardMaterial({ map: plazaTexture(), color: 0x8f8a84, metalness: 0.15, roughness: 0.3 }));
     water.rotation.x = -Math.PI / 2; water.position.set(FOUNTAIN.x, 0.012, FOUNTAIN.z); scene.add(water);
-    for (const rr of [2.5, 5.5, 8.5]) {
-      const grate = new THREE.Mesh(new THREE.RingGeometry(rr - 0.28, rr + 0.28, 96), new THREE.MeshStandardMaterial({ color: 0x0d1015, roughness: 0.6, metalness: 0.4 }));
-      grate.rotation.x = -Math.PI / 2; grate.position.set(FOUNTAIN.x, 0.02, FOUNTAIN.z); scene.add(grate);
-    }
+    const star = new THREE.Mesh(new THREE.PlaneGeometry(13, 13), new THREE.MeshStandardMaterial({ map: starTexture(), transparent: true, roughness: 0.4, depthWrite: false }));
+    star.rotation.x = -Math.PI / 2; star.position.set(0, 0.014, 27.5); scene.add(star);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(10.1, 0.06, 8, 160), neon(AQUA, 2.6));
     ring.rotation.x = -Math.PI / 2; ring.position.set(FOUNTAIN.x, 0.05, FOUNTAIN.z); scene.add(ring);
     const JET_RINGS = [{ r: 2.5, n: 10, h: 4.2 }, { r: 5.5, n: 18, h: 3.2 }, { r: 8.5, n: 26, h: 2.4 }];
@@ -433,46 +578,185 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const panelTex: { canvas: HTMLCanvasElement; tex: THREE.CanvasTexture; stage: JourneyStage }[] = [];
     const years = stages.filter(s => /^\d{4}$/.test(s.year) && s.year < '2030');
     const extras = stages.filter(s => !years.includes(s));
-    const placeYear = (i: number) => new THREE.Vector3(i % 2 ? -7.8 : 7.8, 3, 17 - i * 4.2);
-    const placeExtra = (i: number) => new THREE.Vector3(i % 2 ? 12 : -12, 3.2, -17.5);
+    const placeYear = (i: number) => new THREE.Vector3(i % 2 ? -8.4 : 8.4, 3.9, 17 - i * 4.2);
+    const placeExtra = (i: number) => new THREE.Vector3(i % 2 ? 12 : -12, i % 2 ? 3.9 : 4.9, -17.5);
+    const PANEL_W = 6.2, PANEL_H = 4.43;
+    /** Text drawn again once the web font is ready */
+    const labels: (() => void)[] = [];
+    /** A card that stands proud of its board: dark body, lit rim, canvas face */
+    const raised = (w: number, h: number, color: string, cw: number, ch: number, depth = 0.18) => {
+      const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
+      const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      const group = new THREE.Group();
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.08, h + 0.08, depth * 0.5), neon(color, 2.4)); rim.position.z = -depth * 0.3;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, depth), new THREE.MeshStandardMaterial({ color: 0x0b1326, metalness: 0.7, roughness: 0.3, envMap, envMapIntensity: 0.6 }));
+      const faceMesh = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.06, h - 0.06), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) })); faceMesh.position.z = depth / 2 + 0.004;
+      group.add(rim, body, faceMesh);
+      return { group, canvas, tex };
+    };
+    const caption = (w: number, h: number, lines: string[], color: string, plate = false) => {
+      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = Math.round((512 * h) / w);
+      const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      labels.push(() => { drawCaption(canvas, lines, color, isAr, plate); tex.needsUpdate = true; });
+      return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: !plate, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9), depthWrite: plate }));
+    };
+    /** A trophy of the given shape, about 0.9 m tall, standing on y = 0 */
+    const trophy = (shape: JourneyAward['shape']) => {
+      const g = new THREE.Group();
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.1, 24), gold); foot.position.y = 0.05;
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 0.3, 16), gold); stem.position.y = 0.25;
+      g.add(foot, stem);
+      let top: THREE.Object3D;
+      if (shape === 'cup') {
+        const pts = [[0.05, 0], [0.12, 0.04], [0.22, 0.2], [0.27, 0.42], [0.28, 0.5], [0.25, 0.5], [0.2, 0.22], [0.02, 0.06]].map(([x, y]) => new THREE.Vector2(x, y));
+        top = new THREE.Mesh(new THREE.LatheGeometry(pts, 36), gold); top.position.y = 0.38;
+        for (const sx of [-1, 1]) { const handle = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.022, 8, 20, Math.PI), gold); handle.position.set(sx * 0.27, 0.72, 0); handle.rotation.z = -sx * Math.PI / 2; g.add(handle); }
+      } else if (shape === 'star') {
+        const sh = new THREE.Shape();
+        for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 + Math.PI / 2, r = i % 2 ? 0.13 : 0.3; if (i) sh.lineTo(Math.cos(a) * r, Math.sin(a) * r); else sh.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+        top = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.09, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02, bevelSegments: 2 }), gold); top.position.set(0, 0.68, -0.045);
+      } else if (shape === 'shield') {
+        const sh = new THREE.Shape();
+        sh.moveTo(-0.24, 0.3); sh.lineTo(0.24, 0.3); sh.lineTo(0.24, 0.02); sh.quadraticCurveTo(0.22, -0.2, 0, -0.3); sh.quadraticCurveTo(-0.22, -0.2, -0.24, 0.02); sh.closePath();
+        top = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.07, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02, bevelSegments: 2 }), gold); top.position.set(0, 0.7, -0.035);
+      } else if (shape === 'medal') {
+        top = new THREE.Group();
+        const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.06, 40), gold); disc.rotation.x = Math.PI / 2;
+        const inner = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.02, 8, 40), gold); inner.position.z = 0.035;
+        const ribbon = new THREE.MeshStandardMaterial({ color: 0x008e91, roughness: 0.6 });
+        for (const sx of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.02), ribbon); r.position.set(sx * 0.08, 0.36, -0.02); r.rotation.z = -sx * 0.25; (top as THREE.Group).add(r); }
+        (top as THREE.Group).add(disc, inner); top.position.y = 0.68;
+      } else if (shape === 'globe') {
+        top = new THREE.Group();
+        (top as THREE.Group).add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 28, 20), gold));
+        for (const rot of [[Math.PI / 2, 0], [0.5, 0.4], [1.1, -0.6]]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.012, 6, 48), gold); ring.rotation.set(rot[0], rot[1], 0); (top as THREE.Group).add(ring); }
+        top.position.y = 0.68;
+      } else {
+        top = new THREE.Mesh(new THREE.OctahedronGeometry(0.26, 0), new THREE.MeshStandardMaterial({ color: 0xbfefff, metalness: 0.2, roughness: 0.05, envMap, envMapIntensity: 1.6, transparent: true, opacity: 0.85, flatShading: true }));
+        top.scale.y = 1.5; top.position.y = 0.8;
+      }
+      g.add(top);
+      return g;
+    };
     const addPanel = (s: JourneyStage, pos: THREE.Vector3, face: THREE.Vector3) => {
-      const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 840;
+      const canvas = document.createElement('canvas'); canvas.width = 1400; canvas.height = 1000;
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
       const group = new THREE.Group(); group.position.copy(pos);
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 3.78), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92), side: THREE.DoubleSide }));
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_W, PANEL_H), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92), side: THREE.DoubleSide }));
       group.add(plane);
       // Neon frame and a floor beam under the panel
-      const frameMat = neon(s.color, 2);
-      for (const [w, h, x, y] of [[5.6, 0.06, 0, 1.92], [5.6, 0.06, 0, -1.92], [0.06, 3.9, 2.78, 0], [0.06, 3.9, -2.78, 0]] as const) {
+      const frameMat = neon(s.color, 2), hw = PANEL_W / 2, hh = PANEL_H / 2;
+      for (const [w, h, x, y] of [[PANEL_W + 0.2, 0.06, 0, hh + 0.07], [PANEL_W + 0.2, 0.06, 0, -hh - 0.07], [0.06, PANEL_H + 0.2, hw + 0.07, 0], [0.06, PANEL_H + 0.2, -hw - 0.07, 0]] as const) {
         const f = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), frameMat); f.position.set(x, y, -0.03); group.add(f);
       }
-      const beamG = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, pos.y - 1.9, 8), frameMat); beamG.position.y = -(pos.y - 1.9) / 2 - 1.9; group.add(beamG);
-      const base = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 6, 48), frameMat); base.rotation.x = Math.PI / 2; base.position.y = -pos.y + 0.03; group.add(base);
+      const beamG = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, pos.y - hh, 8), frameMat); beamG.position.set(0, -(pos.y - hh) / 2 - hh, -0.2); group.add(beamG);
+      const base = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 6, 48), frameMat); base.rotation.x = Math.PI / 2; base.position.set(0, -pos.y + 0.03, -0.2); group.add(base);
+
+      // The year's figures as two raised cards on the lower edge
+      if (s.visits && s.transactions) {
+        const note = s.statsNoteAr && isAr ? ` (${s.statsNoteAr})` : '';
+        const stats: [number, string][] = [[s.visits, (isAr ? 'زيارة للبوابة' : 'portal visits') + note], [s.transactions, isAr ? 'معاملة رقمية' : 'digital transactions']];
+        stats.forEach(([v, label], k) => {
+          const card = raised(2.85, 1.3, s.color, 760, 346);
+          card.group.position.set((isAr ? 1 : -1) * (k ? -1.52 : 1.52), -hh - 0.05, 0.3);
+          group.add(card.group);
+          labels.push(() => { drawFigure(card.canvas, fmt(v, isAr), label, s.color, isAr); card.tex.needsUpdate = true; });
+        });
+      }
+      // Logos of what was launched: metal medallions above the panel
+      const logos = s.logos || [];
+      logos.forEach((lg, k) => {
+        const m = new THREE.Group();
+        const rimMat = new THREE.MeshStandardMaterial({ color: s.color, metalness: 1, roughness: 0.25, envMap, envMapIntensity: 1.1 });
+        const coin = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.12, 48), rimMat); coin.rotation.x = Math.PI / 2;
+        const fc = document.createElement('canvas'); fc.width = fc.height = 256; drawMedallion(fc, lg.icon, s.color);
+        const ft = new THREE.CanvasTexture(fc); ft.colorSpace = THREE.SRGBColorSpace; ft.anisotropy = 4;
+        const faceMat = new THREE.MeshBasicMaterial({ map: ft, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) });
+        const front = new THREE.Mesh(new THREE.CircleGeometry(0.4, 48), faceMat); front.position.z = 0.062;
+        const backFace = new THREE.Mesh(new THREE.CircleGeometry(0.4, 48), faceMat); backFace.position.z = -0.062; backFace.rotation.y = Math.PI;
+        m.add(coin, front, backFace);
+        const x = ((logos.length - 1) / 2 - k) * 1.2 * (isAr ? 1 : -1);
+        m.position.set(x, hh + 0.95, 0.12);
+        const name = caption(1.18, 0.3, [isAr ? lg.ar : lg.en], s.color); name.position.set(x, hh + 0.3, 0.12);
+        group.add(m, name);
+        movers.push({ o: m, bob: 0.05, y0: m.position.y, phase: k * 0.9 });
+      });
+      // Awards: gold trophies on lit plinths in front of the panel
+      const awards = s.awards || [];
+      awards.forEach((aw, k) => {
+        const x = ((awards.length - 1) / 2 - k) * 1.12 * (isAr ? 1 : -1), floor = -pos.y;
+        const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 1.0, 28), new THREE.MeshStandardMaterial({ color: 0x141b2e, metalness: 0.6, roughness: 0.35, envMap, envMapIntensity: 0.5 }));
+        plinth.position.set(x, floor + 0.5, 1.5);
+        const band = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.018, 6, 40), neon(s.color, 2)); band.rotation.x = Math.PI / 2; band.position.set(x, floor + 1.0, 1.5);
+        const cup = trophy(aw.shape); cup.position.set(x, floor + 1.0, 1.5);
+        const plate = caption(1.02, 0.42, [aw.year, isAr ? aw.ar : aw.en], s.color, true); plate.position.set(x, floor + 0.5, 1.5 + 0.45); plate.rotation.x = -0.12;
+        const spot = new THREE.PointLight(0xffe2a8, 2.2, 3.2, 1.6); spot.position.set(x, floor + 2.6, 2.1);
+        group.add(plinth, band, cup, plate, spot);
+        movers.push({ o: cup, spin: 0.35 + k * 0.03, y0: cup.position.y, phase: k });
+      });
+
       const dir = face.clone().sub(pos); dir.y = 0; dir.normalize();
       group.rotation.y = Math.atan2(dir.x, dir.z);
       scene.add(group);
       panelTex.push({ canvas, tex, stage: s });
-      const cam = pos.clone().add(dir.clone().multiplyScalar(6.4)); cam.y = 2.3;
-      return { cam, target: pos.clone().setY(2.9) };
+      // Step back far enough to take in the medallions above and the cards or trophies below
+      const top = pos.y + hh + (logos.length ? 1.5 : 0.2), low = awards.length ? 0.2 : pos.y - hh - (s.visits ? 0.8 : 0.2);
+      const mid = (top + low) / 2, dist = Math.max(7.2, ((top - low) / 2) / Math.tan(THREE.MathUtils.degToRad(29)) + (awards.length ? 2.2 : 1.0));
+      const cam = pos.clone().add(dir.clone().multiplyScalar(dist)); cam.y = Math.max(1.9, mid - 0.4);
+      return { cam, target: pos.clone().setY(mid) };
     };
     years.forEach((s, i) => { const p = placeYear(i); stations.push(addPanel(s, p, new THREE.Vector3(0, 3, p.z + 6))); });
     extras.forEach((s, i) => { const p = placeExtra(i); stations.push(addPanel(s, p, new THREE.Vector3(0, 3, p.z + 9))); });
     // Live board in front of the portal
-    const boardCanvas = document.createElement('canvas'); boardCanvas.width = 1800; boardCanvas.height = 760;
+    const BW = 17.4, BH = 8.6, BY = 8.9, BZ = FZ + 5;
+    const boardCanvas = document.createElement('canvas'); boardCanvas.width = 1800; boardCanvas.height = Math.round((1800 * BH) / BW);
     const boardTex = new THREE.CanvasTexture(boardCanvas); boardTex.colorSpace = THREE.SRGBColorSpace; boardTex.anisotropy = 4;
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(15, 6.33), new THREE.MeshBasicMaterial({ map: boardTex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92) }));
-    board.position.set(0, 8.6, FZ + 5); scene.add(board);
-    for (const [w, h, x, y] of [[15.3, 0.08, 0, 3.2], [15.3, 0.08, 0, -3.2], [0.08, 6.5, 7.62, 0], [0.08, 6.5, -7.62, 0]] as const) {
-      const f = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.06), neon(AQUA, 3)); f.position.set(x, 8.6 + y, FZ + 4.95); scene.add(f);
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ map: boardTex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92) }));
+    board.position.set(0, BY, BZ); scene.add(board);
+    for (const [w, h, x, y] of [[BW + 0.3, 0.08, 0, BH / 2 + 0.05], [BW + 0.3, 0.08, 0, -BH / 2 - 0.05], [0.08, BH + 0.2, BW / 2 + 0.1, 0], [0.08, BH + 0.2, -BW / 2 - 0.1, 0]] as const) {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.06), neon(AQUA, 3)); f.position.set(x, BY + y, BZ - 0.05); scene.add(f);
     }
-    stations.push({ cam: new THREE.Vector3(0, 5.2, -5), target: new THREE.Vector3(0, 8, FZ + 5) });
+    // Six figures as cards standing proud of the board
+    const figureCards = Array.from({ length: 6 }, (_, i) => {
+      const card = raised(5.3, 2.75, AQUA, 1000, 520, 0.3);
+      const col = i % 3, row = Math.floor(i / 3);
+      card.group.position.set((isAr ? 1 : -1) * (1 - col) * 5.6, BY + 0.55 - row * 3.05, BZ + 0.3);
+      card.group.visible = false; scene.add(card.group);
+      return card;
+    });
+    const drawFigures = (progress: number) => {
+      const e = 1 - Math.pow(1 - progress, 3);
+      figureCards.forEach((card, i) => {
+        const f = figuresState?.[i];
+        card.group.visible = !!f;
+        if (!f) return;
+        (card.group.children[0] as THREE.Mesh).material = rimFor(f.color);
+        drawFigure(card.canvas, f.value === null ? '—' : fmt(Math.round(f.value * e), isAr), isAr ? f.labelAr : f.labelEn, f.color, isAr);
+        card.tex.needsUpdate = true;
+      });
+    };
+    const rims = new Map<string, THREE.MeshBasicMaterial>();
+    const rimFor = (c: string) => { if (!rims.has(c)) rims.set(c, neon(c, 2.4)); return rims.get(c)!; };
+    // The municipality logo, raised on a plaque over the board
+    const plaque = raised(5.2, 3.0, AQUA, 780, 450, 0.3);
+    plaque.group.position.set(0, BY + BH / 2 + 1.9, BZ + 0.1); scene.add(plaque.group);
+    { const g = plaque.canvas.getContext('2d')!; g.fillStyle = '#ffffff'; g.fillRect(0, 0, 780, 450); plaque.tex.needsUpdate = true; }
+    const logoImg = new Image();
+    logoImg.onload = () => {
+      const g = plaque.canvas.getContext('2d')!; const k = Math.min(680 / logoImg.width, 370 / logoImg.height), w = logoImg.width * k, h = logoImg.height * k;
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, 780, 450); g.drawImage(logoImg, (780 - w) / 2, (450 - h) / 2, w, h); plaque.tex.needsUpdate = true;
+    };
+    logoImg.src = '/brand/dhofar-municipality-logo.png';
+    stations.push({ cam: new THREE.Vector3(0, 6.2, -7), target: new THREE.Vector3(0, BY + 0.8, BZ) });
 
     // Text needs the web font loaded before drawing on canvases
     let figuresState: LiveFigure[] | null = null, asOfState: string | undefined, boardStart = 0;
     const redrawText = () => {
       drawSign(signCanvas, isAr); signTex.needsUpdate = true;
       for (const p of panelTex) { drawStage(p.canvas, p.stage, isAr); p.tex.needsUpdate = true; }
-      drawBoard(boardCanvas, figuresState, isAr, 1, asOfState); boardTex.needsUpdate = true;
+      for (const l of labels) l();
+      drawBoard(boardCanvas, figuresState, isAr, asOfState); boardTex.needsUpdate = true;
+      drawFigures(boardStart ? 0 : 1);
     };
     redrawText();
     document.fonts?.ready.then(redrawText).catch(() => {});
@@ -480,7 +764,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // ── Post-processing ──
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.7, 0.4, 0.92);
+    const bloom = new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.28, 0.22, 0.97);
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
 
@@ -496,7 +780,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     /** Narrow (portrait) screens step back so the whole panel fits */
     const fitted = (s: Station): Station => {
       const k = Math.max(1, 1.35 / camera.aspect);
-      return { cam: s.target.clone().add(s.cam.clone().sub(s.target).multiplyScalar(k)), target: s.target };
+      // The caption covers the lower part of a tall screen, so the subject is framed higher there
+      const target = s.target.clone(); target.y -= Math.min(2.2, (k - 1) * 2.4);
+      return { cam: target.clone().add(s.cam.clone().sub(s.target).multiplyScalar(k)), target };
     };
     const goTo = (i: number, instant = false) => {
       const s = fitted(stations[Math.max(0, Math.min(stations.length - 1, i))]);
@@ -532,7 +818,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 
     api.current = {
       goTo,
-      setFigures: (f, asOf) => { const first = !figuresState && f; figuresState = f; asOfState = asOf; boardStart = first ? performance.now() : 0; drawBoard(boardCanvas, f, isAr, first ? 0 : 1, asOf); boardTex.needsUpdate = true; },
+      setFigures: (f, asOf) => { const first = !figuresState && f; figuresState = f; asOfState = asOf; boardStart = first ? performance.now() : 0; drawBoard(boardCanvas, f, isAr, asOf); boardTex.needsUpdate = true; drawFigures(first ? 0 : 1); },
       enterVR,
     };
 
@@ -585,8 +871,12 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 
       if (boardStart) {
         const k = Math.min(1, (now - boardStart) / 2500);
-        drawBoard(boardCanvas, figuresState, isAr, k, asOfState); boardTex.needsUpdate = true;
+        drawFigures(k);
         if (k >= 1) boardStart = 0;
+      }
+      for (const m of movers) {
+        if (m.spin) m.o.rotation.y = t * m.spin * motion + m.phase;
+        if (m.bob) m.o.position.y = m.y0 + Math.sin(t * 1.1 + m.phase) * m.bob * motion;
       }
 
       if (renderer.xr.isPresenting) renderer.render(scene, camera);
