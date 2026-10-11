@@ -311,6 +311,11 @@ export function ServiceSpace({ services, flows, isAr, preview, onExit }: Props) 
             className="w-full h-11 ps-9 pe-3 rounded-xl bg-white/10 ring-1 ring-white/20 text-white placeholder:text-white/50 font-bold outline-none focus:ring-2 focus:ring-[#03CFCB]" />
         </div>
         <Link href="/catalog" className="h-11 px-4 rounded-xl bg-white/10 ring-1 ring-white/20 text-white font-black text-sm flex items-center gap-2 hover:bg-white/20"><LayoutGrid size={16} aria-hidden /><span className="hidden sm:inline">{t('عرض كقائمة', 'List view')}</span></Link>
+        {open && (
+          <button type="button" onClick={closeService} className="h-11 px-4 rounded-xl bg-[#7FDAD6] text-slate-900 font-black text-sm flex items-center gap-2 hover:bg-[#9be6e2]">
+            {isAr ? <ChevronRight size={18} aria-hidden /> : <ChevronLeft size={18} aria-hidden />}{t('رجوع إلى الخدمات', 'Back to services')}
+          </button>
+        )}
         <button type="button" onClick={onExit} className="h-11 px-4 rounded-xl bg-white text-slate-900 font-black text-sm flex items-center gap-2"><X size={16} aria-hidden />{t('خروج', 'Exit')}</button>
         {categories.length > 1 && !open && (
           <div role="group" aria-label={t('الفئات', 'Categories')} className="order-4 w-full flex gap-2 overflow-x-auto pb-1">
