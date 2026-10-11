@@ -26,6 +26,8 @@ export interface JourneyStage {
   awards?: JourneyAward[];
   /** A landmark or object standing in front of the panel */
   model?: JourneyModel;
+  /** Headline figures of the stage, shown as a column of raised cards beside the panel */
+  highlights?: { value: string; valueEn: string; ar: string; en: string }[];
 }
 
 export interface JourneyModel { kind: 'burj' | 'cloud' | 'qr' | 'palm' | 'vr' | 'robot' | 'city'; ar: string; en: string }
@@ -78,6 +80,13 @@ export const JOURNEY: JourneyStage[] = [
     summaryAr: 'أحدث التقنيات ومبادرات تعزز المشاركة المجتمعية.',
     summaryEn: 'Latest technology and initiatives for community participation.',
     itemsLabelAr: 'الإنجازات',
+    // From the municipality's "أبرز إنجازات المنصات الرقمية 2024" infographic
+    highlights: [
+      { value: '+4 مليون', valueEn: '4M+', ar: 'ظهور للبوابة الإلكترونية', en: 'portal impressions' },
+      { value: '+250 ألف', valueEn: '250K+', ar: 'معاملة عبر المنافذ الرقمية', en: 'transactions on digital channels' },
+      { value: '+100 ألف', valueEn: '100K+', ar: 'تحميل لتطبيق مواسم ظفار', en: 'Mawasim Dhofar downloads' },
+      { value: '5', valueEn: '5', ar: 'جوائز في عام واحد', en: 'awards in one year' },
+    ],
     logos: [{ icon: 'globe', ar: 'الميتافيرس', en: 'Metaverse' }, { icon: 'sparkles', ar: 'صلالة الذكية', en: 'Smart Salalah' }, { icon: 'camera', ar: 'كاميرات ذكية', en: 'AI cameras' }, { icon: 'users', ar: 'ضع بصمتك', en: 'Leave your mark' }, { icon: 'wallet', ar: 'منصة الاستثمار', en: 'Investment' }],
     items: ['خدمة العملاء بتقنية الميتافيرس (27 مايو)', 'منصة صلالة الذكية', 'كاميرات ذكاء اصطناعي في المناطق الحيوية', 'تطبيق «ضع بصمتك»', 'منصة بلدية ظفار للاستثمار'],
   },

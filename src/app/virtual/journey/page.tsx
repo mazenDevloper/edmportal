@@ -33,6 +33,7 @@ export default function DigitalJourneyPage() {
   const [showList, setShowList] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const scene = useRef<CourtyardHandle>(null);
+  const chips = useRef<HTMLOListElement>(null);
   const { data } = useTransactionStats();
 
   useEffect(() => {
@@ -45,6 +46,9 @@ export default function DigitalJourneyPage() {
 
   const next = useCallback(() => setIndex(i => (i + 1) % STATIONS), []);
   const prev = useCallback(() => setIndex(i => (i - 1 + STATIONS) % STATIONS), []);
+
+  // Keep the current station's chip in view
+  useEffect(() => { chips.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }, [index, ready]);
 
   // Guided tour
   useEffect(() => {
@@ -185,16 +189,24 @@ export default function DigitalJourneyPage() {
               <button type="button" onClick={next} className="size-12 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('المحطة التالية', 'Next station')}>
                 {isAr ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
               </button>
-              <ol className="ms-auto hidden sm:flex items-center gap-1.5" aria-label={t('المحطات', 'Stations')}>
-                {Array.from({ length: STATIONS }, (_, i) => (
-                  <li key={i}>
-                    <button type="button" onClick={() => setIndex(i)} aria-current={i === index ? 'step' : undefined}
-                      aria-label={i === 0 ? t('البداية', 'Start') : i === STATIONS - 1 ? t('أرقام المعاملات', 'Transaction numbers') : `${JOURNEY[i - 1].year} ${isAr ? JOURNEY[i - 1].titleAr : JOURNEY[i - 1].titleEn}`}
-                      className={cn('h-2.5 rounded-full transition-all', i === index ? 'w-8 bg-[#03CFCB] shadow-[0_0_10px_#03CFCB]' : 'w-2.5 bg-white/35 hover:bg-white/60')} />
-                  </li>
-                ))}
-              </ol>
             </div>
+            {/* Jump straight to a year */}
+            <ol ref={chips} className="flex items-stretch gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t('المحطات', 'Stations')}>
+              {Array.from({ length: STATIONS }, (_, i) => {
+                const s = i >= 1 && i <= JOURNEY.length ? JOURNEY[i - 1] : null;
+                const year = s ? s.year : i === 0 ? t('البداية', 'Start') : t('مباشر', 'Live');
+                const title = s ? (isAr ? s.titleAr : s.titleEn) : i === 0 ? t('ساحة المبنى', 'The courtyard') : t('أرقام المعاملات', 'Transaction numbers');
+                return (
+                  <li key={i} className="shrink-0">
+                    <button type="button" onClick={() => { setAuto(false); setIndex(i); }} aria-current={i === index ? 'step' : undefined} data-active={i === index}
+                      className={cn('h-full max-w-[9.5rem] rounded-xl px-3 py-1.5 text-start backdrop-blur transition-colors', i === index ? 'bg-white/25 ring-1 ring-white/60' : 'bg-white/10 hover:bg-white/20')}>
+                      <span className="block text-sm font-black leading-tight" style={{ color: s?.color ?? '#5ff5f2' }}>{year}</span>
+                      <span className="block truncate text-[11px] font-bold text-white/85">{title}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
             <p className="text-[11px] font-bold text-white/45">
               {t('المحتوى: ', 'Content: ')}<a href={JOURNEY_SOURCE} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70 inline-flex items-center gap-1">{t('إنفوجرافيك رحلة التحول الرقمي', 'Digital transformation infographic')}<ExternalLink size={10} /></a>
               {' · '}{t('الأرقام: البيانات المفتوحة لبلدية ظفار', 'Figures: Dhofar Municipality open data')}

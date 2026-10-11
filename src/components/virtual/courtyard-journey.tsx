@@ -570,6 +570,32 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     { const m4 = new THREE.Matrix4(); for (let i = 0; i < TILE_N; i++) for (const [k, sx] of [[0, -2.6], [1, 2.6]] as const) { m4.makeTranslation(sx, 0.02, tileZ(i)); pathTiles.setMatrixAt(i * 2 + k, m4); pathTiles.setColorAt(i * 2 + k, new THREE.Color(0, 0, 0)); } }
     scene.add(pathTiles);
 
+    // ── Stacked cubes at the entrance, as in the beneficiary-experience event ──
+    const cubeFace = (text: string[], bg: string) => {
+      const c = document.createElement('canvas'); c.width = c.height = 256;
+      const draw = () => {
+        const g = c.getContext('2d')!; g.fillStyle = bg; g.fillRect(0, 0, 256, 256);
+        g.textAlign = 'center'; g.direction = isAr ? 'rtl' : 'ltr'; g.fillStyle = '#ffffff';
+        text.forEach((l, i) => { const size = fitFont(g, l, 700, text.length > 1 ? 44 : 54, 216); g.fillText(l, 128, 128 + (i - (text.length - 1) / 2) * 58 + size * 0.34); });
+        tex.needsUpdate = true;
+      };
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      labelsEarly.push(draw);
+      return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35 });
+    };
+    const labelsEarly: (() => void)[] = [];
+    const CUBES: [string[], string][] = isAr
+      ? [[['عِش', 'التجربة'], '#2b3fa3'], [['تجاوب'], '#17968f'], [['تجربة', 'المستفيد'], '#3b2a7a'], [['بلدية ظفار'], '#17968f'], [['خدمات', 'رقمية'], '#2b3fa3'], [['رؤية 2040'], '#3b2a7a']]
+      : [[['Live the', 'experience'], '#2b3fa3'], [['Tajawob'], '#17968f'], [['Beneficiary', 'experience'], '#3b2a7a'], [['Dhofar', 'Municipality'], '#17968f'], [['Digital', 'services'], '#2b3fa3'], [['Vision 2040'], '#3b2a7a']];
+    [-1, 1].forEach((sx, si) => {
+      for (let k = 0; k < 3; k++) {
+        const [text, bg] = CUBES[si * 3 + k];
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.25, 1.25), cubeFace(text, bg));
+        cube.position.set(sx * 12.5 + (k === 1 ? sx * 0.15 : 0), 0.625 + k * 1.25, 25.5); cube.rotation.y = sx * (0.5 - k * 0.32);
+        scene.add(cube);
+      }
+    });
+
     // ── Title sign ──
     const signCanvas = document.createElement('canvas'); signCanvas.width = 2048; signCanvas.height = 330;
     const signTex = new THREE.CanvasTexture(signCanvas); signTex.colorSpace = THREE.SRGBColorSpace;
@@ -724,8 +750,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       } else if (kind === 'burj') {
         // Burj Al Nahdha, loaded from the supplied model and stood on the plinth
         new OBJLoader().load('/models/burj.obj', obj => {
-          const glassMat = new THREE.MeshStandardMaterial({ color: 0xe9edf1, metalness: 0.25, roughness: 0.35, envMap, envMapIntensity: 0.8 });
-          const warm = new THREE.MeshStandardMaterial({ color: 0xe9dcc3, roughness: 0.6, emissive: 0xffc27a, emissiveIntensity: 0.35 });
+          // Translucent green glass, with the lit parts a brighter green
+          const glassMat = new THREE.MeshStandardMaterial({ color: 0x2fcf8f, emissive: 0x0a5a3a, emissiveIntensity: 0.35, metalness: 0.15, roughness: 0.06, envMap, envMapIntensity: 1.5, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
+          const warm = new THREE.MeshStandardMaterial({ color: 0x7dffc4, emissive: 0x2fe6a0, emissiveIntensity: 0.7, roughness: 0.1, envMap, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false });
           const pick = (x: THREE.Material) => (/glass/i.test(x.name) ? glassMat : warm);
           obj.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) m.material = Array.isArray(m.material) ? m.material.map(pick) : pick(m.material); });
           const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), k = 3.3 / size.y;
@@ -835,6 +862,14 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         movers.push({ o: cup, spin: 0.35 + k * 0.03, y0: cup.position.y, phase: k });
       });
 
+      // Headline figures of the stage: a column of raised cards on the other side
+      const highlights = s.highlights || [];
+      highlights.forEach((hl, k) => {
+        const card = raised(2.5, 1.02, 640, 262);
+        card.group.position.set(hw + 1.5, 1.7 - k * 1.14, 0.45); card.group.rotation.y = -0.28;
+        group.add(card.group);
+        labels.push(() => { drawFigure(card.canvas, isAr ? hl.value : hl.valueEn, isAr ? hl.ar : hl.en, s.color, isAr); card.tex.needsUpdate = true; });
+      });
       // A landmark of the stage on a low plinth, in front of the card and to its side
       if (s.model) {
         const mx = -(hw + 1.05), floor = -pos.y, mz = 1.9;
@@ -854,8 +889,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const top = pos.y + hh + (logos.length ? 1.5 : 0.2), low = awards.length || s.model ? 0.2 : pos.y - hh - (s.visits ? 0.8 : 0.2);
       const mid = (top + low) / 2, dist = Math.max(7.2, ((top - low) / 2) / Math.tan(THREE.MathUtils.degToRad(29)) + (awards.length ? 2.2 : 1.0));
       // With a landmark beside the card the view shifts toward it and steps back a little
-      const side = new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar(s.model ? -0.75 : 0);
-      const cam = pos.clone().add(dir.clone().multiplyScalar(dist + (s.model ? 1.4 : 0))).add(side); cam.y = Math.max(1.9, mid - 0.4);
+      const side = new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar(s.model && !highlights.length ? -0.75 : highlights.length && !s.model ? 0.75 : 0);
+      const cam = pos.clone().add(dir.clone().multiplyScalar((dist + (s.model ? 1.4 : 0) + (highlights.length ? 1.6 : 0)) * 1.14)).add(side); cam.y = Math.max(1.9, mid - 0.4);
       return { cam, target: pos.clone().add(side).setY(mid) };
     };
     years.forEach((s, i) => { const p = placeYear(i); stations.push(addPanel(s, p, new THREE.Vector3(0, 3, p.z + 6))); });
@@ -894,7 +929,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       g.fillStyle = '#ffffff'; g.fillRect(0, 0, 780, 450); g.drawImage(logoImg, (780 - w) / 2, (450 - h) / 2, w, h); plaque.tex.needsUpdate = true;
     };
     logoImg.src = '/brand/dhofar-municipality-logo.png';
-    stations.push({ cam: new THREE.Vector3(0, 6.2, -7), target: new THREE.Vector3(0, BY + 0.8, BZ) });
+    const boardView: Station = { cam: new THREE.Vector3(0, 6.6, -3.5), target: new THREE.Vector3(0, BY + 0.6, BZ) };
+    stations.push(boardView);
+    // The journey opens on the board too, reached by a fly-in (see the intro below)
+    stations[0] = boardView;
 
     // Text needs the web font loaded before drawing on canvases
     let figuresState: LiveFigure[] | null = null, asOfState: string | undefined, boardStart = 0;
@@ -902,6 +940,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       drawSign(signCanvas, isAr); signTex.needsUpdate = true;
       for (const p of panelTex) { drawStage(p.canvas, p.stage, isAr); p.tex.needsUpdate = true; }
       for (const l of labels) l();
+      for (const l of labelsEarly) l();
       drawBoard(boardCanvas, figuresState, isAr, asOfState); boardTex.needsUpdate = true;
       drawFigures(boardStart ? 0 : 1);
     };
@@ -918,23 +957,31 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // ── Controls and camera moves ──
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.enablePan = false;
-    controls.minDistance = 2; controls.maxDistance = 40; controls.maxPolarAngle = Math.PI * 0.53;
+    controls.minDistance = 2; controls.maxDistance = 70; controls.maxPolarAngle = Math.PI * 0.53;
     controls.rotateSpeed = 0.5;
+    // Taking hold of the view ends the opening fly-in
+    renderer.domElement.addEventListener('pointerdown', () => { intro = null; });
     camera.position.copy(stations[0].cam).add(new THREE.Vector3(0, 8, 22));
     controls.target.copy(stations[0].target);
     let tween: { from: THREE.Vector3; to: THREE.Vector3; tFrom: THREE.Vector3; tTo: THREE.Vector3; start: number; dur: number } | null = null;
+    let intro: { cam: THREE.CatmullRomCurve3; target: THREE.CatmullRomCurve3; start: number; dur: number } | null = null;
     let current = 0;
     /** Narrow (portrait) screens step back so the whole panel fits */
     const fitted = (s: Station): Station => {
       const k = Math.max(1, 1.35 / camera.aspect);
       // The caption covers the lower part of a tall screen, so the subject is framed higher there
       const target = s.target.clone(); target.y -= Math.min(2.2, (k - 1) * 2.4);
-      return { cam: target.clone().add(s.cam.clone().sub(s.target).multiplyScalar(k)), target };
+      // Never step back so far that the panels across the path come between the camera and the subject
+      const off = s.cam.clone().sub(s.target), len = off.length();
+      return { cam: target.clone().add(off.setLength(len < 14 ? Math.min(len * k, Math.max(len, 12.5)) : len * k)), target };
     };
     const goTo = (i: number, instant = false) => {
+      // The opening fly-in already ends at the first station
+      if (intro && i === 0 && !instant) return;
       const s = fitted(stations[Math.max(0, Math.min(stations.length - 1, i))]);
       current = i;
       if (renderer.xr.isPresenting) { placeDolly(s); return; }
+      intro = null;
       if (instant || reducedMotion) { camera.position.copy(s.cam); controls.target.copy(s.target); tween = null; return; }
       tween = { from: camera.position.clone(), to: s.cam.clone(), tFrom: controls.target.clone(), tTo: s.target.clone(), start: performance.now(), dur: 2600 };
     };
@@ -975,6 +1022,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     renderer.setAnimationLoop(() => {
       const t = clock.getElapsedTime();
       const now = performance.now();
+      if (intro) {
+        // The clock starts with the first drawn frame, so loading time does not eat the fly-in
+        if (!Number.isFinite(intro.start)) intro.start = now + 500;
+        const k = Math.max(0, Math.min(1, (now - intro.start) / intro.dur)), e = ease(k);
+        intro.cam.getPoint(e, camera.position); intro.target.getPoint(e, controls.target);
+        if (k >= 1) intro = null;
+      }
       if (tween) {
         const k = Math.min(1, (now - tween.start) / tween.dur), e = ease(k);
         camera.position.lerpVectors(tween.from, tween.to, e);
@@ -1039,7 +1093,17 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const ro = new ResizeObserver(onResize); ro.observe(mount);
 
     // A rebuilt scene (language or motion setting changed) returns to the station the visitor was at
-    if (indexRef.current) goTo(indexRef.current, true); else goTo(0);
+    if (indexRef.current || reducedMotion) goTo(indexRef.current, true);
+    else {
+      // Opening shot from the front corner of the courtyard, through the middle, to the live board
+      const end = fitted(stations[0]);
+      intro = {
+        cam: new THREE.CatmullRomCurve3([new THREE.Vector3(17, 2.6, 30), new THREE.Vector3(9, 5.5, 34), new THREE.Vector3(0, 7.5, 30), new THREE.Vector3(0, 7, 14), end.cam.clone()], false, 'catmullrom', 0.4),
+        target: new THREE.CatmullRomCurve3([new THREE.Vector3(-8, 7, -22), new THREE.Vector3(-3, 8, FZ), new THREE.Vector3(0, 10, FZ), new THREE.Vector3(0, 9.5, FZ), end.target.clone()], false, 'catmullrom', 0.4),
+        start: Infinity, dur: 10000,
+      };
+      intro.cam.getPoint(0, camera.position); intro.target.getPoint(0, controls.target);
+    }
 
     return () => {
       ro.disconnect();
