@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { fetchBin } from '@/lib/jsonbin';
-import { Service } from '@/lib/types';
+import { Service, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { isPublicService } from '@/lib/service-visibility';
 import { useAdminSession } from '@/lib/admin-session';
@@ -20,6 +20,7 @@ export default function VirtualServicesPage() {
   const t = (ar: string, en: string) => (isAr ? ar : en);
   const [services, setServices] = useState<Service[] | null>(null);
   const [preview, setPreview] = useState(false);
+  const [flows, setFlows] = useState<ServiceFlow[]>([]);
 
   useEffect(() => {
     document.title = `${t('العرض الافتراضي', 'Virtual view')} | ${t('بلدية ظفار', 'Dhofar Municipality')}`;
@@ -30,6 +31,7 @@ export default function VirtualServicesPage() {
       const admin = useAdminSession.getState().expiresAt > Date.now();
       const showAll = admin && (!pub.length || new URLSearchParams(window.location.search).get('preview') === 'all');
       setPreview(showAll);
+      setFlows(db.serviceFlows || []);
       setServices(showAll ? all : pub);
     }).catch(() => setServices([]));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -47,5 +49,5 @@ export default function VirtualServicesPage() {
     </div>
   );
 
-  return <ServiceSpace services={services} isAr={isAr} preview={preview} onExit={exit} />;
+  return <ServiceSpace services={services} flows={flows} isAr={isAr} preview={preview} onExit={exit} />;
 }
