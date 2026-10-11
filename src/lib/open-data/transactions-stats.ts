@@ -26,6 +26,8 @@ export interface TransactionStats {
   activeLicences: number | null;
   byWilaya: ({ wilaya: string } & PerSource<number>)[];
   byMonth: ({ month: string } & PerSource<number>)[];
+  /** Per day, only when the period is three months or shorter (every day present, zeros included) */
+  byDay?: ({ day: string } & PerSource<number>)[];
   rentByUse: Count[];
   rentByStatus: Count[];
   digByProject: Count[];
@@ -69,6 +71,16 @@ export function summarise(snap: Snapshot, from: string, to: string, wilaya: stri
   }));
   const byMonth = [...mMap.entries()].map(([month, v]) => ({ month, ...v })).sort((a, b) => a.month.localeCompare(b.month));
 
+  // Short periods also get a daily series, with empty days kept so the time axis is honest
+  let byDay: TransactionStats['byDay'];
+  const days = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
+  if (days >= 1 && days <= 92) {
+    const dMap = new Map<string, PerSource<number>>();
+    for (let i = 0; i < days; i++) dMap.set(new Date(Date.parse(from) + i * 86_400_000).toISOString().slice(0, 10), zero());
+    SOURCES.forEach(k => (sel[k] as { d: string }[] | null)?.forEach(r => { const e = dMap.get(r.d.slice(0, 10)); if (e) e[k]++; }));
+    byDay = [...dMap.entries()].map(([day, v]) => ({ day, ...v }));
+  }
+
   // Month-over-month on the last *complete* month inside the period
   const thisMonth = new Date(Date.now() + 4 * 3600e3).toISOString().slice(0, 7);
   const full = byMonth.filter(m => m.month < thisMonth);
@@ -93,6 +105,7 @@ export function summarise(snap: Snapshot, from: string, to: string, wilaya: stri
     byWilaya: [...wMap.entries()].map(([w, v]) => ({ wilaya: w, ...v }))
       .sort((a, b) => SOURCES.reduce((s, k) => s + b[k], 0) - SOURCES.reduce((s, k) => s + a[k], 0)),
     byMonth,
+    byDay,
     rentByUse: tally((sel.rent || []).map(r => r.u)),
     rentByStatus: tally((sel.rent || []).map(r => r.s)),
     digByProject: tally((sel.dig || []).map(r => r.p)),
