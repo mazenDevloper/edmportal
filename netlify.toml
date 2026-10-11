@@ -1,0 +1,11 @@
+# Netlify build settings. Netlify detects Next.js and adds its Next runtime (server pages and the
+# /api routes run as functions), so no plugin needs to be listed here.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Trial phase stays on for this deployment (see src/lib/trial-mode.ts). Set to "off" to require sign-in.
+  NEXT_PUBLIC_TRIAL_MODE = "on"
