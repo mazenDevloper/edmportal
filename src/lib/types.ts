@@ -107,6 +107,9 @@ export interface ServiceApplication {
   citizenName: string;
   /** Mobile number the beneficiary signed in with through Thiqa */
   applicantPhone?: string;
+  /** The capacity the request was filed in (see citizen-account.ts); absent = the person themselves */
+  capacityId?: string;
+  capacityName?: string;
   status: 'pending' | 'in-review' | 'approved' | 'rejected';
   data: Record<string, any>;
   createdAt: string;

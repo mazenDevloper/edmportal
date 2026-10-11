@@ -8,6 +8,7 @@ import { fetchBin, updateBin } from '@/lib/jsonbin';
 import { useAdminSession } from '@/lib/admin-session';
 import { isPublicService, nextReference } from '@/lib/service-visibility';
 import { citizenLabel, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { useCapacity } from '@/components/citizen/capacity';
 import { Service, ServiceApplication, ServiceFlow } from '@/lib/types';
 import { useSettingsStore } from '@/lib/settings-store';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ export default function ServiceApplicationPage() {
   const isAr = language === 'ar';
   // Applying needs a Thiqa sign-in; the pop-up brings the beneficiary back here afterwards
   const citizenPhone = useCitizen();
+  const { current: capacity } = useCapacity();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { if (mounted && !citizenPhone) useCitizenSession.getState().openPrompt(`/services/${id}/apply`); }, [mounted, citizenPhone, id]);
@@ -142,6 +144,8 @@ export default function ServiceApplicationPage() {
             citizenName: user?.displayName || (citizenPhone ? (citizenPhone.startsWith('thiqa:') ? citizenLabel(citizenPhone) : `Thiqa ${citizenLabel(citizenPhone)}`) : 'PKI User'),
             // Who filed it (phone or Thiqa identity), so only they can track it
             applicantPhone: citizenPhone || undefined,
+            // The capacity it was filed in, so it shows under that capacity in the account
+            capacityId: capacity?.id, capacityName: capacity?.nameAr,
             status: 'pending', 
             data: formData, 
             createdAt: new Date().toISOString() 

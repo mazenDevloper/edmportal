@@ -26,6 +26,8 @@ interface CitizenSessionState {
   name: string | null;
   ssoId: string | null;
   method: 'thiqa' | 'otp' | null;
+  /** The capacity (الصفة) the person chose to act in: themselves, an establishment or an office */
+  capacityId: string | null;
   expiresAt: number;
   // One-time code in flight (kept only for the simulation)
   pendingPhone: string | null;
@@ -38,6 +40,7 @@ interface CitizenSessionState {
   requestCode: (phone: string) => string;
   verifyCode: (code: string) => boolean;
   signInThiqa: (name: string, ssoId: string) => void;
+  setCapacity: (id: string) => void;
   signOut: () => void;
   openPrompt: (afterSignIn?: string | null) => void;
   closePrompt: () => void;
@@ -54,6 +57,7 @@ export const useCitizenSession = create<CitizenSessionState>()(
       name: null,
       ssoId: null,
       method: null,
+      capacityId: null,
       expiresAt: 0,
       pendingPhone: null,
       pendingCode: null,
@@ -77,11 +81,12 @@ export const useCitizenSession = create<CitizenSessionState>()(
           set(failures >= MAX_FAILURES ? { failures: 0, pendingCode: null } : { failures });
           return false;
         }
-        set({ phone: s.pendingPhone, name: null, ssoId: null, method: 'otp', expiresAt: Date.now() + SESSION_MS, pendingCode: null, pendingPhone: null, failures: 0 });
+        set({ phone: s.pendingPhone, name: null, ssoId: null, method: 'otp', capacityId: null, expiresAt: Date.now() + SESSION_MS, pendingCode: null, pendingPhone: null, failures: 0 });
         return true;
       },
-      signInThiqa: (name, ssoId) => set({ name, ssoId, phone: null, method: 'thiqa', expiresAt: Date.now() + SESSION_MS }),
-      signOut: () => set({ phone: null, name: null, ssoId: null, method: null, expiresAt: 0 }),
+      signInThiqa: (name, ssoId) => set({ name, ssoId, phone: null, method: 'thiqa', capacityId: null, expiresAt: Date.now() + SESSION_MS }),
+      setCapacity: capacityId => set({ capacityId }),
+      signOut: () => set({ phone: null, name: null, ssoId: null, method: null, capacityId: null, expiresAt: 0 }),
       openPrompt: (afterSignIn = null) => {
         // Trial phase: no pop-up, sign in as a demo beneficiary and continue
         if (TRIAL_MODE) {
@@ -97,7 +102,7 @@ export const useCitizenSession = create<CitizenSessionState>()(
       name: 'dm-citizen-session',
       storage: createJSONStorage(() => sessionStorage),
       // The pop-up state is per page view, not part of the session
-      partialize: s => ({ phone: s.phone, name: s.name, ssoId: s.ssoId, method: s.method, expiresAt: s.expiresAt, pendingPhone: s.pendingPhone, pendingCode: s.pendingCode, codeExpiresAt: s.codeExpiresAt, failures: s.failures }),
+      partialize: s => ({ phone: s.phone, name: s.name, ssoId: s.ssoId, method: s.method, capacityId: s.capacityId, expiresAt: s.expiresAt, pendingPhone: s.pendingPhone, pendingCode: s.pendingCode, codeExpiresAt: s.codeExpiresAt, failures: s.failures }),
     }
   )
 );

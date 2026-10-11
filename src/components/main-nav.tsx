@@ -2,11 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronDown, ExternalLink, Fingerprint, LogOut, PlayCircle } from 'lucide-react';
+import { ChevronDown, ExternalLink, Fingerprint, PlayCircle, UserRound } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MAIN_MENU, MENU_HREFS, MENU_LABELS, MenuGroup, MenuLink } from '@/lib/main-menu';
 import { MenuItem } from '@/lib/types';
 import { citizenLabel, useCitizen, useCitizenSession } from '@/lib/citizen-session';
+import { useCapacity } from '@/components/citizen/capacity';
+import { capacityName } from '@/lib/citizen-account';
 import { cn } from '@/lib/utils';
 
 /** Built-in menu plus database items that aren't already covered */
@@ -138,14 +140,17 @@ export function MobileMenu({ groups, isAr, pathname }: { groups: MenuGroup[]; is
 /** Beneficiary sign-in through Thiqa (opens the pop-up), or the signed-in number with sign-out */
 export function CitizenSignIn({ isAr, className }: { isAr: boolean; className?: string }) {
   const phone = useCitizen();
+  const { current } = useCapacity();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => { setMounted(true); }, []);
   if (mounted && phone) {
+    // Signed in: the account link, showing the capacity the person is acting in
     return (
-      <button type="button" onClick={() => useCitizenSession.getState().signOut()} className={cn('h-10 px-4 rounded-full bg-emerald-50 text-emerald-800 font-black text-sm flex items-center gap-2 hover:bg-emerald-100', className)}>
-        <span dir="ltr">{citizenLabel(phone)}</span><LogOut size={15} className={cn(isAr && '-scale-x-100')} aria-hidden />
-        <span className="sr-only">{isAr ? 'تسجيل خروج' : 'Sign out'}</span>
-      </button>
+      <Link href="/account" className={cn('h-10 max-w-[16rem] px-4 rounded-full bg-emerald-50 text-emerald-800 font-black text-sm flex items-center gap-2 hover:bg-emerald-100', className)}>
+        <UserRound size={15} className="shrink-0" aria-hidden />
+        <span className="truncate">{current && current.kind !== 'person' ? capacityName(current, isAr) : citizenLabel(phone)}</span>
+        <span className="sr-only">{isAr ? ' — حسابي' : ' — my account'}</span>
+      </Link>
     );
   }
   return (
