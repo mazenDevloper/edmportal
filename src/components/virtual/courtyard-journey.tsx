@@ -39,11 +39,12 @@ interface Props {
 const W = 72, H = 26, D = 12, FZ = -30;           // façade width/height/depth, front plane z
 const PW = 24, PH = 18, PD = 4;                   // central portal opening and recess depth
 const FOUNTAIN = new THREE.Vector3(0, 0, -12);
-const AQUA = '#03CFCB', PURPLE = '#A855F7', PINK = '#EC4899', WARM = '#FFB86B';
+// Soft tints of the brand teal and purple; nothing in the scene is fully saturated
+const AQUA = '#6FD3CF', PURPLE = '#B3A4DC', PINK = '#8CCFD6', WARM = '#EBC98F';
 const FONT = '"Readex Pro", "Segoe UI", Tahoma, sans-serif';
 
 /** LED strip material. GLOW tones every strip down together: the light reads as a line, not a haze */
-const GLOW = 0.5;
+const GLOW = 0.42;
 const neon = (hex: string, k = 3) => new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(Math.max(1, k * GLOW)), toneMapped: false });
 
 /** Pointed (ogee-like) arch outline from bottom-left, over the apex, to bottom-right */
@@ -323,7 +324,7 @@ function drawCaption(c: HTMLCanvasElement, lines: string[], color: string, isAr:
 function drawStage(c: HTMLCanvasElement, s: JourneyStage, isAr: boolean) {
   const g = c.getContext('2d')!; const w = c.width, h = c.height;
   g.clearRect(0, 0, w, h);
-  const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, 'rgba(6,18,38,0.94)'); bg.addColorStop(1, 'rgba(18,8,40,0.94)');
+  const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, 'rgba(10,22,42,0.96)'); bg.addColorStop(1, 'rgba(8,16,32,0.96)');
   g.fillStyle = bg; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 36); g.fill();
   // A short accent bar instead of a frame
   g.fillStyle = s.color; g.beginPath(); g.roundRect(isAr ? w - 60 - 220 : 60, 40, 220, 8, 4); g.fill();
@@ -349,7 +350,7 @@ function drawStage(c: HTMLCanvasElement, s: JourneyStage, isAr: boolean) {
 function drawBoard(c: HTMLCanvasElement, figures: LiveFigure[] | null, isAr: boolean, asOf?: string) {
   const g = c.getContext('2d')!; const w = c.width, h = c.height;
   g.clearRect(0, 0, w, h);
-  const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, 'rgba(4,12,28,0.9)'); bg.addColorStop(1, 'rgba(20,6,38,0.9)');
+  const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, 'rgba(10,22,42,0.92)'); bg.addColorStop(1, 'rgba(8,16,32,0.92)');
   g.fillStyle = bg; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 40); g.fill();
   g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center';
   g.font = `700 84px ${FONT}`; emboss(g, isAr ? 'أرقام المعاملات الإلكترونية' : 'E-transactions in numbers', w / 2, 112, '#9ff3f1', 84);
@@ -363,7 +364,7 @@ function drawSign(c: HTMLCanvasElement, isAr: boolean) {
   g.textAlign = 'center'; g.direction = isAr ? 'rtl' : 'ltr';
   g.font = `700 150px ${FONT}`; g.shadowColor = AQUA; g.shadowBlur = 10; g.fillStyle = '#d9fffe';
   g.fillText(isAr ? 'رحلة التحول الرقمي' : 'Digital Transformation Journey', c.width / 2, 170);
-  g.font = `400 64px ${FONT}`; g.shadowColor = PURPLE; g.fillStyle = '#f0ddff';
+  g.font = `400 64px ${FONT}`; g.shadowColor = PURPLE; g.shadowBlur = 6; g.fillStyle = '#e8edf5';
   g.fillText(isAr ? 'بلدية ظفار · 2020 — 2040' : 'Dhofar Municipality · 2020 — 2040', c.width / 2, 280);
 }
 
@@ -395,14 +396,14 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     renderer.domElement.setAttribute('aria-hidden', 'true');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x070b1a, 0.0075);
+    scene.fog = new THREE.FogExp2(0x08101e, 0.0075);
     const camera = new THREE.PerspectiveCamera(58, mount.clientWidth / mount.clientHeight, 0.1, 900);
     const dolly = new THREE.Group(); dolly.add(camera); scene.add(dolly);
 
     // ── Sky and stars ──
     const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      uniforms: { top: { value: new THREE.Color('#01030b') }, mid: { value: new THREE.Color('#0b0e2c') }, hor: { value: new THREE.Color('#2a1350') } },
+      uniforms: { top: { value: new THREE.Color('#02060f') }, mid: { value: new THREE.Color('#0a1426') }, hor: { value: new THREE.Color('#16283f') } },
       vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 hor; varying vec3 vP; void main(){ float h = max(vP.y, 0.0); vec3 c = mix(hor, mid, smoothstep(0.0, 0.18, h)); c = mix(c, top, smoothstep(0.18, 0.7, h)); gl_FragColor = vec4(c, 1.0); }',
     }));
@@ -426,13 +427,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     scene.add(new THREE.HemisphereLight(0x3a4a7a, 0x120e18, 0.9));
     const moonLight = new THREE.DirectionalLight(0x9fb4ff, 0.5); moonLight.position.set(-60, 80, 40); scene.add(moonLight);
     for (const x of [-30, -18, 18, 30]) {
-      const s = new THREE.SpotLight(0xffc48a, 60, 45, 0.55, 0.6, 1.2);
+      const s = new THREE.SpotLight(0xffd9b0, 38, 45, 0.55, 0.6, 1.2);
       s.position.set(x, 0.3, FZ + 6); s.target.position.set(x, 18, FZ); scene.add(s, s.target);
     }
     const portalSpot = new THREE.SpotLight(0x9ff5ff, 70, 40, 0.6, 0.7, 1.2);
     portalSpot.position.set(0, 0.5, FZ + 8); portalSpot.target.position.set(0, 12, FZ - PD); scene.add(portalSpot, portalSpot.target);
-    const fountainLights = [AQUA, PURPLE, '#3B82F6'].map((c, i) => {
-      const l = new THREE.PointLight(c, 30, 26, 1.4); l.position.set(Math.cos(i * 2.1) * 4, 0.6, FOUNTAIN.z + Math.sin(i * 2.1) * 4); scene.add(l); return l;
+    const fountainLights = [AQUA, PURPLE, '#8fb4e6'].map((c, i) => {
+      const l = new THREE.PointLight(c, 16, 26, 1.4); l.position.set(Math.cos(i * 2.1) * 4, 0.6, FOUNTAIN.z + Math.sin(i * 2.1) * 4); scene.add(l); return l;
     });
 
     // ── Ground ──
@@ -445,7 +446,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const facadePiece = (x0: number, x1: number, y0: number, y1: number, depth = D) => {
       const map = fac.map.clone(), em = fac.emissive.clone();
       for (const t of [map, em]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
-      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.8, roughness: 0.9 });
+      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.9 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, depth), [stone, stone, stone, stone, front, stone]);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, FZ - depth / 2);
       scene.add(mesh);
@@ -808,16 +809,19 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       }
       return g;
     };
+    /** Per station: the full panel (detail) and its small year sign; k eases 0 → 1 as the station comes into focus */
+    const focusables: { detail: THREE.Group; sign: THREE.Group; k: number }[] = [];
     const addPanel = (s: JourneyStage, pos: THREE.Vector3, face: THREE.Vector3) => {
       const canvas = document.createElement('canvas'); canvas.width = 1400; canvas.height = 1000;
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
       const group = new THREE.Group(); group.position.copy(pos);
+      const detail = new THREE.Group(); group.add(detail);
       const plane = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_W, PANEL_H), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92), side: THREE.DoubleSide }));
-      group.add(plane);
-      // Neon frame and a floor beam under the panel
+      detail.add(plane);
+      // A slim post under the panel
       const frameMat = neon(s.color, 2), hw = PANEL_W / 2, hh = PANEL_H / 2;
-      const beamG = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, pos.y - hh, 8), frameMat); beamG.position.set(0, -(pos.y - hh) / 2 - hh, -0.2); group.add(beamG);
-      const base = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 6, 48), frameMat); base.rotation.x = Math.PI / 2; base.position.set(0, -pos.y + 0.03, -0.2); group.add(base);
+      const beamG = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, pos.y - hh, 8), frameMat); beamG.position.set(0, -(pos.y - hh) / 2 - hh, -0.2); detail.add(beamG);
+      const base = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 6, 48), frameMat); base.rotation.x = Math.PI / 2; base.position.set(0, -pos.y + 0.03, -0.2); detail.add(base);
 
       // The year's figures as two raised cards on the lower edge
       if (s.visits && s.transactions) {
@@ -826,7 +830,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         stats.forEach(([v, label], k) => {
           const card = raised(2.85, 1.3, 760, 346);
           card.group.position.set((isAr ? 1 : -1) * (k ? -1.52 : 1.52), -hh - 0.05, 0.3);
-          group.add(card.group);
+          detail.add(card.group);
           labels.push(() => { drawFigure(card.canvas, fmt(v, isAr), label, s.color, isAr); card.tex.needsUpdate = true; });
         });
       }
@@ -845,7 +849,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const x = ((logos.length - 1) / 2 - k) * 1.2 * (isAr ? 1 : -1);
         m.position.set(x, hh + 0.95, 0.12);
         const name = caption(1.18, 0.3, [isAr ? lg.ar : lg.en], s.color); name.position.set(x, hh + 0.3, 0.12);
-        group.add(m, name);
+        detail.add(m, name);
         movers.push({ o: m, bob: 0.05, y0: m.position.y, phase: k * 0.9 });
       });
       // Awards: gold trophies on lit plinths in front of the panel
@@ -867,7 +871,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       highlights.forEach((hl, k) => {
         const card = raised(2.5, 1.02, 640, 262);
         card.group.position.set(hw + 1.5, 1.7 - k * 1.14, 0.45); card.group.rotation.y = -0.28;
-        group.add(card.group);
+        detail.add(card.group);
         labels.push(() => { drawFigure(card.canvas, isAr ? hl.value : hl.valueEn, isAr ? hl.ar : hl.en, s.color, isAr); card.tex.needsUpdate = true; });
       });
       // A landmark of the stage on a low plinth, in front of the card and to its side
@@ -880,6 +884,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const lamp = new THREE.SpotLight(0xfff1dc, 26, 9, 0.6, 0.6, 1.4); lamp.position.set(mx + 0.6, floor + 5, mz + 2.2); lamp.target.position.set(mx, floor + 1.4, mz);
         group.add(plinth, model, tag, lamp, lamp.target);
       }
+
+      // The year on a small sign, shown while the visitor is elsewhere
+      const sign = new THREE.Group();
+      const signFace = caption(1.7, 0.8, [s.year], s.color); signFace.position.y = 2.5 - pos.y;
+      const signPost = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.1, 8), frameMat); signPost.position.y = 1.05 - pos.y;
+      sign.add(signFace, signPost); group.add(sign);
+      focusables.push({ detail, sign, k: 0 });
 
       const dir = face.clone().sub(pos); dir.y = 0; dir.normalize();
       group.rotation.y = Math.atan2(dir.x, dir.z);
@@ -1058,7 +1069,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         }
       }
       jetGeo.attributes.position.needsUpdate = true; jetGeo.attributes.color.needsUpdate = true;
-      fountainLights.forEach((l, i) => { l.intensity = 22 + 10 * Math.sin(t * 1.3 + i * 2); });
+      fountainLights.forEach((l, i) => { l.intensity = 12 + 5 * Math.sin(t * 1.3 + i * 2); });
 
       // Flowing path lights toward the current station
       const col = new THREE.Color();
@@ -1075,6 +1086,12 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         drawFigures(k);
         if (k >= 1) boardStart = 0;
       }
+      focusables.forEach((f, i) => {
+        const want = i === current - 1 ? 1 : 0;
+        f.k = reducedMotion ? want : f.k + (want - f.k) * 0.09;
+        f.detail.visible = f.k > 0.02; f.detail.scale.setScalar(0.55 + 0.45 * f.k);
+        f.sign.visible = f.k < 0.9; f.sign.scale.setScalar(1 - f.k * 0.6);
+      });
       for (const m of movers) {
         if (m.spin) m.o.rotation.y = t * m.spin * motion + m.phase;
         if (m.bob) m.o.position.y = m.y0 + Math.sin(t * 1.1 + m.phase) * m.bob * motion;
