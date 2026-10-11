@@ -110,7 +110,7 @@ export function PortalHeader({ menuItems, variant = 'full', showTicker, showTopB
       {/* Dynamic News Ticker - Teal Theme (pauses on hover/focus; stops with reduced motion) */}
       {tickerOn && (
       <div className="dm-gradient-primary text-white py-3.5 overflow-hidden border-b border-white/10 shadow-lg relative group/ticker" role="region" aria-label={isAr ? 'آخر الأخبار' : 'Latest news'} tabIndex={0}>
-        <div className="absolute inset-0 dm-pattern-wave-pro opacity-10 pointer-events-none" />
+        <span aria-hidden className="dm-ticker-waves" />
         <div className="flex items-center gap-6 px-6 animate-marquee group-hover/ticker:[animation-play-state:paused] group-focus/ticker:[animation-play-state:paused] whitespace-nowrap relative z-10">
            <div className="flex items-center gap-3 font-black text-[11px] uppercase tracking-[0.2em] bg-white text-primary px-4 py-1.5 rounded-full shrink-0 shadow-xl">
              <Megaphone size={14} />

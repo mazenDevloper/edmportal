@@ -179,7 +179,15 @@ html[data-a11y-align="start"] body :where(p, li, h1, h2, h3, h4, h5, h6, blockqu
   mask: url(/brand/wave.svg) repeat left top / 220px auto;
   animation: dm-drift 18s linear infinite;
 }
-@media (prefers-reduced-motion: reduce) { .dm-foot-waves { animation: none; } }
+/* The same wave lines behind the news ticker: half-transparent and slower */
+.dm-ticker-waves {
+  position: absolute; inset: 0; display: block; pointer-events: none;
+  background: #ffffff; opacity: .5;
+  -webkit-mask: url(/brand/wave.svg) repeat left top / 220px auto;
+  mask: url(/brand/wave.svg) repeat left top / 220px auto;
+  animation: dm-drift 45s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .dm-foot-waves, .dm-ticker-waves { animation: none; } }
 
 /* Stop animations */
 html[data-a11y-motion="reduce"] *,
