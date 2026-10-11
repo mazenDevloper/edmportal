@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { TRIAL_MODE, demoCitizen } from '@/lib/trial-mode';
 
 /*
  * Beneficiary (citizen) sign-in through Thiqa with a mobile number and a one-time code.
@@ -81,7 +82,15 @@ export const useCitizenSession = create<CitizenSessionState>()(
       },
       signInThiqa: (name, ssoId) => set({ name, ssoId, phone: null, method: 'thiqa', expiresAt: Date.now() + SESSION_MS }),
       signOut: () => set({ phone: null, name: null, ssoId: null, method: null, expiresAt: 0 }),
-      openPrompt: (afterSignIn = null) => set({ promptOpen: true, afterSignIn }),
+      openPrompt: (afterSignIn = null) => {
+        // Trial phase: no pop-up, sign in as a demo beneficiary and continue
+        if (TRIAL_MODE) {
+          if (!citizenSignedIn()) { const d = demoCitizen(); get().signInThiqa(d.name, d.ssoId); }
+          if (afterSignIn && typeof window !== 'undefined' && window.location.pathname + window.location.search !== afterSignIn) window.location.assign(afterSignIn);
+          return;
+        }
+        set({ promptOpen: true, afterSignIn });
+      },
       closePrompt: () => set({ promptOpen: false, afterSignIn: null }),
     }),
     {
@@ -125,6 +134,7 @@ export function parseThiqaReturn(search: string): { ssoId: string; name: string 
 
 /** Runs the action now if signed in, otherwise opens the Thiqa pop-up and goes to `path` after sign-in */
 export function requireCitizen(path: string, go: (path: string) => void) {
+  if (!citizenSignedIn() && TRIAL_MODE) { const d = demoCitizen(); useCitizenSession.getState().signInThiqa(d.name, d.ssoId); }
   if (citizenSignedIn()) go(path);
   else useCitizenSession.getState().openPrompt(path);
 }

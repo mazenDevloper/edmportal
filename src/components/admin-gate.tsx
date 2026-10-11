@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useAdminSession } from '@/lib/admin-session';
 import { AdminLoginForm } from '@/components/admin-login-form';
 import { DEV_LOGIN } from '@/lib/dev-login';
+import { TRIAL_MODE } from '@/lib/trial-mode';
 
 /**
  * Wraps admin-only routes.
@@ -27,8 +28,8 @@ export function AdminGate({ children, mode = 'hidden', panelAr, panelEn }: {
   useEffect(() => { setMounted(true); }, []);
   // Clear an expired session so the header stops showing admin links
   useEffect(() => { if (mounted && expiresAt && expiresAt <= Date.now()) signOut(); }, [mounted, expiresAt, signOut]);
-  // Development auto-login (see dev-login.ts)
-  useEffect(() => { if (DEV_LOGIN && mounted && expiresAt <= Date.now()) signIn('credentials'); }, [mounted, expiresAt, signIn]);
+  // Development auto-login (see dev-login.ts), and the trial phase where the panels are open (see trial-mode.ts)
+  useEffect(() => { if ((DEV_LOGIN || TRIAL_MODE) && mounted && expiresAt <= Date.now()) signIn('credentials'); }, [mounted, expiresAt, signIn]);
 
   if (!mounted) {
     return <div className="h-screen flex items-center justify-center" role="status" aria-label="Loading"><Loader2 className="animate-spin text-slate-400" /></div>;

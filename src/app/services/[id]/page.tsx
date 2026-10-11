@@ -20,6 +20,7 @@ import { isPublicService, servicePrefixes } from '@/lib/service-visibility';
 import { buildServiceGuide } from '@/lib/service-guide';
 import { LINKED_INFO } from '@/lib/linked-data';
 import { citizenLabel, requireCitizen, useCitizen } from '@/lib/citizen-session';
+import { TRIAL_MODE } from '@/lib/trial-mode';
 import { useAssistant } from '@/components/citizen/assistant-store';
 import { PortalHeader } from '@/components/portal-header';
 import { PortalFooter } from '@/components/portal-footer';
@@ -126,7 +127,7 @@ export default function ServiceGuidePage() {
                 <div className="flex items-center gap-2 print:hidden">
                   <button type="button" onClick={start} className="flex-1 lg:flex-none justify-center inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-[#03CFCB] text-slate-900 font-black shadow-xl hover:bg-[#03CFCB]/90 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-white">
                     {guide.isExternal ? <ExternalLink size={18} aria-hidden /> : <Fingerprint size={18} aria-hidden />}
-                    {guide.isExternal ? t('الانتقال إلى الخدمة', 'Go to the service') : citizen ? t('ابدأ الخدمة', 'Start the service') : t('ابدأ الخدمة (عبر ثقة)', 'Start (Thiqa sign-in)')}
+                    {guide.isExternal ? t('الانتقال إلى الخدمة', 'Go to the service') : citizen ? t('ابدأ الخدمة', 'Start the service') : TRIAL_MODE ? t('ابدأ الخدمة (دخول تجريبي)', 'Start (demo sign-in)') : t('ابدأ الخدمة (عبر ثقة)', 'Start (Thiqa sign-in)')}
                   </button>
                   <button type="button" onClick={() => ask(t(`ما المطلوب لخدمة ${guide.title}؟`, `What do I need for ${guide.title}?`))} className="inline-flex items-center gap-2 h-11 px-4 rounded-xl ring-2 ring-white/40 font-black text-sm hover:bg-white/10">
                     <Bot size={17} aria-hidden /><span className="hidden sm:inline">{t('اسأل المساعد', 'Ask the assistant')}</span><span className="sr-only sm:hidden">{t('اسأل المساعد', 'Ask the assistant')}</span>
