@@ -457,7 +457,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     /** Moves the cloth of the flag */
     let flagWave: ((t: number) => void) | null = null;
     /** Laser drawings: they breathe slowly, and the wave bands drift sideways */
-    const lasers: { m: THREE.Material; base: number; ph: number; scroll?: THREE.Texture }[] = [];
+    const lasers: { m: THREE.Material; base: number; ph: number; scroll?: THREE.Texture; rate?: number; steady?: boolean }[] = [];
     /** Air traffic circling over the city */
     const fliers: { o: THREE.Object3D; r: number; h: number; sp: number; ph: number }[] = [];
     /** Things that turn or bob in the animation loop */
@@ -569,7 +569,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const len = z1 - z0, map = facWing.map.clone(), em = facWing.emissive.clone(), gl = facWing.gloss.clone();
       for (const t of [map, em, gl]) { t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, 1); t.needsUpdate = true; }
       const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.3 });
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H, len), sx > 0 ? [stone, inner, stone, stone, stone, stone] : [inner, stone, stone, stone, stone, stone]);
+      const outer = inner.clone(); outer.color.set(0x7c86a3); outer.roughness = 0.6; outer.envMapIntensity = 0.55;
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H, len), sx > 0 ? [outer, inner, stone, stone, stone, stone] : [inner, outer, stone, stone, stone, stone]);
       mesh.position.set(sx * (W / 2 + 5), H / 2, (z0 + z1) / 2); scene.add(mesh);
       strip(0.12, 0.12, len, sx * (W / 2 - 0.05), H + 0.05, (z0 + z1) / 2, AQUA, 2.2);
       for (let z = z0 + 3.8; z < z1 - 2; z += 3.6) {
@@ -589,20 +590,38 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       cone.addColorStop(0, 'rgba(255,196,128,0.95)'); cone.addColorStop(0.35, 'rgba(255,170,100,0.32)'); cone.addColorStop(1, 'rgba(255,150,80,0)');
       wx.translate(128, 256); wx.scale(0.42, 1); wx.translate(-128, -256); wx.fillStyle = cone; wx.fillRect(-300, 0, 900, 256);
       const washTex = new THREE.CanvasTexture(wc); washTex.colorSpace = THREE.SRGBColorSpace;
-      const wash = (len: number, x: number, z: number, ry: number) => {
-        const t = washTex.clone(); t.wrapS = THREE.RepeatWrapping; t.repeat.set(Math.max(1, Math.round(len / 7.2)), 1); t.needsUpdate = true;
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(len, 10), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.68, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-        m.position.set(x, 5, z); m.rotation.y = ry; scene.add(m);
+      const wash = (len: number, x: number, z: number, ry: number, n = Math.max(1, Math.round(len / 7.2)), h = 10) => {
+        const t = washTex.clone(); t.wrapS = THREE.RepeatWrapping; t.repeat.set(n, 1); t.needsUpdate = true;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(len, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.68, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+        m.position.set(x, h / 2, z); m.rotation.y = ry; scene.add(m);
       };
+      // A light glass skin with slim metal mullions over the outside walls
+      const skin = pane.clone(); skin.color.set(0x9fd8e6); skin.opacity = 0.13; skin.envMapIntensity = 2.6;
+      const curtain = (len: number, x: number, z: number, ry: number) => {
+        const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g);
+        const sheet = new THREE.Mesh(new THREE.PlaneGeometry(len, H - 0.4), skin); sheet.position.y = H / 2; g.add(sheet);
+        for (let u = -len / 2; u <= len / 2 + 0.01; u += len / Math.round(len / 6)) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, H, 0.14), cladding); m.position.set(u, H / 2, 0); g.add(m); }
+        for (const y of [0.1, 7.2, 13.4, 19.6, H - 0.1]) { const m = new THREE.Mesh(new THREE.BoxGeometry(len, 0.1, 0.14), cladding); m.position.y = y; g.add(m); }
+      };
+      const LZ0 = FZ + 24, SIDE = W / 2 + 10;
+      for (const sx of [-1, 1]) curtain((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.28, 0);
+      curtain(EZ + D - FZ, SIDE + 0.28, (EZ + D + FZ) / 2, Math.PI / 2);
+      curtain(EZ + D - LZ0, -(SIDE + 0.28), (EZ + D + LZ0) / 2, -Math.PI / 2);
       for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, FZ + 0.08, 0); wash((W - PW) / 2, sx * (W + PW) / 4, EZ - 0.08, Math.PI); }
       wash(EZ - FZ, W / 2 - 0.08, (EZ + FZ) / 2, -Math.PI / 2);
       wash(EZ - FZ - 24, -(W / 2 - 0.08), (EZ + FZ + 24) / 2, Math.PI / 2);
       // Outside: the entrance front and the two long sides
       for (const sx of [-1, 1]) wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.08, 0);
-      wash(EZ + D - FZ, W / 2 + 10.08, (EZ + D + FZ) / 2, Math.PI / 2);
-      wash(EZ + D - FZ - 24, -(W / 2 + 10.08), (EZ + D + FZ + 24) / 2, -Math.PI / 2);
+      wash(EZ + D - FZ, SIDE + 0.08, (EZ + D + FZ) / 2, Math.PI / 2, 2, 20);
+      wash(EZ + D - LZ0, -(SIDE + 0.08), (EZ + D + LZ0) / 2, -Math.PI / 2, 2, 20);
+      for (const sx of [-1, 1]) for (const z of sx > 0 ? [(EZ + D + FZ) / 2 - (EZ + D - FZ) / 4, (EZ + D + FZ) / 2 + (EZ + D - FZ) / 4] : [(EZ + D + LZ0) / 2 - (EZ + D - LZ0) / 4, (EZ + D + LZ0) / 2 + (EZ + D - LZ0) / 4]) {
+        const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 1.4), cladding); lamp.position.set(sx * (SIDE + 1.6), 0.18, z);
+        const lens = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.1), new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffd9a8).multiplyScalar(1.6), toneMapped: false })); lens.rotation.x = -Math.PI / 2; lens.position.set(sx * (SIDE + 1.6), 0.37, z);
+        scene.add(lamp, lens);
+      }
     }
 
+    const dark0s = new THREE.MeshStandardMaterial({ color: 0x0b0d12, metalness: 0.6, roughness: 0.3 });
     // A very faint laser show high on the walls in the municipality's identity:
     // moving waves, Burj Al Nahdha, the gate and the pattern
     {
@@ -651,6 +670,49 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         lasers.push({ m: line, base: 0.28, ph: 2 });
       });
       { const w3 = waveTex(); w3.repeat.set(6, 1); show(w3, W - 2, 3.2, 0, H - 3, EZ + D + 0.5, 0, AQUA, 0.2, 2, true); }
+      {
+        const SX = -(W / 2 + 10.5), out = -Math.PI / 2;
+        // LED screen high on the side wall: the title, and a ticker running under it
+        const sc = document.createElement('canvas'); sc.width = 1280; sc.height = 256;
+        const st = new THREE.CanvasTexture(sc); st.colorSpace = THREE.SRGBColorSpace; st.anisotropy = 4;
+        const tc = document.createElement('canvas'); tc.width = 2048; tc.height = 64;
+        const tt = new THREE.CanvasTexture(tc); tt.colorSpace = THREE.SRGBColorSpace; tt.wrapS = THREE.RepeatWrapping; tt.repeat.set(0.5, 1);
+        const dots = (x: CanvasRenderingContext2D, w: number, h: number) => { x.fillStyle = 'rgba(0,0,0,0.42)'; for (let i = 0; i < w; i += 4) x.fillRect(i, 0, 1, h); for (let j = 0; j < h; j += 4) x.fillRect(0, j, w, 1); };
+        const paint = () => {
+          const x = sc.getContext('2d')!; const bg = x.createLinearGradient(0, 0, 1280, 0); bg.addColorStop(0, '#062b33'); bg.addColorStop(0.5, '#0c1c3c'); bg.addColorStop(1, '#2a1650'); x.fillStyle = bg; x.fillRect(0, 0, 1280, 256);
+          x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = isAr ? 'rtl' : 'ltr';
+          x.fillStyle = '#7ff5f2'; x.font = `700 104px ${FONT}`; x.fillText(isAr ? 'بلدية ظفار' : 'Dhofar Municipality', 640, 96);
+          x.fillStyle = '#e9e2ff'; x.font = `500 50px ${FONT}`; x.fillText(isAr ? 'رحلة التحول الرقمي 2020 — 2040' : 'Digital transformation journey 2020 — 2040', 640, 198);
+          dots(x, 1280, 256); st.needsUpdate = true;
+          const y = tc.getContext('2d')!; y.fillStyle = '#04121c'; y.fillRect(0, 0, 2048, 64); y.textBaseline = 'middle'; y.direction = isAr ? 'rtl' : 'ltr'; y.textAlign = 'center'; y.font = `600 34px ${FONT}`;
+          const msg = isAr ? ['خدمات بلدية رقمية', 'بيانات مفتوحة', 'مدينة ذكية', 'رؤية 2040'] : ['Digital municipal services', 'Open data', 'Smart city', 'Vision 2040'];
+          msg.forEach((m, i) => { y.fillStyle = i % 2 ? '#ffd9a0' : '#7ff5f2'; y.fillText(m, 256 + i * 512, 34); });
+          dots(y, 2048, 64); tt.needsUpdate = true;
+        };
+        paint(); document.fonts?.ready.then(paint);
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(0.4, 7.6, 28.8), dark0s); frame.position.set(SX + 0.1, 19.4, 30); scene.add(frame);
+        const screen = new THREE.Mesh(new THREE.PlaneGeometry(28, 5.6), new THREE.MeshBasicMaterial({ map: st, toneMapped: false, color: new THREE.Color(0.8, 0.8, 0.8) })); screen.position.set(SX - 0.12, 20, 30); screen.rotation.y = out; scene.add(screen);
+        const tickerMat = new THREE.MeshBasicMaterial({ map: tt, toneMapped: false, color: new THREE.Color(0.8, 0.8, 0.8) });
+        const ticker = new THREE.Mesh(new THREE.PlaneGeometry(28, 1.1), tickerMat); ticker.position.set(SX - 0.12, 16.5, 30); ticker.rotation.y = out; scene.add(ticker);
+        lasers.push({ m: tickerMat, base: 1, ph: 0, scroll: tt, rate: isAr ? -0.05 : 0.05, steady: true });
+        // The logo drawn on the wall by lasers from two projectors on the lawn
+        const lc = document.createElement('canvas'); lc.width = 654; lc.height = 396;
+        const lt = new THREE.CanvasTexture(lc); lt.colorSpace = THREE.SRGBColorSpace; lt.anisotropy = 4;
+        const li = new Image();
+        li.onload = () => { const x = lc.getContext('2d')!; x.drawImage(li, 0, 0, 654, 396); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#c9fffb'; x.fillRect(0, 0, 654, 396); lt.needsUpdate = true; };
+        li.src = '/brand/dhofar-municipality-logo.png';
+        const LW = 15, LH = LW * 396 / 654, LY = 8.4, LZ = 6;
+        for (let k = 0; k < 4; k++) show(lt, LW, LH, SX - 0.15 - k * 0.07, LY, LZ, out, AQUA, k === 3 ? 0.85 : 0.2, k * 0.2);
+        const ray = new THREE.MeshBasicMaterial({ color: new THREE.Color(AQUA).multiplyScalar(1.8), transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+        for (const pz of [LZ - 9, LZ + 9]) {
+          const a = new THREE.Vector3(SX - 13, 0.6, pz), box = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.7), dark0s); box.position.set(a.x, 0.3, a.z); scene.add(box);
+          for (const [dy, dz] of [[-LH / 2, -LW / 2], [-LH / 2, LW / 2], [LH / 2, -LW / 2], [LH / 2, LW / 2]]) {
+            const b = new THREE.Vector3(SX - 0.2, LY + dy, LZ + dz), m = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, a.distanceTo(b), 5), ray);
+            m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); scene.add(m);
+          }
+        }
+        lasers.push({ m: ray, base: 0.4, ph: 1 });
+      }
       // Sweeping beams: from the roofline into the sky, and thinner ones down into the courtyard
       const sweep = (x: number, y: number, z: number, len: number, hex: string, op: number, tilt: number, lean: number, amp: number, sp: number) => {
         const geo = new THREE.CylinderGeometry(0.05, 0.05, len, 6, 1, true); geo.translate(0, len / 2, 0);
@@ -667,7 +729,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       }
       // Burj Al Nahdha on its roundabout behind the building, where the map puts it; tall enough to show over the roofline
       {
-        const BX = 24, BZ0 = FZ - 64;
+        const BX = 24, BZ0 = FZ - 56;
         const rt = lattice(); rt.repeat.set(4, 4);
         const garden = new THREE.Mesh(new THREE.CircleGeometry(20, 64), new THREE.MeshBasicMaterial({ map: rt, color: AQUA, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false }));
         garden.rotation.x = -Math.PI / 2; garden.position.set(BX, 0.05, BZ0); scene.add(garden);
@@ -675,12 +737,12 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         for (const r of [21, 28]) { const kerb = new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 6, 96), neon(r === 21 ? AQUA : WARM, 2.4)); kerb.rotation.x = Math.PI / 2; kerb.position.set(BX, 0.1, BZ0); scene.add(kerb); }
         new OBJLoader().load('/models/burj.obj', obj => {
           // Floodlit stone: a warm glow of its own so it reads from the courtyard at night
-          const lit0 = new THREE.MeshStandardMaterial({ color: 0x9a907f, roughness: 0.7, emissive: 0xb98a4a, emissiveIntensity: 0.1, fog: false });
+          const lit0 = new THREE.MeshPhysicalMaterial({ color: 0x22c4cc, emissive: 0x0b9aa2, emissiveIntensity: 0.1, roughness: 0.06, metalness: 0.1, clearcoat: 0.6, clearcoatRoughness: 0.1, envMap, envMapIntensity: 0.7, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false, fog: false });
           const edge = new THREE.LineBasicMaterial({ color: AQUA, transparent: true, opacity: 0.6, fog: false });
           const meshes: THREE.Mesh[] = []; obj.traverse(o => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
           for (const m of meshes) { if (!m.geometry.attributes.normal) m.geometry.computeVertexNormals(); m.material = lit0; m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, 30), edge)); }
-          const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), k = 81 / size.y;
-          const kw = k / 1.8; obj.scale.set(kw, k, kw); obj.position.set(BX - (box.min.x + size.x / 2) * kw, -box.min.y * k, BZ0 - (box.min.z + size.z / 2) * kw); scene.add(obj);
+          const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), k = (H + 7) / size.y;
+          const kw = k; obj.scale.set(kw, k, kw); obj.position.set(BX - (box.min.x + size.x / 2) * kw, -box.min.y * k, BZ0 - (box.min.z + size.z / 2) * kw); scene.add(obj);
         });
         for (let i = 0; i < 4; i++) sweep(BX + Math.cos(i * 1.57) * 16, 0.3, BZ0 + Math.sin(i * 1.57) * 16, 130, i % 2 ? AQUA : WARM, 0.14, -Math.cos(i * 1.57) * 0.14, Math.sin(i * 1.57) * 0.14, 0.1, 0.25);
       }
@@ -1316,6 +1378,56 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const scan = new THREE.Mesh(new THREE.PlaneGeometry(LW + 0.4, 0.05), laser); scan.position.set(0, LY, 0.03); holder.add(scan);
       movers.push({ o: scan, bob: LH / 2, y0: LY, phase: 0 });
     }
+    {
+      const gr = rng(77), gc = document.createElement('canvas'); gc.width = gc.height = 256; const gx = gc.getContext('2d')!;
+      gx.fillStyle = '#24512c'; gx.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 5200; i++) { gx.fillStyle = `rgba(${30 + gr() * 50 | 0}, ${80 + gr() * 80 | 0}, ${30 + gr() * 40 | 0}, 0.55)`; gx.fillRect(gr() * 256, gr() * 256, 1.4, 2.6); }
+      const grassTex = new THREE.CanvasTexture(gc); grassTex.colorSpace = THREE.SRGBColorSpace; grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+      const lawn = (x0: number, x1: number, z0: number, z1: number) => {
+        const t = grassTex.clone(); t.repeat.set((x1 - x0) / 9, (z1 - z0) / 9); t.needsUpdate = true;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), new THREE.MeshStandardMaterial({ map: t, roughness: 1, color: 0x9fb89a }));
+        m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.09, (z0 + z1) / 2); scene.add(m);
+        const kerb = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0 + 0.3, 0.16, z1 - z0 + 0.3), marble); kerb.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2); scene.add(kerb);
+      };
+      const OUT = W / 2 + 10, F0 = EZ + D;
+      // Lawns either side of the avenue, down both sides and behind, with a paved walk kept round the building
+      const lawns: [number, number, number, number][] = [[-108, -17, F0 + 5, 148], [17, 108, F0 + 5, 148], [-108, -OUT - 5, FZ - 40, F0 + 1], [OUT + 5, 108, FZ - 40, F0 + 1], [-108, -8, -88, FZ - 44], [56, 108, -88, FZ - 44]];
+      for (const l of lawns) lawn(...l);
+      const leaf = [0x1f5a2e, 0x2a6b35, 0x1a4d2a].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95, flatShading: true }));
+      const bark = new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 0.9 });
+      const crown = new THREE.IcosahedronGeometry(1, 1), trunkGeo = new THREE.CylinderGeometry(0.16, 0.24, 1, 8);
+      const lampHead = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffd9a0).multiplyScalar(1.5), toneMapped: false });
+      const petals = ['#ff8fb0', '#ffd36a', '#c9a6ff', '#ffffff'].map(c => new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(0.55) }));
+      const free = (x: number, z: number) => !(Math.hypot(x + 19, z - (F0 + 17)) < 6 || (x < -OUT - 5 && x > -OUT - 20 && z > -6 && z < 18));
+      for (const [x0, x1, z0, z1] of lawns) {
+        const area = (x1 - x0) * (z1 - z0);
+        // Trees
+        for (let i = 0; i < area / 520; i++) {
+          const x = x0 + 4 + gr() * (x1 - x0 - 8), z = z0 + 4 + gr() * (z1 - z0 - 8), h = 3.4 + gr() * 3.2; if (!free(x, z)) continue;
+          const trunk = new THREE.Mesh(trunkGeo, bark); trunk.scale.set(1, h, 1); trunk.position.set(x, h / 2, z); scene.add(trunk);
+          for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(crown, leaf[(i + k) % 3]); const r = 1.5 + gr() * 1.3; c.scale.set(r, r * 0.85, r); c.position.set(x + (gr() - 0.5) * 1.6, h + r * 0.45 + k * 0.5, z + (gr() - 0.5) * 1.6); c.rotation.y = gr() * 6; scene.add(c); }
+        }
+        // Flower beds
+        for (let i = 0; i < area / 1500; i++) {
+          const x = x0 + 5 + gr() * (x1 - x0 - 10), z = z0 + 5 + gr() * (z1 - z0 - 10), r = 1.6 + gr() * 1.4; if (!free(x, z)) continue;
+          const bed = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.1, 0.3, 24), marble); bed.position.set(x, 0.15, z); scene.add(bed);
+          const soil = new THREE.Mesh(new THREE.CircleGeometry(r - 0.12, 24), leaf[2]); soil.rotation.x = -Math.PI / 2; soil.position.set(x, 0.31, z); scene.add(soil);
+          for (let k = 0; k < 26; k++) { const a = gr() * 6.28, d = Math.sqrt(gr()) * (r - 0.3); const f = new THREE.Mesh(new THREE.SphereGeometry(0.11 + gr() * 0.07, 6, 5), petals[(i + k) % 4]); f.position.set(x + Math.cos(a) * d, 0.42 + gr() * 0.2, z + Math.sin(a) * d); scene.add(f); }
+        }
+        // Low lights along the lawn edges
+        for (let z = z0 + 3; z < z1; z += 11) for (const x of [x0 + 0.6, x1 - 0.6]) {
+          if (Math.abs(x) > 104) continue;
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.8, 8), cladding); post.position.set(x, 0.4, z);
+          const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), lampHead); head.position.set(x, 0.86, z); scene.add(post, head);
+        }
+      }
+      // Clipped hedges lining the avenue
+      const hedge = new THREE.MeshStandardMaterial({ color: 0x1d5a2c, roughness: 1 });
+      for (const sx of [-1, 1]) for (let z = F0 + 24; z < 146; z += 12) { const h = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 9), hedge); h.position.set(sx * 18.4, 0.55, z + 4.5); scene.add(h); }
+      for (const [px, pz, k] of [[-34, 30, 2.6], [34, 30, 2.6], [-48, 52, 2.2], [48, 52, 2.2], [-30, 74, 2.4], [30, 74, 2.4], [-70, 20, 2.3], [70, 20, 2.3]] as const) {
+        const palm = landmark('palm', AQUA); palm.scale.setScalar(k); palm.position.set(px, 0, F0 + pz); palm.rotation.y = px; scene.add(palm);
+      }
+    }
     for (const [px, pz, k] of [[-15, 9, 2.3], [15, 9, 2.3], [-27, 6, 2.0], [27, 6, 2.0], [-21, 16, 1.8], [21, 16, 1.8]] as const) {
       const palm = landmark('palm', AQUA); palm.scale.setScalar(k); palm.position.set(px, 0, EZ + D + pz); palm.rotation.y = px; scene.add(palm);
     }
@@ -1553,7 +1665,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         f.detail.visible = f.k > 0.02; f.detail.scale.setScalar(0.55 + 0.45 * f.k);
         f.sign.visible = f.k < 0.9; f.sign.scale.setScalar(1 - f.k * 0.6);
       });
-      for (const L of lasers) { L.m.opacity = L.base * (0.7 + 0.3 * Math.sin(t * 0.6 + L.ph) * motion); if (L.scroll) L.scroll.offset.x = t * 0.012 * motion; }
+      for (const L of lasers) { L.m.opacity = L.base * (0.7 + 0.3 * Math.sin(t * 0.6 + L.ph) * motion); if (L.scroll) L.scroll.offset.x = t * (L.rate ?? 0.09) * motion; if (L.steady) L.m.opacity = L.base; }
       for (const S of sweepers) { S.o.rotation.z = S.tilt + Math.sin(t * S.sp + S.ph) * S.amp * motion; S.o.rotation.x = S.lean + Math.cos(t * S.sp * 0.7 + S.ph) * S.amp * 0.6 * motion; }
       if (motion) flagWave?.(t);
       for (const fl of fliers) { const a = t * fl.sp * motion + fl.ph; fl.o.position.set(Math.cos(a) * fl.r, fl.h, 10 + Math.sin(a) * fl.r); fl.o.rotation.y = -a; }
