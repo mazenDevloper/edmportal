@@ -38,6 +38,8 @@ interface Props {
   /** A VR controller trigger asks for the next station */
   onNext?: () => void;
   onVRChange?: (inVR: boolean) => void;
+  /** A station picked on the hub screen in the courtyard */
+  onSelect?: (i: number) => void;
 }
 
 // ── Dimensions (metres) ──
@@ -391,7 +393,7 @@ function drawSign(c: HTMLCanvasElement, isAr: boolean) {
 interface Station { cam: THREE.Vector3; target: THREE.Vector3 }
 
 export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function CourtyardJourney(
-  { stages, index, isAr, figures, asOfLabel, reducedMotion, onReady, onNext, onVRChange }, ref,
+  { stages, index, isAr, figures, asOfLabel, reducedMotion, onReady, onNext, onVRChange, onSelect }, ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null);
   const api = useRef<{
@@ -399,8 +401,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
   } | null>(null);
   const indexRef = useRef(index);
   indexRef.current = index;
-  const cb = useRef({ onNext, onVRChange, onReady });
-  cb.current = { onNext, onVRChange, onReady };
+  const cb = useRef({ onNext, onVRChange, onReady, onSelect });
+  cb.current = { onNext, onVRChange, onReady, onSelect };
 
   useImperativeHandle(ref, () => ({
     enterVR: () => api.current?.enterVR() ?? Promise.resolve(),
@@ -452,6 +454,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
     const gold = new THREE.MeshStandardMaterial({ color: 0xf2c14e, metalness: 1, roughness: 0.22, envMap, envMapIntensity: 1.15 });
+    /** Reception robots gliding in front of the entrance */
+    const bots: { o: THREE.Object3D; cap: THREE.Object3D; x0: number; z0: number; sx: number }[] = [];
     /** Laser beams that sway about their foot */
     const sweepers: { o: THREE.Object3D; tilt: number; lean: number; amp: number; sp: number; ph: number }[] = [];
     /** Moves the cloth of the flag */
@@ -941,6 +945,12 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     /** Text drawn again once the web font is ready */
     const labels: (() => void)[] = [];
     /** A card that stands proud of its board: dark body, lit rim, canvas face */
+    /** A screen bent on a vertical axis so its edges come towards the viewer */
+    const bend = (w: number, h: number, r: number, seg = 40) => {
+      const geo = new THREE.PlaneGeometry(w, h, seg, 1), p = geo.attributes.position;
+      for (let i = 0; i < p.count; i++) { const a = p.getX(i) / r; p.setX(i, Math.sin(a) * r); p.setZ(i, (1 - Math.cos(a)) * r); }
+      geo.computeVertexNormals(); return geo;
+    };
     const raised = (w: number, h: number, cw: number, ch: number, depth = 0.18) => {
       const canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch;
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
@@ -1080,7 +1090,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const eyeTex = new THREE.CanvasTexture(ec); eyeTex.colorSpace = THREE.SRGBColorSpace;
         const eyes = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.125), new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true, color: 0xbfc4c9 })); eyes.position.set(0, HY + 0.035, HR * 0.98 + 0.016); eyes.rotation.x = -0.08;
         const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.034, 14, 10), visorMat); mouth.scale.set(1.5, 0.7, 0.5); mouth.position.set(0, HY - 0.215, 0.252);
-        g.add(foot, ring, body, groove, lid, neck, sensor, lens, badge, head, visor, rim, eyes, mouth);
+        const headG = new THREE.Group(); headG.add(head, visor, rim, eyes, mouth); g.userData.head = headG;
+        g.add(foot, ring, body, groove, lid, neck, sensor, lens, badge, headG);
         for (const sx of [-1, 1]) {
           const ear = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.03, 12, 36), band); ear.rotation.y = Math.PI / 2; ear.position.set(sx * 0.345, HY - 0.03, 0);
           const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 28), dark); hub.rotation.z = Math.PI / 2; hub.position.set(sx * 0.35, HY - 0.03, 0);
@@ -1091,21 +1102,23 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
           const out = sx < 0;
           const fore = new THREE.Mesh(new THREE.CapsuleGeometry(0.044, 0.26, 6, 14), white); fore.position.set(sx * 0.52, out ? 1.08 : 0.95, out ? 0.17 : 0.07); fore.rotation.x = out ? -1.2 : -0.3;
           const hand = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 12), white); hand.scale.set(0.55, 1.25, 1); hand.position.set(sx * 0.52, out ? 1.01 : 0.76, out ? 0.37 : 0.13); hand.rotation.x = out ? -1.2 : -0.3;
-          g.add(ear, hub, shoulder, upper, elbow, fore, hand);
+          headG.add(ear, hub);
+          if (out) { const wv = new THREE.Group(); wv.position.copy(elbow.position); fore.position.sub(elbow.position); hand.position.sub(elbow.position); wv.add(fore, hand); g.userData.wave = wv; g.add(shoulder, upper, elbow, wv); }
+          else g.add(shoulder, upper, elbow, fore, hand);
         }
         g.scale.setScalar(1.25);
       } else if (kind === 'burj') {
         // Burj Al Nahdha, loaded from the supplied model and stood on the plinth
         new OBJLoader().load('/models/burj.obj', obj => {
           // Translucent green glass, with the lit parts a brighter green
-          const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x6fe3b4, emissive: 0x0a5a3a, emissiveIntensity: 0.12, metalness: 0, roughness: 0.01, clearcoat: 1, clearcoatRoughness: 0.02, envMap, envMapIntensity: 3, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false });
-          const warm = new THREE.MeshPhysicalMaterial({ color: 0x9dffd6, emissive: 0x2fe6a0, emissiveIntensity: 0.35, roughness: 0.02, clearcoat: 1, envMap, envMapIntensity: 3, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false });
+          const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x22c4cc, emissive: 0x0b9aa2, emissiveIntensity: 0.1, roughness: 0.06, metalness: 0.1, clearcoat: 0.6, clearcoatRoughness: 0.1, envMap, envMapIntensity: 0.7, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false });
+          const warm = glassMat;
           const pick = (x: THREE.Material) => (/glass/i.test(x.name) ? glassMat : warm);
           obj.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) m.material = Array.isArray(m.material) ? m.material.map(pick) : pick(m.material); });
           const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), k = 3.3 / size.y;
           obj.scale.setScalar(k); obj.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k, -(box.min.z + size.z / 2) * k);
           // Fine edge lines keep the shape readable through the glass
-          const edgeMat = new THREE.LineBasicMaterial({ color: 0x9dffd6, transparent: true, opacity: 0.5 });
+          const edgeMat = new THREE.LineBasicMaterial({ color: AQUA, transparent: true, opacity: 0.6 });
           const meshes: THREE.Mesh[] = []; obj.traverse(o => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
           for (const m of meshes) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, 30), edgeMat));
           g.add(obj);
@@ -1166,10 +1179,11 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
       const group = new THREE.Group(); group.position.copy(pos);
       const detail = new THREE.Group(); group.add(detail);
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(PANEL_W, PANEL_H), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92), side: THREE.DoubleSide }));
+      const plane = new THREE.Mesh(bend(PANEL_W, PANEL_H, 8.5), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92), side: THREE.DoubleSide }));
       detail.add(plane);
       // A slim post under the panel
       const frameMat = neon(s.color, 2), hw = PANEL_W / 2, hh = PANEL_H / 2;
+      for (const sy of [-1, 1]) { const rail = new THREE.Mesh(bend(PANEL_W - 0.6, 0.035, 8.5), frameMat); rail.position.set(0, sy * (hh + 0.03), 0.012); detail.add(rail); }
       const beamG = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, pos.y - hh, 8), frameMat); beamG.position.set(0, -(pos.y - hh) / 2 - hh, -0.2); detail.add(beamG);
       const base = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.03, 6, 48), frameMat); base.rotation.x = Math.PI / 2; base.position.set(0, -pos.y + 0.03, -0.2); detail.add(base);
 
@@ -1179,7 +1193,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const stats: [number, string][] = [[s.visits, (isAr ? 'زيارة للبوابة' : 'portal visits') + note], [s.transactions, isAr ? 'معاملة رقمية' : 'digital transactions']];
         stats.forEach(([v, label], k) => {
           const card = raised(2.85, 1.3, 760, 346);
-          card.group.position.set((isAr ? 1 : -1) * (k ? -1.52 : 1.52), -hh - 0.05, 0.3);
+          card.group.position.set((isAr ? 1 : -1) * (k ? -1.52 : 1.52), -hh - 0.05, 0.68); card.group.rotation.y = (isAr ? 1 : -1) * (k ? 1 : -1) * 0.18;
           detail.add(card.group);
           labels.push(() => { drawFigure(card.canvas, fmt(v, isAr), label, s.color, isAr); card.tex.needsUpdate = true; });
         });
@@ -1303,7 +1317,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       g.fillStyle = '#ffffff'; g.fillRect(0, 0, 780, 450); g.drawImage(logoImg, (780 - w) / 2, (450 - h) / 2, w, h); plaque.tex.needsUpdate = true;
     };
     logoImg.src = '/brand/dhofar-municipality-logo.png';
-    const boardView: Station = { cam: new THREE.Vector3(0, 6.6, -3.5), target: new THREE.Vector3(0, BY + 0.6, BZ) };
+    const boardView: Station = { cam: new THREE.Vector3(0, 6.6, -3.5), target: new THREE.Vector3(0, camera.aspect > 1.08 ? BY + 1.6 : BY - 1.2, BZ) };
     stations.push(boardView);
     // The journey opens on the board too, reached by a fly-in (see the intro below)
     stations[0] = boardView;
@@ -1351,7 +1365,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const bot = landmark('robot', AQUA); bot.scale.setScalar(1.75); bot.position.set(sx * 7.6, 0, EZ + D + 6.5); bot.rotation.y = -sx * 0.35; scene.add(bot);
         const hello = caption(2.2, 0.5, [isAr ? 'مرحباً بك' : 'Welcome'], AQUA); hello.position.set(sx * 7.6, 4.8, EZ + D + 6.5); hello.rotation.y = -sx * 0.35; scene.add(hello);
         const key = new THREE.SpotLight(0xfff1dc, 18, 16, 0.5, 0.6, 1.4); key.position.set(sx * 9, 7.5, EZ + D + 12); key.target.position.set(sx * 7.6, 1.6, EZ + D + 6.5); scene.add(key, key.target);
-        movers.push({ o: hello, bob: 0.06, y0: 4.8, phase: sx });
+        bots.push({ o: bot, cap: hello, x0: sx * 7.6, z0: EZ + D + 6.5, sx });
       }
 
       // The municipality logo drawn in the air by lasers: stacked light layers give it depth
@@ -1527,11 +1541,12 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const off = s.cam.clone().sub(s.target), len = off.length();
       return { cam: target.clone().add(off.setLength(len < 14 ? Math.min(len * k, Math.max(len, 12.5)) : len * k)), target };
     };
+    let hubRedraw: (() => void) | null = null;
     const goTo = (i: number, instant = false) => {
       // The opening fly-in already ends at the first station
       if (intro && i === 0 && !instant) return;
       const s = fitted(stations[Math.max(0, Math.min(stations.length - 1, i))]);
-      current = i;
+      current = i; hubRedraw?.();
       if (renderer.xr.isPresenting) { placeDolly(s); return; }
       // In a first-person mode a station is a place to stand, facing its card
       if (firstPerson()) { fp.pos.copy(s.cam); if (mode.walk) fp.pos.y = 1.7; faceFrom(fp.pos, s.target); intro = null; tween = null; return; }
@@ -1540,6 +1555,77 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       tween = { from: camera.position.clone(), to: s.cam.clone(), tFrom: controls.target.clone(), tTo: s.target.clone(), start: performance.now(), dur: 2600 };
     };
     const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    // ── The hub: a curved touch screen floating over the fountain. Each tile is a station; press one to go there ──
+    {
+      const HW = 10.4, HH = 2.2, HR = 9, tiles = stations.length, CW = 2400, CH = 500, PAD = 40;
+      const hc = document.createElement('canvas'); hc.width = CW; hc.height = CH;
+      const ht = new THREE.CanvasTexture(hc); ht.colorSpace = THREE.SRGBColorSpace; ht.anisotropy = 8;
+      const hub = new THREE.Group(); /* The caption covers the lower part of the view, so the hub hangs above the board, tilted down to the visitor */ const wide = camera.aspect > 1.08, HY0 = wide ? 17.3 : 17.7, HZ0 = BZ + 1.5; hub.position.set(0, HY0, HZ0); hub.rotation.x = wide ? 0.3 : 0.14; hub.scale.setScalar(wide ? 1.25 : 1.5); scene.add(hub);
+      const screen = new THREE.Mesh(bend(HW, HH, HR, 64), new THREE.MeshBasicMaterial({ map: ht, transparent: true, toneMapped: false, side: THREE.DoubleSide, depthWrite: false }));
+      screen.renderOrder = 5; hub.add(screen);
+      for (const sy of [-1, 1]) { const rail = new THREE.Mesh(bend(HW - 0.5, 0.03, HR, 64), neon(sy > 0 ? AQUA : PURPLE, 2.4)); rail.position.set(0, sy * (HH / 2 + 0.05), 0.01); hub.add(rail); }
+      // The projector under it: a ring on the water and a faint cone of light
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.04, 6, 64), neon(AQUA, 2.6)); ring.rotation.x = Math.PI / 2; ring.position.set(0, 0.3, HZ0); scene.add(ring);
+      const cone = new THREE.Mesh(new THREE.CylinderGeometry(3.9, 1.4, 2.0, 40, 1, true), new THREE.MeshBasicMaterial({ color: AQUA, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      cone.position.set(0, 1.3, HZ0); scene.add(cone); ring.visible = cone.visible = false;
+      movers.push({ o: hub, bob: 0.05, y0: HY0, phase: 0.5 });
+
+      let hover = -1;
+      const label = (i: number): [string, string, string] => {
+        if (i === 0) return [isAr ? 'البداية' : 'Start', isAr ? 'ساحة المبنى الجديد' : 'The new courtyard', AQUA];
+        const st = stages[i - 1];
+        return st ? [st.year, isAr ? st.titleAr : st.titleEn, st.color] : ['●', isAr ? 'الأرقام المباشرة' : 'Live figures', WARM];
+      };
+      hubRedraw = () => {
+        const g = hc.getContext('2d')!; g.clearRect(0, 0, CW, CH);
+        const bg = g.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, 'rgba(8,22,44,0.8)'); bg.addColorStop(1, 'rgba(5,10,26,0.92)');
+        g.fillStyle = bg; g.beginPath(); g.roundRect(4, 4, CW - 8, CH - 8, 46); g.fill(); g.strokeStyle = 'rgba(111,211,207,0.5)'; g.lineWidth = 3; g.stroke();
+        g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = 'rgba(255,255,255,0.72)'; g.font = `500 30px ${FONT}`; g.fillText(isAr ? 'اضغط على محطة للانتقال إليها' : 'Press a station to go there', CW / 2, 48);
+        const tw = (CW - PAD * 2) / tiles, lineY = 104;
+        g.strokeStyle = 'rgba(255,255,255,0.2)'; g.lineWidth = 3; g.beginPath(); g.moveTo(PAD + tw / 2, lineY); g.lineTo(CW - PAD - tw / 2, lineY); g.stroke();
+        for (let i = 0; i < tiles; i++) {
+          const col = isAr ? tiles - 1 - i : i, x = PAD + col * tw, cx = x + tw / 2, [big, small, color] = label(i), on = i === current, hot = i === hover;
+          // Passed stations are joined by a lit line
+          if (i > 0 && i <= current) { const px = PAD + (isAr ? tiles - i : i - 1) * tw + tw / 2; g.strokeStyle = color; g.lineWidth = 4; g.beginPath(); g.moveTo(px, lineY); g.lineTo(cx, lineY); g.stroke(); }
+          g.fillStyle = i <= current ? color : 'rgba(255,255,255,0.35)'; g.beginPath(); g.arc(cx, lineY, on ? 13 : 8, 0, Math.PI * 2); g.fill();
+          if (on) { g.strokeStyle = color; g.globalAlpha = 0.45; g.lineWidth = 5; g.beginPath(); g.arc(cx, lineY, 23, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
+          g.beginPath(); g.roundRect(x + 8, 140, tw - 16, 332, 26);
+          g.fillStyle = color; g.globalAlpha = on ? 0.3 : hot ? 0.16 : 0.05; g.fill(); g.globalAlpha = 1;
+          g.lineWidth = on || hot ? 4 : 2; g.strokeStyle = on || hot ? color : 'rgba(255,255,255,0.2)'; g.stroke();
+          if (on || hot) { g.save(); g.shadowColor = color; g.shadowBlur = 26; g.stroke(); g.restore(); }
+          g.fillStyle = on ? '#ffffff' : color; g.font = `700 ${big.length > 4 ? 52 : 80}px ${FONT}`; g.fillText(big, cx, 226);
+          // The title, wrapped to the tile
+          g.fillStyle = 'rgba(255,255,255,0.88)'; g.font = `500 27px ${FONT}`;
+          const words = small.split(' '), rows: string[] = []; let row = '';
+          for (const w of words) { const next = row ? row + ' ' + w : w; if (g.measureText(next).width > tw - 44 && row) { rows.push(row); row = w; } else row = next; }
+          rows.push(row); if (rows.length > 3) { rows.length = 3; rows[2] += '…'; }
+          rows.forEach((r, k) => g.fillText(r, cx, 316 + k * 38 - (rows.length - 1) * 6));
+        }
+        ht.needsUpdate = true;
+      };
+      hubRedraw(); document.fonts?.ready.then(() => hubRedraw?.());
+
+      const caster = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down: [number, number] | null = null;
+      const tileAt = (e: PointerEvent) => {
+        const r = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+        caster.setFromCamera(ptr, camera); const hit = caster.intersectObject(screen)[0];
+        if (!hit?.uv || hit.uv.y > 0.74 || hit.uv.x < PAD / CW || hit.uv.x > 1 - PAD / CW) return -1;
+        const col = Math.min(tiles - 1, Math.floor(((hit.uv.x - PAD / CW) / (1 - (2 * PAD) / CW)) * tiles));
+        return isAr ? tiles - 1 - col : col;
+      };
+      const el = renderer.domElement;
+      el.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+      el.addEventListener('pointermove', e => { const i = e.buttons ? -1 : tileAt(e); if (i !== hover) { hover = i; el.style.cursor = i >= 0 ? 'pointer' : ''; hubRedraw?.(); } });
+      el.addEventListener('pointerup', e => {
+        // A press, not the end of a drag
+        if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 8) return;
+        const i = tileAt(e); if (i < 0) return;
+        if (cb.current.onSelect) cb.current.onSelect(i); else goTo(i);
+        if (i === current) goTo(i);
+      });
+    }
 
     // ── VR ──
     const placeDolly = (s: Station) => {
@@ -1668,6 +1754,15 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       for (const L of lasers) { L.m.opacity = L.base * (0.7 + 0.3 * Math.sin(t * 0.6 + L.ph) * motion); if (L.scroll) L.scroll.offset.x = t * (L.rate ?? 0.09) * motion; if (L.steady) L.m.opacity = L.base; }
       for (const S of sweepers) { S.o.rotation.z = S.tilt + Math.sin(t * S.sp + S.ph) * S.amp * motion; S.o.rotation.x = S.lean + Math.cos(t * S.sp * 0.7 + S.ph) * S.amp * 0.6 * motion; }
       if (motion) flagWave?.(t);
+      for (const b of bots) {
+        // A slow figure of eight, turning with the path; the head looks about and the arm waves
+        const a = t * 0.35 + (b.sx > 0 ? 0 : 2.4), dx = Math.sin(a) * 2.6 * motion, dz = Math.sin(a * 2) * 1.3 * motion;
+        b.o.position.set(b.x0 + dx, 0, b.z0 + dz); b.o.rotation.y = -b.sx * 0.35 + Math.cos(a) * 0.55 * motion; b.o.rotation.z = -Math.cos(a) * 0.03 * motion;
+        b.cap.position.set(b.x0 + dx, 4.8 + Math.sin(t * 1.1 + b.sx) * 0.06 * motion, b.z0 + dz);
+        const hd = b.o.userData.head as THREE.Object3D | undefined, wv = b.o.userData.wave as THREE.Object3D | undefined;
+        if (hd) hd.rotation.y = Math.sin(t * 0.8 + b.sx) * 0.45 * motion;
+        if (wv) wv.rotation.x = Math.sin(t * 3.2 + b.sx) * 0.4 * motion;
+      }
       for (const fl of fliers) { const a = t * fl.sp * motion + fl.ph; fl.o.position.set(Math.cos(a) * fl.r, fl.h, 10 + Math.sin(a) * fl.r); fl.o.rotation.y = -a; }
       for (const m of movers) {
         if (m.spin) m.o.rotation.y = t * m.spin * motion + m.phase;

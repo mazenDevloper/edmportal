@@ -136,7 +136,7 @@ export default function DigitalJourneyPage() {
       <h1 className="sr-only">{t('رحلة التحول الرقمي لبلدية ظفار — ساحة مبنى البلدية الجديد', 'Dhofar Municipality digital transformation journey — the new building courtyard')}</h1>
 
       {webgl && <CourtyardJourney ref={scene} stages={JOURNEY} index={index} isAr={isAr} figures={figures} asOfLabel={asOf} reducedMotion={reducedMotion}
-        onReady={() => setReady(true)} onNext={next} onVRChange={setInVR} />}
+        onReady={() => setReady(true)} onNext={next} onVRChange={setInVR} onSelect={i => { setAuto(false); setIndex(i); }} />}
 
       {webgl === false && (
         <div className="absolute inset-0 overflow-y-auto p-6 pt-24 max-w-3xl mx-auto">
