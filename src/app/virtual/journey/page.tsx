@@ -9,7 +9,7 @@ import { JOURNEY, JOURNEY_SOURCE } from '@/lib/digital-journey';
 import { useTransactionStats, fmtNum } from '@/components/open-data/transaction-figures';
 import { officialFigures } from '@/lib/open-data/official-figures';
 import { VrHeadsetIcon } from '@/components/vr-headset-icon';
-import type { CourtyardHandle, LiveFigure } from '@/components/virtual/courtyard-journey';
+import type { CourtyardHandle, LiveFigure, LookSource } from '@/components/virtual/courtyard-journey';
 import { cn } from '@/lib/utils';
 
 // three.js needs the browser
@@ -36,15 +36,16 @@ export default function DigitalJourneyPage() {
   const [walk, setWalk] = useState(false);
   const [look, setLook] = useState(false);
   const [sbs, setSbs] = useState(false);
+  const [lookBy, setLookBy] = useState<LookSource | null>(null);
   const toggleWalk = () => { const v = !walk; setWalk(v); setAuto(false); void scene.current?.setMode({ walk: v }); };
-  const toggleLook = () => { const v = !look; setLook(v); setAuto(false); void scene.current?.setMode({ look: v }); };
+  const toggleLook = () => { const v = !look; setLook(v); setAuto(false); setLookBy(null); void scene.current?.setMode({ look: v }).then(r => setLookBy(v ? r ?? null : null)); };
   const toggleSbs = () => {
     const v = !sbs; setSbs(v); setAuto(false);
     // Side-by-side is for a headset, so the head turns the view and the page goes full screen
     try {
       if (v) { setLook(true); void document.documentElement.requestFullscreen?.()?.catch(() => {}); } else if (document.fullscreenElement) void document.exitFullscreen?.()?.catch(() => {});
     } catch { /* full screen is not available here; the split view still works */ }
-    void scene.current?.setMode(v ? { stereo: true, look: true } : { stereo: false });
+    void scene.current?.setMode(v ? { stereo: true, look: true } : { stereo: false }).then(r => { if (v) setLookBy(r ?? null); });
   };
   const scene = useRef<CourtyardHandle>(null);
   const chips = useRef<HTMLOListElement>(null);
@@ -156,7 +157,7 @@ export default function DigitalJourneyPage() {
         <button type="button" onClick={exit} className="size-11 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('خروج', 'Exit')}><X size={20} /></button>
         <div className="leading-tight">
           <p className="font-black flex items-center gap-2"><VrHeadsetIcon size={20} />{t('رحلة التحول الرقمي', 'Digital transformation journey')}</p>
-          <p className="text-[11px] font-bold text-white/60">{walk ? t('W A S D أو الأسهم للمشي · ← → للدوران · اسحب للنظر · Shift للجري', 'W A S D or arrows to walk · ← → to turn · drag to look · Shift to run') : t('مبنى بلدية ظفار الجديد · وقت المغرب', 'New Dhofar Municipality building · at sunset')}</p>
+          <p className="text-[11px] font-bold text-white/60">{look && lookBy && !walk ? (lookBy === 'sensor' ? t('حرّك جهازك للنظر حولك', 'Move your device to look around') : lookBy === 'insecure' ? t('حساس الحركة يحتاج فتح الصفحة عبر HTTPS · حرّك المؤشر للنظر الآن', 'The motion sensor needs HTTPS · move the pointer to look for now') : t('لا يوجد حساس حركة في هذا الجهاز · حرّك المؤشر للنظر', 'This device has no motion sensor · move the pointer to look')) : walk ? t('W A S D أو الأسهم للمشي · ← → للدوران · اسحب للنظر · Shift للجري', 'W A S D or arrows to walk · ← → to turn · drag to look · Shift to run') : t('مبنى بلدية ظفار الجديد · وقت المغرب', 'New Dhofar Municipality building · at sunset')}</p>
         </div>
         <div className="ms-auto flex items-center gap-2">
           <button type="button" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" lang={isAr ? 'en' : 'ar'}>
