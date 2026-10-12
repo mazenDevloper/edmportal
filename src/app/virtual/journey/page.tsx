@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ExternalLink, Languages, List, Loader2, Pause, Play, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Columns2, ExternalLink, Footprints, Languages, List, Loader2, Pause, Play, Rotate3d, X } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { JOURNEY, JOURNEY_SOURCE } from '@/lib/digital-journey';
 import { useTransactionStats, fmtNum } from '@/components/open-data/transaction-figures';
@@ -32,6 +32,20 @@ export default function DigitalJourneyPage() {
   const [inVR, setInVR] = useState(false);
   const [showList, setShowList] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // View modes: walking with the keyboard, turning with the head, side-by-side for a phone headset
+  const [walk, setWalk] = useState(false);
+  const [look, setLook] = useState(false);
+  const [sbs, setSbs] = useState(false);
+  const toggleWalk = () => { const v = !walk; setWalk(v); setAuto(false); void scene.current?.setMode({ walk: v }); };
+  const toggleLook = () => { const v = !look; setLook(v); setAuto(false); void scene.current?.setMode({ look: v }); };
+  const toggleSbs = () => {
+    const v = !sbs; setSbs(v); setAuto(false);
+    // Side-by-side is for a headset, so the head turns the view and the page goes full screen
+    try {
+      if (v) { setLook(true); void document.documentElement.requestFullscreen?.()?.catch(() => {}); } else if (document.fullscreenElement) void document.exitFullscreen?.()?.catch(() => {});
+    } catch { /* full screen is not available here; the split view still works */ }
+    void scene.current?.setMode(v ? { stereo: true, look: true } : { stereo: false });
+  };
   const scene = useRef<CourtyardHandle>(null);
   const chips = useRef<HTMLOListElement>(null);
   const { data } = useTransactionStats();
@@ -61,6 +75,8 @@ export default function DigitalJourneyPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest('input, textarea, select')) return;
+      // While walking, the arrow keys move the visitor instead of changing station
+      if (walk && e.key.startsWith('Arrow')) { e.preventDefault(); return; }
       if (e.key === 'ArrowLeft') { e.preventDefault(); isAr ? next() : prev(); }
       if (e.key === 'ArrowRight') { e.preventDefault(); isAr ? prev() : next(); }
       if (e.key === ' ') { e.preventDefault(); setAuto(a => !a); }
@@ -140,12 +156,23 @@ export default function DigitalJourneyPage() {
         <button type="button" onClick={exit} className="size-11 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('خروج', 'Exit')}><X size={20} /></button>
         <div className="leading-tight">
           <p className="font-black flex items-center gap-2"><VrHeadsetIcon size={20} />{t('رحلة التحول الرقمي', 'Digital transformation journey')}</p>
-          <p className="text-[11px] font-bold text-white/60">{t('ساحة مبنى بلدية ظفار الجديد · ليلاً', 'New Dhofar Municipality building courtyard · at night')}</p>
+          <p className="text-[11px] font-bold text-white/60">{walk ? t('W A S D أو الأسهم للمشي · ← → للدوران · اسحب للنظر · Shift للجري', 'W A S D or arrows to walk · ← → to turn · drag to look · Shift to run') : t('مبنى بلدية ظفار الجديد · وقت المغرب', 'New Dhofar Municipality building · at sunset')}</p>
         </div>
         <div className="ms-auto flex items-center gap-2">
           <button type="button" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" lang={isAr ? 'en' : 'ar'}>
             <Languages size={16} />{isAr ? 'EN' : 'ع'}
           </button>
+          {webgl && ready && <>
+            <button type="button" onClick={toggleWalk} aria-pressed={walk} title={t('المشي بلوحة المفاتيح', 'Walk with the keyboard')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', walk ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
+              <Footprints size={16} /><span className="hidden md:inline">{t('مشي', 'Walk')}</span>
+            </button>
+            <button type="button" onClick={toggleLook} aria-pressed={look} title={t('تحريك الرأس', 'Turn with your head')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', look ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
+              <Rotate3d size={16} /><span className="hidden md:inline">{t('تحريك الرأس', 'Head look')}</span>
+            </button>
+            <button type="button" onClick={toggleSbs} aria-pressed={sbs} title={t('جنباً إلى جنب لنظارة الهاتف', 'Side by side for a phone headset')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', sbs ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
+              <Columns2 size={16} /><span className="hidden md:inline">SBS</span>
+            </button>
+          </>}
           <button type="button" onClick={() => setShowList(true)} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" aria-haspopup="dialog">
             <List size={16} /><span className="hidden sm:inline">{t('المحطات', 'Stations')}</span>
           </button>
@@ -158,7 +185,7 @@ export default function DigitalJourneyPage() {
       </header>
 
       {/* Station caption and controls */}
-      {webgl && ready && (
+      {webgl && ready && !sbs && (
         <div className="absolute bottom-0 inset-x-0 p-4 pb-24 sm:pb-6 bg-gradient-to-t from-black/75 via-black/40 to-transparent">
           <div className="max-w-3xl mx-auto space-y-4">
             <div aria-live="polite" className="min-h-[4.5rem]">

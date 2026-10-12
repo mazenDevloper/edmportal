@@ -18,10 +18,13 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { StereoEffect } from 'three/examples/jsm/effects/StereoEffect.js';
 import type { JourneyAward, JourneyIcon, JourneyModel, JourneyStage } from '@/lib/digital-journey';
 
 export interface LiveFigure { labelAr: string; labelEn: string; value: number | null; color: string }
-export interface CourtyardHandle { enterVR: () => Promise<void> }
+/** walk: move with the keyboard at eye height; look: turn the view with the head (phone sensors) or by dragging; stereo: side-by-side for a phone headset */
+export interface ViewMode { walk: boolean; look: boolean; stereo: boolean }
+export interface CourtyardHandle { enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => Promise<void> }
 interface Props {
   stages: JourneyStage[];
   index: number;
@@ -39,6 +42,7 @@ interface Props {
 const W = 72, H = 26, D = 12, FZ = -30;           // façade width/height/depth, front plane z
 const PW = 24, PH = 18, PD = 4;                   // central portal opening and recess depth
 const FOUNTAIN = new THREE.Vector3(0, 0, -12);
+const EZ = 38;                                    // inner face of the entry block (the courtyard runs from FZ to EZ)
 // Soft tints of the brand teal and purple; nothing in the scene is fully saturated
 const AQUA = '#6FD3CF', PURPLE = '#B3A4DC', PINK = '#8CCFD6', WARM = '#EBC98F';
 const FONT = '"Readex Pro", "Segoe UI", Tahoma, sans-serif';
@@ -138,20 +142,21 @@ function portalWallTextures() {
   e.fillStyle = '#000'; e.fillRect(0, 0, cw, ch);
   const X = (x: number) => (x + PW / 2) * PX, Y = (y: number) => ch - y * PX;
   const trace = (ctx: CanvasRenderingContext2D, pts: [number, number][]) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.closePath(); };
-  for (const a of PORTAL_ARCHES) {
-    const outer = archPoints(a.cx, a.w + 1.4, a.spring, a.apex + 0.9);
-    const inner = archPoints(a.cx, a.w, a.spring, a.apex);
-    m.fillStyle = '#b25c43'; trace(m, outer); m.fill();
-    m.fillStyle = '#e2d3bd'; trace(m, archPoints(a.cx, a.w + 0.5, a.spring, a.apex + 0.35)); m.fill();
-    const g = m.createLinearGradient(0, Y(a.apex), 0, Y(0));
-    g.addColorStop(0, '#0e2231'); g.addColorStop(1, '#05090f');
-    m.fillStyle = g; trace(m, inner); m.fill();
-    const ge = e.createLinearGradient(0, Y(a.apex), 0, Y(0));
-    ge.addColorStop(0, 'rgba(3,207,203,0.25)'); ge.addColorStop(0.55, 'rgba(120,90,255,0.18)'); ge.addColorStop(1, 'rgba(255,190,120,0.55)');
-    e.fillStyle = ge; trace(e, inner); e.fill();
-  }
-  // The glass bridge seen through the arches
-  e.fillStyle = 'rgba(255,220,170,0.7)'; e.fillRect(X(-10), Y(5.2), 20 * PX, 0.18 * PX);
+  const R = 8.2, SPRING = 7.4;
+  const round = (ctx: CanvasRenderingContext2D, r: number) => { ctx.beginPath(); ctx.moveTo(X(-r), Y(0)); ctx.lineTo(X(-r), Y(SPRING)); ctx.arc(X(0), Y(SPRING), r * PX, Math.PI, 0); ctx.lineTo(X(r), Y(0)); ctx.closePath(); };
+  m.fillStyle = '#b25c43'; round(m, R + 1.4); m.fill();
+  m.fillStyle = '#e2d3bd'; round(m, R + 0.5); m.fill();
+  const g = m.createLinearGradient(0, Y(SPRING + R), 0, Y(0)); g.addColorStop(0, '#2a3a52'); g.addColorStop(1, '#0a1220');
+  m.fillStyle = g; round(m, R); m.fill();
+  const ge = e.createLinearGradient(0, Y(SPRING + R), 0, Y(0)); ge.addColorStop(0, 'rgba(255,196,150,0.45)'); ge.addColorStop(0.6, 'rgba(120,110,200,0.2)'); ge.addColorStop(1, 'rgba(255,190,120,0.5)');
+  e.fillStyle = ge; round(e, R); e.fill();
+  // The two bridges crossing behind the arch
+  m.save(); round(m, R); m.clip();
+  for (const by of [5.6, 10.4]) { m.fillStyle = '#9aa0a8'; m.fillRect(X(-R), Y(by + 1.0), 2 * R * PX, 1.0 * PX); m.fillStyle = '#cfd4da'; m.fillRect(X(-R), Y(by + 1.9), 2 * R * PX, 0.12 * PX); }
+  m.restore();
+  e.save(); round(e, R); e.clip();
+  for (const by of [5.6, 10.4]) { e.fillStyle = 'rgba(255,225,180,0.7)'; e.fillRect(X(-R), Y(by + 0.05), 2 * R * PX, 0.14 * PX); }
+  e.restore();
   const mk = (c: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
   return { map: mk(map), emissive: mk(em) };
 }
@@ -321,30 +326,37 @@ function drawCaption(c: HTMLCanvasElement, lines: string[], color: string, isAr:
 }
 
 /** A holographic station panel */
-function drawStage(c: HTMLCanvasElement, s: JourneyStage, isAr: boolean) {
+function drawStage(c: HTMLCanvasElement, s: JourneyStage, isAr: boolean, reveal = 1) {
   const g = c.getContext('2d')!; const w = c.width, h = c.height;
   g.clearRect(0, 0, w, h);
   const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, 'rgba(10,22,42,0.96)'); bg.addColorStop(1, 'rgba(8,16,32,0.96)');
   g.fillStyle = bg; g.beginPath(); g.roundRect(8, 8, w - 16, h - 16, 36); g.fill();
-  // A short accent bar instead of a frame
-  g.fillStyle = s.color; g.beginPath(); g.roundRect(isAr ? w - 60 - 220 : 60, 40, 220, 8, 4); g.fill();
   g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = isAr ? 'right' : 'left';
   const x0 = isAr ? w - 60 : 60, maxW = w - 120;
-  g.font = `700 190px ${FONT}`; emboss(g, s.year, x0, 205, s.color, 190);
-  g.fillStyle = '#ffffff'; g.font = `700 62px ${FONT}`;
-  let y = 300;
-  for (const l of wrap(g, isAr ? s.titleAr : s.titleEn, maxW).slice(0, 2)) { g.fillText(l, x0, y); y += 74; }
-  g.fillStyle = 'rgba(255,255,255,0.8)'; g.font = `400 38px ${FONT}`; y += 4;
-  for (const l of wrap(g, isAr ? s.summaryAr : s.summaryEn, maxW).slice(0, 3)) { g.fillText(l, x0, y); y += 52; }
-  const bottom = h - (s.visits ? 150 : 50);
-  if (isAr) {
-    y += 16; g.font = `400 36px ${FONT}`;
-    for (const it of s.items.slice(0, 6)) {
-      if (y > bottom) break;
-      g.fillStyle = s.color; g.fillText('◆', x0, y); g.fillStyle = 'rgba(255,255,255,0.94)';
-      g.fillText(wrap(g, it, maxW - 56)[0], x0 - 50, y); y += 52;
-    }
-  }
+  // Year on one side, title and summary beside it, so the points get the height of the card
+  g.font = `700 150px ${FONT}`; emboss(g, s.year, x0, 160, s.color, 150);
+  const yearW = g.measureText(s.year).width + 44, tx = isAr ? x0 - yearW : x0 + yearW, tw = maxW - yearW;
+  g.fillStyle = '#ffffff'; fitFont(g, isAr ? s.titleAr : s.titleEn, 700, 58, tw); g.fillText(isAr ? s.titleAr : s.titleEn, tx, 96);
+  g.fillStyle = 'rgba(255,255,255,0.82)'; g.font = `400 34px ${FONT}`;
+  wrap(g, isAr ? s.summaryAr : s.summaryEn, tw).slice(0, 2).forEach((l, i) => g.fillText(l, tx, 146 + i * 44));
+  g.fillStyle = s.color; g.fillRect(60, 214, w - 120, 4);
+  if (!isAr) return;
+  const items = s.items.slice(0, 6), top = 236, bottom = h - (s.visits ? 150 : 40);
+  const rowH = Math.min(118, (bottom - top) / items.length), chip = rowH * 0.31;
+  items.forEach((it, i) => {
+    const a = Math.max(0, Math.min(1, reveal * (items.length + 1.5) - i));
+    if (a <= 0) return;
+    const e = 1 - Math.pow(1 - a, 3), ry = top + i * rowH;
+    g.save(); g.globalAlpha = e; g.translate((1 - e) * 110, 0);
+    g.fillStyle = i % 2 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.09)'; g.beginPath(); g.roundRect(60, ry + 6, w - 120, rowH - 12, 20); g.fill();
+    const cx = w - 60 - rowH / 2;
+    g.fillStyle = s.color; g.beginPath(); g.arc(cx, ry + rowH / 2, chip, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#08101e'; g.textAlign = 'center'; g.font = `700 ${Math.round(chip * 1.15)}px ${FONT}`; g.fillText(String(i + 1), cx, ry + rowH / 2 + chip * 0.4);
+    g.textAlign = 'right'; g.fillStyle = '#ffffff';
+    const size = fitFont(g, it, 600, Math.min(50, Math.round(rowH * 0.46)), w - 120 - rowH - 50);
+    g.fillText(it, w - 60 - rowH - 8, ry + rowH / 2 + size * 0.34);
+    g.restore();
+  });
 }
 
 function drawBoard(c: HTMLCanvasElement, figures: LiveFigure[] | null, isAr: boolean, asOf?: string) {
@@ -375,14 +387,21 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 ) {
   const mountRef = useRef<HTMLDivElement>(null);
   const api = useRef<{
-    goTo: (i: number) => void; setFigures: (f: LiveFigure[] | null, asOf?: string) => void; enterVR: () => Promise<void>;
+    goTo: (i: number) => void; setFigures: (f: LiveFigure[] | null, asOf?: string) => void; enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => void;
   } | null>(null);
   const indexRef = useRef(index);
   indexRef.current = index;
   const cb = useRef({ onNext, onVRChange, onReady });
   cb.current = { onNext, onVRChange, onReady };
 
-  useImperativeHandle(ref, () => ({ enterVR: () => api.current?.enterVR() ?? Promise.resolve() }), []);
+  useImperativeHandle(ref, () => ({
+    enterVR: () => api.current?.enterVR() ?? Promise.resolve(),
+    setMode: async m => {
+      // iOS only hands out motion data after the visitor agrees, and only from a tap
+      if (m.look) { const D = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } }).DeviceOrientationEvent; try { await D?.requestPermission?.(); } catch { /* refused: dragging still turns the view */ } }
+      api.current?.setMode(m);
+    },
+  }), []);
 
   useEffect(() => {
     const mount = mountRef.current!;
@@ -396,14 +415,15 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     renderer.domElement.setAttribute('aria-hidden', 'true');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x08101e, 0.0075);
+    scene.fog = new THREE.FogExp2(0x3b3048, 0.0042);
     const camera = new THREE.PerspectiveCamera(58, mount.clientWidth / mount.clientHeight, 0.1, 900);
     const dolly = new THREE.Group(); dolly.add(camera); scene.add(dolly);
 
     // ── Sky and stars ──
     const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      uniforms: { top: { value: new THREE.Color('#02060f') }, mid: { value: new THREE.Color('#0a1426') }, hor: { value: new THREE.Color('#16283f') } },
+      // Maghrib: warm light on the horizon rising through violet into deep blue
+      uniforms: { top: { value: new THREE.Color('#16244a') }, mid: { value: new THREE.Color('#5d4a7c') }, hor: { value: new THREE.Color('#f2a06c') } },
       vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 hor; varying vec3 vP; void main(){ float h = max(vP.y, 0.0); vec3 c = mix(hor, mid, smoothstep(0.0, 0.18, h)); c = mix(c, top, smoothstep(0.18, 0.7, h)); gl_FragColor = vec4(c, 1.0); }',
     }));
@@ -411,9 +431,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const starGeo = new THREE.BufferGeometry(); const sp: number[] = []; const sr = rng(99);
     for (let i = 0; i < 1400; i++) { const th = sr() * Math.PI * 2, ph = Math.acos(0.15 + sr() * 0.85); sp.push(400 * Math.sin(ph) * Math.cos(th), 400 * Math.cos(ph), 400 * Math.sin(ph) * Math.sin(th)); }
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.85 })));
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(6, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff3d6').multiplyScalar(1.6), toneMapped: false, fog: false }));
-    moon.position.set(-160, 170, -300); scene.add(moon);
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.4, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.28 })));
+    // The setting sun, low in the west
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(16, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffb070').multiplyScalar(1.7), toneMapped: false, fog: false }));
+    moon.position.set(-400, 34, -150); scene.add(moon);
 
     // Reflections for the gold trophies, medallion rims and the glass tower (not applied scene-wide)
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -424,8 +445,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const movers: { o: THREE.Object3D; spin?: number; bob?: number; y0: number; phase: number }[] = [];
 
     // ── Lights ──
-    scene.add(new THREE.HemisphereLight(0x3a4a7a, 0x120e18, 0.9));
-    const moonLight = new THREE.DirectionalLight(0x9fb4ff, 0.5); moonLight.position.set(-60, 80, 40); scene.add(moonLight);
+    scene.add(new THREE.HemisphereLight(0xa894c0, 0x3a2a2c, 1.25));
+    const moonLight = new THREE.DirectionalLight(0xffb27a, 1.5); moonLight.position.set(-90, 24, -20); scene.add(moonLight);
     for (const x of [-30, -18, 18, 30]) {
       const s = new THREE.SpotLight(0xffd9b0, 38, 45, 0.55, 0.6, 1.2);
       s.position.set(x, 0.3, FZ + 6); s.target.position.set(x, 18, FZ); scene.add(s, s.target);
@@ -437,8 +458,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     });
 
     // ── Ground ──
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 90), new THREE.MeshStandardMaterial({ map: tileTexture(), roughness: 0.32, metalness: 0.08, color: 0x9c948a }));
-    ground.rotation.x = -Math.PI / 2; ground.position.z = -5; scene.add(ground);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 240), new THREE.MeshStandardMaterial({ map: tileTexture(), roughness: 0.32, metalness: 0.08, color: 0x9c948a }));
+    ground.rotation.x = -Math.PI / 2; ground.position.z = 30; scene.add(ground);
+    (ground.material as THREE.MeshStandardMaterial).map!.repeat.set(48, 52);
 
     // ── Building ──
     const fac = facadeTextures();
@@ -465,10 +487,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const pw = portalWallTextures();
     const back = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: pw.map, emissiveMap: pw.emissive, emissive: 0xffffff, emissiveIntensity: 1.2, roughness: 0.85 }));
     back.position.set(0, PH / 2, FZ - PD); scene.add(back);
-    // Neon LED along the arches
-    for (const a of PORTAL_ARCHES) {
-      const pts = archPoints(a.cx, a.w + 1.5, a.spring, a.apex + 0.95, 40).map(([x, y]) => new THREE.Vector3(x, y, FZ - PD + 0.12));
-      scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 200, 0.07, 6), neon(a.color, 3.2)));
+    // LED along the great arch
+    {
+      const pts = [new THREE.Vector3(-9.6, 0, FZ - PD + 0.12), ...Array.from({ length: 41 }, (_, i) => { const a = Math.PI - (i / 40) * Math.PI; return new THREE.Vector3(Math.cos(a) * 9.6, 7.4 + Math.sin(a) * 9.6, FZ - PD + 0.12); }), new THREE.Vector3(9.6, 0, FZ - PD + 0.12)];
+      scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.1), 200, 0.07, 6), neon(AQUA, 3.2)));
     }
     // Neon LED lines: roofline, portal frame, corners, arcade
     const strip = (w: number, h: number, d: number, x: number, y: number, z: number, color: string, k = 3) => {
@@ -494,9 +516,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     }
     // The space frame continues over the courtyard: rafters from the roof beam and purlins across them
     for (let x = -W / 2; x <= W / 2 + 0.01; x += 12) {
-      const rafter = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 38), steel); rafter.position.set(x, H + 4.5, FZ + 20); scene.add(rafter);
+      const rafter = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, EZ - FZ), steel); rafter.position.set(x, H + 4.5, (FZ + EZ) / 2); scene.add(rafter);
     }
-    for (let z = FZ + 7; z <= FZ + 39; z += 8) {
+    for (let z = FZ + 7; z <= EZ; z += 8) {
       const purlin = new THREE.Mesh(new THREE.BoxGeometry(W, 0.1, 0.1), steel); purlin.position.set(0, H + 4.5, z); scene.add(purlin);
     }
     // Arcade columns with white capitals in front of the side blocks
@@ -514,18 +536,68 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const glass = new THREE.Mesh(new THREE.BoxGeometry(10, 22, 26), new THREE.MeshStandardMaterial({ map: glassMap, metalness: 0.9, roughness: 0.1, envMap, envMapIntensity: 0.9 }));
     glass.position.set(-W / 2 - 5, 11, FZ + 11); scene.add(glass);
     for (let y = 3.6; y < 22; y += 3.6) strip(0.08, 0.08, 26, -W / 2 + 0.05, y, FZ + 11, AQUA, 1.6);
-    const wingMap = fac.map.clone(), wingEm = fac.emissive.clone();
-    for (const t of [wingMap, wingEm]) { t.repeat.set(26 / W, 1); t.offset.set(0.02, 0); t.needsUpdate = true; }
-    const wingFront = new THREE.MeshStandardMaterial({ map: wingMap, emissiveMap: wingEm, emissive: 0xffffff, roughness: 0.9 });
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(10, H, 26), [stone, wingFront, stone, stone, stone, stone]);
-    wing.position.set(W / 2 + 5, H / 2, FZ + 11); scene.add(wing);
-    strip(0.14, 0.14, 26, W / 2 + 0.05, H + 0.05, FZ + 11, AQUA);
+    // The two long sides of the courtyard, from the far façade to the entry block
+    const wingSide = (sx: number, z0: number, z1: number) => {
+      const len = z1 - z0, map = fac.map.clone(), em = fac.emissive.clone();
+      for (const t of [map, em]) { t.repeat.set(Math.min(1, len / W), 1); t.offset.set(0.02, 0); t.needsUpdate = true; }
+      const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.9 });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H, len), sx > 0 ? [stone, inner, stone, stone, stone, stone] : [inner, stone, stone, stone, stone, stone]);
+      mesh.position.set(sx * (W / 2 + 5), H / 2, (z0 + z1) / 2); scene.add(mesh);
+      strip(0.12, 0.12, len, sx * (W / 2 - 0.05), H + 0.05, (z0 + z1) / 2, AQUA, 2.2);
+      for (let z = z0 + 3.8; z < z1 - 2; z += 3.6) {
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(sx * (W / 2 - 0.5), 1.72, z);
+        const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(sx * (W / 2 - 0.5), 3.4, z);
+        const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(sx * (W / 2 - 0.5), 0.11, z);
+        scene.add(shaft, cap, foot);
+      }
+    };
+    wingSide(1, FZ - 2, EZ + D);
+    wingSide(-1, FZ + 24, EZ + D);
+
+    // The entry block: the visitor comes in from outside through three pointed arches, crosses the
+    // lobby and steps into the courtyard. Both faces carry the façade; the arches are real openings.
+    const entryPiece = (x0: number, x1: number, y0: number, y1: number) => {
+      const map = fac.map.clone(), em = fac.emissive.clone();
+      for (const t of [map, em]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
+      const face = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.9 });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, D), [recessMat, recessMat, stone, recessMat, face, face]);
+      mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, EZ + D / 2); scene.add(mesh);
+    };
+    entryPiece(-W / 2, -PW / 2, 0, H);
+    entryPiece(PW / 2, W / 2, 0, H);
+    entryPiece(-PW / 2, PW / 2, PH, H);
+    {
+      const wall = new THREE.Shape();
+      wall.moveTo(-PW / 2, 0); wall.lineTo(PW / 2, 0); wall.lineTo(PW / 2, PH); wall.lineTo(-PW / 2, PH); wall.closePath();
+      for (const a of PORTAL_ARCHES) { const hole = new THREE.Path(); archPoints(a.cx, a.w, a.spring, a.apex, 18).forEach(([x, y], i) => (i ? hole.lineTo(x, y) : hole.moveTo(x, y))); hole.closePath(); wall.holes.push(hole); }
+      const wallGeo = new THREE.ExtrudeGeometry(wall, { depth: 0.9, bevelEnabled: false });
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xd3c0a4, roughness: 0.88 }), band = new THREE.MeshStandardMaterial({ color: 0xb25c43, roughness: 0.75 });
+      for (const z of [EZ, EZ + D - 0.9]) {
+        const mesh = new THREE.Mesh(wallGeo, wallMat); mesh.position.z = z; scene.add(mesh);
+        for (const a of PORTAL_ARCHES) {
+          const pts = archPoints(a.cx, a.w + 0.75, a.spring, a.apex + 0.5, 30).map(([x, y]) => new THREE.Vector3(x, y, z + (z === EZ ? -0.02 : 0.92)));
+          scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.1), 160, 0.4, 8), band));
+        }
+      }
+      // Warm light in the lobby, and the zebra paving and flag outside
+      const lobby = new THREE.PointLight(0xffd2a0, 60, 30, 1.5); lobby.position.set(0, 9, EZ + D / 2); scene.add(lobby);
+      const zc = document.createElement('canvas'); zc.width = 64; zc.height = 256; const zg = zc.getContext('2d')!;
+      for (let i = 0; i < 8; i++) { zg.fillStyle = i % 2 ? '#8a4a40' : '#d8d2cb'; zg.fillRect(0, i * 32, 64, 32); }
+      const zt = new THREE.CanvasTexture(zc); zt.colorSpace = THREE.SRGBColorSpace;
+      const zebra = new THREE.Mesh(new THREE.PlaneGeometry(18, 16), new THREE.MeshStandardMaterial({ map: zt, roughness: 0.35 }));
+      zebra.rotation.x = -Math.PI / 2; zebra.position.set(0, 0.013, EZ + D + 9); scene.add(zebra);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 9, 10), steel); pole.position.set(0, H + 4.5, EZ + D - 1); scene.add(pole);
+      const fc = document.createElement('canvas'); fc.width = 300; fc.height = 150; const fg = fc.getContext('2d')!;
+      fg.fillStyle = '#ffffff'; fg.fillRect(0, 0, 300, 50); fg.fillStyle = '#db161b'; fg.fillRect(0, 50, 300, 50); fg.fillStyle = '#008000'; fg.fillRect(0, 100, 300, 50); fg.fillStyle = '#db161b'; fg.fillRect(0, 0, 80, 150);
+      const ft = new THREE.CanvasTexture(fc); ft.colorSpace = THREE.SRGBColorSpace;
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(4, 2), new THREE.MeshBasicMaterial({ map: ft, side: THREE.DoubleSide })); flag.position.set(2.05, H + 7.9, EZ + D - 1); scene.add(flag);
+    }
 
     // ── Fountain ──
     const water = new THREE.Mesh(new THREE.CircleGeometry(10, 96), new THREE.MeshStandardMaterial({ map: plazaTexture(), color: 0x8f8a84, metalness: 0.15, roughness: 0.3 }));
     water.rotation.x = -Math.PI / 2; water.position.set(FOUNTAIN.x, 0.012, FOUNTAIN.z); scene.add(water);
     const star = new THREE.Mesh(new THREE.PlaneGeometry(13, 13), new THREE.MeshStandardMaterial({ map: starTexture(), transparent: true, roughness: 0.4, depthWrite: false }));
-    star.rotation.x = -Math.PI / 2; star.position.set(0, 0.014, 27.5); scene.add(star);
+    star.rotation.x = -Math.PI / 2; star.position.set(0, 0.014, EZ + D / 2); scene.add(star);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(10.1, 0.06, 8, 160), neon(AQUA, 2.6));
     ring.rotation.x = -Math.PI / 2; ring.position.set(FOUNTAIN.x, 0.05, FOUNTAIN.z); scene.add(ring);
     const JET_RINGS = [{ r: 2.5, n: 10, h: 4.2 }, { r: 5.5, n: 18, h: 3.2 }, { r: 8.5, n: 26, h: 2.4 }];
@@ -752,8 +824,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         // Burj Al Nahdha, loaded from the supplied model and stood on the plinth
         new OBJLoader().load('/models/burj.obj', obj => {
           // Translucent green glass, with the lit parts a brighter green
-          const glassMat = new THREE.MeshStandardMaterial({ color: 0x2fcf8f, emissive: 0x0a5a3a, emissiveIntensity: 0.35, metalness: 0.15, roughness: 0.06, envMap, envMapIntensity: 1.5, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
-          const warm = new THREE.MeshStandardMaterial({ color: 0x7dffc4, emissive: 0x2fe6a0, emissiveIntensity: 0.7, roughness: 0.1, envMap, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false });
+          const glassMat = new THREE.MeshStandardMaterial({ color: 0x2fcf8f, emissive: 0x0a5a3a, emissiveIntensity: 0.35, metalness: 0.15, roughness: 0.06, envMap, envMapIntensity: 1.5, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false });
+          const warm = new THREE.MeshStandardMaterial({ color: 0x7dffc4, emissive: 0x2fe6a0, emissiveIntensity: 0.7, roughness: 0.1, envMap, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false });
           const pick = (x: THREE.Material) => (/glass/i.test(x.name) ? glassMat : warm);
           obj.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) m.material = Array.isArray(m.material) ? m.material.map(pick) : pick(m.material); });
           const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), k = 3.3 / size.y;
@@ -810,7 +882,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       return g;
     };
     /** Per station: the full panel (detail) and its small year sign; k eases 0 → 1 as the station comes into focus */
-    const focusables: { detail: THREE.Group; sign: THREE.Group; k: number }[] = [];
+    const focusables: { detail: THREE.Group; sign: THREE.Group; k: number; reveal: number; redraw: (reveal: number) => void }[] = [];
     const addPanel = (s: JourneyStage, pos: THREE.Vector3, face: THREE.Vector3) => {
       const canvas = document.createElement('canvas'); canvas.width = 1400; canvas.height = 1000;
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
@@ -890,7 +962,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const signFace = caption(1.7, 0.8, [s.year], s.color); signFace.position.y = 2.5 - pos.y;
       const signPost = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.1, 8), frameMat); signPost.position.y = 1.05 - pos.y;
       sign.add(signFace, signPost); group.add(sign);
-      focusables.push({ detail, sign, k: 0 });
+      focusables.push({ detail, sign, k: 0, reveal: reducedMotion ? 1 : 0, redraw: r => { drawStage(canvas, s, isAr, r); tex.needsUpdate = true; } });
 
       const dir = face.clone().sub(pos); dir.y = 0; dir.normalize();
       group.rotation.y = Math.atan2(dir.x, dir.z);
@@ -949,7 +1021,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     let figuresState: LiveFigure[] | null = null, asOfState: string | undefined, boardStart = 0;
     const redrawText = () => {
       drawSign(signCanvas, isAr); signTex.needsUpdate = true;
-      for (const p of panelTex) { drawStage(p.canvas, p.stage, isAr); p.tex.needsUpdate = true; }
+      for (const f of focusables) f.redraw(f.reveal);
       for (const l of labels) l();
       for (const l of labelsEarly) l();
       drawBoard(boardCanvas, figuresState, isAr, asOfState); boardTex.needsUpdate = true;
@@ -968,7 +1040,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // ── Controls and camera moves ──
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.enablePan = false;
-    controls.minDistance = 2; controls.maxDistance = 70; controls.maxPolarAngle = Math.PI * 0.53;
+    controls.minDistance = 2; controls.maxDistance = 170; controls.maxPolarAngle = Math.PI * 0.53;
     controls.rotateSpeed = 0.5;
     // Taking hold of the view ends the opening fly-in
     renderer.domElement.addEventListener('pointerdown', () => { intro = null; });
@@ -977,6 +1049,49 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     let tween: { from: THREE.Vector3; to: THREE.Vector3; tFrom: THREE.Vector3; tTo: THREE.Vector3; start: number; dur: number } | null = null;
     let intro: { cam: THREE.CatmullRomCurve3; target: THREE.CatmullRomCurve3; start: number; dur: number } | null = null;
     let current = 0;
+    // First-person modes: walking with the keyboard, turning the view with the head or by dragging
+    const mode: ViewMode = { walk: false, look: false, stereo: false };
+    const stereo = new StereoEffect(renderer);
+    const fp = { yaw: 0, pitch: 0, pos: new THREE.Vector3(), gyro: null as THREE.Quaternion | null, yawOffset: null as number | null };
+    const keys = new Set<string>();
+    let walkFocus = -1;
+    const firstPerson = () => mode.walk || mode.look;
+    const faceFrom = (pos: THREE.Vector3, target: THREE.Vector3) => { const d = target.clone().sub(pos).normalize(); fp.yaw = Math.atan2(-d.x, -d.z); fp.pitch = Math.asin(THREE.MathUtils.clamp(d.y, -1, 1)); fp.yawOffset = null; };
+    const setMode = (next: Partial<ViewMode>) => {
+      const was = firstPerson();
+      Object.assign(mode, next);
+      if (firstPerson() && !was) {
+        const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+        fp.pos.copy(camera.position); faceFrom(fp.pos, fp.pos.clone().add(dir));
+        controls.enabled = false; tween = null; intro = null;
+      }
+      if (mode.walk) fp.pos.y = 1.7;
+      if (!firstPerson() && was) { controls.enabled = true; goTo(current, true); }
+      if (!mode.stereo) { const w = mount.clientWidth, h = mount.clientHeight; renderer.setScissorTest(false); renderer.setViewport(0, 0, w, h); }
+      keys.clear();
+    };
+    const onKeyDown = (e: KeyboardEvent) => { if (mode.walk && !(e.target as HTMLElement)?.closest?.('input, textarea, select')) keys.add(e.key.toLowerCase()); };
+    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
+    window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
+    let dragAt: { x: number; y: number } | null = null;
+    const onLookDown = (e: PointerEvent) => { if (firstPerson()) dragAt = { x: e.clientX, y: e.clientY }; };
+    const onLookMove = (e: PointerEvent) => {
+      if (!dragAt || !firstPerson()) return;
+      fp.yaw += (e.clientX - dragAt.x) * 0.004; fp.pitch = THREE.MathUtils.clamp(fp.pitch + (e.clientY - dragAt.y) * 0.004, -1.3, 1.3);
+      dragAt = { x: e.clientX, y: e.clientY };
+    };
+    const onLookUp = () => { dragAt = null; };
+    renderer.domElement.addEventListener('pointerdown', onLookDown); window.addEventListener('pointermove', onLookMove); window.addEventListener('pointerup', onLookUp);
+    // Phone sensors → camera orientation (the usual alpha/beta/gamma conversion, corrected for screen rotation)
+    const zee = new THREE.Vector3(0, 0, 1), upY = new THREE.Vector3(0, 1, 0), eul = new THREE.Euler(), q0 = new THREE.Quaternion(), qY = new THREE.Quaternion();
+    const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+    const onOrient = (e: DeviceOrientationEvent) => {
+      if (e.alpha === null || e.beta === null || e.gamma === null) return;
+      const rad = THREE.MathUtils.degToRad, orient = rad(screen.orientation?.angle ?? 0);
+      eul.set(rad(e.beta), rad(e.alpha), -rad(e.gamma), 'YXZ');
+      fp.gyro = (fp.gyro || new THREE.Quaternion()).setFromEuler(eul).multiply(q1).multiply(q0.setFromAxisAngle(zee, -orient));
+    };
+    window.addEventListener('deviceorientation', onOrient);
     /** Narrow (portrait) screens step back so the whole panel fits */
     const fitted = (s: Station): Station => {
       const k = Math.max(1, 1.35 / camera.aspect);
@@ -992,6 +1107,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const s = fitted(stations[Math.max(0, Math.min(stations.length - 1, i))]);
       current = i;
       if (renderer.xr.isPresenting) { placeDolly(s); return; }
+      // In a first-person mode a station is a place to stand, facing its card
+      if (firstPerson()) { fp.pos.copy(s.cam); if (mode.walk) fp.pos.y = 1.7; faceFrom(fp.pos, s.target); intro = null; tween = null; return; }
       intro = null;
       if (instant || reducedMotion) { camera.position.copy(s.cam); controls.target.copy(s.target); tween = null; return; }
       tween = { from: camera.position.clone(), to: s.cam.clone(), tFrom: controls.target.clone(), tTo: s.target.clone(), start: performance.now(), dur: 2600 };
@@ -1025,14 +1142,17 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       goTo,
       setFigures: (f, asOf) => { const first = !figuresState && f; figuresState = f; asOfState = asOf; boardStart = first ? performance.now() : 0; drawBoard(boardCanvas, f, isAr, asOf); boardTex.needsUpdate = true; drawFigures(first ? 0 : 1); },
       enterVR,
+      setMode,
     };
 
     // ── Animation loop ──
     const clock = new THREE.Clock();
-    let readySent = false;
+    let readySent = false, prev = performance.now();
     renderer.setAnimationLoop(() => {
       const t = clock.getElapsedTime();
       const now = performance.now();
+      // dt drives movement (capped so a stall cannot throw the walker through a wall); slow frames still finish card animations on time
+      const raw = Math.min(0.5, (now - prev) / 1000), dt = Math.min(0.1, raw); prev = now;
       if (intro) {
         // The clock starts with the first drawn frame, so loading time does not eat the fly-in
         if (!Number.isFinite(intro.start)) intro.start = now + 500;
@@ -1048,7 +1168,28 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         controls.target.lerpVectors(tween.tFrom, tween.tTo, e);
         if (k >= 1) tween = null;
       }
-      if (!renderer.xr.isPresenting) controls.update();
+      if (firstPerson() && !renderer.xr.isPresenting) {
+        if (mode.walk) {
+          // W/S or ↑/↓ walk, A/D step sideways, ←/→ turn, Shift runs
+          const has = (...k: string[]) => k.some(x => keys.has(x));
+          const f = (has('w', 'arrowup') ? 1 : 0) - (has('s', 'arrowdown') ? 1 : 0), r = (has('d') ? 1 : 0) - (has('a') ? 1 : 0);
+          fp.yaw += ((has('arrowleft', 'q') ? 1 : 0) - (has('arrowright', 'e') ? 1 : 0)) * 1.7 * dt;
+          const sp = (has('shift') ? 11 : 5.5) * dt, sin = Math.sin(fp.yaw), cos = Math.cos(fp.yaw);
+          fp.pos.x += (-sin * f + cos * r) * sp; fp.pos.z += (-cos * f - sin * r) * sp;
+          // Stay inside the courtyard, the lobby's middle arch and the forecourt
+          fp.pos.z = THREE.MathUtils.clamp(fp.pos.z, FZ + 2, EZ + D + 70);
+          const inLobby = fp.pos.z > EZ - 0.6 && fp.pos.z < EZ + D + 0.6;
+          fp.pos.x = THREE.MathUtils.clamp(fp.pos.x, inLobby ? -3.2 : -W / 2 + 1.5, inLobby ? 3.2 : W / 2 - 1.5);
+          walkFocus = -1; let near = 11;
+          stations.forEach((st, i) => { if (i === 0 || i === stations.length - 1) return; const d = Math.hypot(st.target.x - fp.pos.x, st.target.z - fp.pos.z); if (d < near) { near = d; walkFocus = i; } });
+        }
+        camera.position.copy(fp.pos);
+        if (mode.look && fp.gyro) {
+          // Keep facing the way the visitor was looking when head-turning started
+          if (fp.yawOffset === null) fp.yawOffset = fp.yaw - new THREE.Euler().setFromQuaternion(fp.gyro, 'YXZ').y;
+          camera.quaternion.copy(qY.setFromAxisAngle(upY, fp.yawOffset)).multiply(fp.gyro);
+        } else camera.rotation.set(fp.pitch, fp.yaw, 0, 'YXZ');
+      } else if (!renderer.xr.isPresenting) controls.update();
 
       // Fountain jets: waves travelling around the rings, colours cycling teal → purple
       const motion = reducedMotion ? 0.25 : 1;
@@ -1086,9 +1227,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         drawFigures(k);
         if (k >= 1) boardStart = 0;
       }
+      const focus = mode.walk ? walkFocus : current;
       focusables.forEach((f, i) => {
-        const want = i === current - 1 ? 1 : 0;
-        f.k = reducedMotion ? want : f.k + (want - f.k) * 0.09;
+        const want = i === focus - 1 ? 1 : 0;
+        f.k = reducedMotion ? want : f.k + (want - f.k) * (1 - Math.exp(-raw * 5.5));
+        // The points arrive one after another once the card has opened, and reset when it closes
+        if (want && f.k > 0.55 && f.reveal < 1) { f.reveal = Math.min(1, f.reveal + raw / 2.2); f.redraw(f.reveal); }
+        else if (!want && f.k < 0.05 && f.reveal > 0 && !reducedMotion) { f.reveal = 0; f.redraw(0); }
         f.detail.visible = f.k > 0.02; f.detail.scale.setScalar(0.55 + 0.45 * f.k);
         f.sign.visible = f.k < 0.9; f.sign.scale.setScalar(1 - f.k * 0.6);
       });
@@ -1098,6 +1243,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       }
 
       if (renderer.xr.isPresenting) renderer.render(scene, camera);
+      else if (mode.stereo) stereo.render(scene, camera);
       else composer.render();
       if (!readySent) { readySent = true; cb.current.onReady?.(); }
     });
@@ -1105,25 +1251,28 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const onResize = () => {
       const w = mount.clientWidth, h = mount.clientHeight;
       camera.aspect = w / h; camera.updateProjectionMatrix();
-      renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w, h);
+      renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w, h); stereo.setSize(w, h);
     };
     const ro = new ResizeObserver(onResize); ro.observe(mount);
 
     // A rebuilt scene (language or motion setting changed) returns to the station the visitor was at
     if (indexRef.current || reducedMotion) goTo(indexRef.current, true);
     else {
-      // Opening shot from the front corner of the courtyard, through the middle, to the live board
+      // Opening shot: the building from outside, in through the middle arch and the lobby, then the courtyard and the live board
       const end = fitted(stations[0]);
       intro = {
-        cam: new THREE.CatmullRomCurve3([new THREE.Vector3(17, 2.6, 30), new THREE.Vector3(9, 5.5, 34), new THREE.Vector3(0, 7.5, 30), new THREE.Vector3(0, 7, 14), end.cam.clone()], false, 'catmullrom', 0.4),
-        target: new THREE.CatmullRomCurve3([new THREE.Vector3(-8, 7, -22), new THREE.Vector3(-3, 8, FZ), new THREE.Vector3(0, 10, FZ), new THREE.Vector3(0, 9.5, FZ), end.target.clone()], false, 'catmullrom', 0.4),
-        start: Infinity, dur: 10000,
+        cam: new THREE.CatmullRomCurve3([new THREE.Vector3(26, 4, EZ + D + 62), new THREE.Vector3(8, 3.4, EZ + D + 30), new THREE.Vector3(0, 3.2, EZ + D + 6), new THREE.Vector3(0, 3.4, EZ - 4), new THREE.Vector3(0, 7, 12), end.cam.clone()], false, 'catmullrom', 0.35),
+        target: new THREE.CatmullRomCurve3([new THREE.Vector3(0, 11, EZ + D), new THREE.Vector3(0, 8, EZ + D), new THREE.Vector3(0, 5, EZ - 10), new THREE.Vector3(0, 7, -8), new THREE.Vector3(0, 9.5, FZ), end.target.clone()], false, 'catmullrom', 0.35),
+        start: Infinity, dur: 15000,
       };
       intro.cam.getPoint(0, camera.position); intro.target.getPoint(0, controls.target);
     }
 
     return () => {
       ro.disconnect();
+      window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('pointermove', onLookMove); window.removeEventListener('pointerup', onLookUp);
+      window.removeEventListener('deviceorientation', onOrient);
       renderer.setAnimationLoop(null);
       renderer.xr.getSession()?.end().catch(() => {});
       controls.dispose();
