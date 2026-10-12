@@ -26,7 +26,7 @@ export interface LiveFigure { labelAr: string; labelEn: string; value: number | 
 export interface ViewMode { walk: boolean; look: boolean; stereo: boolean }
 /** What turns the view in head-look mode: the device's motion sensor, or the pointer when there is none ("insecure": the page is not on HTTPS, so the browser withholds the sensor) */
 export type LookSource = 'sensor' | 'pointer' | 'insecure';
-export interface CourtyardHandle { enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => Promise<LookSource | null>; /** Walking input from the on-screen stick: x to the right, y towards the visitor, each −1…1 */ move: (x: number, y: number) => void }
+export interface CourtyardHandle { enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => Promise<LookSource | null>; /** Walking input from the on-screen stick: x to the right, y towards the visitor, each −1…1 */ move: (x: number, y: number) => void; /** The visitor's own walking speed in m/s, from the phone's GPS: it carries them forward the way they face */ gps: (speed: number) => void }
 interface Props {
   stages: JourneyStage[];
   index: number;
@@ -399,7 +399,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 ) {
   const mountRef = useRef<HTMLDivElement>(null);
   const api = useRef<{
-    goTo: (i: number) => void; setFigures: (f: LiveFigure[] | null, asOf?: string) => void; enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => void; hasSensor: () => boolean; move: (x: number, y: number) => void; setInset: (px: number) => void;
+    goTo: (i: number) => void; setFigures: (f: LiveFigure[] | null, asOf?: string) => void; enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => void; hasSensor: () => boolean; move: (x: number, y: number) => void; setInset: (px: number) => void; gps: (speed: number) => void;
   } | null>(null);
   const insetRef = useRef(bottomInset);
   insetRef.current = bottomInset;
@@ -411,6 +411,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
   useImperativeHandle(ref, () => ({
     enterVR: () => api.current?.enterVR() ?? Promise.resolve(),
     move: (x, y) => api.current?.move(x, y),
+    gps: speed => api.current?.gps(speed),
     setMode: async m => {
       // iOS only hands out motion data after the visitor agrees, and only from a tap
       if (m.look) { const D = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } }).DeviceOrientationEvent; try { await D?.requestPermission?.(); } catch { /* refused: dragging still turns the view */ } }
@@ -1573,6 +1574,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const keys = new Set<string>();
     /** The on-screen stick; a game controller's sticks are added to it */
     const stick = { x: 0, y: 0 }; let padA = false;
+    /** Real walking speed from the phone's GPS and when it was reported; one metre walked is GPS_GAIN metres in the courtyard */
+    const gps = { v: 0, at: 0 }, GPS_GAIN = 1.6, gpsDir = new THREE.Vector3();
     /** A spot on the ground the visitor pressed to walk to, and the ring that marks it */
     let walkTo: THREE.Vector3 | null = null;
     const marker = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.05, 6, 40), neon(AQUA, 2.4)); marker.rotation.x = Math.PI / 2; marker.visible = false; scene.add(marker);
@@ -1625,7 +1628,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
     const onOrient = (e: DeviceOrientationEvent) => {
       if (e.alpha === null || e.beta === null || e.gamma === null) return;
-      const rad = THREE.MathUtils.degToRad, orient = rad(screen.orientation?.angle ?? 0);
+      const rad = THREE.MathUtils.degToRad, turn = (window as unknown as { orientation?: number }).orientation, orient = rad(typeof turn === 'number' ? turn : screen.orientation?.angle ?? 0);
       eul.set(rad(e.beta), rad(e.alpha), -rad(e.gamma), 'YXZ');
       fp.gyro = (fp.gyro || new THREE.Quaternion()).setFromEuler(eul).multiply(q1).multiply(q0.setFromAxisAngle(zee, -orient));
     };
@@ -1781,6 +1784,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       setMode,
       hasSensor: () => !!fp.gyro,
       move: (x, y) => { stick.x = x; stick.y = y; },
+      gps: v => { gps.v = v; gps.at = performance.now(); },
       setInset: px => { bottomInsetPx = px; placeHub(); },
     };
 
@@ -1825,6 +1829,11 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
           const sp = (has('shift') ? 11 : 5.5) * dt, sin = Math.sin(fp.yaw), cos = Math.cos(fp.yaw);
           fp.pos.x += (-sin * f + cos * r) * sp; fp.pos.z += (-cos * f - sin * r) * sp;
           // Stay inside the courtyard, the lobby's middle arch and the forecourt
+          // Walking for real (GPS): forward the way the head faces. A reading older than a few seconds no longer counts.
+          if (gps.v > 0 && now - gps.at < 4000) {
+            camera.getWorldDirection(gpsDir); gpsDir.y = 0;
+            if (gpsDir.lengthSq() > 1e-4) { gpsDir.normalize(); fp.pos.x += gpsDir.x * gps.v * GPS_GAIN * dt; fp.pos.z += gpsDir.z * gps.v * GPS_GAIN * dt; walkTo = null; }
+          }
           fp.pos.z = THREE.MathUtils.clamp(fp.pos.z, FZ + 2, EZ + D + 70);
           const inLobby = fp.pos.z > EZ - 0.6 && fp.pos.z < EZ + D + 0.6;
           fp.pos.x = THREE.MathUtils.clamp(fp.pos.x, inLobby ? -3.2 : -W / 2 + 1.5, inLobby ? 3.2 : W / 2 - 1.5);

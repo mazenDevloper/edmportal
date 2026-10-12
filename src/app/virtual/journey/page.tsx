@@ -73,6 +73,9 @@ export default function DigitalJourneyPage() {
   const [sbs, setSbs] = useState(false);
   const [lookBy, setLookBy] = useState<LookSource | null>(null);
   // Full screen: the browser's own where it has one; on an iPhone the page must be opened from the home screen instead
+  // In the headset view the visitor moves by really walking: the phone's GPS gives the walking speed
+  const [gps, setGps] = useState<'off' | 'wait' | 'on' | 'denied' | 'none'>('off');
+  const [gpsSpeed, setGpsSpeed] = useState(0);
   const [full, setFull] = useState(false);
   const [standalone, setStandalone] = useState(false);
   const [fullHelp, setFullHelp] = useState(false);
@@ -91,7 +94,8 @@ export default function DigitalJourneyPage() {
     try {
       if (v) { setLook(true); void document.documentElement.requestFullscreen?.()?.catch(() => {}); } else if (document.fullscreenElement) void document.exitFullscreen?.()?.catch(() => {});
     } catch { /* full screen is not available here; the split view still works */ }
-    void scene.current?.setMode(v ? { stereo: true, look: true } : { stereo: false }).then(r => { if (v) setLookBy(r ?? null); });
+    setWalk(v);
+    void scene.current?.setMode(v ? { stereo: true, look: true, walk: true } : { stereo: false, walk: false }).then(r => { if (v) setLookBy(r ?? null); });
   };
   const scene = useRef<CourtyardHandle>(null);
   const chips = useRef<HTMLOListElement>(null);
@@ -122,6 +126,27 @@ export default function DigitalJourneyPage() {
       if (vp && oldVp) vp.setAttribute('content', oldVp);
     };
   }, []);
+
+  useEffect(() => {
+    if (!sbs) { setGps('off'); return; }
+    if (!navigator.geolocation) { setGps('none'); return; }
+    setGps('wait');
+    let last: { lat: number; lon: number; t: number } | null = null;
+    const id = navigator.geolocation.watchPosition(p => {
+      const { latitude: lat, longitude: lon, speed, accuracy } = p.coords, toRad = Math.PI / 180;
+      let v = typeof speed === 'number' && speed >= 0 ? speed : NaN;
+      if (Number.isNaN(v) && last) {
+        // No speed from the device: work it out from two fixes, when they are further apart than the fix is uncertain
+        const dt = (p.timestamp - last.t) / 1000, d = 6371000 * Math.hypot((lat - last.lat) * toRad, (lon - last.lon) * toRad * Math.cos(lat * toRad));
+        v = dt > 0.3 && d > Math.max(1.5, accuracy * 0.5) ? d / dt : 0;
+      }
+      last = { lat, lon, t: p.timestamp };
+      // Standing still reads as a few tenths of a metre per second, and a poor fix is not trusted
+      v = !Number.isFinite(v) || v < 0.4 || accuracy > 25 ? 0 : Math.min(v, 3);
+      setGps('on'); setGpsSpeed(v); scene.current?.gps(v);
+    }, e => setGps(e.code === e.PERMISSION_DENIED ? 'denied' : 'wait'), { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+    return () => { navigator.geolocation.clearWatch(id); scene.current?.gps(0); };
+  }, [sbs]);
 
   const next = useCallback(() => setIndex(i => (i + 1) % STATIONS), []);
   const prev = useCallback(() => setIndex(i => (i - 1 + STATIONS) % STATIONS), []);
@@ -217,13 +242,13 @@ export default function DigitalJourneyPage() {
   );
 
   return (
-    <div className="fixed inset-0 bg-[#05060f] text-white overflow-hidden select-none" dir={isAr ? 'rtl' : 'ltr'} lang={isAr ? 'ar' : 'en'}>
+    <div className={cn('fixed inset-0 bg-[#05060f] text-white overflow-hidden select-none', sbs && 'z-[10000]')} dir={isAr ? 'rtl' : 'ltr'} lang={isAr ? 'ar' : 'en'}>
       <h1 className="sr-only">{t('رحلة التحول الرقمي لبلدية ظفار — ساحة مبنى البلدية الجديد', 'Dhofar Municipality digital transformation journey — the new building courtyard')}</h1>
 
       {webgl && <CourtyardJourney ref={scene} stages={JOURNEY} index={index} isAr={isAr} figures={figures} asOfLabel={asOf} reducedMotion={reducedMotion}
         onReady={() => setReady(true)} onNext={next} onVRChange={setInVR} onSelect={i => { setAuto(false); setIndex(i); }} bottomInset={inset} />}
 
-      {webgl && ready && walk && <Joystick label={t('عصا التحكم: اسحب للمشي', 'Joystick: drag to walk')} onMove={(x, y) => scene.current?.move(x, y)} />}
+      {webgl && ready && walk && !sbs && <Joystick label={t('عصا التحكم: اسحب للمشي', 'Joystick: drag to walk')} onMove={(x, y) => scene.current?.move(x, y)} />}
 
       {webgl === false && (
         <div className="absolute inset-0 overflow-y-auto p-6 pt-24 max-w-3xl mx-auto">
@@ -240,42 +265,44 @@ export default function DigitalJourneyPage() {
       )}
 
       {/* Top bar */}
-      <header className="absolute top-0 inset-x-0 p-4 flex items-center gap-2 bg-gradient-to-b from-black/60 to-transparent" style={SAFE_TOP}>
+      {(sbs ? (['l', 'r'] as const) : ([null] as const)).map(eye => (
+      <header key={eye ?? 'one'} className={cn('absolute top-0 flex items-center bg-gradient-to-b from-black/60 to-transparent', eye ? 'w-1/2 p-2 gap-1.5 [&_[data-lbl]]:hidden [&_[data-wide]]:hidden' : 'inset-x-0 p-4 gap-2', eye === 'l' && 'left-0', eye === 'r' && 'left-1/2')} style={eye ? undefined : SAFE_TOP}>
         <button type="button" onClick={exit} className="size-11 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('خروج', 'Exit')}><X size={20} /></button>
-        <div className="leading-tight">
-          <p className="font-black flex items-center gap-2"><VrHeadsetIcon size={20} />{t('رحلة التحول الرقمي', 'Digital transformation journey')}</p>
-          <p className="text-[11px] font-bold text-white/60">{look && lookBy && !walk ? (lookBy === 'sensor' ? t('حرّك جهازك للنظر حولك', 'Move your device to look around') : lookBy === 'insecure' ? t('حساس الحركة يحتاج فتح الصفحة عبر HTTPS · حرّك المؤشر للنظر الآن', 'The motion sensor needs HTTPS · move the pointer to look for now') : t('لا يوجد حساس حركة في هذا الجهاز · حرّك المؤشر للنظر', 'This device has no motion sensor · move the pointer to look')) : walk ? t('امشِ بعصا التحكم أو W A S D · اضغط على الأرض للمشي إليها · العجلة للتقدم · اسحب للنظر', 'Walk with the stick or W A S D · press the ground to walk there · wheel to step · drag to look') : t('مبنى بلدية ظفار الجديد · صلالة المستقبل ليلاً', 'New Dhofar Municipality building · future Salalah at night')}</p>
+        <div className="leading-tight min-w-0">
+          <p className="font-black flex items-center gap-2 whitespace-nowrap"><VrHeadsetIcon size={20} />{t('رحلة التحول الرقمي', 'Digital transformation journey')}</p>
+          <p className={cn('text-[11px] font-bold text-white/60', sbs && 'truncate')}>{sbs ? (gps === 'on' ? t(`امشِ فعلياً لتتقدم · GPS ${gpsSpeed.toFixed(1)} م/ث`, `Walk for real to move · GPS ${gpsSpeed.toFixed(1)} m/s`) : gps === 'denied' ? t('اسمح بالوصول للموقع لتتحرك بالمشي', 'Allow location to move by walking') : gps === 'none' ? t('لا يوجد GPS في هذا الجهاز', 'No GPS on this device') : t('بانتظار إشارة GPS…', 'Waiting for a GPS signal…')) : look && lookBy && !walk ? (lookBy === 'sensor' ? t('حرّك جهازك للنظر حولك', 'Move your device to look around') : lookBy === 'insecure' ? t('حساس الحركة يحتاج فتح الصفحة عبر HTTPS · حرّك المؤشر للنظر الآن', 'The motion sensor needs HTTPS · move the pointer to look for now') : t('لا يوجد حساس حركة في هذا الجهاز · حرّك المؤشر للنظر', 'This device has no motion sensor · move the pointer to look')) : walk ? t('امشِ بعصا التحكم أو W A S D · اضغط على الأرض للمشي إليها · العجلة للتقدم · اسحب للنظر', 'Walk with the stick or W A S D · press the ground to walk there · wheel to step · drag to look') : t('مبنى بلدية ظفار الجديد · صلالة المستقبل ليلاً', 'New Dhofar Municipality building · future Salalah at night')}</p>
         </div>
         <div className="ms-auto flex items-center gap-2">
-          <button type="button" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" lang={isAr ? 'en' : 'ar'}>
+          <button type="button" data-wide onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" lang={isAr ? 'en' : 'ar'}>
             <Languages size={16} />{isAr ? 'EN' : 'ع'}
           </button>
           {webgl && ready && <>
-            <button type="button" onClick={toggleWalk} aria-pressed={walk} title={t('وضع المشي: عصا التحكم، لوحة المفاتيح أو الفأرة', 'Walk mode: joystick, keyboard or mouse')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', walk ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
-              <Footprints size={16} /><span className="hidden md:inline">{t('مشي', 'Walk')}</span>
+            <button type="button" data-wide onClick={toggleWalk} aria-pressed={walk} title={t('وضع المشي: عصا التحكم، لوحة المفاتيح أو الفأرة', 'Walk mode: joystick, keyboard or mouse')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', walk ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
+              <Footprints size={16} /><span data-lbl className="hidden md:inline">{t('مشي', 'Walk')}</span>
             </button>
             <button type="button" onClick={toggleLook} aria-pressed={look} title={t('تحريك الرأس', 'Turn with your head')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', look ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
-              <Rotate3d size={16} /><span className="hidden md:inline">{t('تحريك الرأس', 'Head look')}</span>
+              <Rotate3d size={16} /><span data-lbl className="hidden md:inline">{t('تحريك الرأس', 'Head look')}</span>
             </button>
             <button type="button" onClick={toggleSbs} aria-pressed={sbs} title={t('جنباً إلى جنب لنظارة الهاتف', 'Side by side for a phone headset')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', sbs ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
-              <Columns2 size={16} /><span className="hidden md:inline">SBS</span>
+              <Columns2 size={16} /><span data-lbl className="hidden md:inline">SBS</span>
             </button>
           </>}
           {!standalone && (
-            <button type="button" onClick={toggleFull} aria-pressed={full} title={t('ملء الشاشة', 'Full screen')} aria-label={t('ملء الشاشة', 'Full screen')} className={cn('size-11 rounded-2xl backdrop-blur flex items-center justify-center', full ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
+            <button type="button" data-wide onClick={toggleFull} aria-pressed={full} title={t('ملء الشاشة', 'Full screen')} aria-label={t('ملء الشاشة', 'Full screen')} className={cn('size-11 rounded-2xl backdrop-blur flex items-center justify-center', full ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
               {full ? <Minimize size={18} /> : <Maximize size={18} />}
             </button>
           )}
-          <button type="button" onClick={() => setShowList(true)} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" aria-haspopup="dialog">
-            <List size={16} /><span className="hidden sm:inline">{t('المحطات', 'Stations')}</span>
+          <button type="button" data-wide onClick={() => setShowList(true)} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" aria-haspopup="dialog">
+            <List size={16} /><span data-lbl className="hidden sm:inline">{t('المحطات', 'Stations')}</span>
           </button>
           {vrSupported && (
-            <button type="button" onClick={enterVR} disabled={inVR} className="h-11 px-4 rounded-2xl bg-gradient-to-r from-[#03CFCB] to-[#7B3FA8] text-sm font-black flex items-center gap-2 shadow-[0_0_24px_rgba(3,207,203,0.5)]">
+            <button type="button" data-wide onClick={enterVR} disabled={inVR} className="h-11 px-4 rounded-2xl bg-gradient-to-r from-[#03CFCB] to-[#7B3FA8] text-sm font-black flex items-center gap-2 shadow-[0_0_24px_rgba(3,207,203,0.5)]">
               <VrHeadsetIcon size={18} />{t('دخول بنظارة VR', 'Enter VR')}
             </button>
           )}
         </div>
       </header>
+      ))}
 
       {/* Station caption and controls */}
       {webgl && ready && !sbs && (
@@ -354,6 +381,19 @@ export default function DigitalJourneyPage() {
           </div>
         </div>
       )}
+
+      {webgl && ready && sbs && (['l', 'r'] as const).map(eye => (
+        <div key={eye} className={cn('pointer-events-none absolute bottom-0 w-1/2 p-3 flex items-end gap-2 bg-gradient-to-t from-black/70 to-transparent', eye === 'l' ? 'left-0' : 'left-1/2')}>
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="text-xs font-black truncate" style={{ color: stage?.color ?? '#5ff5f2' }}>{stage ? stage.year : index === 0 ? t('البداية', 'Start') : t('مباشر', 'Live')}</p>
+            <p className="text-sm font-black truncate">{stage ? (isAr ? stage.titleAr : stage.titleEn) : index === 0 ? t('ساحة المبنى الجديد', 'The new courtyard') : t('أرقام المعاملات الإلكترونية', 'E-transactions in numbers')}</p>
+          </div>
+          <div className="pointer-events-auto flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={prev} className="size-9 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('المحطة السابقة', 'Previous station')}>{isAr ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}</button>
+            <button type="button" onClick={next} className="size-9 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('المحطة التالية', 'Next station')}>{isAr ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}</button>
+          </div>
+        </div>
+      ))}
 
       {fullHelp && (
         <div className="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-5" role="dialog" aria-modal aria-label={t('التشغيل بملء الشاشة', 'Running full screen')}>
