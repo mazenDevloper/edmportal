@@ -77,10 +77,13 @@ function facadeTextures(portal = true) {
   const PX = 28, cw = W * PX, ch = H * PX;
   const map = document.createElement('canvas'); map.width = cw; map.height = ch;
   const em = document.createElement('canvas'); em.width = cw; em.height = ch;
-  const m = map.getContext('2d')!, e = em.getContext('2d')!;
+  // Gloss map (green = roughness, blue = metalness): rough stone, polished reflective glass
+  const gl = document.createElement('canvas'); gl.width = cw; gl.height = ch;
+  const m = map.getContext('2d')!, e = em.getContext('2d')!, q = gl.getContext('2d')!;
   const r = rng(7);
   m.fillStyle = '#c9b497'; m.fillRect(0, 0, cw, ch);
   e.fillStyle = '#000'; e.fillRect(0, 0, cw, ch);
+  q.fillStyle = 'rgb(0,232,0)'; q.fillRect(0, 0, cw, ch);
   // Stone courses
   for (let y = 0; y < H; y += 0.45) {
     let x = -r() * 1.2;
@@ -92,7 +95,7 @@ function facadeTextures(portal = true) {
     }
   }
   const X = (x: number) => (x + W / 2) * PX, Y = (y: number) => ch - y * PX;
-  const lit = () => { const v = r(); return v < 0.28 ? null : `rgba(255, ${190 + Math.round(r() * 40)}, ${120 + Math.round(r() * 50)}, ${0.55 + r() * 0.4})`; };
+  const lit = () => { const v = r(); return v < 0.66 ? null : `rgba(255, ${190 + Math.round(r() * 40)}, ${120 + Math.round(r() * 50)}, ${0.55 + r() * 0.4})`; };
   const win = (cx: number, cy: number, w: number, h: number, arched = false) => {
     const path = (ctx: CanvasRenderingContext2D, pad: number) => {
       ctx.beginPath();
@@ -102,7 +105,8 @@ function facadeTextures(portal = true) {
       ctx.closePath();
     };
     m.fillStyle = '#b0614a'; path(m, 4); m.fill();
-    m.fillStyle = '#1a222d'; path(m, 0); m.fill();
+    m.fillStyle = '#131b26'; path(m, 0); m.fill();
+    q.fillStyle = 'rgb(0,16,240)'; path(q, 0); q.fill();
     const glow = lit();
     if (glow) { e.fillStyle = glow; path(e, 0); e.fill(); }
   };
@@ -128,7 +132,8 @@ function facadeTextures(portal = true) {
     e.fillStyle = 'rgba(255,196,130,0.75)'; draw(e); e.fill();
   }
   const mk = (c: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
-  return { map: mk(map), emissive: mk(em) };
+  const gloss = new THREE.CanvasTexture(gl); gloss.anisotropy = 4;
+  return { map: mk(map), emissive: mk(em), gloss };
 }
 
 /** The portal's back wall with the three pointed arches (terracotta bands, glass openings) */
@@ -422,15 +427,15 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     renderer.domElement.setAttribute('aria-hidden', 'true');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x3b3048, 0.0042);
+    scene.fog = new THREE.FogExp2(0x060a18, 0.0030);
     const camera = new THREE.PerspectiveCamera(58, mount.clientWidth / mount.clientHeight, 0.1, 900);
     const dolly = new THREE.Group(); dolly.add(camera); scene.add(dolly);
 
     // ── Sky and stars ──
     const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false,
-      // Maghrib: warm light on the horizon rising through violet into deep blue
-      uniforms: { top: { value: new THREE.Color('#16244a') }, mid: { value: new THREE.Color('#5d4a7c') }, hor: { value: new THREE.Color('#f2a06c') } },
+      // Night, with the glow of the city along the horizon
+      uniforms: { top: { value: new THREE.Color('#01030a') }, mid: { value: new THREE.Color('#081028') }, hor: { value: new THREE.Color('#2a1d55') } },
       vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 hor; varying vec3 vP; void main(){ float h = max(vP.y, 0.0); vec3 c = mix(hor, mid, smoothstep(0.0, 0.18, h)); c = mix(c, top, smoothstep(0.18, 0.7, h)); gl_FragColor = vec4(c, 1.0); }',
     }));
@@ -438,32 +443,34 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const starGeo = new THREE.BufferGeometry(); const sp: number[] = []; const sr = rng(99);
     for (let i = 0; i < 1400; i++) { const th = sr() * Math.PI * 2, ph = Math.acos(0.15 + sr() * 0.85); sp.push(400 * Math.sin(ph) * Math.cos(th), 400 * Math.cos(ph), 400 * Math.sin(ph) * Math.sin(th)); }
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.4, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.28 })));
-    // The setting sun, low in the west
-    const moon = new THREE.Mesh(new THREE.SphereGeometry(16, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffb070').multiplyScalar(1.7), toneMapped: false, fog: false }));
-    moon.position.set(-400, 34, -150); scene.add(moon);
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.9 })));
+    const moon = new THREE.Mesh(new THREE.SphereGeometry(9, 28, 20), new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff3d6').multiplyScalar(1.5), toneMapped: false, fog: false }));
+    moon.position.set(-170, 190, -300); scene.add(moon);
 
     // Reflections for the gold trophies, medallion rims and the glass tower (not applied scene-wide)
     const pmrem = new THREE.PMREMGenerator(renderer);
     const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
     const gold = new THREE.MeshStandardMaterial({ color: 0xf2c14e, metalness: 1, roughness: 0.22, envMap, envMapIntensity: 1.15 });
+    /** Air traffic circling over the city */
+    const fliers: { o: THREE.Object3D; r: number; h: number; sp: number; ph: number }[] = [];
     /** Things that turn or bob in the animation loop */
     const movers: { o: THREE.Object3D; spin?: number; bob?: number; y0: number; phase: number }[] = [];
 
     // ── Lights ──
     // Mostly sky light, so the four walls of the courtyard read as the same stone; the low sun only warms them
-    scene.add(new THREE.HemisphereLight(0xb9a6cc, 0x4a3a3a, 1.2));
-    const moonLight = new THREE.DirectionalLight(0xffb98a, 0.45); moonLight.position.set(-70, 40, 60); scene.add(moonLight);
-    scene.environment = envMap; scene.environmentIntensity = 0.28;
+    // Night: a dim cool sky light and moonlight; the warm light comes from the lamps and windows
+    scene.add(new THREE.HemisphereLight(0x3b4a80, 0x16121c, 0.75));
+    const moonLight = new THREE.DirectionalLight(0x9fb4ff, 0.4); moonLight.position.set(-60, 80, 60); scene.add(moonLight);
+    scene.environment = envMap; scene.environmentIntensity = 0.16;
     // Polished and reflective finishes used around the entrance
-    const marble = new THREE.MeshPhysicalMaterial({ color: 0xd9d2cb, roughness: 0.16, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.1 });
-    const granite = new THREE.MeshPhysicalMaterial({ color: 0x7c3f3a, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1, envMapIntensity: 1 });
+    const marble = new THREE.MeshPhysicalMaterial({ color: 0xd9d2cb, roughness: 0.34, clearcoat: 0.45, clearcoatRoughness: 0.3, envMapIntensity: 0.8 });
+    const granite = new THREE.MeshPhysicalMaterial({ color: 0x7c3f3a, roughness: 0.36, clearcoat: 0.45, clearcoatRoughness: 0.3, envMapIntensity: 0.8 });
     const chrome = new THREE.MeshStandardMaterial({ color: 0xe3e7ec, metalness: 1, roughness: 0.16, envMapIntensity: 1.3 });
     const cladding = new THREE.MeshStandardMaterial({ color: 0x8f959d, metalness: 0.85, roughness: 0.32, envMapIntensity: 1 });
     const pane = new THREE.MeshPhysicalMaterial({ color: 0xcfeef0, transparent: true, opacity: 0.2, roughness: 0.02, metalness: 0, envMapIntensity: 2.2, side: THREE.DoubleSide, depthWrite: false });
     for (const x of [-30, -18, 18, 30]) {
-      const s = new THREE.SpotLight(0xffd9b0, 38, 45, 0.55, 0.6, 1.2);
+      const s = new THREE.SpotLight(0xffd9b0, 24, 45, 0.55, 0.6, 1.2);
       s.position.set(x, 0.3, FZ + 6); s.target.position.set(x, 18, FZ); scene.add(s, s.target);
     }
     const portalSpot = new THREE.SpotLight(0x9ff5ff, 70, 40, 0.6, 0.7, 1.2);
@@ -473,7 +480,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     });
 
     // ── Ground ──
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 240), new THREE.MeshPhysicalMaterial({ map: tileTexture(), roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.25, color: 0x9c948a }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 240), new THREE.MeshPhysicalMaterial({ map: tileTexture(), roughness: 0.38, clearcoat: 0.35, clearcoatRoughness: 0.35, color: 0x8c857c }));
     ground.rotation.x = -Math.PI / 2; ground.position.z = 30; scene.add(ground);
     (ground.material as THREE.MeshPhysicalMaterial).map!.repeat.set(48, 52);
 
@@ -481,9 +488,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const fac = facadeTextures(), facWing = facadeTextures(false);
     const stone = new THREE.MeshStandardMaterial({ color: 0xc9b497, roughness: 0.92 });
     const facadePiece = (x0: number, x1: number, y0: number, y1: number, depth = D) => {
-      const map = fac.map.clone(), em = fac.emissive.clone();
-      for (const t of [map, em]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
-      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.9 });
+      const map = fac.map.clone(), em = fac.emissive.clone(), gl = fac.gloss.clone();
+      for (const t of [map, em, gl]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
+      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.55, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.38 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, depth), [stone, stone, stone, stone, front, stone]);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, FZ - depth / 2);
       scene.add(mesh);
@@ -553,9 +560,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     for (let y = 3.6; y < 22; y += 3.6) strip(0.08, 0.08, 26, -W / 2 + 0.05, y, FZ + 11, AQUA, 1.6);
     // The two long sides of the courtyard, from the far façade to the entry block
     const wingSide = (sx: number, z0: number, z1: number) => {
-      const len = z1 - z0, map = facWing.map.clone(), em = facWing.emissive.clone();
-      for (const t of [map, em]) { t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, 1); t.needsUpdate = true; }
-      const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.9 });
+      const len = z1 - z0, map = facWing.map.clone(), em = facWing.emissive.clone(), gl = facWing.gloss.clone();
+      for (const t of [map, em, gl]) { t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, 1); t.needsUpdate = true; }
+      const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.55, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.38 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H, len), sx > 0 ? [stone, inner, stone, stone, stone, stone] : [inner, stone, stone, stone, stone, stone]);
       mesh.position.set(sx * (W / 2 + 5), H / 2, (z0 + z1) / 2); scene.add(mesh);
       strip(0.12, 0.12, len, sx * (W / 2 - 0.05), H + 0.05, (z0 + z1) / 2, AQUA, 2.2);
@@ -572,9 +579,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // The entry block: the visitor comes in from outside through three pointed arches, crosses the
     // lobby and steps into the courtyard. Both faces carry the façade; the arches are real openings.
     const entryPiece = (x0: number, x1: number, y0: number, y1: number) => {
-      const map = fac.map.clone(), em = fac.emissive.clone();
-      for (const t of [map, em]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
-      const face = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.45, roughness: 0.9 });
+      const map = fac.map.clone(), em = fac.emissive.clone(), gl = fac.gloss.clone();
+      for (const t of [map, em, gl]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
+      const face = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.55, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.38 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, D), [recessMat, recessMat, stone, recessMat, face, face]);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, EZ + D / 2); scene.add(mesh);
     };
@@ -600,7 +607,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const zc = document.createElement('canvas'); zc.width = 64; zc.height = 256; const zg = zc.getContext('2d')!;
       zg.fillStyle = '#cfc8c2'; zg.fillRect(0, 0, 64, 256); zg.fillStyle = '#7c3f3a'; for (let i = 0; i < 8; i++) zg.fillRect(0, i * 32 + 24, 64, 8);
       const zt = new THREE.CanvasTexture(zc); zt.colorSpace = THREE.SRGBColorSpace;
-      const zebra = new THREE.Mesh(new THREE.PlaneGeometry(22, 18), new THREE.MeshPhysicalMaterial({ map: zt, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.1 }));
+      const zebra = new THREE.Mesh(new THREE.PlaneGeometry(22, 18), new THREE.MeshPhysicalMaterial({ map: zt, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.3 }));
       zebra.rotation.x = -Math.PI / 2; zebra.position.set(0, 0.013, EZ + D + 12); scene.add(zebra);
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 9, 10), steel); pole.position.set(0, H + 4.5, EZ + D - 1); scene.add(pole);
       const fc = document.createElement('canvas'); fc.width = 300; fc.height = 150; const fg = fc.getContext('2d')!;
@@ -841,7 +848,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       g.add(top);
       return g;
     };
-    const white = new THREE.MeshStandardMaterial({ color: 0xf1f3f5, metalness: 0.1, roughness: 0.32, envMap, envMapIntensity: 0.7 });
+    const white = new THREE.MeshPhysicalMaterial({ color: 0xf5f7f9, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1, envMap, envMapIntensity: 1.1 });
     const dark = new THREE.MeshStandardMaterial({ color: 0x0b0d12, metalness: 0.6, roughness: 0.25, envMap, envMapIntensity: 0.8 });
     const lit = (hex: string, k = 1.5) => new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(k), toneMapped: false });
     const logoTex = new THREE.TextureLoader().load('/brand/dhofar-municipality-logo.png'); logoTex.colorSpace = THREE.SRGBColorSpace; logoTex.anisotropy = 4;
@@ -858,7 +865,11 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const chest = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 24), white); chest.scale.set(1, 0.72, 0.92); chest.position.y = 1.36;
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.31, 36, 28), white); head.scale.set(1, 0.92, 0.95); head.position.y = 1.78;
         const faceDisc = new THREE.Mesh(new THREE.CircleGeometry(0.235, 40), dark); faceDisc.scale.set(1, 0.84, 1); faceDisc.position.set(0, 1.8, 0.262); faceDisc.rotation.x = -0.2;
-        const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.17), lit('#2f8dff', 1.6)); screen.position.set(0, 1.805, 0.268); screen.rotation.x = -0.2;
+        const fc2 = document.createElement('canvas'); fc2.width = 256; fc2.height = 144;
+        { const x = fc2.getContext('2d')!; const gr = x.createLinearGradient(0, 0, 0, 144); gr.addColorStop(0, '#2f8dff'); gr.addColorStop(1, '#1554c0'); x.fillStyle = gr; x.fillRect(0, 0, 256, 144);
+          x.fillStyle = '#eaf6ff'; for (const ex of [84, 172]) { x.beginPath(); x.ellipse(ex, 62, 20, 26, 0, 0, Math.PI * 2); x.fill(); } x.strokeStyle = '#eaf6ff'; x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.arc(128, 86, 30, 0.25 * Math.PI, 0.75 * Math.PI); x.stroke(); }
+        const faceTex = new THREE.CanvasTexture(fc2); faceTex.colorSpace = THREE.SRGBColorSpace;
+        const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.17), new THREE.MeshBasicMaterial({ map: faceTex, toneMapped: false })); screen.position.set(0, 1.805, 0.268); screen.rotation.x = -0.2;
         const sensor = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.09, 0.04), dark); sensor.position.set(0, 0.86, 0.305);
         const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.163), new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) })); badge.position.set(0, 0.62, 0.352); badge.rotation.x = -0.06;
         g.add(foot, skirt, glow, belt, waist, chest, head, faceDisc, screen, sensor, badge);
@@ -868,6 +879,11 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
           const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), white); hand.position.set(sx * 0.4, 0.78, 0.04);
           g.add(joint, arm, hand);
         }
+        const neck = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.03, 10, 36), chrome); neck.rotation.x = Math.PI / 2; neck.position.y = 1.56;
+        const visor = new THREE.Mesh(new THREE.TorusGeometry(0.236, 0.012, 8, 44), chrome); visor.scale.set(1, 0.84, 1); visor.position.set(0, 1.8, 0.264); visor.rotation.x = -0.2;
+        g.add(neck, visor);
+        for (let i = 0; i < 5; i++) { const slot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.012, 0.01), dark); slot.position.set(0, 1.3 + i * 0.03, 0.283); g.add(slot); }
+        for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 20), dark); ear.rotation.z = Math.PI / 2; ear.position.set(sx * 0.305, 1.78, 0); const led = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.008, 6, 24), lit('#59e6c8', 1.6)); led.rotation.y = Math.PI / 2; led.position.set(sx * 0.322, 1.78, 0); g.add(ear, led); }
         g.scale.setScalar(1.25);
       } else if (kind === 'burj') {
         // Burj Al Nahdha, loaded from the supplied model and stood on the plinth
@@ -1070,6 +1086,76 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // The journey opens on the board too, reached by a fly-in (see the intro below)
     stations[0] = boardView;
 
+    {
+      const cr = rng(2040);
+      // Lit-window textures in three tints
+      const windows = ['#7ff5f2', '#ffd9a0', '#bda8ff'].map(hue => {
+        const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d')!;
+        x.fillStyle = '#000'; x.fillRect(0, 0, 64, 256); x.fillStyle = hue;
+        for (let r = 0; r < 40; r++) for (let col = 0; col < 8; col++) if (cr() > 0.5) { x.globalAlpha = 0.35 + cr() * 0.65; x.fillRect(col * 8 + 1.5, r * 6.4 + 1.5, 5, 3.4); }
+        const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+      });
+      const towerMats = windows.map(w => new THREE.MeshStandardMaterial({ color: 0x0a1122, metalness: 0.9, roughness: 0.22, envMap, envMapIntensity: 1, emissive: 0xffffff, emissiveMap: w, emissiveIntensity: 1.2 }));
+      for (let i = 0; i < 96; i++) {
+        const a = cr() * Math.PI * 2, r = 150 + cr() * 190, x = Math.cos(a) * r, z = 10 + Math.sin(a) * r;
+        const h = 24 + cr() * cr() * 130, w = 9 + cr() * 15, round = cr() > 0.7, twist = cr() * 3, crown = cr();
+        // The avenue in front of the entrance stays open
+        if (Math.abs(x) < 50 && z > 40) continue;
+        const tower = new THREE.Mesh(round ? new THREE.CylinderGeometry(w / 2, (w / 2) * (0.72 + cr() * 0.28), h, 20) : new THREE.BoxGeometry(w, h, 9 + cr() * 14), towerMats[i % 3]);
+        tower.position.set(x, h / 2, z); tower.rotation.y = twist; scene.add(tower);
+        if (crown > 0.45) { const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 8 + crown * 22, 6), neon(i % 2 ? AQUA : PURPLE, 3)); spire.position.set(x, h + 4 + crown * 11, z); scene.add(spire); }
+        if (crown > 0.82) { const halo = new THREE.Mesh(new THREE.TorusGeometry(w * 0.85, 0.22, 6, 48), neon(AQUA, 3)); halo.rotation.x = Math.PI / 2; halo.position.set(x, h * 0.72, z); scene.add(halo); }
+      }
+      // The jebel behind the city, the wider ground and its light grid
+      const rock = new THREE.MeshBasicMaterial({ color: 0x060914 });
+      for (let i = 0; i < 44; i++) { const a = (i / 44) * Math.PI * 2, hgt = 34 + cr() * 46; const hill = new THREE.Mesh(new THREE.ConeGeometry(70 + cr() * 50, hgt, 7), rock); hill.position.set(Math.cos(a) * 430, hgt / 2 - 2, 10 + Math.sin(a) * 430); scene.add(hill); }
+      const outer = new THREE.Mesh(new THREE.PlaneGeometry(1500, 1500), new THREE.MeshStandardMaterial({ color: 0x05080f, metalness: 0.6, roughness: 0.4 }));
+      outer.rotation.x = -Math.PI / 2; outer.position.y = -0.06; scene.add(outer);
+      const grid = new THREE.GridHelper(1500, 150, 0x1f7f88, 0x103845); grid.position.y = -0.03;
+      (grid.material as THREE.Material).transparent = true; (grid.material as THREE.Material).opacity = 0.5; scene.add(grid);
+      // Light beams over the skyline and slow air traffic
+      for (let i = 0; i < 7; i++) {
+        const a = cr() * Math.PI * 2, r = 170 + cr() * 120;
+        const beam = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 0.5, 300, 14, 1, true), new THREE.MeshBasicMaterial({ color: i % 2 ? 0x6fd3cf : 0xb3a4dc, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+        beam.position.set(Math.cos(a) * r, 150, 10 + Math.sin(a) * r); beam.rotation.set((cr() - 0.5) * 0.35, 0, (cr() - 0.5) * 0.35); scene.add(beam);
+      }
+      for (let i = 0; i < 16; i++) {
+        const craft = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.3, 0.7), lit(i % 3 ? '#7ff5f2' : '#ffd9a0', 2)); scene.add(craft);
+        fliers.push({ o: craft, r: 110 + cr() * 190, h: 34 + cr() * 60, sp: (0.03 + cr() * 0.05) * (i % 2 ? 1 : -1), ph: cr() * 6.28 });
+      }
+
+      // Two reception robots at the foot of the steps
+      for (const sx of [-1, 1]) {
+        const bot = landmark('robot', AQUA); bot.scale.setScalar(1.75); bot.position.set(sx * 7.6, 0, EZ + D + 6.5); bot.rotation.y = -sx * 0.35; scene.add(bot);
+        const hello = caption(2.2, 0.5, [isAr ? 'مرحباً بك' : 'Welcome'], AQUA); hello.position.set(sx * 7.6, 4.2, EZ + D + 6.5); hello.rotation.y = -sx * 0.35; scene.add(hello);
+        const key = new THREE.SpotLight(0xfff1dc, 60, 16, 0.5, 0.6, 1.4); key.position.set(sx * 9, 7.5, EZ + D + 12); key.target.position.set(sx * 7.6, 1.6, EZ + D + 6.5); scene.add(key, key.target);
+        movers.push({ o: hello, bob: 0.06, y0: 4.2, phase: sx });
+      }
+
+      // The municipality logo drawn in the air by lasers: stacked light layers give it depth
+      const holder = new THREE.Group(); holder.position.set(-19, 0, EZ + D + 17); holder.rotation.y = 0.42; scene.add(holder);
+      const lc = document.createElement('canvas'); lc.width = 654; lc.height = 396;
+      const lt = new THREE.CanvasTexture(lc); lt.colorSpace = THREE.SRGBColorSpace; lt.anisotropy = 4;
+      const li = new Image();
+      li.onload = () => { const x = lc.getContext('2d')!; x.drawImage(li, 0, 0, 654, 396); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#c9fffb'; x.fillRect(0, 0, 654, 396); lt.needsUpdate = true; };
+      li.src = '/brand/dhofar-municipality-logo.png';
+      const LW = 9, LH = LW * 396 / 654, LY = 5.2;
+      for (let k = 0; k < 9; k++) {
+        const layer = new THREE.Mesh(new THREE.PlaneGeometry(LW, LH), new THREE.MeshBasicMaterial({ map: lt, color: new THREE.Color(AQUA).multiplyScalar(k === 8 ? 1.9 : 1.1), transparent: true, opacity: k === 8 ? 1 : 0.14, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+        layer.position.set(0, LY, (k - 8) * 0.07); holder.add(layer);
+      }
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.9, 0.5, 44), dark); base.position.y = 0.25; holder.add(base);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(2.62, 0.04, 6, 64), neon(AQUA, 3)); rim.rotation.x = Math.PI / 2; rim.position.y = 0.52; holder.add(rim);
+      const laser = new THREE.MeshBasicMaterial({ color: new THREE.Color(AQUA).multiplyScalar(2), transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+      const from = [[-1.9, 0.7, 1.2], [1.9, 0.7, 1.2], [-1.9, 0.7, -1.2], [1.9, 0.7, -1.2]], to = [[-LW / 2, LY - LH / 2], [LW / 2, LY - LH / 2], [-LW / 2, LY + LH / 2], [LW / 2, LY + LH / 2], [0, LY + LH / 2], [0, LY - LH / 2]];
+      from.forEach((f, i) => [to[i], to[4 + (i % 2)]].forEach(tp => {
+        const a = new THREE.Vector3(f[0], f[1], f[2]), b = new THREE.Vector3(tp[0], tp[1], 0), ray = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, a.distanceTo(b), 5), laser);
+        ray.position.copy(a).add(b).multiplyScalar(0.5); ray.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); holder.add(ray);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), chrome); head.position.copy(a); holder.add(head);
+      }));
+      const scan = new THREE.Mesh(new THREE.PlaneGeometry(LW + 0.4, 0.05), laser); scan.position.set(0, LY, 0.03); holder.add(scan);
+      movers.push({ o: scan, bob: LH / 2, y0: LY, phase: 0 });
+    }
     for (const [px, pz, k] of [[-15, 9, 2.3], [15, 9, 2.3], [-27, 6, 2.0], [27, 6, 2.0], [-21, 16, 1.8], [21, 16, 1.8]] as const) {
       const palm = landmark('palm', AQUA); palm.scale.setScalar(k); palm.position.set(px, 0, EZ + D + pz); palm.rotation.y = px; scene.add(palm);
     }
@@ -1097,7 +1183,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // ── Controls and camera moves ──
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.enablePan = false;
-    controls.minDistance = 2; controls.maxDistance = 170; controls.maxPolarAngle = Math.PI * 0.53;
+    controls.minDistance = 2; controls.maxDistance = 300; controls.maxPolarAngle = Math.PI * 0.53;
     controls.rotateSpeed = 0.5;
     // Taking hold of the view ends the opening fly-in
     renderer.domElement.addEventListener('pointerdown', () => { intro = null; });
@@ -1307,6 +1393,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         f.detail.visible = f.k > 0.02; f.detail.scale.setScalar(0.55 + 0.45 * f.k);
         f.sign.visible = f.k < 0.9; f.sign.scale.setScalar(1 - f.k * 0.6);
       });
+      for (const fl of fliers) { const a = t * fl.sp * motion + fl.ph; fl.o.position.set(Math.cos(a) * fl.r, fl.h, 10 + Math.sin(a) * fl.r); fl.o.rotation.y = -a; }
       for (const m of movers) {
         if (m.spin) m.o.rotation.y = t * m.spin * motion + m.phase;
         if (m.bob) m.o.position.y = m.y0 + Math.sin(t * 1.1 + m.phase) * m.bob * motion;
@@ -1331,9 +1418,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       // Opening shot: the building from outside, in through the middle arch and the lobby, then the courtyard and the live board
       const end = fitted(stations[0]);
       intro = {
-        cam: new THREE.CatmullRomCurve3([new THREE.Vector3(26, 4, EZ + D + 62), new THREE.Vector3(8, 3.4, EZ + D + 30), new THREE.Vector3(0, 3.2, EZ + D + 6), new THREE.Vector3(0, 3.4, EZ - 4), new THREE.Vector3(0, 7, 12), end.cam.clone()], false, 'catmullrom', 0.35),
-        target: new THREE.CatmullRomCurve3([new THREE.Vector3(0, 11, EZ + D), new THREE.Vector3(0, 8, EZ + D), new THREE.Vector3(0, 5, EZ - 10), new THREE.Vector3(0, 7, -8), new THREE.Vector3(0, 9.5, FZ), end.target.clone()], false, 'catmullrom', 0.35),
-        start: Infinity, dur: 15000,
+        cam: new THREE.CatmullRomCurve3([new THREE.Vector3(95, 46, EZ + D + 150), new THREE.Vector3(40, 16, EZ + D + 96), new THREE.Vector3(8, 3.6, EZ + D + 34), new THREE.Vector3(0, 3.2, EZ + D + 6), new THREE.Vector3(0, 3.4, EZ - 4), new THREE.Vector3(0, 7, 12), end.cam.clone()], false, 'catmullrom', 0.35),
+        target: new THREE.CatmullRomCurve3([new THREE.Vector3(0, 14, EZ), new THREE.Vector3(-6, 9, EZ + D + 10), new THREE.Vector3(0, 7, EZ + D), new THREE.Vector3(0, 5, EZ - 10), new THREE.Vector3(0, 7, -8), new THREE.Vector3(0, 9.5, FZ), end.target.clone()], false, 'catmullrom', 0.35),
+        start: Infinity, dur: 20000,
       };
       intro.cam.getPoint(0, camera.position); intro.target.getPoint(0, controls.target);
     }
