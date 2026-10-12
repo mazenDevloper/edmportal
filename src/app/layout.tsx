@@ -33,6 +33,13 @@ export default function RootLayout({
       <head>
         <title>{currentLang === 'ar' ? 'بوابة بلدية ظفار الرقمية الموحدة' : 'Dhofar Municipality Unified Digital Portal'}</title>
         <meta name="description" content={currentLang === 'ar' ? 'البوابة الرسمية للخدمات الإلكترونية لبلدية ظفار - سلطنة عمان' : 'Official Electronic Services Portal for Dhofar Municipality - Sultanate of Oman'} />
+        {/* Added to the home screen, the portal opens as an app: no address bar and no tabs */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/brand/app-icon-180.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <meta name="apple-mobile-web-app-title" content={currentLang === 'ar' ? 'بلدية ظفار' : 'Dhofar Municipality'} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@200;400;700&display=swap" rel="stylesheet" />

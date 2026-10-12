@@ -1,0 +1,29 @@
+{
+  "name": "رحلة التحول الرقمي — بلدية ظفار",
+  "short_name": "رحلة التحول",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/virtual/journey",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "background_color": "#05060f",
+  "theme_color": "#05060f",
+  "icons": [
+    {
+      "src": "/brand/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

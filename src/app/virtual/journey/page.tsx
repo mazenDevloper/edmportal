@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Columns2, ExternalLink, Footprints, Languages, List, Loader2, Pause, Play, Rotate3d, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Columns2, ExternalLink, Footprints, Languages, List, Loader2, Maximize, Minimize, Pause, Play, Rotate3d, Share, SquarePlus, X } from 'lucide-react';
 import { useSettingsStore } from '@/lib/settings-store';
 import { JOURNEY, JOURNEY_SOURCE } from '@/lib/digital-journey';
 import { useTransactionStats, fmtNum } from '@/components/open-data/transaction-figures';
@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils';
 const CourtyardJourney = dynamic(() => import('@/components/virtual/courtyard-journey').then(m => m.CourtyardJourney), { ssr: false });
 
 const AUTO_MS = 9000;
+// Keep the bars and the caption out from under a phone's notch and home indicator
+const SAFE_TOP: React.CSSProperties = { paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' };
+const SAFE_SIDES: React.CSSProperties = { paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' };
 
 /** On-screen stick for walking: drag the knob with a finger or the mouse; it reports x (right) and y (towards you), −1…1 */
 function Joystick({ onMove, label }: { onMove: (x: number, y: number) => void; label: string }) {
@@ -35,7 +38,7 @@ function Joystick({ onMove, label }: { onMove: (x: number, y: number) => void; l
       onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); set(e); }}
       onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) set(e); }}
       onPointerUp={end} onPointerCancel={end}
-      className="absolute z-10 right-4 bottom-[44%] xl:bottom-8 xl:right-8 size-28 touch-none rounded-full border border-white/30 bg-white/10 backdrop-blur shadow-[0_0_30px_rgba(111,211,207,0.25)] cursor-grab active:cursor-grabbing">
+      className="absolute z-10 end-[max(1rem,env(safe-area-inset-right),env(safe-area-inset-left))] bottom-[44%] landscape:end-28 landscape:bottom-4 size-28 touch-none rounded-full border border-white/30 bg-white/10 backdrop-blur shadow-[0_0_30px_rgba(111,211,207,0.25)] cursor-grab active:cursor-grabbing">
       <span aria-hidden className="absolute inset-3 rounded-full border border-dashed border-white/20" />
       <span aria-hidden className="absolute left-1/2 top-1/2 size-12 rounded-full bg-[#7FDAD6] shadow-[0_0_18px_rgba(127,218,214,0.7)]" style={{ marginLeft: -24, marginTop: -24, transform: `translate(${knob.x * 32}px, ${knob.y * 32}px)` }} />
     </div>
@@ -69,6 +72,17 @@ export default function DigitalJourneyPage() {
   const [look, setLook] = useState(false);
   const [sbs, setSbs] = useState(false);
   const [lookBy, setLookBy] = useState<LookSource | null>(null);
+  // Full screen: the browser's own where it has one; on an iPhone the page must be opened from the home screen instead
+  const [full, setFull] = useState(false);
+  const [standalone, setStandalone] = useState(false);
+  const [fullHelp, setFullHelp] = useState(false);
+  const toggleFull = () => {
+    try {
+      if (document.fullscreenElement) { void document.exitFullscreen?.()?.catch(() => {}); return; }
+      if (document.fullscreenEnabled && document.documentElement.requestFullscreen) { void document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => setFullHelp(true)); return; }
+    } catch { /* fall through to the instructions */ }
+    setFullHelp(true);
+  };
   const toggleWalk = () => { const v = !walk; setWalk(v); setAuto(false); void scene.current?.setMode({ walk: v }); };
   const toggleLook = () => { const v = !look; setLook(v); setAuto(false); setLookBy(null); void scene.current?.setMode({ look: v }).then(r => setLookBy(v ? r ?? null : null)); };
   const toggleSbs = () => {
@@ -92,6 +106,22 @@ export default function DigitalJourneyPage() {
     const xr = (navigator as Navigator & { xr?: { isSessionSupported: (m: string) => Promise<boolean> } }).xr;
     xr?.isSessionSupported('immersive-vr').then(setVrSupported).catch(() => setVrSupported(false));
   }, [isAr]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const onFs = () => setFull(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFs);
+    setStandalone(window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || !!(navigator as Navigator & { standalone?: boolean }).standalone);
+    // While this page is open it is the thing "Add to Home Screen" installs, and it may draw under the notch
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]'), oldHref = link?.getAttribute('href');
+    link?.setAttribute('href', '/journey.webmanifest');
+    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]'), oldVp = vp?.getAttribute('content');
+    if (vp && oldVp && !oldVp.includes('viewport-fit')) vp.setAttribute('content', `${oldVp}, viewport-fit=cover`);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFs);
+      if (link && oldHref) link.setAttribute('href', oldHref);
+      if (vp && oldVp) vp.setAttribute('content', oldVp);
+    };
+  }, []);
 
   const next = useCallback(() => setIndex(i => (i + 1) % STATIONS), []);
   const prev = useCallback(() => setIndex(i => (i - 1 + STATIONS) % STATIONS), []);
@@ -131,6 +161,7 @@ export default function DigitalJourneyPage() {
       if (e.code === 'KeyH') toggleLook();
       if (e.code === 'KeyV') toggleSbs();
       if (e.code === 'KeyL') setShowList(v => !v);
+      if (e.code === 'KeyF') toggleFull();
       if (e.key === 'Home') { setAuto(false); setIndex(0); }
       if (e.key === 'End') { setAuto(false); setIndex(STATIONS - 1); }
       // 0 is the start, 1–9 the stations in order
@@ -209,7 +240,7 @@ export default function DigitalJourneyPage() {
       )}
 
       {/* Top bar */}
-      <header className="absolute top-0 inset-x-0 p-4 flex items-center gap-2 bg-gradient-to-b from-black/60 to-transparent">
+      <header className="absolute top-0 inset-x-0 p-4 flex items-center gap-2 bg-gradient-to-b from-black/60 to-transparent" style={SAFE_TOP}>
         <button type="button" onClick={exit} className="size-11 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('خروج', 'Exit')}><X size={20} /></button>
         <div className="leading-tight">
           <p className="font-black flex items-center gap-2"><VrHeadsetIcon size={20} />{t('رحلة التحول الرقمي', 'Digital transformation journey')}</p>
@@ -230,6 +261,11 @@ export default function DigitalJourneyPage() {
               <Columns2 size={16} /><span className="hidden md:inline">SBS</span>
             </button>
           </>}
+          {!standalone && (
+            <button type="button" onClick={toggleFull} aria-pressed={full} title={t('ملء الشاشة', 'Full screen')} aria-label={t('ملء الشاشة', 'Full screen')} className={cn('size-11 rounded-2xl backdrop-blur flex items-center justify-center', full ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
+              {full ? <Minimize size={18} /> : <Maximize size={18} />}
+            </button>
+          )}
           <button type="button" onClick={() => setShowList(true)} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" aria-haspopup="dialog">
             <List size={16} /><span className="hidden sm:inline">{t('المحطات', 'Stations')}</span>
           </button>
@@ -243,7 +279,7 @@ export default function DigitalJourneyPage() {
 
       {/* Station caption and controls */}
       {webgl && ready && !sbs && (
-        <div className="pointer-events-none absolute bottom-0 inset-x-0 p-4 pb-24 sm:pb-6 bg-gradient-to-t from-black/75 via-black/40 to-transparent">
+        <div className="pointer-events-none absolute bottom-0 inset-x-0 p-4 pb-24 sm:pb-6 bg-gradient-to-t from-black/75 via-black/40 to-transparent" style={SAFE_SIDES}>
           <div ref={caption} className="max-w-3xl mx-auto space-y-4">
             <div aria-live="polite" className={cn("min-h-[4.5rem]", walk && "hidden")}>
               {index === 0 && <>
@@ -275,7 +311,7 @@ export default function DigitalJourneyPage() {
               </button>
             </div>
             {/* Keyboard shortcuts, as key caps that can also be pressed */}
-            <div className="hidden md:flex flex-wrap items-center gap-1.5" aria-label={t('اختصارات لوحة المفاتيح', 'Keyboard shortcuts')}>
+            <div className="hidden md:flex [@media(pointer:coarse)]:!hidden flex-wrap items-center gap-1.5" aria-label={t('اختصارات لوحة المفاتيح', 'Keyboard shortcuts')}>
               {walk ? <>
                 <KeyHint k="W A S D" label={t('مشي', 'Walk')} />
                 <KeyHint k="Q E" label={t('دوران', 'Turn')} />
@@ -289,6 +325,7 @@ export default function DigitalJourneyPage() {
               <KeyHint k="H" label={t('الرأس', 'Head')} onClick={toggleLook} on={look} />
               <KeyHint k="V" label="SBS" onClick={toggleSbs} />
               <KeyHint k="L" label={t('القائمة', 'List')} onClick={() => setShowList(true)} />
+              {!standalone && <KeyHint k="F" label={t('ملء الشاشة', 'Full screen')} onClick={toggleFull} on={full} />}
               <KeyHint k="0–9" label={t('محطة', 'Station')} />
               <KeyHint k="Home" label={t('البداية', 'Start')} onClick={() => { setAuto(false); setIndex(0); }} />
             </div>
@@ -314,6 +351,24 @@ export default function DigitalJourneyPage() {
               {' · '}{t('الأرقام: البيانات المفتوحة لبلدية ظفار', 'Figures: Dhofar Municipality open data')}
               {inVR && ` · ${t('في النظارة: اضغط الزناد للمحطة التالية', 'In the headset: press the trigger for the next station')}`}
             </p>
+          </div>
+        </div>
+      )}
+
+      {fullHelp && (
+        <div className="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-5" role="dialog" aria-modal aria-label={t('التشغيل بملء الشاشة', 'Running full screen')}>
+          <div className="w-full max-w-md rounded-3xl bg-[#0b1326] border border-white/15 p-6 space-y-4 select-text">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-xl font-black">{t('التشغيل بملء الشاشة على الهاتف', 'Full screen on a phone')}</h2>
+              <button type="button" onClick={() => setFullHelp(false)} className="size-10 shrink-0 rounded-2xl bg-white/10 hover:bg-white/20 flex items-center justify-center" aria-label={t('إغلاق', 'Close')} autoFocus><X size={18} /></button>
+            </div>
+            <p className="text-sm font-bold text-white/75">{t('متصفح iPhone لا يسمح للصفحة بإخفاء شريط العنوان والتبويبات. أضف الرحلة إلى الشاشة الرئيسية وافتحها من أيقونتها، فتعمل بملء الشاشة كتطبيق:', 'Safari on iPhone does not let a page hide its address bar and tabs. Add the journey to the home screen and open it from its icon; it then runs full screen like an app:')}</p>
+            <ol className="space-y-3 text-sm font-bold">
+              <li className="flex items-center gap-3"><span className="size-9 shrink-0 rounded-xl bg-white/10 flex items-center justify-center"><Share size={18} /></span>{t('١. اضغط زر المشاركة في المتصفح', '1. Press the browser’s Share button')}</li>
+              <li className="flex items-center gap-3"><span className="size-9 shrink-0 rounded-xl bg-white/10 flex items-center justify-center"><SquarePlus size={18} /></span>{t('٢. اختر «إضافة إلى الشاشة الرئيسية»', '2. Choose “Add to Home Screen”')}</li>
+              <li className="flex items-center gap-3"><span className="size-9 shrink-0 rounded-xl bg-white/10 flex items-center justify-center"><VrHeadsetIcon size={18} /></span>{t('٣. افتح «رحلة التحول» من الأيقونة الجديدة وأدر الهاتف بالعرض', '3. Open “رحلة التحول” from the new icon and turn the phone sideways')}</li>
+            </ol>
+            <p className="text-xs font-bold text-white/55">{t('على أندرويد وعلى الحاسوب يكفي زر ملء الشاشة، أو المفتاح F.', 'On Android and on a computer the full-screen button, or the F key, is enough.')}</p>
           </div>
         </div>
       )}
