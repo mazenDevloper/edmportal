@@ -26,7 +26,7 @@ export interface LiveFigure { labelAr: string; labelEn: string; value: number | 
 export interface ViewMode { walk: boolean; look: boolean; stereo: boolean }
 /** What turns the view in head-look mode: the device's motion sensor, or the pointer when there is none ("insecure": the page is not on HTTPS, so the browser withholds the sensor) */
 export type LookSource = 'sensor' | 'pointer' | 'insecure';
-export interface CourtyardHandle { enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => Promise<LookSource | null> }
+export interface CourtyardHandle { enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => Promise<LookSource | null>; /** Walking input from the on-screen stick: x to the right, y towards the visitor, each −1…1 */ move: (x: number, y: number) => void }
 interface Props {
   stages: JourneyStage[];
   index: number;
@@ -40,6 +40,8 @@ interface Props {
   onVRChange?: (inVR: boolean) => void;
   /** A station picked on the hub screen in the courtyard */
   onSelect?: (i: number) => void;
+  /** Height in pixels of the caption and buttons at the foot of the screen; the hub screen is framed clear above it */
+  bottomInset?: number;
 }
 
 // ── Dimensions (metres) ──
@@ -390,15 +392,17 @@ function drawSign(c: HTMLCanvasElement, isAr: boolean) {
   g.fillText(isAr ? 'بلدية ظفار · 2020 — 2040' : 'Dhofar Municipality · 2020 — 2040', c.width / 2, 280);
 }
 
-interface Station { cam: THREE.Vector3; target: THREE.Vector3 }
+interface Station { cam: THREE.Vector3; target: THREE.Vector3; /** Already worked out for this screen: not stepped back again */ exact?: boolean }
 
 export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function CourtyardJourney(
-  { stages, index, isAr, figures, asOfLabel, reducedMotion, onReady, onNext, onVRChange, onSelect }, ref,
+  { stages, index, isAr, figures, asOfLabel, reducedMotion, onReady, onNext, onVRChange, onSelect, bottomInset }, ref,
 ) {
   const mountRef = useRef<HTMLDivElement>(null);
   const api = useRef<{
-    goTo: (i: number) => void; setFigures: (f: LiveFigure[] | null, asOf?: string) => void; enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => void; hasSensor: () => boolean;
+    goTo: (i: number) => void; setFigures: (f: LiveFigure[] | null, asOf?: string) => void; enterVR: () => Promise<void>; setMode: (m: Partial<ViewMode>) => void; hasSensor: () => boolean; move: (x: number, y: number) => void; setInset: (px: number) => void;
   } | null>(null);
+  const insetRef = useRef(bottomInset);
+  insetRef.current = bottomInset;
   const indexRef = useRef(index);
   indexRef.current = index;
   const cb = useRef({ onNext, onVRChange, onReady, onSelect });
@@ -406,6 +410,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 
   useImperativeHandle(ref, () => ({
     enterVR: () => api.current?.enterVR() ?? Promise.resolve(),
+    move: (x, y) => api.current?.move(x, y),
     setMode: async m => {
       // iOS only hands out motion data after the visitor agrees, and only from a tap
       if (m.look) { const D = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } }).DeviceOrientationEvent; try { await D?.requestPermission?.(); } catch { /* refused: dragging still turns the view */ } }
@@ -733,7 +738,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       }
       // Burj Al Nahdha on its roundabout behind the building, where the map puts it; tall enough to show over the roofline
       {
-        const BX = 24, BZ0 = FZ - 56;
+        const BX = -124, BZ0 = -103;
         const rt = lattice(); rt.repeat.set(4, 4);
         const garden = new THREE.Mesh(new THREE.CircleGeometry(20, 64), new THREE.MeshBasicMaterial({ map: rt, color: AQUA, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false }));
         garden.rotation.x = -Math.PI / 2; garden.position.set(BX, 0.05, BZ0); scene.add(garden);
@@ -1317,10 +1322,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       g.fillStyle = '#ffffff'; g.fillRect(0, 0, 780, 450); g.drawImage(logoImg, (780 - w) / 2, (450 - h) / 2, w, h); plaque.tex.needsUpdate = true;
     };
     logoImg.src = '/brand/dhofar-municipality-logo.png';
-    const boardView: Station = { cam: new THREE.Vector3(0, 6.6, -3.5), target: new THREE.Vector3(0, camera.aspect > 1.08 ? BY + 1.6 : BY - 1.2, BZ) };
+    const boardView: Station = { cam: new THREE.Vector3(0, 6.6, -3.5), target: new THREE.Vector3(0, BY + 0.6, BZ) };
     stations.push(boardView);
     // The journey opens on the board too, reached by a fly-in (see the intro below)
-    stations[0] = boardView;
+    stations[0] = { cam: new THREE.Vector3(0, 5, EZ - 2.5), target: new THREE.Vector3(0, 3.4, 27), exact: true };
 
     {
       const cr = rng(2040);
@@ -1337,6 +1342,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const h = 24 + cr() * cr() * 130, w = 9 + cr() * 15, round = cr() > 0.7, twist = cr() * 3, crown = cr();
         // The avenue in front of the entrance stays open
         if (Math.abs(x) < 50 && z > 40) continue;
+        // Nor is anything built on the Burj Al Nahdha roundabout
+        if (Math.hypot(x + 124, z + 103) < 52) continue;
         const tower = new THREE.Mesh(round ? new THREE.CylinderGeometry(w / 2, (w / 2) * (0.72 + cr() * 0.28), h, 20) : new THREE.BoxGeometry(w, h, 9 + cr() * 14), towerMats[i % 3]);
         tower.position.set(x, h / 2, z); tower.rotation.y = twist; scene.add(tower);
         if (crown > 0.45) { const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 8 + crown * 22, 6), neon(i % 2 ? AQUA : PURPLE, 3)); spire.position.set(x, h + 4 + crown * 11, z); scene.add(spire); }
@@ -1405,7 +1412,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       };
       const OUT = W / 2 + 10, F0 = EZ + D;
       // Lawns either side of the avenue, down both sides and behind, with a paved walk kept round the building
-      const lawns: [number, number, number, number][] = [[-108, -17, F0 + 5, 148], [17, 108, F0 + 5, 148], [-108, -OUT - 5, FZ - 40, F0 + 1], [OUT + 5, 108, FZ - 40, F0 + 1], [-108, -8, -88, FZ - 44], [56, 108, -88, FZ - 44]];
+      // Small lawns either side of the avenue; the garden proper is the crescent drawn further down
+      const lawns: [number, number, number, number][] = [[-50, -17, F0 + 5, F0 + 62], [17, 50, F0 + 5, F0 + 62]];
       for (const l of lawns) lawn(...l);
       const leaf = [0x1f5a2e, 0x2a6b35, 0x1a4d2a].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.95, flatShading: true }));
       const bark = new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 0.9 });
@@ -1435,9 +1443,87 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
           const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), lampHead); head.position.set(x, 0.86, z); scene.add(post, head);
         }
       }
+      // The garden as the site plan draws it: a crescent that wraps the north side of the building (the visitor's left)
+      // round to the back, with a lattice of paths at its front end, curved terraces at the back, and paths fanning out
+      // from a small plaza with an obelisk
+      {
+        const X0 = -100, Z0 = -84, GW = 108, GD = 164, S = 12, rad = THREE.MathUtils.degToRad;
+        const pc = document.createElement('canvas'); pc.width = GW * S; pc.height = GD * S; const px = pc.getContext('2d')!;
+        const cx = (x: number) => (x - X0) * S, cz = (z: number) => (z - Z0) * S;
+        const CO = { x: -17, z: -1.1, r: 76.5 }, CI = { x: -8.5, z: 9.1, r: 58.7 }, A0 = rad(114), A1 = rad(262), FOC = { x: -66.3, z: -26.6 }, ZB = -22;
+        const crescent = () => { px.beginPath(); px.arc(cx(CO.x), cz(CO.z), CO.r * S, A0, A1); px.arc(cx(CI.x), cz(CI.z), CI.r * S, A1, A0, true); px.closePath(); };
+        px.save(); crescent(); px.clip();
+        px.fillStyle = '#21502a'; px.fillRect(0, 0, pc.width, pc.height);
+        for (let i = 0; i < 30000; i++) { px.fillStyle = `rgba(${30 + gr() * 50 | 0}, ${84 + gr() * 80 | 0}, ${30 + gr() * 40 | 0}, 0.5)`; px.fillRect(gr() * pc.width, gr() * pc.height, 2, 4); }
+        px.strokeStyle = '#b9b0a2'; px.lineCap = 'round';
+        // Front end: a lattice of crossing paths
+        px.save(); px.beginPath(); px.rect(0, cz(ZB), pc.width, pc.height); px.clip(); px.lineWidth = 1.5 * S;
+        for (let k = -6; k < 26; k++) for (const dir of [-1, 1]) { px.beginPath(); px.moveTo(k * 9 * S, cz(ZB)); px.lineTo(k * 9 * S + dir * 100 * S, cz(ZB) + 100 * S); px.stroke(); }
+        px.restore();
+        // Back end: curved terraces following the inner edge
+        px.save(); px.beginPath(); px.rect(0, 0, pc.width, cz(ZB)); px.clip(); px.lineWidth = 2 * S;
+        for (let r = CI.r + 7; r < CO.r + 30; r += 7) { px.beginPath(); px.arc(cx(CI.x), cz(CI.z), r * S, 0, Math.PI * 2); px.stroke(); }
+        px.restore();
+        // Paths fanning out from the plaza, and the plaza
+        px.lineWidth = 1.8 * S;
+        for (const a of [150, 178, 205, 232, 258, 282]) { px.beginPath(); px.moveTo(cx(FOC.x), cz(FOC.z)); px.lineTo(cx(FOC.x) + Math.cos(rad(a)) * 60 * S, cz(FOC.z) + Math.sin(rad(a)) * 60 * S); px.stroke(); }
+        px.fillStyle = '#c6bdaf'; px.beginPath(); px.arc(cx(FOC.x), cz(FOC.z), 6.5 * S, 0, Math.PI * 2); px.fill();
+        px.restore();
+        px.strokeStyle = '#c6bdaf'; px.lineWidth = 1.6 * S; crescent(); px.stroke();
+        // The building and the walk round it stay paved
+        px.clearRect(cx(-60.5), cz(-46), 80 * S, 100 * S);
+        const gt = new THREE.CanvasTexture(pc); gt.colorSpace = THREE.SRGBColorSpace; gt.anisotropy = 8;
+        const park = new THREE.Mesh(new THREE.PlaneGeometry(GW, GD), new THREE.MeshStandardMaterial({ map: gt, alphaTest: 0.5, roughness: 1, color: 0xb6c2b2 }));
+        park.rotation.x = -Math.PI / 2; park.position.set(X0 + GW / 2, 0.1, Z0 + GD / 2); scene.add(park);
+
+        const inside = (x: number, z: number, m = 3) => {
+          let a = Math.atan2(z - CO.z, x - CO.x); if (a < 0) a += Math.PI * 2;
+          return Math.hypot(x - CO.x, z - CO.z) < CO.r - m && Math.hypot(x - CI.x, z - CI.z) > CI.r + m && a > A0 + 0.04 && a < A1 - 0.04 && !(x > -63 && z > -48 && z < 56);
+        };
+        let trees = 0, beds = 0;
+        for (let i = 0; i < 700 && trees < 48; i++) {
+          const x = -96 + gr() * 88, z = -80 + gr() * 152, h = 3.4 + gr() * 3.4;
+          if (!inside(x, z) || !free(x, z) || Math.hypot(x - FOC.x, z - FOC.z) < 9) continue;
+          trees++;
+          const trunk = new THREE.Mesh(trunkGeo, bark); trunk.scale.set(1, h, 1); trunk.position.set(x, h / 2, z); scene.add(trunk);
+          for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(crown, leaf[(i + k) % 3]); const r = 1.5 + gr() * 1.3; c.scale.set(r, r * 0.85, r); c.position.set(x + (gr() - 0.5) * 1.6, h + r * 0.45 + k * 0.5, z + (gr() - 0.5) * 1.6); c.rotation.y = gr() * 6; scene.add(c); }
+        }
+        for (let i = 0; i < 300 && beds < 9; i++) {
+          const x = -96 + gr() * 88, z = -80 + gr() * 152, r = 1.6 + gr() * 1.3;
+          if (!inside(x, z, 5) || !free(x, z) || Math.hypot(x - FOC.x, z - FOC.z) < 11) continue;
+          beds++;
+          const bed = new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.1, 0.3, 24), marble); bed.position.set(x, 0.15, z); scene.add(bed);
+          const soil = new THREE.Mesh(new THREE.CircleGeometry(r - 0.12, 24), leaf[2]); soil.rotation.x = -Math.PI / 2; soil.position.set(x, 0.31, z); scene.add(soil);
+          for (let k = 0; k < 26; k++) { const a = gr() * 6.28, d = Math.sqrt(gr()) * (r - 0.3); const f = new THREE.Mesh(new THREE.SphereGeometry(0.11 + gr() * 0.07, 6, 5), petals[(i + k) % 4]); f.position.set(x + Math.cos(a) * d, 0.42 + gr() * 0.2, z + Math.sin(a) * d); scene.add(f); }
+        }
+        // Low lights along the outer path
+        for (let a = A0 + 0.06; a < A1 - 0.04; a += 0.13) {
+          const x = CO.x + Math.cos(a) * (CO.r + 0.6), z = CO.z + Math.sin(a) * (CO.r + 0.6);
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.8, 8), cladding); post.position.set(x, 0.4, z);
+          const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), lampHead); head.position.set(x, 0.86, z); scene.add(post, head);
+        }
+        // The obelisk on the plaza
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.85, 12, 4), marble); shaft.rotation.y = Math.PI / 4; shaft.position.set(FOC.x, 6.4, FOC.z);
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.64, 1.3, 4), marble); tip.rotation.y = Math.PI / 4; tip.position.set(FOC.x, 13.05, FOC.z);
+        const plinthO = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.4, 2.6), marble); plinthO.position.set(FOC.x, 0.2, FOC.z);
+        const collar = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.05, 6, 56), neon(WARM, 2.2)); collar.rotation.x = Math.PI / 2; collar.position.set(FOC.x, 0.16, FOC.z);
+        const glowO = new THREE.PointLight(0xffd9a8, 26, 20, 1.5); glowO.position.set(FOC.x + 2, 2.2, FOC.z + 2);
+        scene.add(shaft, tip, plinthO, collar, glowO);
+
+        // The two streets that meet at the roundabout: Airport Street along the back of the site, Al Rubat Street along the north
+        const asphalt = new THREE.MeshStandardMaterial({ color: 0x141821, roughness: 0.6, metalness: 0.2 });
+        const street = (x0: number, z0: number, x1: number, z1: number, w: number) => {
+          const len = Math.hypot(x1 - x0, z1 - z0), g = new THREE.Group(); g.position.set((x0 + x1) / 2, 0.05, (z0 + z1) / 2); g.rotation.y = -Math.atan2(z1 - z0, x1 - x0); scene.add(g);
+          const bed = new THREE.Mesh(new THREE.PlaneGeometry(len, w), asphalt); bed.rotation.x = -Math.PI / 2; g.add(bed);
+          for (const sz of [-1, 1]) { const k = new THREE.Mesh(new THREE.BoxGeometry(len, 0.06, 0.12), neon(WARM, 1.6)); k.position.set(0, 0.03, sz * w / 2); g.add(k); }
+          for (let u = -len / 2 + 3; u < len / 2 - 3; u += 7) { const d = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.22), lampHead); d.rotation.x = -Math.PI / 2; d.position.set(u, 0.02, 0); g.add(d); }
+        };
+        street(-100, -87, 104, -87, 9);
+        street(-113, -78, -113, 96, 10);
+      }
       // Clipped hedges lining the avenue
       const hedge = new THREE.MeshStandardMaterial({ color: 0x1d5a2c, roughness: 1 });
-      for (const sx of [-1, 1]) for (let z = F0 + 24; z < 146; z += 12) { const h = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 9), hedge); h.position.set(sx * 18.4, 0.55, z + 4.5); scene.add(h); }
+      for (const sx of [-1, 1]) for (let z = F0 + 24; z < F0 + 58; z += 12) { const h = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 9), hedge); h.position.set(sx * 18.4, 0.55, z + 4.5); scene.add(h); }
       for (const [px, pz, k] of [[-34, 30, 2.6], [34, 30, 2.6], [-48, 52, 2.2], [48, 52, 2.2], [-30, 74, 2.4], [30, 74, 2.4], [-70, 20, 2.3], [70, 20, 2.3]] as const) {
         const palm = landmark('palm', AQUA); palm.scale.setScalar(k); palm.position.set(px, 0, F0 + pz); palm.rotation.y = px; scene.add(palm);
       }
@@ -1485,6 +1571,12 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     /** Height of the floor under a point: the lobby slab, with a short ramp over its steps */
     const floorY = (x: number, z: number) => (Math.abs(x) > PW / 2 ? 0 : LOBBY_Y * THREE.MathUtils.clamp(Math.min(z - (EZ - 2.7), (EZ + D + 2.7) - z) / 1.2, 0, 1));
     const keys = new Set<string>();
+    /** The on-screen stick; a game controller's sticks are added to it */
+    const stick = { x: 0, y: 0 }; let padA = false;
+    /** A spot on the ground the visitor pressed to walk to, and the ring that marks it */
+    let walkTo: THREE.Vector3 | null = null;
+    const marker = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.05, 6, 40), neon(AQUA, 2.4)); marker.rotation.x = Math.PI / 2; marker.visible = false; scene.add(marker);
+    const ground0 = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     let walkFocus = -1;
     const firstPerson = () => mode.walk || mode.look;
     const faceFrom = (pos: THREE.Vector3, target: THREE.Vector3) => { const d = target.clone().sub(pos).normalize(); fp.yaw = Math.atan2(-d.x, -d.z); fp.pitch = Math.asin(THREE.MathUtils.clamp(d.y, -1, 1)); fp.yawOffset = null; fp.baseYaw = fp.yaw; fp.basePitch = fp.pitch; };
@@ -1500,10 +1592,18 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       if (next.look) { fp.baseYaw = fp.yaw; fp.basePitch = fp.pitch; fp.yawOffset = null; }
       if (!firstPerson() && was) { controls.enabled = true; goTo(current, true); }
       if (!mode.stereo) { const w = mount.clientWidth, h = mount.clientHeight; renderer.setScissorTest(false); renderer.setViewport(0, 0, w, h); }
-      keys.clear();
+      keys.clear(); stick.x = stick.y = 0; walkTo = null; marker.visible = false;
     };
-    const onKeyDown = (e: KeyboardEvent) => { if (mode.walk && !(e.target as HTMLElement)?.closest?.('input, textarea, select')) keys.add(e.key.toLowerCase()); };
-    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
+    // Letters are read by their place on the keyboard, so W A S D work on an Arabic layout too
+    const keyOf = (e: KeyboardEvent) => (/^Key[A-Z]$/.test(e.code) ? e.code.slice(3) : e.key).toLowerCase();
+    const onKeyDown = (e: KeyboardEvent) => { if (mode.walk && !(e.target as HTMLElement)?.closest?.('input, textarea, select')) keys.add(keyOf(e)); };
+    const onKeyUp = (e: KeyboardEvent) => keys.delete(keyOf(e));
+    const onWheel = (e: WheelEvent) => {
+      if (!mode.walk) return;
+      e.preventDefault(); walkTo = null; marker.visible = false;
+      const st = THREE.MathUtils.clamp(-e.deltaY * 0.012, -2.4, 2.4); fp.pos.x += -Math.sin(fp.yaw) * st; fp.pos.z += -Math.cos(fp.yaw) * st;
+    };
+    renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKeyDown); window.addEventListener('keyup', onKeyUp);
     let dragAt: { x: number; y: number } | null = null;
     const onLookDown = (e: PointerEvent) => { if (firstPerson()) dragAt = { x: e.clientX, y: e.clientY }; };
@@ -1534,6 +1634,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     window.addEventListener('deviceorientationabsolute', onOrient as EventListener);
     /** Narrow (portrait) screens step back so the whole panel fits */
     const fitted = (s: Station): Station => {
+      if (s.exact) return s;
       const k = Math.max(1, 1.35 / camera.aspect);
       // The caption covers the lower part of a tall screen, so the subject is framed higher there
       const target = s.target.clone(); target.y -= Math.min(2.2, (k - 1) * 2.4);
@@ -1542,6 +1643,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       return { cam: target.clone().add(off.setLength(len < 14 ? Math.min(len * k, Math.max(len, 12.5)) : len * k)), target };
     };
     let hubRedraw: (() => void) | null = null;
+    let placeHub: () => void = () => {};
+    let bottomInsetPx = insetRef.current ?? mount.clientHeight * 0.4;
     const goTo = (i: number, instant = false) => {
       // The opening fly-in already ends at the first station
       if (intro && i === 0 && !instant) return;
@@ -1561,15 +1664,30 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const HW = 10.4, HH = 2.2, HR = 9, tiles = stations.length, CW = 2400, CH = 500, PAD = 40;
       const hc = document.createElement('canvas'); hc.width = CW; hc.height = CH;
       const ht = new THREE.CanvasTexture(hc); ht.colorSpace = THREE.SRGBColorSpace; ht.anisotropy = 8;
-      const hub = new THREE.Group(); /* The caption covers the lower part of the view, so the hub hangs above the board, tilted down to the visitor */ const wide = camera.aspect > 1.08, HY0 = wide ? 17.3 : 17.7, HZ0 = BZ + 1.5; hub.position.set(0, HY0, HZ0); hub.rotation.x = wide ? 0.3 : 0.14; hub.scale.setScalar(wide ? 1.25 : 1.5); scene.add(hub);
+      const hub = new THREE.Group(); hub.rotation.x = -0.12; scene.add(hub);
       const screen = new THREE.Mesh(bend(HW, HH, HR, 64), new THREE.MeshBasicMaterial({ map: ht, transparent: true, toneMapped: false, side: THREE.DoubleSide, depthWrite: false }));
       screen.renderOrder = 5; hub.add(screen);
       for (const sy of [-1, 1]) { const rail = new THREE.Mesh(bend(HW - 0.5, 0.03, HR, 64), neon(sy > 0 ? AQUA : PURPLE, 2.4)); rail.position.set(0, sy * (HH / 2 + 0.05), 0.01); hub.add(rail); }
       // The projector under it: a ring on the water and a faint cone of light
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.04, 6, 64), neon(AQUA, 2.6)); ring.rotation.x = Math.PI / 2; ring.position.set(0, 0.3, HZ0); scene.add(ring);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.04, 6, 64), neon(AQUA, 2.6)); ring.rotation.x = Math.PI / 2; scene.add(ring);
       const cone = new THREE.Mesh(new THREE.CylinderGeometry(3.9, 1.4, 2.0, 40, 1, true), new THREE.MeshBasicMaterial({ color: AQUA, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-      cone.position.set(0, 1.3, HZ0); scene.add(cone); ring.visible = cone.visible = false;
-      movers.push({ o: hub, bob: 0.05, y0: HY0, phase: 0.5 });
+      scene.add(cone);
+      const HYC = 3.6, startView = stations[0];
+      movers.push({ o: hub, bob: 0.04, y0: HYC, phase: 0.5 });
+      // The hub hangs at the start of the path at head height. The opening view is worked out from the shape of the screen and
+      // from how much of its foot the caption and buttons cover, so the hub sits clear above them with the board over it.
+      placeHub = () => {
+        const k = Math.max(1, 1.35 / camera.aspect), CZ = EZ - 2.5, need = 8.5 * k, hz = Math.max(23, CZ - need), dist = CZ - hz, sc = Math.min(1, dist / need);
+        hub.position.set(0, HYC, hz); hub.scale.setScalar(sc); ring.position.set(0, 0.06, hz); cone.position.set(0, 1.25, hz);
+        const camY = HYC + dist * 0.16, half = (HH / 2) * sc + 0.2, tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+        // Where on the screen (0 top … 1 bottom) the hub's lower edge should land
+        const fb = 1 - THREE.MathUtils.clamp(bottomInsetPx / Math.max(1, mount.clientHeight), 0.12, 0.6) - 0.035;
+        const pitch = Math.atan2(HYC - half - camY, dist) - Math.atan((0.5 - fb) * 2 * tanHalf);
+        startView.cam.set(0, camY, CZ); startView.target.set(0, camY + Math.tan(pitch) * dist, hz);
+        if (intro) { intro.cam.points[intro.cam.points.length - 1].copy(startView.cam); intro.target.points[intro.target.points.length - 1].copy(startView.target); }
+        else if (current === 0 && !firstPerson() && !renderer.xr.isPresenting) goTo(0);
+      };
+      placeHub();
 
       let hover = -1;
       const label = (i: number): [string, string, string] => {
@@ -1579,7 +1697,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       };
       hubRedraw = () => {
         const g = hc.getContext('2d')!; g.clearRect(0, 0, CW, CH);
-        const bg = g.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, 'rgba(8,22,44,0.8)'); bg.addColorStop(1, 'rgba(5,10,26,0.92)');
+        const bg = g.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, 'rgba(8,22,44,0.9)'); bg.addColorStop(1, 'rgba(5,10,26,0.96)');
         g.fillStyle = bg; g.beginPath(); g.roundRect(4, 4, CW - 8, CH - 8, 46); g.fill(); g.strokeStyle = 'rgba(111,211,207,0.5)'; g.lineWidth = 3; g.stroke();
         g.direction = isAr ? 'rtl' : 'ltr'; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillStyle = 'rgba(255,255,255,0.72)'; g.font = `500 30px ${FONT}`; g.fillText(isAr ? 'اضغط على محطة للانتقال إليها' : 'Press a station to go there', CW / 2, 48);
@@ -1621,7 +1739,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       el.addEventListener('pointerup', e => {
         // A press, not the end of a drag
         if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 8) return;
-        const i = tileAt(e); if (i < 0) return;
+        const i = tileAt(e);
+        if (i < 0) {
+          // While walking, a press on the ground is a place to walk to
+          const p = new THREE.Vector3();
+          if (mode.walk && caster.ray.direction.y < -0.03 && caster.ray.intersectPlane(ground0, p) && p.distanceTo(fp.pos) < 90) { walkTo = p; marker.position.set(p.x, 0.12 + floorY(p.x, p.z), p.z); marker.visible = true; }
+          return;
+        }
         if (cb.current.onSelect) cb.current.onSelect(i); else goTo(i);
         if (i === current) goTo(i);
       });
@@ -1656,6 +1780,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       enterVR,
       setMode,
       hasSensor: () => !!fp.gyro,
+      move: (x, y) => { stick.x = x; stick.y = y; },
+      setInset: px => { bottomInsetPx = px; placeHub(); },
     };
 
     // ── Animation loop ──
@@ -1681,12 +1807,21 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         controls.target.lerpVectors(tween.tFrom, tween.tTo, e);
         if (k >= 1) tween = null;
       }
+      // A game controller: sticks walk and turn while walking, the A button goes to the next station
+      const pad = (navigator.getGamepads ? Array.from(navigator.getGamepads()) : []).find(g => g && g.connected) ?? null;
+      if (pad) { const a = !!pad.buttons[0]?.pressed; if (a && !padA) cb.current.onNext?.(); padA = a; }
       if (firstPerson() && !renderer.xr.isPresenting) {
         if (mode.walk) {
           // W/S or ↑/↓ walk, A/D step sideways, ←/→ turn, Shift runs
           const has = (...k: string[]) => k.some(x => keys.has(x));
-          const f = (has('w', 'arrowup') ? 1 : 0) - (has('s', 'arrowdown') ? 1 : 0), r = (has('d') ? 1 : 0) - (has('a') ? 1 : 0);
-          fp.yaw += ((has('arrowleft', 'q') ? 1 : 0) - (has('arrowright', 'e') ? 1 : 0)) * 1.7 * dt;
+          const dead = (v: number | undefined) => (v === undefined || Math.abs(v) < 0.18 ? 0 : v), c1 = (v: number) => THREE.MathUtils.clamp(v, -1, 1);
+          const f = c1((has('w', 'arrowup') ? 1 : 0) - (has('s', 'arrowdown') ? 1 : 0) - stick.y - dead(pad?.axes[1])), r = c1((has('d') ? 1 : 0) - (has('a') ? 1 : 0) + stick.x + dead(pad?.axes[0]));
+          fp.yaw += ((has('arrowleft', 'q') ? 1 : 0) - (has('arrowright', 'e') ? 1 : 0) - dead(pad?.axes[2])) * 1.7 * dt;
+          fp.pitch = THREE.MathUtils.clamp(fp.pitch - dead(pad?.axes[3]) * 1.2 * dt, -1.3, 1.3);
+          // A pressed spot on the ground: walk there unless the visitor steers
+          if (f || r) walkTo = null;
+          else if (walkTo) { const dx = walkTo.x - fp.pos.x, dz = walkTo.z - fp.pos.z, d = Math.hypot(dx, dz); if (d < 0.4) walkTo = null; else { const st = Math.min(d, 7 * dt); fp.pos.x += (dx / d) * st; fp.pos.z += (dz / d) * st; } }
+          marker.visible = !!walkTo; if (walkTo) marker.scale.setScalar(1 + Math.sin(t * 5) * 0.12);
           const sp = (has('shift') ? 11 : 5.5) * dt, sin = Math.sin(fp.yaw), cos = Math.cos(fp.yaw);
           fp.pos.x += (-sin * f + cos * r) * sp; fp.pos.z += (-cos * f - sin * r) * sp;
           // Stay inside the courtyard, the lobby's middle arch and the forecourt
@@ -1780,7 +1915,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       camera.aspect = w / h; camera.updateProjectionMatrix();
       renderer.setSize(w, h); composer.setSize(w, h); bloom.setSize(w, h); stereo.setSize(w, h);
     };
-    const ro = new ResizeObserver(onResize); ro.observe(mount);
+    const ro = new ResizeObserver(() => { onResize(); placeHub(); }); ro.observe(mount);
 
     // A rebuilt scene (language or motion setting changed) returns to the station the visitor was at
     if (indexRef.current || reducedMotion) goTo(indexRef.current, true);
@@ -1788,8 +1923,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       // Opening shot: the building from outside, in through the middle arch and the lobby, then the courtyard and the live board
       const end = fitted(stations[0]);
       intro = {
-        cam: new THREE.CatmullRomCurve3([new THREE.Vector3(95, 46, EZ + D + 150), new THREE.Vector3(40, 16, EZ + D + 96), new THREE.Vector3(8, 3.6, EZ + D + 34), new THREE.Vector3(0, 3.2, EZ + D + 6), new THREE.Vector3(0, 3.4, EZ - 4), new THREE.Vector3(0, 7, 12), end.cam.clone()], false, 'catmullrom', 0.35),
-        target: new THREE.CatmullRomCurve3([new THREE.Vector3(0, 14, EZ), new THREE.Vector3(-6, 9, EZ + D + 10), new THREE.Vector3(0, 7, EZ + D), new THREE.Vector3(0, 5, EZ - 10), new THREE.Vector3(0, 7, -8), new THREE.Vector3(0, 9.5, FZ), end.target.clone()], false, 'catmullrom', 0.35),
+        cam: new THREE.CatmullRomCurve3([new THREE.Vector3(95, 46, EZ + D + 150), new THREE.Vector3(40, 16, EZ + D + 96), new THREE.Vector3(8, 3.6, EZ + D + 34), new THREE.Vector3(0, 3.2, EZ + D + 6), new THREE.Vector3(0, 3.4, EZ + 5), end.cam.clone()], false, 'catmullrom', 0.35),
+        target: new THREE.CatmullRomCurve3([new THREE.Vector3(0, 14, EZ), new THREE.Vector3(-6, 9, EZ + D + 10), new THREE.Vector3(0, 7, EZ + D), new THREE.Vector3(0, 5, EZ - 8), new THREE.Vector3(0, 4.2, 26), end.target.clone()], false, 'catmullrom', 0.35),
         start: Infinity, dur: 20000,
       };
       intro.cam.getPoint(0, camera.position); intro.target.getPoint(0, controls.target);
@@ -1797,7 +1932,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 
     return () => {
       ro.disconnect();
-      window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); renderer.domElement.removeEventListener('wheel', onWheel);
       window.removeEventListener('pointermove', onLookMove); window.removeEventListener('pointerup', onLookUp);
       window.removeEventListener('deviceorientation', onOrient);
       window.removeEventListener('deviceorientationabsolute', onOrient as EventListener);
@@ -1819,6 +1954,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
   }, [isAr, stages, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { api.current?.goTo(index); }, [index, isAr]);
+  useEffect(() => { if (bottomInset !== undefined) api.current?.setInset(bottomInset); }, [bottomInset]);
   useEffect(() => { api.current?.setFigures(figures, asOfLabel); }, [figures, asOfLabel, isAr]);
 
   return <div ref={mountRef} className="absolute inset-0" />;

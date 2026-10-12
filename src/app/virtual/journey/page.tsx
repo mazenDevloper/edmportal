@@ -16,6 +16,38 @@ import { cn } from '@/lib/utils';
 const CourtyardJourney = dynamic(() => import('@/components/virtual/courtyard-journey').then(m => m.CourtyardJourney), { ssr: false });
 
 const AUTO_MS = 9000;
+
+/** On-screen stick for walking: drag the knob with a finger or the mouse; it reports x (right) and y (towards you), −1…1 */
+function Joystick({ onMove, label }: { onMove: (x: number, y: number) => void; label: string }) {
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const move = useRef(onMove);
+  move.current = onMove;
+  useEffect(() => () => move.current(0, 0), []);
+  const set = (e: React.PointerEvent<HTMLDivElement>) => {
+    const b = e.currentTarget.getBoundingClientRect(), R = b.width / 2;
+    let x = (e.clientX - b.left - R) / (R * 0.6), y = (e.clientY - b.top - R) / (R * 0.6);
+    const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+    setKnob({ x, y }); move.current(x, y);
+  };
+  const end = () => { setKnob({ x: 0, y: 0 }); move.current(0, 0); };
+  return (
+    <div role="application" aria-label={label} title={label}
+      onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); set(e); }}
+      onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) set(e); }}
+      onPointerUp={end} onPointerCancel={end}
+      className="absolute z-10 right-4 bottom-[44%] xl:bottom-8 xl:right-8 size-28 touch-none rounded-full border border-white/30 bg-white/10 backdrop-blur shadow-[0_0_30px_rgba(111,211,207,0.25)] cursor-grab active:cursor-grabbing">
+      <span aria-hidden className="absolute inset-3 rounded-full border border-dashed border-white/20" />
+      <span aria-hidden className="absolute left-1/2 top-1/2 size-12 rounded-full bg-[#7FDAD6] shadow-[0_0_18px_rgba(127,218,214,0.7)]" style={{ marginLeft: -24, marginTop: -24, transform: `translate(${knob.x * 32}px, ${knob.y * 32}px)` }} />
+    </div>
+  );
+}
+
+/** A keyboard shortcut shown as a key cap; pressing the button does the same thing */
+function KeyHint({ k, label, onClick, on }: { k: string; label: string; onClick?: () => void; on?: boolean }) {
+  const cls = cn('pointer-events-auto h-8 rounded-lg ps-1 pe-2 flex items-center gap-1.5 text-[11px] font-bold backdrop-blur', on ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 text-white/85', onClick && !on && 'hover:bg-white/20');
+  const body = <><kbd dir="ltr" className={cn('min-w-6 h-6 px-1.5 rounded-md border font-mono text-[11px] flex items-center justify-center', on ? 'border-slate-900/30 bg-white/40' : 'border-white/25 bg-white/15')}>{k}</kbd>{label}</>;
+  return onClick ? <button type="button" onClick={onClick} aria-pressed={on} className={cls}>{body}</button> : <span className={cls}>{body}</span>;
+}
 // Station order in the scene: intro, the journey stages, then the live numbers board
 const STATIONS = JOURNEY.length + 2;
 
@@ -49,6 +81,8 @@ export default function DigitalJourneyPage() {
   };
   const scene = useRef<CourtyardHandle>(null);
   const chips = useRef<HTMLOListElement>(null);
+  const caption = useRef<HTMLDivElement>(null);
+  const [inset, setInset] = useState<number | undefined>(undefined);
   const { data } = useTransactionStats();
 
   useEffect(() => {
@@ -65,6 +99,16 @@ export default function DigitalJourneyPage() {
   // Keep the current station's chip in view
   useEffect(() => { chips.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }, [index, ready]);
 
+  // How much of the foot of the screen the caption and buttons cover; the scene keeps its hub screen above that
+  useEffect(() => {
+    const el = caption.current;
+    if (!el) { setInset(sbs ? 0 : undefined); return; }
+    const measure = () => setInset(Math.max(0, window.innerHeight - el.getBoundingClientRect().top));
+    measure();
+    const ro = new ResizeObserver(measure); ro.observe(el); window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [ready, sbs, webgl]);
+
   // Guided tour
   useEffect(() => {
     if (!auto) return;
@@ -72,7 +116,8 @@ export default function DigitalJourneyPage() {
     return () => clearTimeout(id);
   }, [auto, index, next]);
 
-  // Keyboard: arrows follow the reading direction, Space plays/pauses, Esc exits
+  // Keyboard: arrows follow the reading direction, Space plays/pauses, Esc exits; M walk, H head look, V side by side,
+  // L the list, Home/End the first and last station, digits jump to a station
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest('input, textarea, select')) return;
@@ -81,6 +126,15 @@ export default function DigitalJourneyPage() {
       if (e.key === 'ArrowLeft') { e.preventDefault(); isAr ? next() : prev(); }
       if (e.key === 'ArrowRight') { e.preventDefault(); isAr ? prev() : next(); }
       if (e.key === ' ') { e.preventDefault(); setAuto(a => !a); }
+      if (e.ctrlKey || e.metaKey || e.altKey || !ready) return;
+      if (e.code === 'KeyM') toggleWalk();
+      if (e.code === 'KeyH') toggleLook();
+      if (e.code === 'KeyV') toggleSbs();
+      if (e.code === 'KeyL') setShowList(v => !v);
+      if (e.key === 'Home') { setAuto(false); setIndex(0); }
+      if (e.key === 'End') { setAuto(false); setIndex(STATIONS - 1); }
+      // 0 is the start, 1–9 the stations in order
+      if (/^Digit\d$/.test(e.code)) { setAuto(false); setIndex(Math.min(Number(e.code.slice(5)), STATIONS - 1)); }
       if (e.key === 'Escape' && !showList) exit();
     };
     window.addEventListener('keydown', onKey);
@@ -136,7 +190,9 @@ export default function DigitalJourneyPage() {
       <h1 className="sr-only">{t('رحلة التحول الرقمي لبلدية ظفار — ساحة مبنى البلدية الجديد', 'Dhofar Municipality digital transformation journey — the new building courtyard')}</h1>
 
       {webgl && <CourtyardJourney ref={scene} stages={JOURNEY} index={index} isAr={isAr} figures={figures} asOfLabel={asOf} reducedMotion={reducedMotion}
-        onReady={() => setReady(true)} onNext={next} onVRChange={setInVR} onSelect={i => { setAuto(false); setIndex(i); }} />}
+        onReady={() => setReady(true)} onNext={next} onVRChange={setInVR} onSelect={i => { setAuto(false); setIndex(i); }} bottomInset={inset} />}
+
+      {webgl && ready && walk && <Joystick label={t('عصا التحكم: اسحب للمشي', 'Joystick: drag to walk')} onMove={(x, y) => scene.current?.move(x, y)} />}
 
       {webgl === false && (
         <div className="absolute inset-0 overflow-y-auto p-6 pt-24 max-w-3xl mx-auto">
@@ -157,14 +213,14 @@ export default function DigitalJourneyPage() {
         <button type="button" onClick={exit} className="size-11 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('خروج', 'Exit')}><X size={20} /></button>
         <div className="leading-tight">
           <p className="font-black flex items-center gap-2"><VrHeadsetIcon size={20} />{t('رحلة التحول الرقمي', 'Digital transformation journey')}</p>
-          <p className="text-[11px] font-bold text-white/60">{look && lookBy && !walk ? (lookBy === 'sensor' ? t('حرّك جهازك للنظر حولك', 'Move your device to look around') : lookBy === 'insecure' ? t('حساس الحركة يحتاج فتح الصفحة عبر HTTPS · حرّك المؤشر للنظر الآن', 'The motion sensor needs HTTPS · move the pointer to look for now') : t('لا يوجد حساس حركة في هذا الجهاز · حرّك المؤشر للنظر', 'This device has no motion sensor · move the pointer to look')) : walk ? t('W A S D أو الأسهم للمشي · ← → للدوران · اسحب للنظر · Shift للجري', 'W A S D or arrows to walk · ← → to turn · drag to look · Shift to run') : t('مبنى بلدية ظفار الجديد · صلالة المستقبل ليلاً', 'New Dhofar Municipality building · future Salalah at night')}</p>
+          <p className="text-[11px] font-bold text-white/60">{look && lookBy && !walk ? (lookBy === 'sensor' ? t('حرّك جهازك للنظر حولك', 'Move your device to look around') : lookBy === 'insecure' ? t('حساس الحركة يحتاج فتح الصفحة عبر HTTPS · حرّك المؤشر للنظر الآن', 'The motion sensor needs HTTPS · move the pointer to look for now') : t('لا يوجد حساس حركة في هذا الجهاز · حرّك المؤشر للنظر', 'This device has no motion sensor · move the pointer to look')) : walk ? t('امشِ بعصا التحكم أو W A S D · اضغط على الأرض للمشي إليها · العجلة للتقدم · اسحب للنظر', 'Walk with the stick or W A S D · press the ground to walk there · wheel to step · drag to look') : t('مبنى بلدية ظفار الجديد · صلالة المستقبل ليلاً', 'New Dhofar Municipality building · future Salalah at night')}</p>
         </div>
         <div className="ms-auto flex items-center gap-2">
           <button type="button" onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" lang={isAr ? 'en' : 'ar'}>
             <Languages size={16} />{isAr ? 'EN' : 'ع'}
           </button>
           {webgl && ready && <>
-            <button type="button" onClick={toggleWalk} aria-pressed={walk} title={t('المشي بلوحة المفاتيح', 'Walk with the keyboard')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', walk ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
+            <button type="button" onClick={toggleWalk} aria-pressed={walk} title={t('وضع المشي: عصا التحكم، لوحة المفاتيح أو الفأرة', 'Walk mode: joystick, keyboard or mouse')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', walk ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
               <Footprints size={16} /><span className="hidden md:inline">{t('مشي', 'Walk')}</span>
             </button>
             <button type="button" onClick={toggleLook} aria-pressed={look} title={t('تحريك الرأس', 'Turn with your head')} className={cn('h-11 px-3 rounded-2xl backdrop-blur text-sm font-black flex items-center gap-1.5', look ? 'bg-[#7FDAD6] text-slate-900' : 'bg-white/10 hover:bg-white/20')}>
@@ -187,9 +243,9 @@ export default function DigitalJourneyPage() {
 
       {/* Station caption and controls */}
       {webgl && ready && !sbs && (
-        <div className="absolute bottom-0 inset-x-0 p-4 pb-24 sm:pb-6 bg-gradient-to-t from-black/75 via-black/40 to-transparent">
-          <div className="max-w-3xl mx-auto space-y-4">
-            <div aria-live="polite" className="min-h-[4.5rem]">
+        <div className="pointer-events-none absolute bottom-0 inset-x-0 p-4 pb-24 sm:pb-6 bg-gradient-to-t from-black/75 via-black/40 to-transparent">
+          <div ref={caption} className="max-w-3xl mx-auto space-y-4">
+            <div aria-live="polite" className={cn("min-h-[4.5rem]", walk && "hidden")}>
               {index === 0 && <>
                 <p className="text-2xl md:text-3xl font-black">{t('مرحباً بك في ساحة المبنى الجديد', 'Welcome to the new building courtyard')}</p>
                 <p className="text-sm md:text-base font-bold text-white/75">{t('رحلة بلدية ظفار الرقمية من 2020 إلى رؤية 2040، وتنتهي بأرقام المعاملات مباشرة من البيانات المفتوحة. اسحب للتلفت حولك.', 'The municipality’s digital journey from 2020 to the 2040 vision, ending with live transaction numbers. Drag to look around.')}</p>
@@ -206,7 +262,7 @@ export default function DigitalJourneyPage() {
                 </p>
               </>}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="pointer-events-auto flex w-fit max-w-full flex-wrap items-center gap-3">
               <button type="button" onClick={prev} className="size-12 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('المحطة السابقة', 'Previous station')}>
                 {isAr ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}
               </button>
@@ -218,8 +274,26 @@ export default function DigitalJourneyPage() {
                 {isAr ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
               </button>
             </div>
+            {/* Keyboard shortcuts, as key caps that can also be pressed */}
+            <div className="hidden md:flex flex-wrap items-center gap-1.5" aria-label={t('اختصارات لوحة المفاتيح', 'Keyboard shortcuts')}>
+              {walk ? <>
+                <KeyHint k="W A S D" label={t('مشي', 'Walk')} />
+                <KeyHint k="Q E" label={t('دوران', 'Turn')} />
+                <KeyHint k="Shift" label={t('جري', 'Run')} />
+                <KeyHint k="M" label={t('إنهاء المشي', 'Stop walking')} onClick={toggleWalk} on />
+              </> : <>
+                <KeyHint k="← →" label={t('المحطات', 'Stations')} />
+                <KeyHint k="Space" label={t('جولة', 'Tour')} onClick={() => setAuto(a => !a)} on={auto} />
+                <KeyHint k="M" label={t('مشي', 'Walk')} onClick={toggleWalk} />
+              </>}
+              <KeyHint k="H" label={t('الرأس', 'Head')} onClick={toggleLook} on={look} />
+              <KeyHint k="V" label="SBS" onClick={toggleSbs} />
+              <KeyHint k="L" label={t('القائمة', 'List')} onClick={() => setShowList(true)} />
+              <KeyHint k="0–9" label={t('محطة', 'Station')} />
+              <KeyHint k="Home" label={t('البداية', 'Start')} onClick={() => { setAuto(false); setIndex(0); }} />
+            </div>
             {/* Jump straight to a year */}
-            <ol ref={chips} className="flex items-stretch gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label={t('المحطات', 'Stations')}>
+            <ol ref={chips} className={cn("pointer-events-auto items-stretch gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", walk ? "hidden" : "flex")} aria-label={t('المحطات', 'Stations')}>
               {Array.from({ length: STATIONS }, (_, i) => {
                 const s = i >= 1 && i <= JOURNEY.length ? JOURNEY[i - 1] : null;
                 const year = s ? s.year : i === 0 ? t('البداية', 'Start') : t('مباشر', 'Live');
@@ -235,7 +309,7 @@ export default function DigitalJourneyPage() {
                 );
               })}
             </ol>
-            <p className="text-[11px] font-bold text-white/45">
+            <p className={cn("pointer-events-auto w-fit text-[11px] font-bold text-white/45", walk && "hidden")}>
               {t('المحتوى: ', 'Content: ')}<a href={JOURNEY_SOURCE} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70 inline-flex items-center gap-1">{t('إنفوجرافيك رحلة التحول الرقمي', 'Digital transformation infographic')}<ExternalLink size={10} /></a>
               {' · '}{t('الأرقام: البيانات المفتوحة لبلدية ظفار', 'Figures: Dhofar Municipality open data')}
               {inVR && ` · ${t('في النظارة: اضغط الزناد للمحطة التالية', 'In the headset: press the trigger for the next station')}`}
