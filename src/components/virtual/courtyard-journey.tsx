@@ -452,6 +452,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
     const gold = new THREE.MeshStandardMaterial({ color: 0xf2c14e, metalness: 1, roughness: 0.22, envMap, envMapIntensity: 1.15 });
+    /** Laser drawings: they breathe slowly, and the wave bands drift sideways */
+    const lasers: { m: THREE.Material; base: number; ph: number; scroll?: THREE.Texture }[] = [];
     /** Air traffic circling over the city */
     const fliers: { o: THREE.Object3D; r: number; h: number; sp: number; ph: number }[] = [];
     /** Things that turn or bob in the animation loop */
@@ -460,8 +462,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // ── Lights ──
     // Mostly sky light, so the four walls of the courtyard read as the same stone; the low sun only warms them
     // Night: a dim cool sky light and moonlight; the warm light comes from the lamps and windows
-    scene.add(new THREE.HemisphereLight(0x3b4a80, 0x16121c, 0.75));
-    const moonLight = new THREE.DirectionalLight(0x9fb4ff, 0.4); moonLight.position.set(-60, 80, 60); scene.add(moonLight);
+    scene.add(new THREE.HemisphereLight(0x3b4a80, 0x16121c, 0.55));
+    const moonLight = new THREE.DirectionalLight(0x9fb4ff, 0.28); moonLight.position.set(-60, 80, 60); scene.add(moonLight);
     scene.environment = envMap; scene.environmentIntensity = 0.16;
     // Polished and reflective finishes used around the entrance
     const marble = new THREE.MeshPhysicalMaterial({ color: 0xd9d2cb, roughness: 0.34, clearcoat: 0.45, clearcoatRoughness: 0.3, envMapIntensity: 0.8 });
@@ -470,13 +472,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const cladding = new THREE.MeshStandardMaterial({ color: 0x8f959d, metalness: 0.85, roughness: 0.32, envMapIntensity: 1 });
     const pane = new THREE.MeshPhysicalMaterial({ color: 0xcfeef0, transparent: true, opacity: 0.2, roughness: 0.02, metalness: 0, envMapIntensity: 2.2, side: THREE.DoubleSide, depthWrite: false });
     for (const x of [-30, -18, 18, 30]) {
-      const s = new THREE.SpotLight(0xffd9b0, 24, 45, 0.55, 0.6, 1.2);
+      const s = new THREE.SpotLight(0xffc890, 12, 30, 0.55, 0.7, 1.2);
       s.position.set(x, 0.3, FZ + 6); s.target.position.set(x, 18, FZ); scene.add(s, s.target);
     }
-    const portalSpot = new THREE.SpotLight(0x9ff5ff, 70, 40, 0.6, 0.7, 1.2);
+    const portalSpot = new THREE.SpotLight(0x9ff5ff, 26, 40, 0.6, 0.7, 1.2);
     portalSpot.position.set(0, 0.5, FZ + 8); portalSpot.target.position.set(0, 12, FZ - PD); scene.add(portalSpot, portalSpot.target);
     const fountainLights = [AQUA, PURPLE, '#8fb4e6'].map((c, i) => {
-      const l = new THREE.PointLight(c, 16, 26, 1.4); l.position.set(Math.cos(i * 2.1) * 4, 0.6, FOUNTAIN.z + Math.sin(i * 2.1) * 4); scene.add(l); return l;
+      const l = new THREE.PointLight(c, 7, 22, 1.4); l.position.set(Math.cos(i * 2.1) * 4, 0.6, FOUNTAIN.z + Math.sin(i * 2.1) * 4); scene.add(l); return l;
     });
 
     // ── Ground ──
@@ -486,11 +488,11 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 
     // ── Building ──
     const fac = facadeTextures(), facWing = facadeTextures(false);
-    const stone = new THREE.MeshStandardMaterial({ color: 0xc9b497, roughness: 0.92 });
+    const stone = new THREE.MeshStandardMaterial({ color: 0x4f4b55, roughness: 0.92 });
     const facadePiece = (x0: number, x1: number, y0: number, y1: number, depth = D) => {
       const map = fac.map.clone(), em = fac.emissive.clone(), gl = fac.gloss.clone();
       for (const t of [map, em, gl]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
-      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.55, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.38 });
+      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x4e5169, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.3 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, depth), [stone, stone, stone, stone, front, stone]);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, FZ - depth / 2);
       scene.add(mesh);
@@ -500,14 +502,14 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     facadePiece(PW / 2, W / 2, 0, H);
     facadePiece(-PW / 2, PW / 2, PH, H);
     // Recess: side walls, ceiling and the arched back wall
-    const recessMat = new THREE.MeshStandardMaterial({ color: 0xcab79c, roughness: 0.9 });
+    const recessMat = new THREE.MeshStandardMaterial({ color: 0x57514d, roughness: 0.9 });
     for (const sx of [-1, 1]) {
       const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, PH, PD), recessMat);
       wall.position.set(sx * (PW / 2 - 0.2), PH / 2, FZ - PD / 2); scene.add(wall);
     }
     const ceil = new THREE.Mesh(new THREE.BoxGeometry(PW, 0.4, PD), recessMat); ceil.position.set(0, PH - 0.2, FZ - PD / 2); scene.add(ceil);
     const pw = portalWallTextures();
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: pw.map, emissiveMap: pw.emissive, emissive: 0xffffff, emissiveIntensity: 1.2, roughness: 0.85 }));
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: pw.map, emissiveMap: pw.emissive, emissive: 0xffffff, emissiveIntensity: 0.7, roughness: 0.85 }));
     back.position.set(0, PH / 2, FZ - PD); scene.add(back);
     // LED along the great arch
     {
@@ -562,7 +564,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const wingSide = (sx: number, z0: number, z1: number) => {
       const len = z1 - z0, map = facWing.map.clone(), em = facWing.emissive.clone(), gl = facWing.gloss.clone();
       for (const t of [map, em, gl]) { t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, 1); t.needsUpdate = true; }
-      const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.55, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.38 });
+      const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x4e5169, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.3 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H, len), sx > 0 ? [stone, inner, stone, stone, stone, stone] : [inner, stone, stone, stone, stone, stone]);
       mesh.position.set(sx * (W / 2 + 5), H / 2, (z0 + z1) / 2); scene.add(mesh);
       strip(0.12, 0.12, len, sx * (W / 2 - 0.05), H + 0.05, (z0 + z1) / 2, AQUA, 2.2);
@@ -576,12 +578,86 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     wingSide(1, FZ - 2, EZ + D);
     wingSide(-1, FZ + 24, EZ + D);
 
+    // Night inside the courtyard: warm uplights wash only the foot of the walls
+    {
+      const wc = document.createElement('canvas'); wc.width = 256; wc.height = 256; const wx = wc.getContext('2d')!;
+      const cone = wx.createRadialGradient(128, 256, 4, 128, 256, 250);
+      cone.addColorStop(0, 'rgba(255,196,128,0.95)'); cone.addColorStop(0.35, 'rgba(255,170,100,0.32)'); cone.addColorStop(1, 'rgba(255,150,80,0)');
+      wx.translate(128, 256); wx.scale(0.42, 1); wx.translate(-128, -256); wx.fillStyle = cone; wx.fillRect(-300, 0, 900, 256);
+      const washTex = new THREE.CanvasTexture(wc); washTex.colorSpace = THREE.SRGBColorSpace;
+      const wash = (len: number, x: number, z: number, ry: number) => {
+        const t = washTex.clone(); t.wrapS = THREE.RepeatWrapping; t.repeat.set(Math.max(1, Math.round(len / 7.2)), 1); t.needsUpdate = true;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(len, 10), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+        m.position.set(x, 5, z); m.rotation.y = ry; scene.add(m);
+      };
+      for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, FZ + 0.08, 0); wash((W - PW) / 2, sx * (W + PW) / 4, EZ - 0.08, Math.PI); }
+      wash(EZ - FZ, W / 2 - 0.08, (EZ + FZ) / 2, -Math.PI / 2);
+      wash(EZ - FZ - 24, -(W / 2 - 0.08), (EZ + FZ + 24) / 2, Math.PI / 2);
+    }
+
+    // A very faint laser show high on the walls in the municipality's identity:
+    // moving waves, Burj Al Nahdha, the gate and the pattern
+    {
+      const art = (w: number, h: number, draw: (x: CanvasRenderingContext2D) => void) => {
+        const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d')!;
+        x.strokeStyle = '#fff'; x.lineWidth = 3; x.lineCap = 'round'; x.lineJoin = 'round'; x.shadowColor = '#fff'; x.shadowBlur = 5; draw(x);
+        const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+      };
+      const show = (tex: THREE.Texture, w: number, h: number, x: number, y: number, z: number, ry: number, hex: string, op: number, ph: number, scroll = false) => {
+        const mat = new THREE.MeshBasicMaterial({ map: tex, color: hex, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); m.position.set(x, y, z); m.rotation.y = ry; scene.add(m);
+        lasers.push({ m: mat, base: op, ph, scroll: scroll ? tex : undefined });
+        return m;
+      };
+      // Waves: the brand wave lines running round the top of the courtyard
+      const waveTex = () => { const t = art(512, 128, x => { for (let i = 0; i < 4; i++) { x.beginPath(); for (let px = 0; px <= 512; px += 4) { const y = 24 + i * 26 + Math.sin((px / 512) * Math.PI * 4 + i * 0.6) * 9; if (px) x.lineTo(px, y); else x.moveTo(px, y); } x.stroke(); } }); t.wrapS = THREE.RepeatWrapping; return t; };
+      const w1 = waveTex(); w1.repeat.set(6, 1); show(w1, W - 2, 3.2, 0, H - 3, FZ + 0.5, 0, AQUA, 0.2, 0, true);
+      for (const sx of [-1, 1]) { const w2 = waveTex(); w2.repeat.set(5, 1); show(w2, EZ - FZ - (sx < 0 ? 24 : 0), 3.2, sx * (W / 2 - 0.5), H - 3, (EZ + FZ + (sx < 0 ? 24 : 0)) / 2, -sx * Math.PI / 2, AQUA, 0.16, sx, true); }
+      // The gate: the three pointed arches of the entrance
+      const gate = art(512, 384, x => {
+        const arch = (cx: number, w: number, h: number, k = 1) => { const a = (w / 2) * k, top = 350 - h * k; x.beginPath(); x.moveTo(cx - a, 350); x.lineTo(cx - a, 350 - h * k * 0.55); x.quadraticCurveTo(cx - a, top + h * k * 0.1, cx, top); x.quadraticCurveTo(cx + a, top + h * k * 0.1, cx + a, 350 - h * k * 0.55); x.lineTo(cx + a, 350); x.stroke(); };
+        for (const k of [1, 0.84]) { arch(256, 150, 300, k); arch(104, 110, 215, k); arch(408, 110, 215, k); }
+        x.beginPath(); x.moveTo(12, 350); x.lineTo(500, 350); x.moveTo(12, 366); x.lineTo(500, 366); x.stroke();
+      });
+      show(gate, 13, 9.75, W / 2 - 0.5, 15, 8, -Math.PI / 2, PURPLE, 0.2, 1.5);
+      // The pattern: an eight-pointed star lattice, slowly turning over the courtyard and still on the entry wall
+      const lattice = () => { const t = art(256, 256, x => {
+        x.lineWidth = 2;
+        for (const rot of [0, Math.PI / 4]) { x.beginPath(); for (let i = 0; i <= 4; i++) { const a = rot + i * Math.PI / 2, px = 128 + Math.cos(a) * 92, py = 128 + Math.sin(a) * 92; if (i) x.lineTo(px, py); else x.moveTo(px, py); } x.stroke(); }
+        x.beginPath(); x.arc(128, 128, 34, 0, Math.PI * 2); x.stroke();
+        x.beginPath(); for (const [a, b] of [[0, 128], [128, 0], [256, 128], [128, 256]]) { x.moveTo(a, b); x.lineTo(128 + (a - 128) * 0.28, 128 + (b - 128) * 0.28); } x.stroke();
+      }); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+      const p1 = lattice(); p1.repeat.set(6, 1); show(p1, 30, 5, 0, 20, EZ - 0.5, Math.PI, PURPLE, 0.12, 3);
+      const p2 = lattice(); p2.repeat.set(3, 3);
+      const rose = show(p2, 30, 30, 0, H + 0.6, 4, 0, AQUA, 0.09, 4); rose.rotation.order = 'YXZ'; rose.rotation.x = Math.PI / 2;
+      movers.push({ o: rose, spin: 0.03, y0: H + 0.6, phase: 0 });
+      // Burj Al Nahdha, traced in light from the real model
+      new OBJLoader().load('/models/burj.obj', obj => {
+        const line = new THREE.LineBasicMaterial({ color: AQUA, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+        const hidden = new THREE.MeshBasicMaterial({ visible: false });
+        const meshes: THREE.Mesh[] = []; obj.traverse(o => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
+        for (const m of meshes) { m.material = hidden; m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, 30), line)); }
+        const box = new THREE.Box3().setFromObject(obj), size = box.getSize(new THREE.Vector3()), k = 12 / size.y;
+        obj.scale.setScalar(k); obj.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k, -(box.min.z + size.z / 2) * k);
+        const flat = new THREE.Group(); flat.add(obj); flat.scale.x = 0.03; flat.position.set(-(W / 2 - 0.6), 8.5, 10); scene.add(flat);
+        lasers.push({ m: line, base: 0.28, ph: 2 });
+      });
+      // Thin beams from the roof frame to each drawing
+      const emitter = new THREE.Vector3(0, H + 1.2, 4), up = new THREE.Vector3(0, 1, 0);
+      for (const [x, y, z] of [[W / 2 - 0.5, 15, 8], [-(W / 2 - 0.6), 14.5, 10], [0, H - 3, FZ + 0.5], [0, 20, EZ - 0.5]]) {
+        const b = new THREE.Vector3(x, y, z), mat = new THREE.MeshBasicMaterial({ color: AQUA, transparent: true, opacity: 0.035, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+        const ray = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 0.04, emitter.distanceTo(b), 12, 1, true), mat);
+        ray.position.copy(emitter).add(b).multiplyScalar(0.5); ray.quaternion.setFromUnitVectors(up, b.clone().sub(emitter).normalize()); scene.add(ray);
+        lasers.push({ m: mat, base: 0.035, ph: x + z });
+      }
+    }
+
     // The entry block: the visitor comes in from outside through three pointed arches, crosses the
     // lobby and steps into the courtyard. Both faces carry the façade; the arches are real openings.
     const entryPiece = (x0: number, x1: number, y0: number, y1: number) => {
       const map = fac.map.clone(), em = fac.emissive.clone(), gl = fac.gloss.clone();
       for (const t of [map, em, gl]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
-      const face = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, emissiveIntensity: 0.55, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.38 });
+      const face = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x4e5169, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.3 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, D), [recessMat, recessMat, stone, recessMat, face, face]);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, EZ + D / 2); scene.add(mesh);
     };
@@ -593,7 +669,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       wall.moveTo(-PW / 2, 0); wall.lineTo(PW / 2, 0); wall.lineTo(PW / 2, PH); wall.lineTo(-PW / 2, PH); wall.closePath();
       for (const a of PORTAL_ARCHES) { const hole = new THREE.Path(); archPoints(a.cx, a.w, a.spring, a.apex, 18).forEach(([x, y], i) => (i ? hole.lineTo(x, y) : hole.moveTo(x, y))); hole.closePath(); wall.holes.push(hole); }
       const wallGeo = new THREE.ExtrudeGeometry(wall, { depth: 0.9, bevelEnabled: false });
-      const wallMat = new THREE.MeshStandardMaterial({ color: 0xd3c0a4, roughness: 0.88 }), band = new THREE.MeshPhysicalMaterial({ color: 0xb4604a, roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.3 });
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x80766a, roughness: 0.88 }), band = new THREE.MeshPhysicalMaterial({ color: 0xb4604a, roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.3 });
       const dark0 = new THREE.MeshStandardMaterial({ color: 0x5a6068, metalness: 0.8, roughness: 0.4 });
       for (const z of [EZ, EZ + D - 0.9]) {
         const mesh = new THREE.Mesh(wallGeo, wallMat); mesh.position.z = z; scene.add(mesh);
@@ -603,7 +679,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         }
       }
       // Warm light in the lobby, and the zebra paving and flag outside
-      const lobby = new THREE.PointLight(0xffd2a0, 60, 30, 1.5); lobby.position.set(0, 9, EZ + D / 2); scene.add(lobby);
+      const lobby = new THREE.PointLight(0xffd2a0, 24, 30, 1.5); lobby.position.set(0, 9, EZ + D / 2); scene.add(lobby);
       const zc = document.createElement('canvas'); zc.width = 64; zc.height = 256; const zg = zc.getContext('2d')!;
       zg.fillStyle = '#cfc8c2'; zg.fillRect(0, 0, 64, 256); zg.fillStyle = '#7c3f3a'; for (let i = 0; i < 8; i++) zg.fillRect(0, i * 32 + 24, 64, 8);
       const zt = new THREE.CanvasTexture(zc); zt.colorSpace = THREE.SRGBColorSpace;
@@ -848,7 +924,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       g.add(top);
       return g;
     };
-    const white = new THREE.MeshPhysicalMaterial({ color: 0xf5f7f9, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1, envMap, envMapIntensity: 1.1 });
+    const white = new THREE.MeshPhysicalMaterial({ color: 0xbcc1c8, roughness: 0.34, clearcoat: 0.8, clearcoatRoughness: 0.18, envMap, envMapIntensity: 0.4 });
     const dark = new THREE.MeshStandardMaterial({ color: 0x0b0d12, metalness: 0.6, roughness: 0.25, envMap, envMapIntensity: 0.8 });
     const lit = (hex: string, k = 1.5) => new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(k), toneMapped: false });
     const logoTex = new THREE.TextureLoader().load('/brand/dhofar-municipality-logo.png'); logoTex.colorSpace = THREE.SRGBColorSpace; logoTex.anisotropy = 4;
@@ -856,34 +932,44 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const landmark = (kind: JourneyModel['kind'], color: string) => {
       const g = new THREE.Group();
       if (kind === 'robot') {
-        // Cruzr service robot: rounded white body on a lit base, oval face screen, two arms, the municipality logo on the body
-        const skirt = new THREE.Mesh(new THREE.LatheGeometry([[0.36, 0], [0.37, 0.12], [0.36, 0.3], [0.33, 0.75], [0.27, 0.98], [0, 0.98]].map(([x, y]) => new THREE.Vector2(x, y)), 40), white); skirt.position.y = 0.06;
-        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.385, 0.4, 0.07, 40), new THREE.MeshStandardMaterial({ color: 0x0f5b4c, roughness: 0.5 })); foot.position.y = 0.035;
-        const glow = new THREE.Mesh(new THREE.TorusGeometry(0.372, 0.02, 8, 48), lit('#4f9dff', 2)); glow.rotation.x = Math.PI / 2; glow.position.y = 0.2;
-        const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.275, 0.275, 0.04, 40), new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: 0.9, roughness: 0.3, envMap })); belt.position.y = 1.05;
-        const waist = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.16, 32), lit('#59e6c8', 1.3)); waist.position.y = 1.15;
-        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 24), white); chest.scale.set(1, 0.72, 0.92); chest.position.y = 1.36;
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.31, 36, 28), white); head.scale.set(1, 0.92, 0.95); head.position.y = 1.78;
-        const faceDisc = new THREE.Mesh(new THREE.CircleGeometry(0.235, 40), dark); faceDisc.scale.set(1, 0.84, 1); faceDisc.position.set(0, 1.8, 0.262); faceDisc.rotation.x = -0.2;
-        const fc2 = document.createElement('canvas'); fc2.width = 256; fc2.height = 144;
-        { const x = fc2.getContext('2d')!; const gr = x.createLinearGradient(0, 0, 0, 144); gr.addColorStop(0, '#2f8dff'); gr.addColorStop(1, '#1554c0'); x.fillStyle = gr; x.fillRect(0, 0, 256, 144);
-          x.fillStyle = '#eaf6ff'; for (const ex of [84, 172]) { x.beginPath(); x.ellipse(ex, 62, 20, 26, 0, 0, Math.PI * 2); x.fill(); } x.strokeStyle = '#eaf6ff'; x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.arc(128, 86, 30, 0.25 * Math.PI, 0.75 * Math.PI); x.stroke(); }
-        const faceTex = new THREE.CanvasTexture(fc2); faceTex.colorSpace = THREE.SRGBColorSpace;
-        const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.17), new THREE.MeshBasicMaterial({ map: faceTex, toneMapped: false })); screen.position.set(0, 1.805, 0.268); screen.rotation.x = -0.2;
-        const sensor = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.09, 0.04), dark); sensor.position.set(0, 0.86, 0.305);
-        const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.163), new THREE.MeshBasicMaterial({ map: logoTex, transparent: true, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) })); badge.position.set(0, 0.62, 0.352); badge.rotation.x = -0.06;
-        g.add(foot, skirt, glow, belt, waist, chest, head, faceDisc, screen, sensor, badge);
+        // Cruzr service robot: bell-shaped white body on a chrome-banded base, round head with a black
+        // visor and chevron eyes, a sensor window on the chest, jointed arms hung from the head rings
+        const P = (pts: number[][]) => pts.map(([x, y]) => new THREE.Vector2(x, y));
+        const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x030405, roughness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.15, envMap, envMapIntensity: 0.35 });
+        const band = new THREE.MeshStandardMaterial({ color: 0xc4c9cf, metalness: 1, roughness: 0.2, envMap, envMapIntensity: 0.8 });
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.41, 0.07, 48), dark); foot.position.y = 0.035;
+        const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.408, 0.408, 0.07, 48), band); ring.position.y = 0.105;
+        const body = new THREE.Mesh(new THREE.LatheGeometry(P([[0.4, 0.14], [0.402, 0.24], [0.39, 0.5], [0.36, 0.82], [0.325, 1.04], [0.3, 1.13], [0.27, 1.18], [0.2, 1.205], [0, 1.21]]), 56), white);
+        const groove = new THREE.Mesh(new THREE.TorusGeometry(0.401, 0.006, 6, 56), dark); groove.rotation.x = Math.PI / 2; groove.position.y = 0.27;
+        const lid = new THREE.Mesh(new THREE.TorusGeometry(0.265, 0.008, 6, 48), dark); lid.rotation.x = Math.PI / 2; lid.position.y = 1.185;
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 0.12, 28), dark); neck.position.y = 1.26;
+        const sensor = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.2, 6, 16), visorMat); sensor.rotation.z = Math.PI / 2; sensor.scale.z = 0.35; sensor.position.set(0, 0.93, 0.338);
+        const lens = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 10), band); lens.position.set(-0.05, 0.93, 0.353);
+        const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.151), new THREE.MeshStandardMaterial({ map: logoTex, transparent: true, roughness: 0.5 })); badge.position.set(0, 0.7, 0.377); badge.rotation.x = -0.08;
+        const HY = 1.63, HR = 0.335;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(HR, 44, 32), white); head.scale.set(1.05, 0.95, 0.98); head.position.y = HY;
+        const visor = new THREE.Mesh(new THREE.SphereGeometry(HR + 0.014, 44, 18, 0, Math.PI * 2, 0, 0.84), visorMat); visor.rotation.x = Math.PI / 2 - 0.08; visor.scale.set(1.05, 0.95, 0.98); visor.position.y = HY;
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(HR * Math.sin(0.84) + 0.004, 0.012, 8, 56), band); rim.scale.set(1.05, 0.95, 1); rim.position.set(0, HY + 0.018, HR * Math.cos(0.84) * 0.98); rim.rotation.x = -0.08;
+        const ec = document.createElement('canvas'); ec.width = 256; ec.height = 128;
+        { const x = ec.getContext('2d')!; x.strokeStyle = '#eef2f5'; x.lineWidth = 15; x.lineCap = 'round'; x.lineJoin = 'round';
+          x.beginPath(); x.moveTo(52, 34); x.lineTo(88, 64); x.lineTo(52, 94); x.moveTo(204, 34); x.lineTo(168, 64); x.lineTo(204, 94); x.stroke();
+          x.fillStyle = '#2b3036'; x.beginPath(); x.arc(128, 64, 17, 0, Math.PI * 2); x.fill(); x.fillStyle = '#11151a'; x.beginPath(); x.arc(128, 64, 9, 0, Math.PI * 2); x.fill(); }
+        const eyeTex = new THREE.CanvasTexture(ec); eyeTex.colorSpace = THREE.SRGBColorSpace;
+        const eyes = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.125), new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true, color: 0xbfc4c9 })); eyes.position.set(0, HY + 0.035, HR * 0.98 + 0.016); eyes.rotation.x = -0.08;
+        const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.034, 14, 10), visorMat); mouth.scale.set(1.5, 0.7, 0.5); mouth.position.set(0, HY - 0.215, 0.252);
+        g.add(foot, ring, body, groove, lid, neck, sensor, lens, badge, head, visor, rim, eyes, mouth);
         for (const sx of [-1, 1]) {
-          const joint = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.035, 10, 24), dark); joint.rotation.y = Math.PI / 2; joint.position.set(sx * 0.29, 1.4, 0);
-          const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.5, 6, 14), white); arm.position.set(sx * 0.37, 1.1, 0.03); arm.rotation.z = sx * 0.08;
-          const hand = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), white); hand.position.set(sx * 0.4, 0.78, 0.04);
-          g.add(joint, arm, hand);
+          const ear = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.03, 12, 36), band); ear.rotation.y = Math.PI / 2; ear.position.set(sx * 0.345, HY - 0.03, 0);
+          const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 28), dark); hub.rotation.z = Math.PI / 2; hub.position.set(sx * 0.35, HY - 0.03, 0);
+          const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.078, 18, 14), white); shoulder.position.set(sx * 0.42, HY - 0.05, 0);
+          const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.28, 6, 14), white); upper.position.set(sx * 0.47, 1.36, 0.01); upper.rotation.z = sx * 0.2;
+          const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.054, 14, 12), band); elbow.position.set(sx * 0.51, 1.15, 0.02);
+          // The left arm is held out in welcome, the right hangs by the body
+          const out = sx < 0;
+          const fore = new THREE.Mesh(new THREE.CapsuleGeometry(0.044, 0.26, 6, 14), white); fore.position.set(sx * 0.52, out ? 1.08 : 0.95, out ? 0.17 : 0.07); fore.rotation.x = out ? -1.2 : -0.3;
+          const hand = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 12), white); hand.scale.set(0.55, 1.25, 1); hand.position.set(sx * 0.52, out ? 1.01 : 0.76, out ? 0.37 : 0.13); hand.rotation.x = out ? -1.2 : -0.3;
+          g.add(ear, hub, shoulder, upper, elbow, fore, hand);
         }
-        const neck = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.03, 10, 36), chrome); neck.rotation.x = Math.PI / 2; neck.position.y = 1.56;
-        const visor = new THREE.Mesh(new THREE.TorusGeometry(0.236, 0.012, 8, 44), chrome); visor.scale.set(1, 0.84, 1); visor.position.set(0, 1.8, 0.264); visor.rotation.x = -0.2;
-        g.add(neck, visor);
-        for (let i = 0; i < 5; i++) { const slot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.012, 0.01), dark); slot.position.set(0, 1.3 + i * 0.03, 0.283); g.add(slot); }
-        for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 20), dark); ear.rotation.z = Math.PI / 2; ear.position.set(sx * 0.305, 1.78, 0); const led = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.008, 6, 24), lit('#59e6c8', 1.6)); led.rotation.y = Math.PI / 2; led.position.set(sx * 0.322, 1.78, 0); g.add(ear, led); }
         g.scale.setScalar(1.25);
       } else if (kind === 'burj') {
         // Burj Al Nahdha, loaded from the supplied model and stood on the plinth
@@ -1127,9 +1213,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       // Two reception robots at the foot of the steps
       for (const sx of [-1, 1]) {
         const bot = landmark('robot', AQUA); bot.scale.setScalar(1.75); bot.position.set(sx * 7.6, 0, EZ + D + 6.5); bot.rotation.y = -sx * 0.35; scene.add(bot);
-        const hello = caption(2.2, 0.5, [isAr ? 'مرحباً بك' : 'Welcome'], AQUA); hello.position.set(sx * 7.6, 4.2, EZ + D + 6.5); hello.rotation.y = -sx * 0.35; scene.add(hello);
-        const key = new THREE.SpotLight(0xfff1dc, 60, 16, 0.5, 0.6, 1.4); key.position.set(sx * 9, 7.5, EZ + D + 12); key.target.position.set(sx * 7.6, 1.6, EZ + D + 6.5); scene.add(key, key.target);
-        movers.push({ o: hello, bob: 0.06, y0: 4.2, phase: sx });
+        const hello = caption(2.2, 0.5, [isAr ? 'مرحباً بك' : 'Welcome'], AQUA); hello.position.set(sx * 7.6, 4.8, EZ + D + 6.5); hello.rotation.y = -sx * 0.35; scene.add(hello);
+        const key = new THREE.SpotLight(0xfff1dc, 18, 16, 0.5, 0.6, 1.4); key.position.set(sx * 9, 7.5, EZ + D + 12); key.target.position.set(sx * 7.6, 1.6, EZ + D + 6.5); scene.add(key, key.target);
+        movers.push({ o: hello, bob: 0.06, y0: 4.8, phase: sx });
       }
 
       // The municipality logo drawn in the air by lasers: stacked light layers give it depth
@@ -1393,6 +1479,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         f.detail.visible = f.k > 0.02; f.detail.scale.setScalar(0.55 + 0.45 * f.k);
         f.sign.visible = f.k < 0.9; f.sign.scale.setScalar(1 - f.k * 0.6);
       });
+      for (const L of lasers) { L.m.opacity = L.base * (0.7 + 0.3 * Math.sin(t * 0.6 + L.ph) * motion); if (L.scroll) L.scroll.offset.x = t * 0.012 * motion; }
       for (const fl of fliers) { const a = t * fl.sp * motion + fl.ph; fl.o.position.set(Math.cos(a) * fl.r, fl.h, 10 + Math.sin(a) * fl.r); fl.o.rotation.y = -a; }
       for (const m of movers) {
         if (m.spin) m.o.rotation.y = t * m.spin * motion + m.phase;
