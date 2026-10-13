@@ -528,8 +528,50 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       scene.add(mesh);
       return mesh;
     };
-    facadePiece(-W / 2, -PW / 2, 0, H);
-    facadePiece(PW / 2, W / 2, 0, H);
+    /** Height of the arcade, and how deep the walkway behind it is */
+    const AH = 4.9, AD = 3.2;
+    const arcStone = new THREE.MeshStandardMaterial({ color: 0x7b747a, roughness: 0.8 }), arcDark = new THREE.MeshStandardMaterial({ color: 0x2f2a2c, roughness: 0.9 });
+    const drumMat = new THREE.MeshStandardMaterial({ color: 0xa8553f, roughness: 0.7 }), capitalMat = new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.55 });
+    const drumGeo = new THREE.CylinderGeometry(0.42, 0.42, 2.3, 24), capitalGeo = new THREE.CylinderGeometry(0.98, 0.44, 0.56, 28), plinthGeo = new THREE.CylinderGeometry(0.5, 0.56, 0.22, 24);
+    const bayC = document.createElement('canvas'); bayC.width = 144; bayC.height = 196;
+    {
+      // One bay of the walkway's back wall: stone, a dark window, and the low warm light of the passage
+      const x = bayC.getContext('2d')!; x.fillStyle = '#3a3533'; x.fillRect(0, 0, 144, 196);
+      const lg = x.createLinearGradient(0, 196, 0, 30); lg.addColorStop(0, 'rgba(255,186,118,0.5)'); lg.addColorStop(1, 'rgba(255,186,118,0)'); x.fillStyle = lg; x.fillRect(0, 0, 144, 196);
+      x.fillStyle = '#12151a'; x.fillRect(38, 56, 68, 112); x.strokeStyle = '#5b5f66'; x.lineWidth = 3; x.strokeRect(38, 56, 68, 112); x.beginPath(); x.moveTo(72, 56); x.lineTo(72, 168); x.stroke();
+    }
+    const bayTex = new THREE.CanvasTexture(bayC); bayTex.colorSpace = THREE.SRGBColorSpace; bayTex.wrapS = THREE.RepeatWrapping;
+    const downlight = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffd9a8).multiplyScalar(1.4), toneMapped: false });
+    /** Built along local x and opening towards local +z, with the wall's face at z = 0 */
+    const arcade = (len: number, place: (g: THREE.Group) => void) => {
+      const g = new THREE.Group(); place(g); scene.add(g);
+      const n = Math.max(1, Math.floor((len - 0.6) / 3.6)), start = -((n - 1) * 3.6) / 2, R = 1.5, SPRING = 3.0;
+      // The arches: one wall panel from the springing line up, scalloped by a half circle over each bay
+      const sh = new THREE.Shape(); sh.moveTo(-len / 2, AH); sh.lineTo(len / 2, AH); sh.lineTo(len / 2, SPRING);
+      for (let k = n - 1; k >= 0; k--) { const c = start + k * 3.6; sh.lineTo(c + R, SPRING); sh.absarc(c, SPRING, R, 0, Math.PI, false); }
+      sh.lineTo(-len / 2, SPRING); sh.closePath();
+      const front = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false, curveSegments: 20 }), arcStone); front.position.z = -0.6; g.add(front);
+      // A column under every springing point, so each stands midway between two openings
+      for (let k = 0; k <= n; k++) {
+        const x = start + (k - 0.5) * 3.6;
+        const drum = new THREE.Mesh(drumGeo, drumMat); drum.position.set(x, 1.35, -0.3);
+        const capital = new THREE.Mesh(capitalGeo, capitalMat); capital.position.set(x, 2.76, -0.3);
+        const plinth = new THREE.Mesh(plinthGeo, capitalMat); plinth.position.set(x, 0.11, -0.3);
+        g.add(drum, capital, plinth);
+      }
+      // The walkway: back wall with its windows, ceiling with a light in each bay, and closed ends
+      const bt = bayTex.clone(); bt.repeat.set(len / 3.6, 1); bt.needsUpdate = true;
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(len, AH), new THREE.MeshBasicMaterial({ map: bt, color: new THREE.Color(0.85, 0.85, 0.85) })); back.position.set(0, AH / 2, -AD); g.add(back);
+      const ceil = new THREE.Mesh(new THREE.PlaneGeometry(len, AD), arcDark); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, AH - 0.01, -AD / 2); g.add(ceil);
+      for (const sx of [-1, 1]) { const end = new THREE.Mesh(new THREE.PlaneGeometry(AD, AH), arcDark); end.rotation.y = -sx * Math.PI / 2; end.position.set(sx * len / 2, AH / 2, -AD / 2); g.add(end); }
+      for (let k = 0; k < n; k++) { const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.16, 16), downlight); lamp.rotation.x = Math.PI / 2; lamp.position.set(start + k * 3.6, AH - 0.03, -AD / 2); g.add(lamp); }
+    };
+    for (const sx of [-1, 1]) {
+      const x0 = sx < 0 ? -W / 2 : PW / 2, x1 = sx < 0 ? -PW / 2 : W / 2;
+      facadePiece(x0, x1, AH, H);
+      const low = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, AH, D - AD), stone); low.position.set((x0 + x1) / 2, AH / 2, FZ - AD - (D - AD) / 2); scene.add(low);
+      arcade(x1 - x0, g => g.position.set((x0 + x1) / 2, 0, FZ));
+    }
     facadePiece(-PW / 2, PW / 2, PH, H);
     // Recess: side walls, ceiling and the arched back wall
     const recessMat = new THREE.MeshStandardMaterial({ color: 0x57514d, roughness: 0.9 });
@@ -578,13 +620,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // Arcade columns with white capitals in front of the side blocks
     const shaftMat = new THREE.MeshStandardMaterial({ color: 0xa8553f, roughness: 0.8 }), capMat = new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.7 });
     const shaftGeo = new THREE.CylinderGeometry(0.3, 0.33, 3.0, 20), capGeo = new THREE.CylinderGeometry(0.5, 0.34, 0.36, 20), footGeo = new THREE.CylinderGeometry(0.4, 0.44, 0.22, 20);
-    for (let x = -W / 2 + 2.2 + 1.8; x < W / 2 - 1; x += 3.6) {
-      if (Math.abs(x) < PW / 2 + 1) continue;
-      const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(x, 1.72, FZ + 0.14);
-      const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(x, 3.4, FZ + 0.14);
-      const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(x, 0.11, FZ + 0.14);
-      scene.add(shaft, cap, foot);
-    }
+    void shaftGeo; void capGeo; void footGeo; void shaftMat; void capMat;
     // Wings: dark glass on the left, stone on the right (as in the photos)
     const glassMap = glassTexture(); glassMap.wrapS = glassMap.wrapT = THREE.RepeatWrapping; glassMap.repeat.set(3, 2);
     const glass = new THREE.Mesh(new THREE.BoxGeometry(10, 22, 26), new THREE.MeshStandardMaterial({ map: glassMap, metalness: 0.9, roughness: 0.1, envMap, envMapIntensity: 0.9 }));
@@ -593,18 +629,19 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     // The two long sides of the courtyard, from the far façade to the entry block
     const wingSide = (sx: number, z0: number, z1: number) => {
       const len = z1 - z0, map = facWing.map.clone(), em = facWing.emissive.clone(), gl = facWing.gloss.clone();
-      for (const t of [map, em, gl]) { t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, 1); t.needsUpdate = true; }
+      for (const t of [map, em, gl]) { t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, (H - AH) / H); t.offset.y = AH / H; t.needsUpdate = true; }
       const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.45 });
       const outer = inner.clone(); outer.color.set(0x7c86a3); outer.roughness = 0.6; outer.envMapIntensity = 0.55;
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H, len), sx > 0 ? [outer, inner, stone, stone, stone, stone] : [inner, outer, stone, stone, stone, stone]);
-      mesh.position.set(sx * (W / 2 + 5), H / 2, (z0 + z1) / 2); scene.add(mesh);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H - AH, len), sx > 0 ? [outer, inner, stone, stone, stone, stone] : [inner, outer, stone, stone, stone, stone]);
+      // Under it: the solid ground floor behind the walkway (its outside face keeps the foot of the façade), and the arcade itself
+      const lowOut = outer.clone();
+      for (const key of ['map', 'emissiveMap', 'roughnessMap', 'metalnessMap'] as const) { const t = (outer[key] as THREE.Texture).clone(); t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, AH / H); t.offset.y = 0; t.needsUpdate = true; lowOut[key] = t; }
+      const lowBox = new THREE.Mesh(new THREE.BoxGeometry(10 - AD, AH, len), sx > 0 ? [lowOut, stone, stone, stone, stone, stone] : [stone, lowOut, stone, stone, stone, stone]);
+      lowBox.position.set(sx * (W / 2 + AD + (10 - AD) / 2), AH / 2, (z0 + z1) / 2); scene.add(lowBox);
+      arcade(len, g => { g.position.set(sx * W / 2, 0, (z0 + z1) / 2); g.rotation.y = -sx * Math.PI / 2; });
+      mesh.position.set(sx * (W / 2 + 5), (H + AH) / 2, (z0 + z1) / 2); scene.add(mesh);
       strip(0.12, 0.12, len, sx * (W / 2 - 0.05), H + 0.05, (z0 + z1) / 2, AQUA, 2.2);
-      for (let z = z0 + 3.8; z < z1 - 2; z += 3.6) {
-        const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(sx * (W / 2 - 0.14), 1.72, z);
-        const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(sx * (W / 2 - 0.14), 3.4, z);
-        const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(sx * (W / 2 - 0.14), 0.11, z);
-        scene.add(shaft, cap, foot);
-      }
+
     };
     wingSide(1, FZ - 2, EZ + D);
     wingSide(-1, FZ + 24, EZ + D);
@@ -627,10 +664,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       cone.addColorStop(0, 'rgba(255,196,128,0.95)'); cone.addColorStop(0.35, 'rgba(255,170,100,0.32)'); cone.addColorStop(1, 'rgba(255,150,80,0)');
       wx.translate(128, 256); wx.scale(0.42, 1); wx.translate(-128, -256); wx.fillStyle = cone; wx.fillRect(-300, 0, 900, 256);
       const washTex = new THREE.CanvasTexture(wc); washTex.colorSpace = THREE.SRGBColorSpace;
-      const wash = (len: number, x: number, z: number, ry: number, n = Math.max(1, Math.round(len / 7.2)), h = 10) => {
+      const wash = (len: number, x: number, z: number, ry: number, n = Math.max(1, Math.round(len / 7.2)), h = 10, y0 = 0) => {
         const t = washTex.clone(); t.wrapS = THREE.RepeatWrapping; t.repeat.set(n, 1); t.needsUpdate = true;
         const m = new THREE.Mesh(new THREE.PlaneGeometry(len, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.68, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-        m.position.set(x, h / 2, z); m.rotation.y = ry; scene.add(m);
+        m.position.set(x, y0 + h / 2, z); m.rotation.y = ry; scene.add(m);
       };
       // A light glass skin with slim metal mullions over the outside walls
       const skin = pane.clone(); skin.color.set(0x9fd8e6); skin.opacity = 0.13; skin.envMapIntensity = 2.6;
@@ -644,9 +681,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       for (const sx of [-1, 1]) curtain((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.28, 0);
       curtain(EZ + D - FZ, SIDE + 0.28, (EZ + D + FZ) / 2, Math.PI / 2);
       curtain(EZ + D - LZ0, -(SIDE + 0.28), (EZ + D + LZ0) / 2, -Math.PI / 2);
-      for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, FZ + 0.08, 0); wash((W - PW) / 2, sx * (W + PW) / 4, EZ - 0.08, Math.PI); }
-      wash(EZ - FZ, W / 2 - 0.08, (EZ + FZ) / 2, -Math.PI / 2);
-      wash(EZ - FZ - 24, -(W / 2 - 0.08), (EZ + FZ + 24) / 2, Math.PI / 2);
+      for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, FZ + 0.08, 0, undefined, 8, AH); wash((W - PW) / 2, sx * (W + PW) / 4, EZ - 0.08, Math.PI); }
+      wash(EZ - FZ, W / 2 - 0.08, (EZ + FZ) / 2, -Math.PI / 2, undefined, 8, AH);
+      wash(EZ - FZ - 24, -(W / 2 - 0.08), (EZ + FZ + 24) / 2, Math.PI / 2, undefined, 8, AH);
       // Outside: the entrance front and the two long sides
       for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.08, 0); wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.1, 0, 3, 17); }
       wash(EZ + D - FZ, SIDE + 0.1, (EZ + D + FZ) / 2, Math.PI / 2, 6, 17);
@@ -1425,8 +1462,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 
       // Two reception robots at the foot of the steps
       for (const sx of [-1, 1]) {
-        const bot = landmark('robot', AQUA); bot.scale.setScalar(1.75); bot.position.set(sx * 7.6, 0, EZ + D + 6.5); bot.rotation.y = -sx * 0.35; scene.add(bot);
-        const hello = caption(2.2, 0.5, [isAr ? 'مرحباً بك' : 'Welcome'], AQUA); hello.position.set(sx * 7.6, 4.8, EZ + D + 6.5); hello.rotation.y = -sx * 0.35; scene.add(hello);
+        const bot = landmark('robot', AQUA); bot.scale.setScalar(0.92); bot.position.set(sx * 7.6, 0, EZ + D + 6.5); bot.rotation.y = -sx * 0.35; scene.add(bot);
+        const hello = caption(2.2, 0.5, [isAr ? 'مرحباً بك' : 'Welcome'], AQUA); hello.scale.setScalar(0.7); hello.position.set(sx * 7.6, 2.75, EZ + D + 6.5); hello.rotation.y = -sx * 0.35; scene.add(hello);
         const key = new THREE.SpotLight(0xfff1dc, 18, 16, 0.5, 0.6, 1.4); key.position.set(sx * 9, 7.5, EZ + D + 12); key.target.position.set(sx * 7.6, 1.6, EZ + D + 6.5); scene.add(key, key.target);
         bots.push({ o: bot, cap: hello, x0: sx * 7.6, z0: EZ + D + 6.5, sx });
       }
@@ -1759,7 +1796,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
         const k = Math.max(1, 1.35 / camera.aspect), CZ = EZ - 2.5, need = 6.4 * k, hz = Math.max(24, CZ - need), dist = CZ - hz, sc = Math.min(1, dist / need) * 0.5;
         // Seen from eye height the full-size hub towers over the visitor: there it is under half the size, centred just above the eyes
         const foot = mode.walk, hy = foot ? 1.05 : 1.3;
-        hub.position.set(0, hy, hz); hub.scale.setScalar(foot ? sc * 0.7 : sc); hub.rotation.x = foot ? -0.6 : -0.35; hubMover.y0 = hy;
+        hub.position.set(0, hy, hz); hub.scale.setScalar(foot ? sc * 0.7 : sc);
+        for (const b of bots) { b.x0 = b.sx * ((HW / 2) * (foot ? sc * 0.7 : sc) + 1.2); b.z0 = hz + 0.5; } hub.rotation.x = foot ? -0.6 : -0.35; hubMover.y0 = hy;
         ring.position.set(0, 0.06, hz); cone.visible = false;
         const camY = hy + dist * 0.2, half = (HH / 2) * sc + 0.15, tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
         // Where on the screen (0 top … 1 bottom) the hub's lower edge should land
@@ -1981,9 +2019,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       if (motion) flagWave?.(t);
       for (const b of bots) {
         // A slow figure of eight, turning with the path; the head looks about and the arm waves
-        const a = t * 0.35 + (b.sx > 0 ? 0 : 2.4), dx = Math.sin(a) * 2.6 * motion, dz = Math.sin(a * 2) * 1.3 * motion;
+        const a = t * 0.35 + (b.sx > 0 ? 0 : 2.4), dx = Math.sin(a) * 0.55 * motion, dz = Math.sin(a * 2) * 0.3 * motion;
         b.o.position.set(b.x0 + dx, 0, b.z0 + dz); b.o.rotation.y = -b.sx * 0.35 + Math.cos(a) * 0.55 * motion; b.o.rotation.z = -Math.cos(a) * 0.03 * motion;
-        b.cap.position.set(b.x0 + dx, 4.8 + Math.sin(t * 1.1 + b.sx) * 0.06 * motion, b.z0 + dz);
+        b.cap.position.set(b.x0 + dx, 2.75 + Math.sin(t * 1.1 + b.sx) * 0.05 * motion, b.z0 + dz);
         const hd = b.o.userData.head as THREE.Object3D | undefined, wv = b.o.userData.wave as THREE.Object3D | undefined;
         if (hd) hd.rotation.y = Math.sin(t * 0.8 + b.sx) * 0.45 * motion;
         if (wv) wv.rotation.x = Math.sin(t * 3.2 + b.sx) * 0.4 * motion;
