@@ -1,5 +1,6 @@
 'use client';
 
+import { loadTransactionStats } from '@/lib/open-data/client-stats';
 /*
  * Open-data hub: every dataset the municipality publishes, with standard metadata (DCAT-AP),
  * a data dictionary, live preview, CSV/JSON downloads, an API builder, and feedback channels.
@@ -42,7 +43,7 @@ export default function OpenDataHub() {
       setHappy(happinessIndex(db.happinessResponses || []));
       setServicesCount((db.services || []).filter((s: { isPublic?: boolean }) => s.isPublic === true).length);
     }).catch(() => {});
-    fetch('/api/open-data/transactions').then(r => (r.ok ? r.json() : null)).then(setStats).catch(() => {});
+    loadTransactionStats().then(setStats).catch(() => {});
   }, []);
   useEffect(() => { document.title = `${t('البيانات المفتوحة', 'Open data')} | ${t('بلدية ظفار', 'Dhofar Municipality')}`; }, [isAr]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -6,6 +6,7 @@ import { ArrowUpRight, Building2, Construction, ExternalLink, FileSignature, Glo
 import { SiteConfig } from '@/lib/types';
 import type { TransactionStats } from '@/lib/open-data/transactions-stats';
 import { FIGURE_LABELS, ODM_SOURCES, officialFigures } from '@/lib/open-data/official-figures';
+import { loadTransactionStats } from '@/lib/open-data/client-stats';
 import { cn } from '@/lib/utils';
 
 export const RENT_COLOR = '#00979B';
@@ -22,8 +23,7 @@ export function useTransactionStats(query = '') {
   useEffect(() => {
     let alive = true;
     setState(s => (s === 'ready' ? 'ready' : 'loading'));
-    fetch(`/api/open-data/transactions${query}`)
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    loadTransactionStats(query)
       .then((d: TransactionStats) => { if (alive) { setData(d); setState('ready'); } })
       .catch(() => { if (alive) setState('error'); });
     return () => { alive = false; };

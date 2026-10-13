@@ -518,7 +518,15 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
 
     // ── Building ──
     const fac = facadeTextures(), facWing = facadeTextures(false);
-    const stone = new THREE.MeshStandardMaterial({ color: 0x5f5b64, roughness: 0.92 });
+    const sc0 = document.createElement('canvas'); sc0.width = sc0.height = 256;
+    {
+      // The same coursed stone as the façades, for the faces that carry no windows
+      const x = sc0.getContext('2d')!, r0 = rng(19);
+      x.fillStyle = '#c9b497'; x.fillRect(0, 0, 256, 256);
+      for (let row = 0; row < 16; row++) for (let col = -1; col < 6; col++) { x.fillStyle = `hsl(33, ${22 + r0() * 10}%, ${66 + r0() * 12}%)`; x.fillRect(col * 48 + (row % 2 ? 24 : 0) + 1, row * 16 + 1, 46, 14); }
+    }
+    const stoneTex = new THREE.CanvasTexture(sc0); stoneTex.colorSpace = THREE.SRGBColorSpace; stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping; stoneTex.repeat.set(3, 3.6);
+    const stone = new THREE.MeshStandardMaterial({ map: stoneTex, color: 0x62657e, roughness: 0.9 });
     const facadePiece = (x0: number, x1: number, y0: number, y1: number, depth = D) => {
       const map = fac.map.clone(), em = fac.emissive.clone(), gl = fac.gloss.clone();
       for (const t of [map, em, gl]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
@@ -690,10 +698,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       wash(EZ + D - LZ0, -(SIDE + 0.1), (EZ + D + LZ0) / 2, -Math.PI / 2, 4, 17);
       // The entrance: warm floodlights graze the stone of the three arches, and a cooler light fills the lobby mouth
       for (const sx of [-1, 1]) {
-        const flood = new THREE.SpotLight(0xffc890, 90, 40, 0.62, 0.75, 1.25); flood.position.set(sx * 13, 0.5, EZ + D + 7); flood.target.position.set(sx * 4, 13, EZ + D); scene.add(flood, flood.target);
+        const flood = new THREE.SpotLight(0xffd9b0, 34, 40, 0.62, 0.75, 1.25); flood.position.set(sx * 13, 0.5, EZ + D + 7); flood.target.position.set(sx * 4, 13, EZ + D); scene.add(flood, flood.target);
         const fit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 0.9), cladding); fit.position.set(sx * 13, 0.15, EZ + D + 7); scene.add(fit);
       }
-      const crownLight = new THREE.SpotLight(0xfff0dc, 40, 30, 0.7, 0.8, 1.3); crownLight.position.set(0, 0.6, EZ + D + 10); crownLight.target.position.set(0, 16, EZ + D); scene.add(crownLight, crownLight.target);
+      const crownLight = new THREE.SpotLight(0xfff0dc, 16, 30, 0.7, 0.8, 1.3); crownLight.position.set(0, 0.6, EZ + D + 10); crownLight.target.position.set(0, 16, EZ + D); scene.add(crownLight, crownLight.target);
       wash(EZ + D - FZ, SIDE + 0.08, (EZ + D + FZ) / 2, Math.PI / 2, 2, 20);
       wash(EZ + D - LZ0, -(SIDE + 0.08), (EZ + D + LZ0) / 2, -Math.PI / 2, 2, 20);
       for (const sx of [-1, 1]) for (const z of sx > 0 ? [(EZ + D + FZ) / 2 - (EZ + D - FZ) / 4, (EZ + D + FZ) / 2 + (EZ + D - FZ) / 4] : [(EZ + D + LZ0) / 2 - (EZ + D - LZ0) / 4, (EZ + D + LZ0) / 2 + (EZ + D - LZ0) / 4]) {
@@ -858,19 +866,19 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const rc = document.createElement('canvas'); rc.width = rc.height = 256; const rx = rc.getContext('2d')!, rr = rng(31);
       // Pale pink stone laid in courses, each block a slightly different tone
       for (let row = 0; row < 8; row++) for (let col = -1; col < 4; col++) {
-        const t = 150 + Math.floor(rr() * 34); rx.fillStyle = `rgb(${t + 52}, ${t + 24}, ${t + 4})`;
+        rx.fillStyle = `hsl(33, ${22 + rr() * 10}%, ${66 + rr() * 12}%)`;
         rx.fillRect(col * 64 + (row % 2 ? 32 : 0), row * 32, 63, 31);
       }
-      const redStone = new THREE.CanvasTexture(rc); redStone.colorSpace = THREE.SRGBColorSpace; redStone.wrapS = redStone.wrapT = THREE.RepeatWrapping; redStone.repeat.set(0.3, 0.3);
-      const wallMat = new THREE.MeshStandardMaterial({ map: redStone, color: 0xb8aaa4, roughness: 0.8 }), band = new THREE.MeshStandardMaterial({ color: 0x8a4038, roughness: 0.7 }), paleTrim = new THREE.MeshPhysicalMaterial({ color: 0xe6dccd, roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+      const redStone = new THREE.CanvasTexture(rc); redStone.colorSpace = THREE.SRGBColorSpace; redStone.wrapS = redStone.wrapT = THREE.RepeatWrapping; redStone.repeat.set(0.28, 0.28);
+      const wallMat = new THREE.MeshStandardMaterial({ map: redStone, color: 0x62657e, roughness: 0.85 }), band = new THREE.MeshStandardMaterial({ color: 0x8a4038, roughness: 0.7 }), paleTrim = new THREE.MeshPhysicalMaterial({ color: 0xe6dccd, roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.3 });
       const dark0 = new THREE.MeshStandardMaterial({ color: 0x5a6068, metalness: 0.8, roughness: 0.4 });
       for (const z of [EZ, EZ + D - 0.9]) {
         const mesh = new THREE.Mesh(wallGeo, wallMat); mesh.position.z = z; scene.add(mesh);
         for (const a of PORTAL_ARCHES) {
           // Each arch: a broad surround of red stone, lined on the inside with a slim pale band
           const zf = z + (z === EZ ? -0.02 : 0.92), line = (grow: number, rise: number) => new THREE.CatmullRomCurve3(archPoints(a.cx, a.w + grow, a.spring, a.apex + rise, 30).map(([x, y]) => new THREE.Vector3(x, y, zf)), false, 'catmullrom', 0.1);
-          const red = new THREE.Mesh(new THREE.TubeGeometry(line(1.7, 1.05), 160, 0.85, 10), band); red.scale.z = 0.16; red.position.z = zf * 0.84;
-          scene.add(red, new THREE.Mesh(new THREE.TubeGeometry(line(0.1, 0.05), 160, 0.2, 8), paleTrim));
+          const red = new THREE.Mesh(new THREE.TubeGeometry(line(0.44, 0.3), 160, 0.22, 10), band); red.scale.z = 0.4; red.position.z = zf * 0.6;
+          scene.add(red, new THREE.Mesh(new THREE.TubeGeometry(line(0, 0), 160, 0.08, 8), paleTrim));
         }
       }
       // Warm light in the lobby, and the zebra paving and flag outside
@@ -880,7 +888,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const zt = new THREE.CanvasTexture(zc); zt.colorSpace = THREE.SRGBColorSpace;
       const zebra = new THREE.Mesh(new THREE.PlaneGeometry(22, 18), new THREE.MeshPhysicalMaterial({ map: zt, roughness: 0.14, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.1 }));
       zebra.rotation.x = -Math.PI / 2; zebra.position.set(0, 0.013, EZ + D + 12); scene.add(zebra);
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 9, 10), steel); pole.position.set(0, H + 4.5, EZ + D - 1); scene.add(pole);
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 6, 10), steel); pole.position.set(0, H + 3, EZ + D - 1); scene.add(pole);
       const fc = document.createElement('canvas'); fc.width = 600; fc.height = 300; const fg = fc.getContext('2d')!;
       // Oman: white, red and green bands with the red band at the hoist, and the weave of the cloth
       fg.fillStyle = '#f4f4f1'; fg.fillRect(0, 0, 600, 100); fg.fillStyle = '#c8141a'; fg.fillRect(0, 100, 600, 100); fg.fillStyle = '#0a7d2c'; fg.fillRect(0, 200, 600, 100); fg.fillStyle = '#c8141a'; fg.fillRect(0, 0, 160, 300);
@@ -891,9 +899,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const ft = new THREE.CanvasTexture(fc); ft.colorSpace = THREE.SRGBColorSpace; ft.anisotropy = 4;
       const FW = 5.4, FH = 2.7, flagGeo = new THREE.PlaneGeometry(FW, FH, 36, 14);
       const flag = new THREE.Mesh(flagGeo, new THREE.MeshStandardMaterial({ map: ft, side: THREE.DoubleSide, roughness: 0.85, emissive: 0xffffff, emissiveMap: ft, emissiveIntensity: 0.22 }));
-      flag.position.set(FW / 2 + 0.06, H + 7.55, EZ + D - 1); scene.add(flag);
+      flag.position.set(FW / 2 + 0.06, H + 4.55, EZ + D - 1); scene.add(flag);
       const flagLamp = new THREE.SpotLight(0xfff0dc, 60, 22, 0.4, 0.6, 1.2); flagLamp.position.set(1.5, H + 0.4, EZ + D + 2); flagLamp.target = flag; scene.add(flagLamp);
-      const finial = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 10), gold); finial.position.set(0, H + 9.1, EZ + D - 1); scene.add(finial);
+      const finial = new THREE.Mesh(new THREE.SphereGeometry(0.14, 14, 10), gold); finial.position.set(0, H + 6.1, EZ + D - 1); scene.add(finial);
       const fp0 = flagGeo.attributes.position, rest = Float32Array.from(fp0.array as Float32Array);
       flagWave = t => {
         for (let k = 0; k < fp0.count; k++) {
@@ -1469,7 +1477,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       }
 
       // The municipality logo drawn in the air by lasers: stacked light layers give it depth
-      const holder = new THREE.Group(); holder.position.set(-19, 0, EZ + D + 17); holder.rotation.y = 0.42; scene.add(holder);
+      for (const lsx of [-1, 1]) {
+      const holder = new THREE.Group(); holder.position.set(lsx * 19, 0, EZ + D + 17); holder.rotation.y = -lsx * 0.42; scene.add(holder);
       const lc = document.createElement('canvas'); lc.width = 654; lc.height = 396;
       const lt = new THREE.CanvasTexture(lc); lt.colorSpace = THREE.SRGBColorSpace; lt.anisotropy = 4;
       const li = new Image();
@@ -1491,6 +1500,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       }));
       const scan = new THREE.Mesh(new THREE.PlaneGeometry(LW + 0.4, 0.05), laser); scan.position.set(0, LY, 0.03); holder.add(scan);
       movers.push({ o: scan, bob: LH / 2, y0: LY, phase: 0 });
+      }
     }
     {
       const gr = rng(77), gc = document.createElement('canvas'); gc.width = gc.height = 256; const gx = gc.getContext('2d')!;
