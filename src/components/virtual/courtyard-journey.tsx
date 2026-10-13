@@ -621,8 +621,8 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const curtain = (len: number, x: number, z: number, ry: number) => {
         const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; scene.add(g);
         const sheet = new THREE.Mesh(new THREE.PlaneGeometry(len, H - 0.4), skin); sheet.position.y = H / 2; g.add(sheet);
-        for (let u = -len / 2; u <= len / 2 + 0.01; u += len / Math.round(len / 6)) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, H, 0.14), cladding); m.position.set(u, H / 2, 0); g.add(m); }
-        for (const y of [0.1, 7.2, 13.4, 19.6, H - 0.1]) { const m = new THREE.Mesh(new THREE.BoxGeometry(len, 0.1, 0.14), cladding); m.position.y = y; g.add(m); }
+        // A slim metal edge top and bottom only: the glass itself is one piece
+        for (const y of [0.06, H - 0.06]) { const m = new THREE.Mesh(new THREE.BoxGeometry(len, 0.08, 0.1), cladding); m.position.y = y; g.add(m); }
       };
       const LZ0 = FZ + 24, SIDE = W / 2 + 10;
       for (const sx of [-1, 1]) curtain((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.28, 0);
@@ -632,9 +632,15 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       wash(EZ - FZ, W / 2 - 0.08, (EZ + FZ) / 2, -Math.PI / 2);
       wash(EZ - FZ - 24, -(W / 2 - 0.08), (EZ + FZ + 24) / 2, Math.PI / 2);
       // Outside: the entrance front and the two long sides
-      for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.08, 0); wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.1, 0, 7, 23); }
-      wash(EZ + D - FZ, SIDE + 0.1, (EZ + D + FZ) / 2, Math.PI / 2, 24, 23);
-      wash(EZ + D - LZ0, -(SIDE + 0.1), (EZ + D + LZ0) / 2, -Math.PI / 2, 15, 23);
+      for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.08, 0); wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.1, 0, 3, 17); }
+      wash(EZ + D - FZ, SIDE + 0.1, (EZ + D + FZ) / 2, Math.PI / 2, 6, 17);
+      wash(EZ + D - LZ0, -(SIDE + 0.1), (EZ + D + LZ0) / 2, -Math.PI / 2, 4, 17);
+      // The entrance: warm floodlights graze the stone of the three arches, and a cooler light fills the lobby mouth
+      for (const sx of [-1, 1]) {
+        const flood = new THREE.SpotLight(0xffc890, 90, 40, 0.62, 0.75, 1.25); flood.position.set(sx * 13, 0.5, EZ + D + 7); flood.target.position.set(sx * 4, 13, EZ + D); scene.add(flood, flood.target);
+        const fit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 0.9), cladding); fit.position.set(sx * 13, 0.15, EZ + D + 7); scene.add(fit);
+      }
+      const crownLight = new THREE.SpotLight(0xfff0dc, 40, 30, 0.7, 0.8, 1.3); crownLight.position.set(0, 0.6, EZ + D + 10); crownLight.target.position.set(0, 16, EZ + D); scene.add(crownLight, crownLight.target);
       wash(EZ + D - FZ, SIDE + 0.08, (EZ + D + FZ) / 2, Math.PI / 2, 2, 20);
       wash(EZ + D - LZ0, -(SIDE + 0.08), (EZ + D + LZ0) / 2, -Math.PI / 2, 2, 20);
       for (const sx of [-1, 1]) for (const z of sx > 0 ? [(EZ + D + FZ) / 2 - (EZ + D - FZ) / 4, (EZ + D + FZ) / 2 + (EZ + D - FZ) / 4] : [(EZ + D + LZ0) / 2 - (EZ + D - LZ0) / 4, (EZ + D + LZ0) / 2 + (EZ + D - LZ0) / 4]) {
@@ -796,13 +802,22 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       wall.moveTo(-PW / 2, 0); wall.lineTo(PW / 2, 0); wall.lineTo(PW / 2, PH); wall.lineTo(-PW / 2, PH); wall.closePath();
       for (const a of PORTAL_ARCHES) { const hole = new THREE.Path(); archPoints(a.cx, a.w, a.spring, a.apex, 18).forEach(([x, y], i) => (i ? hole.lineTo(x, y) : hole.moveTo(x, y))); hole.closePath(); wall.holes.push(hole); }
       const wallGeo = new THREE.ExtrudeGeometry(wall, { depth: 0.9, bevelEnabled: false });
-      const wallMat = new THREE.MeshStandardMaterial({ color: 0x8f8476, roughness: 0.88 }), band = new THREE.MeshPhysicalMaterial({ color: 0xb4604a, roughness: 0.45, clearcoat: 0.6, clearcoatRoughness: 0.3 });
+      const rc = document.createElement('canvas'); rc.width = rc.height = 256; const rx = rc.getContext('2d')!, rr = rng(31);
+      // Pale pink stone laid in courses, each block a slightly different tone
+      for (let row = 0; row < 8; row++) for (let col = -1; col < 4; col++) {
+        const t = 150 + Math.floor(rr() * 34); rx.fillStyle = `rgb(${t + 52}, ${t + 24}, ${t + 4})`;
+        rx.fillRect(col * 64 + (row % 2 ? 32 : 0), row * 32, 63, 31);
+      }
+      const redStone = new THREE.CanvasTexture(rc); redStone.colorSpace = THREE.SRGBColorSpace; redStone.wrapS = redStone.wrapT = THREE.RepeatWrapping; redStone.repeat.set(0.3, 0.3);
+      const wallMat = new THREE.MeshStandardMaterial({ map: redStone, color: 0xb8aaa4, roughness: 0.8 }), band = new THREE.MeshStandardMaterial({ color: 0x8a4038, roughness: 0.7 }), paleTrim = new THREE.MeshPhysicalMaterial({ color: 0xe6dccd, roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.3 });
       const dark0 = new THREE.MeshStandardMaterial({ color: 0x5a6068, metalness: 0.8, roughness: 0.4 });
       for (const z of [EZ, EZ + D - 0.9]) {
         const mesh = new THREE.Mesh(wallGeo, wallMat); mesh.position.z = z; scene.add(mesh);
         for (const a of PORTAL_ARCHES) {
-          const pts = archPoints(a.cx, a.w + 0.75, a.spring, a.apex + 0.5, 30).map(([x, y]) => new THREE.Vector3(x, y, z + (z === EZ ? -0.02 : 0.92)));
-          scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.1), 160, 0.4, 8), band));
+          // Each arch: a broad surround of red stone, lined on the inside with a slim pale band
+          const zf = z + (z === EZ ? -0.02 : 0.92), line = (grow: number, rise: number) => new THREE.CatmullRomCurve3(archPoints(a.cx, a.w + grow, a.spring, a.apex + rise, 30).map(([x, y]) => new THREE.Vector3(x, y, zf)), false, 'catmullrom', 0.1);
+          const red = new THREE.Mesh(new THREE.TubeGeometry(line(1.7, 1.05), 160, 0.85, 10), band); red.scale.z = 0.16; red.position.z = zf * 0.84;
+          scene.add(red, new THREE.Mesh(new THREE.TubeGeometry(line(0.1, 0.05), 160, 0.2, 8), paleTrim));
         }
       }
       // Warm light in the lobby, and the zebra paving and flag outside
