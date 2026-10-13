@@ -93,7 +93,24 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   try { return await fn(); } catch { await new Promise(r => setTimeout(r, 3000)); return fn(); }
 }
 
-async function refresh(): Promise<Snapshot> {
+/**
+ * The snapshot made at build time (scripts/build-open-data-snapshot.js), served as a static file.
+ * A serverless host cannot download the sources while a visitor waits, so there this is the data.
+ */
+async function fromBuild(origin: string): Promise<Snapshot | null> {
+  try {
+    const res = await fetch(`${origin}/open-data-snapshot.json`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const snap = (await res.json()) as Snapshot;
+    return snap && typeof snap.fetchedAt === 'string' && (snap.rent || snap.dig || snap.licences || snap.buildings) ? { ...snap, errors: snap.errors || {} } : null;
+  } catch { return null; }
+}
+
+async function refresh(origin?: string): Promise<Snapshot> {
+  if (origin) {
+    const built = await fromBuild(origin);
+    if (built) { store.cached = { snap: built, at: Date.now(), retryAt: null }; return built; }
+  }
   // One source at a time, smallest first, to keep the load on the municipality's server low
   const settle = async <T,>(fn: () => Promise<T>): Promise<PromiseSettledResult<T>> => {
     try { return { status: 'fulfilled', value: await withRetry(fn) }; } catch (reason) { return { status: 'rejected', reason }; }
@@ -126,10 +143,10 @@ async function refresh(): Promise<Snapshot> {
 }
 
 /** Latest snapshot: fresh copy if we have one, stale copy while refreshing, or wait for the first fetch */
-export async function getSnapshot(): Promise<Snapshot> {
+export async function getSnapshot(origin?: string): Promise<Snapshot> {
   const c = store.cached;
   const stale = !c || (c.retryAt !== null && Date.now() > c.retryAt) || Date.now() - c.at > TTL_MS || omanDayOf(c.at) !== todayOman();
-  if (stale && !store.inFlight) store.inFlight = refresh().finally(() => { store.inFlight = null; });
+  if (stale && !store.inFlight) store.inFlight = refresh(origin).finally(() => { store.inFlight = null; });
   if (store.cached) return store.cached.snap;
   return store.inFlight!;
 }

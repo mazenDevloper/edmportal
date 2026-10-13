@@ -22,7 +22,9 @@ export async function GET(req: Request) {
   const wilaya = (q.get('wilaya') || '').trim().slice(0, 60) || null;
   if (from > to) return NextResponse.json({ error: 'from must be before to' }, { status: 400 });
 
-  const [snap, website] = await Promise.all([getSnapshot(), getWebsiteCounters()]);
+  // The visit counters come from another site; they must not hold the answer up
+  const counters = Promise.race([getWebsiteCounters().catch(() => null), new Promise<null>(r => setTimeout(() => r(null), 6000))]);
+  const [snap, website] = await Promise.all([getSnapshot(new URL(req.url).origin), counters]);
   if (!snap.rent && !snap.dig && !snap.licences && !snap.buildings) {
     return NextResponse.json({ error: 'Open-data APIs are unreachable' }, { status: 503 });
   }

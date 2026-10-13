@@ -1192,7 +1192,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       return g;
     };
     /** Per station: the full panel (detail) and its small year sign; k eases 0 → 1 as the station comes into focus */
-    const focusables: { detail: THREE.Group; sign: THREE.Group; k: number; reveal: number; redraw: (reveal: number) => void }[] = [];
+    const focusables: { group: THREE.Group; y: number; detail: THREE.Group; sign: THREE.Group; k: number; reveal: number; redraw: (reveal: number) => void }[] = [];
     const addPanel = (s: JourneyStage, pos: THREE.Vector3, face: THREE.Vector3) => {
       const canvas = document.createElement('canvas'); canvas.width = 1400; canvas.height = 1000;
       const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
@@ -1273,7 +1273,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const signFace = caption(1.7, 0.8, [s.year], s.color); signFace.position.y = 2.5 - pos.y;
       const signPost = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 2.1, 8), frameMat); signPost.position.y = 1.05 - pos.y;
       sign.add(signFace, signPost); group.add(sign);
-      focusables.push({ detail, sign, k: 0, reveal: reducedMotion ? 1 : 0, redraw: r => { drawStage(canvas, s, isAr, r); tex.needsUpdate = true; } });
+      focusables.push({ group, y: pos.y, detail, sign, k: 0, reveal: reducedMotion ? 1 : 0, redraw: r => { drawStage(canvas, s, isAr, r); tex.needsUpdate = true; } });
 
       const dir = face.clone().sub(pos); dir.y = 0; dir.normalize();
       group.rotation.y = Math.atan2(dir.x, dir.z);
@@ -1298,7 +1298,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const arcLine = new THREE.Mesh(new THREE.RingGeometry(ARC.r - 2.3, ARC.r - 2.12, 96, 1, Math.PI / 2 - 1.28, 2.56), neon(AQUA, 2)); arcLine.rotation.x = -Math.PI / 2; arcLine.position.set(ARC.x, 0.03, ARC.z); scene.add(arcLine);
     }
     // Live board in front of the portal
-    const BW = 17.4, BH = 8.6, BY = 8.9, BZ = FZ + 5;
+    const BW = 17.4, BH = 8.6, BY = 15.2, BZ = FZ + 5, AWY = BY - BH / 2 - 1.75;
     const boardCanvas = document.createElement('canvas'); boardCanvas.width = 1800; boardCanvas.height = Math.round((1800 * BH) / BW);
     const boardTex = new THREE.CanvasTexture(boardCanvas); boardTex.colorSpace = THREE.SRGBColorSpace; boardTex.anisotropy = 4;
     const board = new THREE.Mesh(new THREE.PlaneGeometry(BW, BH), new THREE.MeshBasicMaterial({ map: boardTex, transparent: true, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92) }));
@@ -1308,13 +1308,13 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const list = [...years, ...extras].flatMap(st => st.awards || []);
       list.forEach((aw, k) => {
         const x = ((list.length - 1) / 2 - k) * 2.6 * (isAr ? 1 : -1);
-        const cup = trophy(aw.shape); cup.scale.setScalar(1.45); cup.position.set(x, 2.75, BZ + 1.4);
-        const plate = caption(2.1, 0.62, [aw.year, isAr ? aw.ar : aw.en], WARM, true); plate.position.set(x, 2.2, BZ + 1.5);
-        const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.012, 6, 48), neon(WARM, 2)); halo.rotation.x = Math.PI / 2; halo.position.set(x, 2.62, BZ + 1.4);
+        const cup = trophy(aw.shape); cup.scale.setScalar(1.45); cup.position.set(x, AWY, BZ + 1.4);
+        const plate = caption(2.1, 0.62, [aw.year, isAr ? aw.ar : aw.en], WARM, true); plate.position.set(x, AWY - 0.55, BZ + 1.5);
+        const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.012, 6, 48), neon(WARM, 2)); halo.rotation.x = Math.PI / 2; halo.position.set(x, AWY - 0.13, BZ + 1.4);
         scene.add(cup, plate, halo);
-        movers.push({ o: cup, spin: 0.3, bob: 0.1, y0: 2.75, phase: k * 0.8 });
+        movers.push({ o: cup, spin: 0.3, bob: 0.1, y0: AWY, phase: k * 0.8 });
       });
-      const glow = new THREE.SpotLight(0xffe2a8, 40, 18, 1.0, 0.7, 1.3); glow.position.set(0, 0.4, BZ + 7); glow.target.position.set(0, 3.2, BZ + 1.4); scene.add(glow, glow.target);
+      const glow = new THREE.SpotLight(0xffe2a8, 40, 18, 1.0, 0.7, 1.3); glow.position.set(0, AWY - 5, BZ + 6); glow.target.position.set(0, AWY + 0.4, BZ + 1.4); scene.add(glow, glow.target);
     }
     // Six figures as cards standing proud of the board
     const figureCards = Array.from({ length: 6 }, (_, i) => {
@@ -1344,7 +1344,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       g.fillStyle = '#ffffff'; g.fillRect(0, 0, 780, 450); g.drawImage(logoImg, (780 - w) / 2, (450 - h) / 2, w, h); plaque.tex.needsUpdate = true;
     };
     logoImg.src = '/brand/dhofar-municipality-logo.png';
-    const boardView: Station = { cam: new THREE.Vector3(0, 6.6, -3.5), target: new THREE.Vector3(0, BY + 0.6, BZ) };
+    const boardView: Station = { cam: new THREE.Vector3(0, 9, 8), target: new THREE.Vector3(0, BY - 1.6, BZ) };
     stations.push(boardView);
     // The journey opens on the board too, reached by a fly-in (see the intro below)
     stations[0] = { cam: new THREE.Vector3(0, 5, EZ - 2.5), target: new THREE.Vector3(0, 3.4, 27), exact: true };
@@ -1932,7 +1932,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       }
       const focus = mode.walk ? walkFocus : current;
       focusables.forEach((f, i) => {
-        const want = i === focus - 1 ? 1 : 0;
+        // Open always; the card the visitor is at only decides nothing here any more
+        const want = 1; void i; void focus;
+        const gs = mode.walk ? 0.5 : 1; if (f.group.scale.x !== gs) { f.group.scale.setScalar(gs); f.group.position.y = f.y * gs; }
         f.k = reducedMotion ? want : f.k + (want - f.k) * (1 - Math.exp(-raw * 5.5));
         // The points arrive one after another once the card has opened, and reset when it closes
         if (want && f.k > 0.55 && f.reveal < 1) { f.reveal = Math.min(1, f.reveal + raw / 2.2); f.redraw(f.reveal); }
