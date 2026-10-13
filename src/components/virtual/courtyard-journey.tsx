@@ -621,7 +621,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       wash(EZ - FZ, W / 2 - 0.08, (EZ + FZ) / 2, -Math.PI / 2);
       wash(EZ - FZ - 24, -(W / 2 - 0.08), (EZ + FZ + 24) / 2, Math.PI / 2);
       // Outside: the entrance front and the two long sides
-      for (const sx of [-1, 1]) wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.08, 0);
+      for (const sx of [-1, 1]) { wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.08, 0); wash((W - PW) / 2, sx * (W + PW) / 4, EZ + D + 0.1, 0, 7, 23); }
+      wash(EZ + D - FZ, SIDE + 0.1, (EZ + D + FZ) / 2, Math.PI / 2, 24, 23);
+      wash(EZ + D - LZ0, -(SIDE + 0.1), (EZ + D + LZ0) / 2, -Math.PI / 2, 15, 23);
       wash(EZ + D - FZ, SIDE + 0.08, (EZ + D + FZ) / 2, Math.PI / 2, 2, 20);
       wash(EZ + D - LZ0, -(SIDE + 0.08), (EZ + D + LZ0) / 2, -Math.PI / 2, 2, 20);
       for (const sx of [-1, 1]) for (const z of sx > 0 ? [(EZ + D + FZ) / 2 - (EZ + D - FZ) / 4, (EZ + D + FZ) / 2 + (EZ + D - FZ) / 4] : [(EZ + D + LZ0) / 2 - (EZ + D - LZ0) / 4, (EZ + D + LZ0) / 2 + (EZ + D - LZ0) / 4]) {
@@ -1497,19 +1499,39 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
           const soil = new THREE.Mesh(new THREE.CircleGeometry(r - 0.12, 24), leaf[2]); soil.rotation.x = -Math.PI / 2; soil.position.set(x, 0.31, z); scene.add(soil);
           for (let k = 0; k < 26; k++) { const a = gr() * 6.28, d = Math.sqrt(gr()) * (r - 0.3); const f = new THREE.Mesh(new THREE.SphereGeometry(0.11 + gr() * 0.07, 6, 5), petals[(i + k) % 4]); f.position.set(x + Math.cos(a) * d, 0.42 + gr() * 0.2, z + Math.sin(a) * d); scene.add(f); }
         }
-        // Low lights along the outer path
-        for (let a = A0 + 0.06; a < A1 - 0.04; a += 0.13) {
-          const x = CO.x + Math.cos(a) * (CO.r + 0.6), z = CO.z + Math.sin(a) * (CO.r + 0.6);
-          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.8, 8), cladding); post.position.set(x, 0.4, z);
-          const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), lampHead); head.position.set(x, 0.86, z); scene.add(post, head);
+        // The boundary: a low wall between posts, each post carrying a lamp, with palms along the street side
+        {
+          const RB = CO.r + 2.4, stepA = 0.072, pts: THREE.Vector3[] = [];
+          for (let a = A0 + 0.03; a < A1 - 0.02; a += stepA) pts.push(new THREE.Vector3(CO.x + Math.cos(a) * RB, 0, CO.z + Math.sin(a) * RB));
+          const postGeo = new THREE.BoxGeometry(0.55, 1.35, 0.55), capGeo = new THREE.BoxGeometry(0.7, 0.1, 0.7), lampGeo = new THREE.SphereGeometry(0.2, 12, 10);
+          pts.forEach((p, i) => {
+            const post = new THREE.Mesh(postGeo, marble); post.position.set(p.x, 0.675, p.z);
+            const cap = new THREE.Mesh(capGeo, cladding); cap.position.set(p.x, 1.4, p.z);
+            const lamp = new THREE.Mesh(lampGeo, lampHead); lamp.position.set(p.x, 1.66, p.z);
+            post.rotation.y = cap.rotation.y = -Math.atan2(p.z - CO.z, p.x - CO.x); scene.add(post, cap, lamp);
+            const q = pts[i + 1];
+            if (q) {
+              const len = p.distanceTo(q), wall = new THREE.Mesh(new THREE.BoxGeometry(len - 0.5, 0.75, 0.24), marble);
+              wall.position.set((p.x + q.x) / 2, 0.375, (p.z + q.z) / 2); wall.rotation.y = -Math.atan2(q.z - p.z, q.x - p.x); scene.add(wall);
+            }
+            if (i % 4 === 2) { const palm = landmark('palm', AQUA); palm.scale.setScalar(2.3 + (i % 3) * 0.2); palm.position.set(CO.x + (p.x - CO.x) * 1.045, 0, CO.z + (p.z - CO.z) * 1.045); palm.rotation.y = i; scene.add(palm); }
+          });
         }
-        // The obelisk on the plaza
-        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.85, 12, 4), marble); shaft.rotation.y = Math.PI / 4; shaft.position.set(FOC.x, 6.4, FOC.z);
-        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.64, 1.3, 4), marble); tip.rotation.y = Math.PI / 4; tip.position.set(FOC.x, 13.05, FOC.z);
-        const plinthO = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.4, 2.6), marble); plinthO.position.set(FOC.x, 0.2, FOC.z);
-        const collar = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.05, 6, 56), neon(WARM, 2.2)); collar.rotation.x = Math.PI / 2; collar.position.set(FOC.x, 0.16, FOC.z);
-        const glowO = new THREE.PointLight(0xffd9a8, 26, 20, 1.5); glowO.position.set(FOC.x + 2, 2.2, FOC.z + 2);
-        scene.add(shaft, tip, plinthO, collar, glowO);
+        // The tall landmark by the street: a slim pylon whose faces are stacked LED panels in the municipality's blues
+        {
+          const PYH = 31, pylon = new THREE.Group(); pylon.position.set(FOC.x, 0, FOC.z); pylon.rotation.y = 0.85; scene.add(pylon);
+          const core = new THREE.Mesh(new THREE.BoxGeometry(2.7, PYH, 1.1), new THREE.MeshStandardMaterial({ color: 0x0c1018, metalness: 0.7, roughness: 0.35 })); core.position.y = PYH / 2; pylon.add(core);
+          const lc2 = document.createElement('canvas'); lc2.width = 128; lc2.height = 192; const lx = lc2.getContext('2d')!;
+          const lg = lx.createLinearGradient(0, 0, 0, 192); lg.addColorStop(0, '#8fe9ff'); lg.addColorStop(0.5, '#35b6f0'); lg.addColorStop(1, '#1f7fd6'); lx.fillStyle = lg; lx.fillRect(0, 0, 128, 192);
+          lx.fillStyle = 'rgba(255,255,255,0.22)'; for (let i = 0; i < 40; i++) lx.fillRect(gr() * 128, gr() * 192, 6 + gr() * 26, 3 + gr() * 10);
+          lx.fillStyle = 'rgba(0,0,0,0.3)'; for (let i = 0; i < 128; i += 4) lx.fillRect(i, 0, 1, 192); for (let j = 0; j < 192; j += 4) lx.fillRect(0, j, 128, 1);
+          const lt2 = new THREE.CanvasTexture(lc2); lt2.colorSpace = THREE.SRGBColorSpace;
+          const panelMat = new THREE.MeshBasicMaterial({ map: lt2, toneMapped: false, color: new THREE.Color(0.95, 0.95, 0.95) });
+          for (let k = 0; k < 8; k++) for (const sz of [-1, 1]) { const pnl = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3.2), panelMat); pnl.position.set(0, 3.2 + k * 3.45, sz * 0.56); if (sz < 0) pnl.rotation.y = Math.PI; pylon.add(pnl); }
+          const plinthO = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.5, 2), marble); plinthO.position.y = 0.25; pylon.add(plinthO);
+          const collar = new THREE.Mesh(new THREE.TorusGeometry(3.4, 0.05, 6, 56), neon(AQUA, 2.2)); collar.rotation.x = Math.PI / 2; collar.position.y = 0.16; pylon.add(collar);
+          const glowO = new THREE.PointLight(0x6fd0ff, 40, 30, 1.5); glowO.position.set(FOC.x + 3, 6, FOC.z + 3); scene.add(glowO);
+        }
 
         // The two streets that meet at the roundabout: Airport Street along the back of the site, Al Rubat Street along the north
         const asphalt = new THREE.MeshStandardMaterial({ color: 0x141821, roughness: 0.6, metalness: 0.2 });
@@ -1596,6 +1618,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       if (!firstPerson() && was) { controls.enabled = true; goTo(current, true); }
       if (!mode.stereo) { const w = mount.clientWidth, h = mount.clientHeight; renderer.setScissorTest(false); renderer.setViewport(0, 0, w, h); }
       keys.clear(); stick.x = stick.y = 0; walkTo = null; marker.visible = false;
+      placeHub();
     };
     // Letters are read by their place on the keyboard, so W A S D work on an Arabic layout too
     const keyOf = (e: KeyboardEvent) => (/^Key[A-Z]$/.test(e.code) ? e.code.slice(3) : e.key).toLowerCase();
@@ -1676,12 +1699,15 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const cone = new THREE.Mesh(new THREE.CylinderGeometry(3.9, 1.4, 2.0, 40, 1, true), new THREE.MeshBasicMaterial({ color: AQUA, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
       scene.add(cone);
       const HYC = 3.6, startView = stations[0];
-      movers.push({ o: hub, bob: 0.04, y0: HYC, phase: 0.5 });
+      const hubMover = { o: hub as THREE.Object3D, bob: 0.04, y0: HYC, phase: 0.5 }; movers.push(hubMover);
       // The hub hangs at the start of the path at head height. The opening view is worked out from the shape of the screen and
       // from how much of its foot the caption and buttons cover, so the hub sits clear above them with the board over it.
       placeHub = () => {
         const k = Math.max(1, 1.35 / camera.aspect), CZ = EZ - 2.5, need = 8.5 * k, hz = Math.max(23, CZ - need), dist = CZ - hz, sc = Math.min(1, dist / need);
-        hub.position.set(0, HYC, hz); hub.scale.setScalar(sc); ring.position.set(0, 0.06, hz); cone.position.set(0, 1.25, hz);
+        // Seen from eye height the full-size hub towers over the visitor: there it is under half the size, centred just above the eyes
+        const foot = mode.walk, hy = foot ? 1.95 : HYC;
+        hub.position.set(0, hy, hz); hub.scale.setScalar(foot ? sc * 0.42 : sc); hub.rotation.x = foot ? 0 : -0.12; hubMover.y0 = hy;
+        ring.position.set(0, 0.06, hz); cone.position.set(0, 1.25, hz); cone.visible = !foot;
         const camY = HYC + dist * 0.16, half = (HH / 2) * sc + 0.2, tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
         // Where on the screen (0 top … 1 bottom) the hub's lower edge should land
         const fb = 1 - THREE.MathUtils.clamp(bottomInsetPx / Math.max(1, mount.clientHeight), 0.12, 0.6) - 0.035;

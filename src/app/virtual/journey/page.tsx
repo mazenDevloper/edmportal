@@ -76,6 +76,10 @@ export default function DigitalJourneyPage() {
   // In the headset view the visitor moves by really walking: the phone's GPS gives the walking speed
   const [gps, setGps] = useState<'off' | 'wait' | 'on' | 'denied' | 'none'>('off');
   const [gpsSpeed, setGpsSpeed] = useState(0);
+  const [steps, setSteps] = useState(0);
+  // The two sources of walking speed (GPS outdoors, counted steps anywhere); the faster one moves the visitor
+  const pace = useRef({ gps: 0, step: 0 });
+  const sendPace = () => scene.current?.gps(Math.max(pace.current.gps, pace.current.step));
   const [full, setFull] = useState(false);
   const [standalone, setStandalone] = useState(false);
   const [fullHelp, setFullHelp] = useState(false);
@@ -90,6 +94,8 @@ export default function DigitalJourneyPage() {
   const toggleLook = () => { const v = !look; setLook(v); setAuto(false); setLookBy(null); void scene.current?.setMode({ look: v }).then(r => setLookBy(v ? r ?? null : null)); };
   const toggleSbs = () => {
     const v = !sbs; setSbs(v); setAuto(false);
+    // iOS hands out the motion sensor (used to count steps) only when asked from a tap
+    if (v) try { void (window as unknown as { DeviceMotionEvent?: { requestPermission?: () => Promise<string> } }).DeviceMotionEvent?.requestPermission?.().catch(() => {}); } catch { /* not needed here */ }
     // Side-by-side is for a headset, so the head turns the view and the page goes full screen
     try {
       if (v) { setLook(true); void document.documentElement.requestFullscreen?.()?.catch(() => {}); } else if (document.fullscreenElement) void document.exitFullscreen?.()?.catch(() => {});
@@ -143,10 +149,31 @@ export default function DigitalJourneyPage() {
       last = { lat, lon, t: p.timestamp };
       // Standing still reads as a few tenths of a metre per second, and a poor fix is not trusted
       v = !Number.isFinite(v) || v < 0.4 || accuracy > 25 ? 0 : Math.min(v, 3);
-      setGps('on'); setGpsSpeed(v); scene.current?.gps(v);
+      setGps('on'); setGpsSpeed(v); pace.current.gps = v; sendPace();
     }, e => setGps(e.code === e.PERMISSION_DENIED ? 'denied' : 'wait'), { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
-    return () => { navigator.geolocation.clearWatch(id); scene.current?.gps(0); };
+    return () => { navigator.geolocation.clearWatch(id); pace.current.gps = 0; scene.current?.gps(0); };
   }, [sbs]);
+
+  // Steps, from the phone's motion sensor: each step shows as a bump in acceleration. This works indoors, where GPS does not.
+  useEffect(() => {
+    if (!sbs) { setSteps(0); return; }
+    let mean = 9.8, lastStep = 0, armed = true, count = 0, stop: ReturnType<typeof setTimeout> | undefined;
+    const onMotion = (e: DeviceMotionEvent) => {
+      const a = e.accelerationIncludingGravity; if (!a || a.x === null || a.y === null || a.z === null) return;
+      const mag = Math.hypot(a.x, a.y, a.z); mean += (mag - mean) * 0.04;
+      const bump = mag - mean, now = performance.now();
+      if (bump < 0.35) armed = true;
+      if (armed && bump > 1.15 && now - lastStep > 280) {
+        // Two steps close together are walking; a single bump is not
+        const walking = now - lastStep < 1300; lastStep = now; armed = false;
+        if (!walking) return;
+        count++; setSteps(count); pace.current.step = 1.15; sendPace();
+        clearTimeout(stop); stop = setTimeout(() => { pace.current.step = 0; sendPace(); }, 900);
+      } else if (pace.current.step > 0 && now - lastStep < 900) sendPace();
+    };
+    window.addEventListener('devicemotion', onMotion);
+    return () => { window.removeEventListener('devicemotion', onMotion); clearTimeout(stop); pace.current.step = 0; };
+  }, [sbs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const next = useCallback(() => setIndex(i => (i + 1) % STATIONS), []);
   const prev = useCallback(() => setIndex(i => (i - 1 + STATIONS) % STATIONS), []);
@@ -270,7 +297,7 @@ export default function DigitalJourneyPage() {
         <button type="button" onClick={exit} className="size-11 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur flex items-center justify-center" aria-label={t('خروج', 'Exit')}><X size={20} /></button>
         <div className="leading-tight min-w-0">
           <p className="font-black flex items-center gap-2 whitespace-nowrap"><VrHeadsetIcon size={20} />{t('رحلة التحول الرقمي', 'Digital transformation journey')}</p>
-          <p className={cn('text-[11px] font-bold text-white/60', sbs && 'truncate')}>{sbs ? (gps === 'on' ? t(`امشِ فعلياً لتتقدم · GPS ${gpsSpeed.toFixed(1)} م/ث`, `Walk for real to move · GPS ${gpsSpeed.toFixed(1)} m/s`) : gps === 'denied' ? t('اسمح بالوصول للموقع لتتحرك بالمشي', 'Allow location to move by walking') : gps === 'none' ? t('لا يوجد GPS في هذا الجهاز', 'No GPS on this device') : t('بانتظار إشارة GPS…', 'Waiting for a GPS signal…')) : look && lookBy && !walk ? (lookBy === 'sensor' ? t('حرّك جهازك للنظر حولك', 'Move your device to look around') : lookBy === 'insecure' ? t('حساس الحركة يحتاج فتح الصفحة عبر HTTPS · حرّك المؤشر للنظر الآن', 'The motion sensor needs HTTPS · move the pointer to look for now') : t('لا يوجد حساس حركة في هذا الجهاز · حرّك المؤشر للنظر', 'This device has no motion sensor · move the pointer to look')) : walk ? t('امشِ بعصا التحكم أو W A S D · اضغط على الأرض للمشي إليها · العجلة للتقدم · اسحب للنظر', 'Walk with the stick or W A S D · press the ground to walk there · wheel to step · drag to look') : t('مبنى بلدية ظفار الجديد · صلالة المستقبل ليلاً', 'New Dhofar Municipality building · future Salalah at night')}</p>
+          <p className={cn('text-[11px] font-bold text-white/60', sbs && 'truncate')}>{sbs ? t(`امشِ فعلياً لتتقدم · خطوات ${steps}${gps === 'on' ? ` · GPS ${gpsSpeed.toFixed(1)} م/ث` : ''}`, `Walk for real to move · steps ${steps}${gps === 'on' ? ` · GPS ${gpsSpeed.toFixed(1)} m/s` : ''}`) : look && lookBy && !walk ? (lookBy === 'sensor' ? t('حرّك جهازك للنظر حولك', 'Move your device to look around') : lookBy === 'insecure' ? t('حساس الحركة يحتاج فتح الصفحة عبر HTTPS · حرّك المؤشر للنظر الآن', 'The motion sensor needs HTTPS · move the pointer to look for now') : t('لا يوجد حساس حركة في هذا الجهاز · حرّك المؤشر للنظر', 'This device has no motion sensor · move the pointer to look')) : walk ? t('امشِ بعصا التحكم أو W A S D · اضغط على الأرض للمشي إليها · العجلة للتقدم · اسحب للنظر', 'Walk with the stick or W A S D · press the ground to walk there · wheel to step · drag to look') : t('مبنى بلدية ظفار الجديد · صلالة المستقبل ليلاً', 'New Dhofar Municipality building · future Salalah at night')}</p>
         </div>
         <div className="ms-auto flex items-center gap-2">
           <button type="button" data-wide onClick={() => setLanguage(isAr ? 'en' : 'ar')} className="h-11 px-3 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur text-sm font-black flex items-center gap-1.5" lang={isAr ? 'en' : 'ar'}>
