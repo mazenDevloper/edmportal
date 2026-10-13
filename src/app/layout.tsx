@@ -11,6 +11,7 @@ import { ThiqaDialogHost } from '@/components/citizen/thiqa-dialog';
 import { CapacityDialogHost } from '@/components/citizen/capacity';
 import { AutoTranslate } from '@/components/auto-translate';
 import { HappinessMeter } from '@/components/citizen/happiness-meter';
+import { AnalyticsTracker } from '@/components/analytics-tracker';
 import { useEffect, useState } from 'react';
 
 export default function RootLayout({
@@ -60,6 +61,7 @@ export default function RootLayout({
           <div id="main-content">
             {children}
           </div>
+          {mounted && <AnalyticsTracker />}
           {mounted && <AccessibilityToolbar />}
           {mounted && <ServiceAssistant />}
           {mounted && <HappinessMeter />}

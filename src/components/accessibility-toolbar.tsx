@@ -170,7 +170,7 @@ const PREF_KEYS = Object.keys(A11Y_DEFAULTS).filter(k => k !== 'largePanel' && k
 function ToggleTile({ on, onClick, icon: Icon, label }: { on: boolean; onClick: () => void; icon: React.ElementType; label: string }) {
   return (
     <button
-      type="button" role="switch" aria-checked={on} onClick={onClick}
+      type="button" role="switch" aria-checked={on} onClick={onClick} data-track={`a11y:${label}`}
       className={cn(
         'relative flex flex-col items-center justify-center gap-1.5 min-h-[76px] p-2 rounded-2xl border-2 text-[12px] font-black leading-tight text-center transition-colors',
         'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-amber-500',
@@ -267,7 +267,7 @@ export function AccessibilityToolbar() {
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
-              ref={triggerRef} type="button"
+              ref={triggerRef} type="button" data-track="a11y:open"
               aria-label={t('أدوات النفاذ الرقمي (Alt+A)', 'Accessibility tools (Alt+A)')}
               aria-keyshortcuts="Alt+A"
               className="relative size-14 rounded-full bg-secondary text-white border-4 border-white shadow-[0_10px_30px_rgba(0,87,81,0.45)] flex items-center justify-center hover:scale-105 transition-transform focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-amber-500"

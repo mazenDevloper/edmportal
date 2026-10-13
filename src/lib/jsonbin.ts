@@ -55,3 +55,18 @@ export async function updateBin(data: any) {
     throw error;
   }
 }
+
+// ── Usage counters (see analytics.ts): a separate store, so counting never touches the portal's own data ──
+const ANALYTICS_BIN_ID = "6acde404ac6210605a2cdb67";
+
+export async function readAnalytics(): Promise<{ version: number; days: Record<string, { e: Record<string, number>; u: Record<string, number> }> }> {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${ANALYTICS_BIN_ID}/latest`, { headers: { "X-Master-Key": MASTER_KEY, "X-Bin-Meta": "false" }, cache: 'no-store' });
+  if (!res.ok) throw new Error(`analytics read failed: ${res.status}`);
+  const data = await res.json();
+  return { version: 1, days: data?.days || {} };
+}
+
+export async function saveAnalytics(data: unknown) {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${ANALYTICS_BIN_ID}`, { method: 'PUT', keepalive: true, headers: { "Content-Type": "application/json", "X-Master-Key": MASTER_KEY }, body: JSON.stringify(data) });
+  if (!res.ok) throw new Error(`analytics save failed: ${res.status}`);
+}

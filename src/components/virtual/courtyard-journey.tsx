@@ -564,9 +564,9 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const shaftGeo = new THREE.CylinderGeometry(0.3, 0.33, 3.0, 20), capGeo = new THREE.CylinderGeometry(0.5, 0.34, 0.36, 20), footGeo = new THREE.CylinderGeometry(0.4, 0.44, 0.22, 20);
     for (let x = -W / 2 + 2.2 + 1.8; x < W / 2 - 1; x += 3.6) {
       if (Math.abs(x) < PW / 2 + 1) continue;
-      const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(x, 1.72, FZ + 0.5);
-      const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(x, 3.4, FZ + 0.5);
-      const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(x, 0.11, FZ + 0.5);
+      const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(x, 1.72, FZ + 0.14);
+      const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(x, 3.4, FZ + 0.14);
+      const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(x, 0.11, FZ + 0.14);
       scene.add(shaft, cap, foot);
     }
     // Wings: dark glass on the left, stone on the right (as in the photos)
@@ -584,15 +584,26 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       mesh.position.set(sx * (W / 2 + 5), H / 2, (z0 + z1) / 2); scene.add(mesh);
       strip(0.12, 0.12, len, sx * (W / 2 - 0.05), H + 0.05, (z0 + z1) / 2, AQUA, 2.2);
       for (let z = z0 + 3.8; z < z1 - 2; z += 3.6) {
-        const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(sx * (W / 2 - 0.5), 1.72, z);
-        const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(sx * (W / 2 - 0.5), 3.4, z);
-        const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(sx * (W / 2 - 0.5), 0.11, z);
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat); shaft.position.set(sx * (W / 2 - 0.14), 1.72, z);
+        const cap = new THREE.Mesh(capGeo, capMat); cap.position.set(sx * (W / 2 - 0.14), 3.4, z);
+        const foot = new THREE.Mesh(footGeo, capMat); foot.position.set(sx * (W / 2 - 0.14), 0.11, z);
         scene.add(shaft, cap, foot);
       }
     };
     wingSide(1, FZ - 2, EZ + D);
     wingSide(-1, FZ + 24, EZ + D);
 
+    {
+      const leafA = new THREE.MeshStandardMaterial({ color: 0x1f5a2e, roughness: 0.95, flatShading: true }), leafB = new THREE.MeshStandardMaterial({ color: 0x2c6d36, roughness: 0.95, flatShading: true });
+      const barkA = new THREE.MeshStandardMaterial({ color: 0x4a3626, roughness: 0.9 }), blob = new THREE.IcosahedronGeometry(1, 1);
+      for (const sx of [-1, 1]) for (const z of [-20, -6, 22, 32]) {
+        const bed = new THREE.Mesh(new THREE.BoxGeometry(3, 0.7, 5.4), marble); bed.position.set(sx * 31.5, 0.35, z); scene.add(bed);
+        const soil = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 5), leafA); soil.rotation.x = -Math.PI / 2; soil.position.set(sx * 31.5, 0.71, z); scene.add(soil);
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 2.4, 8), barkA); trunk.position.set(sx * 31.5, 1.9, z); scene.add(trunk);
+        const crown = new THREE.Mesh(blob, leafB); crown.scale.set(1.5, 1.3, 1.5); crown.position.set(sx * 31.5, 3.6, z); scene.add(crown);
+        for (const dz of [-1.9, 1.9]) { const shrub = new THREE.Mesh(blob, leafA); shrub.scale.set(0.75, 0.6, 0.75); shrub.position.set(sx * 31.5, 1.15, z + dz); scene.add(shrub); }
+      }
+    }
     // Night inside the courtyard: warm uplights wash only the foot of the walls
     {
       const wc = document.createElement('canvas'); wc.width = 256; wc.height = 256; const wx = wc.getContext('2d')!;
@@ -651,7 +662,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       // Waves: the brand wave lines running round the top of the courtyard
       const waveTex = () => { const t = art(512, 128, x => { for (let i = 0; i < 4; i++) { x.beginPath(); for (let px = 0; px <= 512; px += 4) { const y = 24 + i * 26 + Math.sin((px / 512) * Math.PI * 4 + i * 0.6) * 9; if (px) x.lineTo(px, y); else x.moveTo(px, y); } x.stroke(); } }); t.wrapS = THREE.RepeatWrapping; return t; };
       const w1 = waveTex(); w1.repeat.set(6, 1); show(w1, W - 2, 3.2, 0, H - 3, FZ + 0.5, 0, AQUA, 0.2, 0, true);
-      for (const sx of [-1, 1]) { const w2 = waveTex(); w2.repeat.set(5, 1); show(w2, EZ - FZ - (sx < 0 ? 24 : 0), 3.2, sx * (W / 2 - 0.5), H - 3, (EZ + FZ + (sx < 0 ? 24 : 0)) / 2, -sx * Math.PI / 2, AQUA, 0.16, sx, true); }
+      for (const sx of [-1, 1]) { const w2 = waveTex(); w2.repeat.set(5, 1); show(w2, EZ - FZ - (sx < 0 ? 24 : 0), 3.2, sx * (W / 2 - 0.14), H - 3, (EZ + FZ + (sx < 0 ? 24 : 0)) / 2, -sx * Math.PI / 2, AQUA, 0.16, sx, true); }
       // The gate: the three pointed arches of the entrance
       const gate = art(512, 384, x => {
         const arch = (cx: number, w: number, h: number, k = 1) => { const a = (w / 2) * k, top = 350 - h * k; x.beginPath(); x.moveTo(cx - a, 350); x.lineTo(cx - a, 350 - h * k * 0.55); x.quadraticCurveTo(cx - a, top + h * k * 0.1, cx, top); x.quadraticCurveTo(cx + a, top + h * k * 0.1, cx + a, 350 - h * k * 0.55); x.lineTo(cx + a, 350); x.stroke(); };
@@ -1276,8 +1287,16 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const cam = pos.clone().add(dir.clone().multiplyScalar((dist + (s.model ? 1.4 : 0) + (highlights.length ? 1.6 : 0)) * 1.14)).add(side); cam.y = Math.max(1.9, mid - 0.4);
       return { cam, target: pos.clone().add(side).setY(mid) };
     };
-    years.forEach((s, i) => { const p = placeYear(i); stations.push(addPanel(s, p, new THREE.Vector3(0, 3, p.z + 6))); });
-    extras.forEach((s, i) => { const p = placeExtra(i); stations.push(addPanel(s, p, new THREE.Vector3(p.x, 3, p.z + 9))); });
+    {
+      const ARC = { x: 0, z: 31, r: 25 }, cards = [...years, ...extras], step = Math.min(0.315, 2.25 / Math.max(1, cards.length - 1));
+      cards.forEach((s, i) => {
+        const a = (i - (cards.length - 1) / 2) * step * (isAr ? -1 : 1);
+        const p = new THREE.Vector3(ARC.x + Math.sin(a) * ARC.r, 3.9, ARC.z - Math.cos(a) * ARC.r);
+        stations.push(addPanel(s, p, new THREE.Vector3(ARC.x, 3, ARC.z)));
+      });
+      // A lit arc on the floor ties the cards together
+      const arcLine = new THREE.Mesh(new THREE.RingGeometry(ARC.r - 2.3, ARC.r - 2.12, 96, 1, Math.PI / 2 - 1.28, 2.56), neon(AQUA, 2)); arcLine.rotation.x = -Math.PI / 2; arcLine.position.set(ARC.x, 0.03, ARC.z); scene.add(arcLine);
+    }
     // Live board in front of the portal
     const BW = 17.4, BH = 8.6, BY = 8.9, BZ = FZ + 5;
     const boardCanvas = document.createElement('canvas'); boardCanvas.width = 1800; boardCanvas.height = Math.round((1800 * BH) / BW);
@@ -1703,15 +1722,15 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       // The hub hangs at the start of the path at head height. The opening view is worked out from the shape of the screen and
       // from how much of its foot the caption and buttons cover, so the hub sits clear above them with the board over it.
       placeHub = () => {
-        const k = Math.max(1, 1.35 / camera.aspect), CZ = EZ - 2.5, need = 8.5 * k, hz = Math.max(23, CZ - need), dist = CZ - hz, sc = Math.min(1, dist / need);
+        const k = Math.max(1, 1.35 / camera.aspect), CZ = EZ - 2.5, need = 6.4 * k, hz = Math.max(24, CZ - need), dist = CZ - hz, sc = Math.min(1, dist / need) * 0.5;
         // Seen from eye height the full-size hub towers over the visitor: there it is under half the size, centred just above the eyes
-        const foot = mode.walk, hy = foot ? 1.95 : HYC;
-        hub.position.set(0, hy, hz); hub.scale.setScalar(foot ? sc * 0.42 : sc); hub.rotation.x = foot ? 0 : -0.12; hubMover.y0 = hy;
-        ring.position.set(0, 0.06, hz); cone.position.set(0, 1.25, hz); cone.visible = !foot;
-        const camY = HYC + dist * 0.16, half = (HH / 2) * sc + 0.2, tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+        const foot = mode.walk, hy = foot ? 1.05 : 1.3;
+        hub.position.set(0, hy, hz); hub.scale.setScalar(foot ? sc * 0.7 : sc); hub.rotation.x = foot ? -0.6 : -0.35; hubMover.y0 = hy;
+        ring.position.set(0, 0.06, hz); cone.visible = false;
+        const camY = hy + dist * 0.2, half = (HH / 2) * sc + 0.15, tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
         // Where on the screen (0 top … 1 bottom) the hub's lower edge should land
         const fb = 1 - THREE.MathUtils.clamp(bottomInsetPx / Math.max(1, mount.clientHeight), 0.12, 0.6) - 0.035;
-        const pitch = Math.atan2(HYC - half - camY, dist) - Math.atan((0.5 - fb) * 2 * tanHalf);
+        const pitch = Math.atan2(hy - half - camY, dist) - Math.atan((0.5 - fb) * 2 * tanHalf);
         startView.cam.set(0, camY, CZ); startView.target.set(0, camY + Math.tan(pitch) * dist, hz);
         if (intro) { intro.cam.points[intro.cam.points.length - 1].copy(startView.cam); intro.target.points[intro.target.points.length - 1].copy(startView.target); }
         else if (current === 0 && !firstPerson() && !renderer.xr.isPresenting) goTo(0);
