@@ -48,7 +48,8 @@ interface Props {
 const W = 72, H = 26, D = 12, FZ = -30;           // façade width/height/depth, front plane z
 const PW = 24, PH = 18, PD = 4;                   // central portal opening and recess depth
 const FOUNTAIN = new THREE.Vector3(0, 0, -12);
-const LOBBY_Y = 0.45;                             // the lobby floor stands three steps above the ground
+const STEPS = 9, RISE = 0.15, TREAD = 0.42;       // nine granite steps up to the lobby
+const LOBBY_Y = STEPS * RISE, STAIR_RUN = (STEPS - 1) * TREAD;
 const EZ = 38;                                    // inner face of the entry block (the courtyard runs from FZ to EZ)
 // Soft tints of the brand teal and purple; nothing in the scene is fully saturated
 const AQUA = '#6FD3CF', PURPLE = '#B3A4DC', PINK = '#8CCFD6', WARM = '#EBC98F';
@@ -87,7 +88,7 @@ function facadeTextures(portal = true) {
   const r = rng(7);
   m.fillStyle = '#c9b497'; m.fillRect(0, 0, cw, ch);
   e.fillStyle = '#000'; e.fillRect(0, 0, cw, ch);
-  q.fillStyle = 'rgb(0,232,0)'; q.fillRect(0, 0, cw, ch);
+  q.fillStyle = 'rgb(0,196,0)'; q.fillRect(0, 0, cw, ch);
   // Stone courses
   for (let y = 0; y < H; y += 0.45) {
     let x = -r() * 1.2;
@@ -99,7 +100,7 @@ function facadeTextures(portal = true) {
     }
   }
   const X = (x: number) => (x + W / 2) * PX, Y = (y: number) => ch - y * PX;
-  const lit = () => { const v = r(); return v < 0.66 ? null : `rgba(255, ${190 + Math.round(r() * 40)}, ${120 + Math.round(r() * 50)}, ${0.55 + r() * 0.4})`; };
+  const lit = () => { const v = r(); return v < 0.8 ? null : `rgba(255, ${190 + Math.round(r() * 40)}, ${120 + Math.round(r() * 50)}, ${0.3 + r() * 0.3})`; };
   const win = (cx: number, cy: number, w: number, h: number, arched = false) => {
     const path = (ctx: CanvasRenderingContext2D, pad: number) => {
       ctx.beginPath();
@@ -109,10 +110,18 @@ function facadeTextures(portal = true) {
       ctx.closePath();
     };
     m.fillStyle = '#b0614a'; path(m, 4); m.fill();
-    m.fillStyle = '#131b26'; path(m, 0); m.fill();
-    q.fillStyle = 'rgb(0,16,240)'; path(q, 0); q.fill();
+    // The reveal: the stone of the opening's sides, in shadow, with the glass set back inside it
+    m.fillStyle = '#6b5b4e'; path(m, 0); m.fill();
+    m.fillStyle = '#131b26'; path(m, -4); m.fill();
+    m.save(); path(m, 0); m.clip();
+    const sh = m.createLinearGradient(0, Y(cy + h / 2), 0, Y(cy + h / 2) + 0.5 * PX); sh.addColorStop(0, 'rgba(0,0,0,0.75)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+    m.fillStyle = sh; m.fillRect(X(cx - w / 2), Y(cy + h / 2), w * PX, 0.5 * PX);
+    m.fillStyle = 'rgba(0,0,0,0.4)'; m.fillRect(X(cx - w / 2), Y(cy + h / 2), 0.16 * PX, h * PX);
+    m.fillStyle = 'rgba(255,240,220,0.22)'; m.fillRect(X(cx - w / 2), Y(cy - h / 2) - 3, w * PX, 3);
+    m.restore();
+    q.fillStyle = 'rgb(0,70,170)'; path(q, -4); q.fill();
     const glow = lit();
-    if (glow) { e.fillStyle = glow; path(e, 0); e.fill(); }
+    if (glow) { e.fillStyle = glow; path(e, -4); e.fill(); }
   };
   const inPortal = (x: number, y: number) => portal && Math.abs(x) < PW / 2 + 0.6 && y < PH + 0.3;
   for (let x = -W / 2 + 1.8; x < W / 2 - 1; x += 3.2) {
@@ -132,8 +141,15 @@ function facadeTextures(portal = true) {
     if (portal && Math.abs(x) < PW / 2 + 1.5) continue;
     const l = X(x - 1.3), rr = X(x + 1.3), rad = (rr - l) / 2;
     const draw = (ctx: CanvasRenderingContext2D) => { ctx.beginPath(); ctx.moveTo(l, Y(0)); ctx.lineTo(l, Y(3.2)); ctx.arc((l + rr) / 2, Y(3.2), rad, Math.PI, 0); ctx.lineTo(rr, Y(0)); ctx.closePath(); };
-    m.fillStyle = '#2a2622'; draw(m); m.fill();
-    e.fillStyle = 'rgba(255,196,130,0.75)'; draw(e); e.fill();
+    // A deep arched recess: shadowed stone sides, a dark doorway inside, and a low warm light from within
+    const inner = (ctx: CanvasRenderingContext2D) => { const p = 0.3 * PX; ctx.beginPath(); ctx.moveTo(l + p, Y(0)); ctx.lineTo(l + p, Y(3.2)); ctx.arc((l + rr) / 2, Y(3.2), rad - p, Math.PI, 0); ctx.lineTo(rr - p, Y(0)); ctx.closePath(); };
+    m.fillStyle = '#75604f'; draw(m); m.fill();
+    m.save(); draw(m); m.clip();
+    const as = m.createLinearGradient(0, Y(3.2) - rad, 0, Y(1.6)); as.addColorStop(0, 'rgba(0,0,0,0.8)'); as.addColorStop(1, 'rgba(0,0,0,0.15)'); m.fillStyle = as; m.fillRect(l, Y(3.2) - rad, rr - l, 4 * PX);
+    m.restore();
+    m.fillStyle = '#16130f'; inner(m); m.fill();
+    const ag = e.createRadialGradient((l + rr) / 2, Y(0.2), 2, (l + rr) / 2, Y(0.2), 3.6 * PX); ag.addColorStop(0, 'rgba(255,190,120,0.5)'); ag.addColorStop(1, 'rgba(255,170,100,0.04)');
+    e.fillStyle = ag; inner(e); e.fill();
   }
   const mk = (c: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
   const gloss = new THREE.CanvasTexture(gl); gloss.anisotropy = 4;
@@ -480,10 +496,10 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const moonLight = new THREE.DirectionalLight(0x9fb4ff, 0.28); moonLight.position.set(-60, 80, 60); scene.add(moonLight);
     scene.environment = envMap; scene.environmentIntensity = 0.16;
     // Polished and reflective finishes used around the entrance
-    const marble = new THREE.MeshPhysicalMaterial({ color: 0xd9d2cb, roughness: 0.34, clearcoat: 0.45, clearcoatRoughness: 0.3, envMapIntensity: 0.8 });
-    const granite = new THREE.MeshPhysicalMaterial({ color: 0x7c3f3a, roughness: 0.36, clearcoat: 0.45, clearcoatRoughness: 0.3, envMapIntensity: 0.8 });
-    const chrome = new THREE.MeshStandardMaterial({ color: 0xe3e7ec, metalness: 1, roughness: 0.16, envMapIntensity: 1.3 });
-    const cladding = new THREE.MeshStandardMaterial({ color: 0x8f959d, metalness: 0.85, roughness: 0.32, envMapIntensity: 1 });
+    const marble = new THREE.MeshPhysicalMaterial({ color: 0xd9d2cb, roughness: 0.16, metalness: 0.1, clearcoat: 0.9, clearcoatRoughness: 0.12, envMapIntensity: 1 });
+    const granite = new THREE.MeshPhysicalMaterial({ color: 0x7c3f3a, roughness: 0.18, metalness: 0.15, clearcoat: 0.9, clearcoatRoughness: 0.12, envMapIntensity: 1 });
+    const chrome = new THREE.MeshStandardMaterial({ color: 0xe3e7ec, metalness: 1, roughness: 0.08, envMapIntensity: 1.5 });
+    const cladding = new THREE.MeshStandardMaterial({ color: 0x8f959d, metalness: 1, roughness: 0.2, envMapIntensity: 1.2 });
     const pane = new THREE.MeshPhysicalMaterial({ color: 0xcfeef0, transparent: true, opacity: 0.2, roughness: 0.02, metalness: 0, envMapIntensity: 2.2, side: THREE.DoubleSide, depthWrite: false });
     for (const x of [-30, -18, 18, 30]) {
       const s = new THREE.SpotLight(0xffc890, 12, 30, 0.55, 0.7, 1.2);
@@ -496,7 +512,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     });
 
     // ── Ground ──
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 240), new THREE.MeshPhysicalMaterial({ map: tileTexture(), roughness: 0.38, clearcoat: 0.35, clearcoatRoughness: 0.35, color: 0x8c857c }));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 240), new THREE.MeshPhysicalMaterial({ map: tileTexture(), roughness: 0.22, metalness: 0.2, clearcoat: 0.7, clearcoatRoughness: 0.2, color: 0x8c857c }));
     ground.rotation.x = -Math.PI / 2; ground.position.z = 30; scene.add(ground);
     (ground.material as THREE.MeshPhysicalMaterial).map!.repeat.set(48, 52);
 
@@ -506,7 +522,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const facadePiece = (x0: number, x1: number, y0: number, y1: number, depth = D) => {
       const map = fac.map.clone(), em = fac.emissive.clone(), gl = fac.gloss.clone();
       for (const t of [map, em, gl]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
-      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.3 });
+      const front = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.45 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, depth), [stone, stone, stone, stone, front, stone]);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, FZ - depth / 2);
       scene.add(mesh);
@@ -578,7 +594,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const wingSide = (sx: number, z0: number, z1: number) => {
       const len = z1 - z0, map = facWing.map.clone(), em = facWing.emissive.clone(), gl = facWing.gloss.clone();
       for (const t of [map, em, gl]) { t.wrapS = THREE.RepeatWrapping; t.repeat.set(len / W, 1); t.needsUpdate = true; }
-      const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.3 });
+      const inner = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.45 });
       const outer = inner.clone(); outer.color.set(0x7c86a3); outer.roughness = 0.6; outer.envMapIntensity = 0.55;
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(10, H, len), sx > 0 ? [outer, inner, stone, stone, stone, stone] : [inner, outer, stone, stone, stone, stone]);
       mesh.position.set(sx * (W / 2 + 5), H / 2, (z0 + z1) / 2); scene.add(mesh);
@@ -790,7 +806,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const entryPiece = (x0: number, x1: number, y0: number, y1: number) => {
       const map = fac.map.clone(), em = fac.emissive.clone(), gl = fac.gloss.clone();
       for (const t of [map, em, gl]) { t.repeat.set((x1 - x0) / W, (y1 - y0) / H); t.offset.set((x0 + W / 2) / W, y0 / H); t.needsUpdate = true; }
-      const face = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.3 });
+      const face = new THREE.MeshStandardMaterial({ map, emissiveMap: em, emissive: 0xffffff, color: 0x62657e, emissiveIntensity: 0.5, roughnessMap: gl, metalnessMap: gl, roughness: 1, metalness: 1, envMap, envMapIntensity: 0.45 });
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, D), [recessMat, recessMat, stone, recessMat, face, face]);
       mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, EZ + D / 2); scene.add(mesh);
     };
@@ -825,7 +841,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       const zc = document.createElement('canvas'); zc.width = 64; zc.height = 256; const zg = zc.getContext('2d')!;
       zg.fillStyle = '#cfc8c2'; zg.fillRect(0, 0, 64, 256); zg.fillStyle = '#7c3f3a'; for (let i = 0; i < 8; i++) zg.fillRect(0, i * 32 + 24, 64, 8);
       const zt = new THREE.CanvasTexture(zc); zt.colorSpace = THREE.SRGBColorSpace;
-      const zebra = new THREE.Mesh(new THREE.PlaneGeometry(22, 18), new THREE.MeshPhysicalMaterial({ map: zt, roughness: 0.32, clearcoat: 0.5, clearcoatRoughness: 0.3 }));
+      const zebra = new THREE.Mesh(new THREE.PlaneGeometry(22, 18), new THREE.MeshPhysicalMaterial({ map: zt, roughness: 0.14, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.1 }));
       zebra.rotation.x = -Math.PI / 2; zebra.position.set(0, 0.013, EZ + D + 12); scene.add(zebra);
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 9, 10), steel); pole.position.set(0, H + 4.5, EZ + D - 1); scene.add(pole);
       const fc = document.createElement('canvas'); fc.width = 600; fc.height = 300; const fg = fc.getContext('2d')!;
@@ -852,21 +868,24 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
       };
       flagWave(0);
 
-      // Raised marble floor through the lobby, with three granite steps down on each side
+      // Raised marble floor through the lobby, with the granite steps down on each side
       const slab = new THREE.Mesh(new THREE.BoxGeometry(PW - 0.8, LOBBY_Y, D + 3), marble); slab.position.set(0, LOBBY_Y / 2, EZ + D / 2); scene.add(slab);
       for (const side of [1, -1]) {
         const edge = side > 0 ? EZ + D + 1.5 : EZ - 1.5;
-        for (let i = 0; i < 2; i++) {
-          const hgt = LOBBY_Y * (2 - i) / 3, step = new THREE.Mesh(new THREE.BoxGeometry(PW - 0.8, hgt, 0.55), granite);
-          step.position.set(0, hgt / 2, edge + side * (0.275 + i * 0.55)); scene.add(step);
+        for (let i = 0; i < STEPS - 1; i++) {
+          const hgt = RISE * (STEPS - 1 - i), z = edge + side * (TREAD / 2 + i * TREAD), step = new THREE.Mesh(new THREE.BoxGeometry(PW - 0.8, hgt, TREAD), granite);
+          step.position.set(0, hgt / 2, z); scene.add(step);
+          // The pale nosing strip on each tread
+          const nose = new THREE.Mesh(new THREE.BoxGeometry(PW - 0.8, 0.012, 0.05), marble); nose.position.set(0, hgt + 0.006, z + side * (TREAD / 2 - 0.03)); scene.add(nose);
         }
+        const slope = Math.atan2(LOBBY_Y, STAIR_RUN), runLen = Math.hypot(LOBBY_Y, STAIR_RUN);
         // Glass balustrades with steel handrails either side of the middle arch, and marble planters beyond them
         for (const sx of [-1, 1]) {
-          const glassPanel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.0, 2.6), pane); glassPanel.position.set(sx * 3.5, LOBBY_Y + 0.5, edge + side * 0.2); scene.add(glassPanel);
-          const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.7, 10), chrome); rail.rotation.x = Math.PI / 2; rail.position.set(sx * 3.5, LOBBY_Y + 1.04, edge + side * 0.2); scene.add(rail);
-          for (const dz of [-1.25, 1.25]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.05, 8), chrome); post.position.set(sx * 3.5, LOBBY_Y + 0.52, edge + side * 0.2 + dz); scene.add(post); }
-          const planter = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.25, 1.5), marble); planter.position.set(sx * 4.75, 0.625, edge + side * 1.1); scene.add(planter);
-          for (let k = 0; k < 5; k++) { const leafMesh = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.95, 5), new THREE.MeshStandardMaterial({ color: k % 2 ? 0x8e2a2a : 0x3f6b35, roughness: 0.7 })); leafMesh.position.set(sx * 4.75 + Math.cos(k * 1.26) * 0.3, 1.65, edge + side * 1.1 + Math.sin(k * 1.26) * 0.3); leafMesh.rotation.set(Math.sin(k * 1.26) * 0.5, 0, -Math.cos(k * 1.26) * 0.5); scene.add(leafMesh); }
+          const glassPanel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.0, runLen), pane); glassPanel.position.set(sx * 3.5, LOBBY_Y / 2 + 0.6, edge + side * STAIR_RUN / 2); glassPanel.rotation.x = side * slope; scene.add(glassPanel);
+          const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, runLen + 0.2, 10), chrome); rail.rotation.x = Math.PI / 2 + side * slope; rail.position.set(sx * 3.5, LOBBY_Y / 2 + 1.14, edge + side * STAIR_RUN / 2); scene.add(rail);
+          for (const u of [0.04, 0.5, 0.96]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.1, 8), chrome); post.position.set(sx * 3.5, LOBBY_Y * (1 - u) + 0.58, edge + side * STAIR_RUN * u); scene.add(post); }
+          const planter = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.9, 1.7), marble); planter.position.set(sx * 4.75, 0.95, edge + side * (STAIR_RUN - 0.9)); scene.add(planter);
+          for (let k = 0; k < 5; k++) { const leafMesh = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.95, 5), new THREE.MeshStandardMaterial({ color: k % 2 ? 0x8e2a2a : 0x3f6b35, roughness: 0.7 })); leafMesh.position.set(sx * 4.75 + Math.cos(k * 1.26) * 0.3, 2.3, edge + side * (STAIR_RUN - 0.9) + Math.sin(k * 1.26) * 0.3); leafMesh.rotation.set(Math.sin(k * 1.26) * 0.5, 0, -Math.cos(k * 1.26) * 0.5); scene.add(leafMesh); }
         }
       }
       // The two metal-clad bridges that cross the lobby behind the arches, with glass railings
@@ -1626,7 +1645,7 @@ export const CourtyardJourney = forwardRef<CourtyardHandle, Props>(function Cour
     const stereo = new StereoEffect(renderer);
     const fp = { yaw: 0, pitch: 0, pos: new THREE.Vector3(), gyro: null as THREE.Quaternion | null, yawOffset: null as number | null, baseYaw: 0, basePitch: 0 };
     /** Height of the floor under a point: the lobby slab, with a short ramp over its steps */
-    const floorY = (x: number, z: number) => (Math.abs(x) > PW / 2 ? 0 : LOBBY_Y * THREE.MathUtils.clamp(Math.min(z - (EZ - 2.7), (EZ + D + 2.7) - z) / 1.2, 0, 1));
+    const floorY = (x: number, z: number) => (Math.abs(x) > PW / 2 ? 0 : LOBBY_Y * THREE.MathUtils.clamp(Math.min(z - (EZ - 1.5 - STAIR_RUN), (EZ + D + 1.5 + STAIR_RUN) - z) / STAIR_RUN, 0, 1));
     const keys = new Set<string>();
     /** The on-screen stick; a game controller's sticks are added to it */
     const stick = { x: 0, y: 0 }; let padA = false;
